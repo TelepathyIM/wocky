@@ -316,6 +316,9 @@ wocky_xmpp_reader_push(WockyXmppReader *reader,
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
 
   g_assert(!priv->error);
+  if (!priv->stream_mode) {
+    xmlClearParserCtxt(priv->parser);
+  }
   xmlParseChunk(priv->parser, (const char*)data, length, FALSE);
 
   return !priv->error;
