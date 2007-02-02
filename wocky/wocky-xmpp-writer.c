@@ -108,10 +108,10 @@ wocky_xmpp_writer_new(void) {
   return g_object_new(WOCKY_TYPE_XMPP_WRITER, NULL);
 }
 
-SalutXmppWriter *
-salut_xmpp_writer_new_no_stream(void) {
-  SalutXmppWriter *result =  g_object_new(SALUT_TYPE_XMPP_WRITER, NULL);
-  SalutXmppWriterPrivate *priv = SALUT_XMPP_WRITER_GET_PRIVATE (result);
+WockyXmppWriter *
+wocky_xmpp_writer_new_no_stream(void) {
+  WockyXmppWriter *result =  g_object_new(WOCKY_TYPE_XMPP_WRITER, NULL);
+  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (result);
 
   priv->stream_mode = FALSE;
 

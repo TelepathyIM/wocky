@@ -53,8 +53,10 @@ GType wocky_xmpp_reader_get_type(void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_READER, WockyXmppReaderClass))
 
 
-SalutXmppReader * salut_xmpp_reader_new(void);
-gboolean salut_xmpp_reader_push(SalutXmppReader *reader, 
+WockyXmppReader * wocky_xmpp_reader_new(void);
+WockyXmppReader * wocky_xmpp_reader_new_no_stream(void);
+
+gboolean wocky_xmpp_reader_push(WockyXmppReader *reader, 
                                 const guint8 *data, gsize length,
                                 GError **error);
 
