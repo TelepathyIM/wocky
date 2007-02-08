@@ -90,14 +90,23 @@ struct _WockyXmppReaderPrivate
 
 #define WOCKY_XMPP_READER_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_READER, WockyXmppReaderPrivate))
 
+
+static void
+wocky_init_xml_parser(WockyXmppReader *obj) {
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (obj);
+
+  xmlFreeParserCtxt(priv->parser);
+  priv->parser = xmlCreatePushParserCtxt(&parser_handler, obj, NULL, 0, NULL);
+  xmlCtxtUseOptions(priv->parser, XML_PARSE_NOENT);
+}
+
 static void
 wocky_xmpp_reader_init (WockyXmppReader *obj)
 {
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (obj);
 
   /* allocate any data required by the object here */
-  priv->parser = xmlCreatePushParserCtxt(&parser_handler, obj, NULL, 0, NULL);
-  xmlCtxtUseOptions(priv->parser, XML_PARSE_NOENT);
+  wocky_init_xml_parser(obj);
 
   priv->depth = 0;
   priv->stanza = NULL;
@@ -333,10 +342,12 @@ wocky_xmpp_reader_push(WockyXmppReader *reader,
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
 
   g_assert(!priv->error);
-  if (!priv->stream_mode) {
-    xmlClearParserCtxt(priv->parser);
-  }
+  DEBUG("Parsing chunk: %.*s", length, data);
+
   xmlParseChunk(priv->parser, (const char*)data, length, FALSE);
 
+ if (!priv->stream_mode) {
+    wocky_init_xml_parser(reader);
+  }
   return !priv->error;
 }
