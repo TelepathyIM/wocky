@@ -29,6 +29,9 @@
 
 G_DEFINE_TYPE(WockyXmppWriter, wocky_xmpp_writer, G_TYPE_OBJECT)
 
+#define DEBUG_FLAG DEBUG_XMPP_WRITER
+#include "wocky-debug.h"
+
 /* private structure */
 typedef struct _WockyXmppWriterPrivate WockyXmppWriterPrivate;
 
@@ -277,6 +280,8 @@ wocky_xmpp_writer_write_stanza(WockyXmppWriter *writer,
 
   *data = (const guint8 *)priv->buffer->content;
   *length  = priv->buffer->use;
+
+  DEBUG("Writing xml: %.*s", *length, *data);
 
   return TRUE;
 }
