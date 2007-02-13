@@ -35,8 +35,7 @@
 #define XMPP_STREAM_NAMESPACE "http://etherx.jabber.org/streams"
 
 static void _xmpp_connection_received_data(WockyTransport *transport,
-                                           const guint8 *data,
-                                           gsize length,
+                                           WockyBuffer *buffer,
                                            gpointer user_data);
 
 G_DEFINE_TYPE(WockyXmppConnection, wocky_xmpp_connection, G_TYPE_OBJECT)
@@ -185,8 +184,10 @@ wocky_xmpp_connection_new(WockyTransport *transport)  {
   result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, NULL);
   result->transport = g_object_ref(transport);
 
-  g_signal_connect(transport, "received",
-                    G_CALLBACK(_xmpp_connection_received_data), result);
+  wocky_transport_set_handler(transport,
+                               _xmpp_connection_received_data,
+                               result);
+
   return result;
 }
 
@@ -231,20 +232,20 @@ wocky_xmpp_connection_send(WockyXmppConnection *connection,
   return wocky_transport_send(connection->transport, data, length, error);
 }
 
-static void 
-_xmpp_connection_received_data(WockyTransport *transport,
-                               const guint8 *data, gsize length,
-                               gpointer user_data) {
+static void _xmpp_connection_received_data(WockyTransport *transport,
+                                           WockyBuffer *buffer,
+                                           gpointer user_data) {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
   WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
   gboolean ret;
   GError *error = NULL;
 
-  g_assert(length > 0);
+  g_assert(buffer->length > 0);
 
   /* Ensure we're not disposed inside while running the reader is busy */
   g_object_ref(self);
-  ret = wocky_xmpp_reader_push(priv->reader, data, length, &error);
+  ret = wocky_xmpp_reader_push(priv->reader, buffer->data, 
+                                buffer->length, &error);
   if (!ret) {
     g_signal_emit(self, signals[PARSE_ERROR], 0); 
   }
