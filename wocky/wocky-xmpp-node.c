@@ -130,6 +130,7 @@ wocky_xmpp_node_get_attribute(WockyXmppNode *node, const gchar *key) {
 void  
 wocky_xmpp_node_set_attribute(WockyXmppNode *node, 
                               const gchar *key, const gchar *value) {
+  g_assert(value != NULL);
   wocky_xmpp_node_set_attribute_n_ns(node, key, value, strlen(value), NULL);
 }
 
