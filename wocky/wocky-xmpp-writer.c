@@ -58,7 +58,7 @@ wocky_xmpp_writer_init (WockyXmppWriter *obj)
   priv->buffer = xmlBufferCreate();
   priv->xmlwriter = xmlNewTextWriterMemory(priv->buffer, 0);
   priv->stream_mode = TRUE;
-  xmlTextWriterSetIndent(priv->xmlwriter, 1);
+  //xmlTextWriterSetIndent(priv->xmlwriter, 1);
 }
 
 static void wocky_xmpp_writer_dispose (GObject *object);
@@ -284,7 +284,7 @@ wocky_xmpp_writer_write_stanza(WockyXmppWriter *writer,
   *data = (const guint8 *)priv->buffer->content;
   *length  = priv->buffer->use;
 
-  DEBUG("Writing xml: %.*s", *length, *data);
+  DEBUG("Writing xml: %.*s.", *length, *data);
 
   return TRUE;
 }
