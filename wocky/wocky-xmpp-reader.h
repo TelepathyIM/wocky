@@ -55,6 +55,7 @@ GType wocky_xmpp_reader_get_type(void);
 
 WockyXmppReader * wocky_xmpp_reader_new(void);
 WockyXmppReader * wocky_xmpp_reader_new_no_stream(void);
+void wocky_xmpp_reader_reset(WockyXmppReader *reader);
 
 gboolean wocky_xmpp_reader_push(WockyXmppReader *reader, 
                                 const guint8 *data, gsize length,
