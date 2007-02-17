@@ -63,7 +63,13 @@ WockyXmppConnection *wocky_xmpp_connection_new(WockyTransport *transport);
 void wocky_xmpp_connection_open(WockyXmppConnection *connection,
                                 const gchar *to, const gchar *from,
                                 const gchar *version);
+
+/* Prepare the connection for a reopen from the other side, for example after
+ * successfull SASL authentication */
+void wocky_xmpp_connection_restart(WockyXmppConnection *connection);
+
 void wocky_xmpp_connection_close(WockyXmppConnection *connection);
+
 gboolean wocky_xmpp_connection_send(WockyXmppConnection *connection, 
                                     WockyXmppStanza *stanza, 
                                     GError **error);

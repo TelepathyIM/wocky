@@ -212,6 +212,15 @@ wocky_xmpp_connection_open(WockyXmppConnection *connection,
   wocky_transport_send(connection->transport, data, length, NULL);
 }
 
+void
+wocky_xmpp_connection_restart(WockyXmppConnection *connection) {
+  WockyXmppConnectionPrivate *priv = 
+    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  g_assert(priv->stream_opened);
+  wocky_xmpp_reader_reset(priv->reader);
+}
+
 void 
 wocky_xmpp_connection_close(WockyXmppConnection *connection) {
   WockyXmppConnectionPrivate *priv = 
