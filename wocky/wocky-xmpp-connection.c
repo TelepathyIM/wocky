@@ -219,6 +219,7 @@ wocky_xmpp_connection_restart(WockyXmppConnection *connection) {
 
   g_assert(priv->stream_opened);
   wocky_xmpp_reader_reset(priv->reader);
+  priv->stream_opened = FALSE;
 }
 
 void 
