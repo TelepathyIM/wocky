@@ -184,11 +184,7 @@ wocky_xmpp_connection_new(WockyTransport *transport)  {
   WockyXmppConnection * result;
 
   result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, NULL);
-  result->transport = g_object_ref(transport);
-
-  wocky_transport_set_handler(transport,
-                               _xmpp_connection_received_data,
-                               result);
+  wocky_xmpp_connection_engage(result, transport);
 
   return result;
 }
@@ -231,6 +227,27 @@ wocky_xmpp_connection_close(WockyXmppConnection *connection) {
 
   wocky_xmpp_writer_stream_close(priv->writer, &data, &length);
   wocky_transport_send(connection->transport, data, length, NULL);
+}
+
+void 
+wocky_xmpp_connection_engage(WockyXmppConnection *connection, 
+    WockyTransport *transport) {
+  g_assert(connection->transport == NULL);
+
+  connection->transport = g_object_ref(transport);
+  wocky_transport_set_handler(transport,
+                               _xmpp_connection_received_data,
+                               connection);
+}
+
+void 
+wocky_xmpp_connection_disengage(WockyXmppConnection *connection) {
+  g_assert(connection->transport != NULL);
+
+  wocky_transport_set_handler(connection->transport, NULL, NULL);
+
+  g_object_unref(connection->transport);
+  connection->transport = NULL;
 }
 
 gboolean

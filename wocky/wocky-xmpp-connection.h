@@ -70,6 +70,11 @@ void wocky_xmpp_connection_restart(WockyXmppConnection *connection);
 
 void wocky_xmpp_connection_close(WockyXmppConnection *connection);
 
+void wocky_xmpp_connection_engage(WockyXmppConnection *connection,
+                                   WockyTransport *transport);
+
+void wocky_xmpp_connection_disengage(WockyXmppConnection *connection);
+
 gboolean wocky_xmpp_connection_send(WockyXmppConnection *connection, 
                                     WockyXmppStanza *stanza, 
                                     GError **error);
