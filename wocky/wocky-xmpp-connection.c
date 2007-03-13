@@ -52,6 +52,13 @@ enum
 
 static guint signals[LAST_SIGNAL] = {0};
 
+/* properties */
+enum 
+{ 
+  PROP_STREAMING,
+  LAST_PROPERTY
+};
+
 static void 
 _reader_stream_opened_cb(WockyXmppReader *reader, 
                          const gchar *to, const gchar *from,
@@ -72,27 +79,84 @@ struct _WockyXmppConnectionPrivate
 {
   WockyXmppReader *reader;
   WockyXmppWriter *writer;
+  gboolean streaming; 
   gboolean dispose_has_run;
   gboolean stream_opened;
 };
 
 #define WOCKY_XMPP_CONNECTION_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_CONNECTION, WockyXmppConnectionPrivate))
 
+static GObject *
+wocky_xmpp_connection_constructor(GType type,
+                                   guint n_construct_properties,
+                                   GObjectConstructparam *construct_properties)
+{
+  GObject *obj;
+  
+  obj = G_OBJECT_CLASS(wocky_xmpp_connection_parent_class)->
+        constructor(type, n_props, props);
+
+  priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (obj);
+
+  if (priv->streaming) { 
+    priv->writer = wocky_xmpp_writer_new();
+    priv->reader = wocky_xmpp_reader_new();
+    priv->stream_opened = FALSE;
+
+    g_signal_connect(priv->reader, "stream-opened", 
+                      G_CALLBACK(_reader_stream_opened_cb), obj);
+    g_signal_connect(priv->reader, "stream-closed", 
+                      G_CALLBACK(_reader_stream_closed_cb), obj);
+  } else {
+    priv->writer = wocky_xmpp_writer_new_no_stream();
+    priv->reader = wocky_xmpp_reader_new_no_stream();
+    priv->stream_opened = TRUE;
+  }  
+
+  g_signal_connect(priv->reader, "received-stanza", 
+                    G_CALLBACK(_reader_received_stanza_cb), obj);
+
+  return obj;
+}
+
+static void
+wocky_xmpp_connection_set_property (GObject     *object,
+                                     guint        property_id,
+                                     const GValue *value,
+                                     GParamSpec   *pspec)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION(object);
+  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE(conn);
+
+  switch (property_id) {
+    case PROP_STREAMING:
+      priv->streaming = g_value_get_boolean(value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+wocky_xmpp_connection_get_property (GObject     *object,
+                                     guint        property_id,
+                                     const GValue *value,
+                                     GParamSpec   *pspec) {
+  switch (property_id) {
+    case PROP_STREAMING:
+      g_value_set_boolean(value, priv->streaming);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
 static void
 wocky_xmpp_connection_init (WockyXmppConnection *obj) {
   WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (obj);
   obj->transport = NULL;
-
-  priv->writer = wocky_xmpp_writer_new();
-
-  priv->reader = wocky_xmpp_reader_new();
-  priv->stream_opened = FALSE;
-  g_signal_connect(priv->reader, "stream-opened", 
-                    G_CALLBACK(_reader_stream_opened_cb), obj);
-  g_signal_connect(priv->reader, "received-stanza", 
-                    G_CALLBACK(_reader_received_stanza_cb), obj);
-  g_signal_connect(priv->reader, "stream-closed", 
-                    G_CALLBACK(_reader_stream_closed_cb), obj);
 }
 
 static void wocky_xmpp_connection_dispose (GObject *object);
@@ -102,11 +166,17 @@ static void
 wocky_xmpp_connection_class_init (WockyXmppConnectionClass *wocky_xmpp_connection_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_connection_class);
+  GParamSpec *param_spec;
 
   g_type_class_add_private (wocky_xmpp_connection_class, sizeof (WockyXmppConnectionPrivate));
 
   object_class->dispose = wocky_xmpp_connection_dispose;
   object_class->finalize = wocky_xmpp_connection_finalize;
+
+  object_class->constructor = wocky_xmpp_connection_constructor;
+  object_class->get_property = wocky_xmpp_connection_get_property;
+  object_class->set_property = wocky_xmpp_connection_set_property;
+
 
   signals[STREAM_OPENED] = 
     g_signal_new("stream-opened", 
@@ -140,6 +210,19 @@ wocky_xmpp_connection_class_init (WockyXmppConnectionClass *wocky_xmpp_connectio
                  NULL, NULL,
                  g_cclosure_marshal_VOID__VOID,
                  G_TYPE_NONE, 0);
+
+  param_spec = g_param_spec_boolean ("streaming",
+                                     "streaming",
+                                     "Whether this is an streaming" 
+                                     "xmpp connection",
+                                     TRUE,
+                                     G_PARAM_CONSTRUCT_ONLY |
+                                     G_PARAM_READWRITE      |
+                                     G_PARAM_STATIC_NAME    |
+                                     G_PARAM_STATIC_BLURB);
+  g_object_class_install_property(object_class, PROP_STREAMING, param_spec);
+
+   
 }
 
 void
@@ -179,16 +262,28 @@ wocky_xmpp_connection_finalize (GObject *object) {
 }
 
 
-WockyXmppConnection *
-wocky_xmpp_connection_new(WockyTransport *transport)  {
+
+static WockyXmppConnection *
+new_connection(WockyTransport *transport, gboolean stream)  {
   WockyXmppConnection * result;
 
-  result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, NULL);
+  result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, "streaming", stream, NULL);
+
   if (transport != NULL) {
     wocky_xmpp_connection_engage(result, transport);
   }
 
   return result;
+}
+
+WockyXmppConnection *
+wocky_xmpp_connection_new(WockyTransport *transport) { 
+  return new_connection(transport, TRUE);
+}
+
+WockyXmppConnection *
+wocky_xmpp_connection_new_no_stream(WockyTransport *transport) {
+  return new_connection(transport, FALSE);
 }
 
 void 
