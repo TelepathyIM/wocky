@@ -184,7 +184,9 @@ wocky_xmpp_connection_new(WockyTransport *transport)  {
   WockyXmppConnection * result;
 
   result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, NULL);
-  wocky_xmpp_connection_engage(result, transport);
+  if (transport != NULL) {
+    wocky_xmpp_connection_engage(result, transport);
+  }
 
   return result;
 }
