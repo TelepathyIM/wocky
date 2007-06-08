@@ -60,9 +60,6 @@ GType wocky_xmpp_connection_get_type(void);
 
 
 WockyXmppConnection *wocky_xmpp_connection_new(WockyTransport *transport); 
-WockyXmppConnection *
-wocky_xmpp_connection_new_no_stream(WockyTransport *transport); 
-
 
 void wocky_xmpp_connection_open(WockyXmppConnection *connection,
                                 const gchar *to, const gchar *from,
