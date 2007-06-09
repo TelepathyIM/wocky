@@ -201,7 +201,7 @@ static WockyXmppConnection *
 new_connection(WockyTransport *transport, gboolean stream)  {
   WockyXmppConnection * result;
 
-  result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, "streaming", stream, NULL);
+  result = g_object_new(WOCKY_TYPE_XMPP_CONNECTION, NULL);
 
   if (transport != NULL) {
     wocky_xmpp_connection_engage(result, transport);
