@@ -259,7 +259,11 @@ wocky_xmpp_node_set_language_n(WockyXmppNode *node,
 
 void 
 wocky_xmpp_node_set_language(WockyXmppNode *node, const gchar *lang) {
-  wocky_xmpp_node_set_language_n(node, lang, strlen(lang));
+  gsize lang_size = 0;
+  if (lang != NULL) {
+    lang_size = strlen (lang);
+  }
+  wocky_xmpp_node_set_language_n(node, lang, lang_size);
 }
 
 
