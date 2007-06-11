@@ -54,10 +54,12 @@ wocky_xmpp_node_free(WockyXmppNode *node) {
 
   g_free(node->name);
   g_free(node->content);
+  g_free(node->language);
 
   for (l = node->children; l != NULL ; l = l->next) {
     wocky_xmpp_node_free((WockyXmppNode *)l->data);
   }
+  g_slist_free(node->children);
 
   for (l = node->attributes; l != NULL ; l = l->next) {
     Attribute *a = (Attribute *)l->data;
@@ -65,6 +67,8 @@ wocky_xmpp_node_free(WockyXmppNode *node) {
     g_free(a->value);
     g_slice_free(Attribute, a);
   }
+  g_slist_free(node->attributes);
+
   g_slice_free(WockyXmppNode, node);
 }
 
