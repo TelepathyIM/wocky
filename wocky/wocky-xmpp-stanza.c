@@ -110,9 +110,6 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
     {
       switch (arg)
         {
-        case WOCKY_STANZA_END:
-          goto END;
-
         case WOCKY_NODE_ATTRIBUTE:
           {
             gchar *key = va_arg (ap, gchar *);
@@ -171,7 +168,6 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
       arg = va_arg (ap, guint);
     }
 
-END:
   g_slist_free (stack);
 }
 
