@@ -36,6 +36,27 @@ struct _WockyXmppStanzaPrivate
 
 #define WOCKY_XMPP_STANZA_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_STANZA, WockyXmppStanzaPrivate))
 
+typedef struct {
+    WockyStanzaType type;
+    const gchar *name;
+} StanzaTypeName;
+
+static const StanzaTypeName type_names[LAST_WOCKY_STANZA_TYPE] =
+{
+    { WOCKY_STANZA_TYPE_NONE,               NULL },
+    { WOCKY_STANZA_TYPE_MESSAGE,            "message" },
+    { WOCKY_STANZA_TYPE_PRESENCE,           "presence" },
+    { WOCKY_STANZA_TYPE_IQ,                 "iq" },
+    { WOCKY_STANZA_TYPE_STREAM,             "stream" },
+    { WOCKY_STANZA_TYPE_STREAM_FEATURES,    "stream:features" },
+    { WOCKY_STANZA_TYPE_AUTH,               "auth" },
+    { WOCKY_STANZA_TYPE_CHALLENGE,          "challenge" },
+    { WOCKY_STANZA_TYPE_RESPONSE,           "response" },
+    { WOCKY_STANZA_TYPE_SUCCESS,            "success" },
+    { WOCKY_STANZA_TYPE_FAILURE,            "failure" },
+    { WOCKY_STANZA_TYPE_STREAM_ERROR,       "stream:error" },
+};
+
 static void
 wocky_xmpp_stanza_init (WockyXmppStanza *obj)
 {
@@ -170,44 +191,12 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
 const gchar *
 get_type_name (WockyStanzaType type)
 {
-  switch (type)
-    {
-      case WOCKY_STANZA_TYPE_MESSAGE:
-        return "message";
-        break;
-      case WOCKY_STANZA_TYPE_PRESENCE:
-        return "presence";
-        break;
-      case WOCKY_STANZA_TYPE_IQ:
-        return "iq";
-        break;
-      case WOCKY_STANZA_TYPE_STREAM:
-        return "stream:stream";
-        break;
-      case WOCKY_STANZA_TYPE_STREAM_FEATURES:
-        return "stream:features";
-        break;
-      case WOCKY_STANZA_TYPE_AUTH:
-        return "auth";
-        break;
-      case WOCKY_STANZA_TYPE_CHALLENGE:
-        return "challenge";
-        break;
-      case WOCKY_STANZA_TYPE_RESPONSE:
-        return "response";
-        break;
-      case WOCKY_STANZA_TYPE_SUCCESS:
-        return "success";
-        break;
-      case WOCKY_STANZA_TYPE_FAILURE:
-        return "failure";
-        break;
-      case WOCKY_STANZA_TYPE_STREAM_ERROR:
-        return "stream:error";
-        break;
-      default:
-        return NULL;
-    }
+  if (type < WOCKY_STANZA_TYPE_NONE ||
+      type >= LAST_WOCKY_STANZA_TYPE)
+    return NULL;
+
+  g_assert (type_names[type].type == type);
+  return type_names[type].name;
 }
 
 const gchar *
