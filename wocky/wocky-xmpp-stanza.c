@@ -36,7 +36,8 @@ struct _WockyXmppStanzaPrivate
 
 #define WOCKY_XMPP_STANZA_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_STANZA, WockyXmppStanzaPrivate))
 
-typedef struct {
+typedef struct
+{
     WockyStanzaType type;
     const gchar *name;
 } StanzaTypeName;
@@ -55,6 +56,32 @@ static const StanzaTypeName type_names[LAST_WOCKY_STANZA_TYPE] =
     { WOCKY_STANZA_TYPE_SUCCESS,            "success" },
     { WOCKY_STANZA_TYPE_FAILURE,            "failure" },
     { WOCKY_STANZA_TYPE_STREAM_ERROR,       "stream:error" },
+};
+
+typedef struct
+{
+  WockyStanzaSubType sub_type;
+  const gchar *name;
+} StanzaSubTypeName;
+
+static const StanzaSubTypeName sub_type_names[LAST_WOCKY_STANZA_SUB_TYPE] =
+{
+    { WOCKY_STANZA_SUB_TYPE_NONE,           NULL },
+    { WOCKY_STANZA_SUB_TYPE_AVAILABLE,      NULL },
+    { WOCKY_STANZA_SUB_TYPE_NORMAL,         "normal" },
+    { WOCKY_STANZA_SUB_TYPE_CHAT,           "chat" },
+    { WOCKY_STANZA_SUB_TYPE_GROUPCHAT,      "groupchat" },
+    { WOCKY_STANZA_SUB_TYPE_HEADLINE,       "headline" },
+    { WOCKY_STANZA_SUB_TYPE_UNAVAILABLE,    "unavailable" },
+    { WOCKY_STANZA_SUB_TYPE_PROBE,          "probe" },
+    { WOCKY_STANZA_SUB_TYPE_SUBSCRIBE,      "subscribe" },
+    { WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBE,    "unsubscribe" },
+    { WOCKY_STANZA_SUB_TYPE_SUBSCRIBED,     "subscribed" },
+    { WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBED,   "unsubscribed" },
+    { WOCKY_STANZA_SUB_TYPE_GET,            "get" },
+    { WOCKY_STANZA_SUB_TYPE_SET,            "set" },
+    { WOCKY_STANZA_SUB_TYPE_RESULT,         "result" },
+    { WOCKY_STANZA_SUB_TYPE_ERROR,          "error" },
 };
 
 static void
@@ -202,59 +229,12 @@ get_type_name (WockyStanzaType type)
 const gchar *
 get_sub_type_name (WockyStanzaSubType sub_type)
 {
-  switch (sub_type)
-    {
-      case WOCKY_STANZA_SUB_TYPE_NOT_SET:
-        return NULL;
-        break;
-      case WOCKY_STANZA_SUB_TYPE_AVAILABLE:
-        return NULL;
-        break;
-      case WOCKY_STANZA_SUB_TYPE_NORMAL:
-        return "normal";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_CHAT:
-        return "chat";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_GROUPCHAT:
-        return "groupchat";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_HEADLINE:
-        return "headline";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_UNAVAILABLE:
-        return "unavailable";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_PROBE:
-        return "probe";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_SUBSCRIBE:
-        return "subscribe";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBE:
-        return "unsubscribe";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_SUBSCRIBED:
-        return "subscribed";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBED:
-        return "unsubscribed";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_GET:
-        return "get";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_SET:
-        return "set";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_RESULT:
-        return "result";
-        break;
-      case WOCKY_STANZA_SUB_TYPE_ERROR:
-        return "error";
-        break;
-      default:
-        return NULL;
-    }
+  if (sub_type < WOCKY_STANZA_SUB_TYPE_NONE ||
+      sub_type >= LAST_WOCKY_STANZA_SUB_TYPE)
+    return NULL;
+
+  g_assert (sub_type_names[sub_type].sub_type == sub_type);
+  return sub_type_names[sub_type].name;
 }
 
 static WockyXmppStanza *
@@ -266,7 +246,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
 
   switch (sub_type)
     {
-      case WOCKY_STANZA_SUB_TYPE_NOT_SET:
+      case WOCKY_STANZA_SUB_TYPE_NONE:
         break;
       case WOCKY_STANZA_SUB_TYPE_AVAILABLE:
         g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
@@ -331,7 +311,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  * Example:
  *
  * wocky_xmpp_stanza_build (
- *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NOT_SET,
+ *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
  *    "alice@collabora.co.uk", "bob@collabora.co.uk",
  *    WOCKY_NODE, "html", "http://www.w3.org/1999/xhtml",
  *      WOCKY_NODE_XMLNS, 
