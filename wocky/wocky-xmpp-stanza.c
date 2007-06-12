@@ -63,26 +63,43 @@ typedef struct
 {
   WockyStanzaSubType sub_type;
   const gchar *name;
+  WockyStanzaType type;
 } StanzaSubTypeName;
 
 static const StanzaSubTypeName sub_type_names[LAST_WOCKY_STANZA_SUB_TYPE] =
 {
-    { WOCKY_STANZA_SUB_TYPE_NONE,           NULL },
-    { WOCKY_STANZA_SUB_TYPE_AVAILABLE,      NULL },
-    { WOCKY_STANZA_SUB_TYPE_NORMAL,         "normal" },
-    { WOCKY_STANZA_SUB_TYPE_CHAT,           "chat" },
-    { WOCKY_STANZA_SUB_TYPE_GROUPCHAT,      "groupchat" },
-    { WOCKY_STANZA_SUB_TYPE_HEADLINE,       "headline" },
-    { WOCKY_STANZA_SUB_TYPE_UNAVAILABLE,    "unavailable" },
-    { WOCKY_STANZA_SUB_TYPE_PROBE,          "probe" },
-    { WOCKY_STANZA_SUB_TYPE_SUBSCRIBE,      "subscribe" },
-    { WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBE,    "unsubscribe" },
-    { WOCKY_STANZA_SUB_TYPE_SUBSCRIBED,     "subscribed" },
-    { WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBED,   "unsubscribed" },
-    { WOCKY_STANZA_SUB_TYPE_GET,            "get" },
-    { WOCKY_STANZA_SUB_TYPE_SET,            "set" },
-    { WOCKY_STANZA_SUB_TYPE_RESULT,         "result" },
-    { WOCKY_STANZA_SUB_TYPE_ERROR,          "error" },
+    { WOCKY_STANZA_SUB_TYPE_NONE,           NULL,
+        WOCKY_STANZA_TYPE_NONE },
+    { WOCKY_STANZA_SUB_TYPE_AVAILABLE,
+        NULL, WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_NORMAL,         "normal",
+        WOCKY_STANZA_TYPE_NONE },
+    { WOCKY_STANZA_SUB_TYPE_CHAT,           "chat",
+        WOCKY_STANZA_TYPE_MESSAGE },
+    { WOCKY_STANZA_SUB_TYPE_GROUPCHAT,      "groupchat",
+        WOCKY_STANZA_TYPE_MESSAGE },
+    { WOCKY_STANZA_SUB_TYPE_HEADLINE,       "headline",
+        WOCKY_STANZA_TYPE_MESSAGE },
+    { WOCKY_STANZA_SUB_TYPE_UNAVAILABLE,    "unavailable",
+        WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_PROBE,          "probe",
+        WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_SUBSCRIBE,      "subscribe",
+        WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBE,    "unsubscribe",
+        WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_SUBSCRIBED,     "subscribed",
+        WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBED,   "unsubscribed",
+        WOCKY_STANZA_TYPE_PRESENCE },
+    { WOCKY_STANZA_SUB_TYPE_GET,            "get",
+        WOCKY_STANZA_TYPE_IQ },
+    { WOCKY_STANZA_SUB_TYPE_SET,            "set",
+        WOCKY_STANZA_TYPE_IQ },
+    { WOCKY_STANZA_SUB_TYPE_RESULT,         "result",
+        WOCKY_STANZA_TYPE_IQ },
+    { WOCKY_STANZA_SUB_TYPE_ERROR,          "error",
+        WOCKY_STANZA_TYPE_NONE },
 };
 
 static void
@@ -216,7 +233,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
   g_slist_free (stack);
 }
 
-const gchar *
+static const gchar *
 get_type_name (WockyStanzaType type)
 {
   if (type < WOCKY_STANZA_TYPE_NONE ||
@@ -227,7 +244,7 @@ get_type_name (WockyStanzaType type)
   return type_names[type].name;
 }
 
-const gchar *
+static const gchar *
 get_sub_type_name (WockyStanzaSubType sub_type)
 {
   if (sub_type < WOCKY_STANZA_SUB_TYPE_NONE ||
@@ -238,6 +255,23 @@ get_sub_type_name (WockyStanzaSubType sub_type)
   return sub_type_names[sub_type].name;
 }
 
+static gboolean
+check_sub_type (WockyStanzaType type,
+                WockyStanzaSubType sub_type)
+{
+  g_return_val_if_fail (type >= WOCKY_STANZA_TYPE_NONE &&
+      type < LAST_WOCKY_STANZA_TYPE, FALSE);
+  g_return_val_if_fail (sub_type >= WOCKY_STANZA_SUB_TYPE_NONE &&
+      sub_type < LAST_WOCKY_STANZA_SUB_TYPE, FALSE);
+
+  g_assert (sub_type_names[sub_type].sub_type == sub_type);
+  g_return_val_if_fail (
+      sub_type_names[sub_type].type == WOCKY_STANZA_TYPE_NONE ||
+      sub_type_names[sub_type].type == type, FALSE);
+
+  return TRUE;
+}
+
 static WockyXmppStanza *
 wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
                                       WockyStanzaSubType sub_type)
@@ -245,56 +279,8 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
   WockyXmppStanza *stanza = NULL;
   const gchar *sub_type_name;
 
-  switch (sub_type)
-    {
-      case WOCKY_STANZA_SUB_TYPE_NONE:
-        break;
-      case WOCKY_STANZA_SUB_TYPE_AVAILABLE:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_NORMAL:
-        break;
-      case WOCKY_STANZA_SUB_TYPE_CHAT:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_MESSAGE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_GROUPCHAT:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_MESSAGE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_HEADLINE:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_UNAVAILABLE:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_PROBE:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_SUBSCRIBE:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBE:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_SUBSCRIBED:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBED:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_PRESENCE, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_GET:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_IQ, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_SET:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_IQ, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_RESULT:
-        g_return_val_if_fail (type == WOCKY_STANZA_TYPE_IQ, NULL);
-        break;
-      case WOCKY_STANZA_SUB_TYPE_ERROR:
-        break;
-      default:
-        return NULL;
-    }
+  if (!check_sub_type (type, sub_type))
+    return NULL;
 
   stanza = wocky_xmpp_stanza_new (get_type_name (type));
 
