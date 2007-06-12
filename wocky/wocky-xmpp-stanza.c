@@ -152,12 +152,8 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
 
         case WOCKY_NODE_END:
           {
-            GSList *tmp;
-
-            tmp = stack;
-            stack = stack->next;
-            tmp->next = NULL;
-            g_slist_free (tmp);
+            /* delete the top of the stack */
+            stack = g_slist_delete_link (stack, stack);
           }
           break;
 
