@@ -41,22 +41,23 @@ typedef struct
 {
     WockyStanzaType type;
     const gchar *name;
+    const gchar *ns;
 } StanzaTypeName;
 
 static const StanzaTypeName type_names[LAST_WOCKY_STANZA_TYPE] =
 {
-    { WOCKY_STANZA_TYPE_NONE,               NULL },
-    { WOCKY_STANZA_TYPE_MESSAGE,            "message" },
-    { WOCKY_STANZA_TYPE_PRESENCE,           "presence" },
-    { WOCKY_STANZA_TYPE_IQ,                 "iq" },
-    { WOCKY_STANZA_TYPE_STREAM,             "stream" },
-    { WOCKY_STANZA_TYPE_STREAM_FEATURES,    "features" },
-    { WOCKY_STANZA_TYPE_AUTH,               "auth" },
-    { WOCKY_STANZA_TYPE_CHALLENGE,          "challenge" },
-    { WOCKY_STANZA_TYPE_RESPONSE,           "response" },
-    { WOCKY_STANZA_TYPE_SUCCESS,            "success" },
-    { WOCKY_STANZA_TYPE_FAILURE,            "failure" },
-    { WOCKY_STANZA_TYPE_STREAM_ERROR,       "error" },
+    { WOCKY_STANZA_TYPE_NONE,            NULL,        NULL },
+    { WOCKY_STANZA_TYPE_MESSAGE,         "message",   NULL },
+    { WOCKY_STANZA_TYPE_PRESENCE,        "presence",  NULL },
+    { WOCKY_STANZA_TYPE_IQ,              "iq",        NULL },
+    { WOCKY_STANZA_TYPE_STREAM,          "stream",    WOCKY_XMPP_NS_STREAM },
+    { WOCKY_STANZA_TYPE_STREAM_FEATURES, "features",  WOCKY_XMPP_NS_STREAM },
+    { WOCKY_STANZA_TYPE_AUTH,            "auth",      NULL },
+    { WOCKY_STANZA_TYPE_CHALLENGE,       "challenge", NULL },
+    { WOCKY_STANZA_TYPE_RESPONSE,        "response",  NULL },
+    { WOCKY_STANZA_TYPE_SUCCESS,         "success",   NULL },
+    { WOCKY_STANZA_TYPE_FAILURE,         "failure",   NULL },
+    { WOCKY_STANZA_TYPE_STREAM_ERROR,    "error",     WOCKY_XMPP_NS_STREAM },
 };
 
 typedef struct
@@ -245,6 +246,17 @@ get_type_name (WockyStanzaType type)
 }
 
 static const gchar *
+get_type_ns (WockyStanzaType type)
+{
+  if (type < WOCKY_STANZA_TYPE_NONE ||
+      type >= LAST_WOCKY_STANZA_TYPE)
+    return NULL;
+
+  g_assert (type_names[type].type == type);
+  return type_names[type].ns;
+}
+
+static const gchar *
 get_sub_type_name (WockyStanzaSubType sub_type)
 {
   if (sub_type < WOCKY_STANZA_SUB_TYPE_NONE ||
@@ -283,11 +295,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
     return NULL;
 
   stanza = wocky_xmpp_stanza_new (get_type_name (type));
-
-  if (type == WOCKY_STANZA_TYPE_STREAM_FEATURES ||
-      type == WOCKY_STANZA_TYPE_STREAM ||
-      type == WOCKY_STANZA_TYPE_STREAM_ERROR)
-    wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_STREAM);
+  wocky_xmpp_node_set_ns (stanza->node, get_type_ns (type));
 
   sub_type_name = get_sub_type_name (sub_type);
   if (sub_type_name != NULL)
