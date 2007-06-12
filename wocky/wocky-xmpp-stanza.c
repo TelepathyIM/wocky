@@ -23,6 +23,7 @@
 #include <stdlib.h>
 
 #include "wocky-xmpp-stanza.h"
+#include "wocky-namespaces.h"
 
 G_DEFINE_TYPE(WockyXmppStanza, wocky_xmpp_stanza, G_TYPE_OBJECT)
 
@@ -49,13 +50,13 @@ static const StanzaTypeName type_names[LAST_WOCKY_STANZA_TYPE] =
     { WOCKY_STANZA_TYPE_PRESENCE,           "presence" },
     { WOCKY_STANZA_TYPE_IQ,                 "iq" },
     { WOCKY_STANZA_TYPE_STREAM,             "stream" },
-    { WOCKY_STANZA_TYPE_STREAM_FEATURES,    "stream:features" },
+    { WOCKY_STANZA_TYPE_STREAM_FEATURES,    "features" },
     { WOCKY_STANZA_TYPE_AUTH,               "auth" },
     { WOCKY_STANZA_TYPE_CHALLENGE,          "challenge" },
     { WOCKY_STANZA_TYPE_RESPONSE,           "response" },
     { WOCKY_STANZA_TYPE_SUCCESS,            "success" },
     { WOCKY_STANZA_TYPE_FAILURE,            "failure" },
-    { WOCKY_STANZA_TYPE_STREAM_ERROR,       "stream:error" },
+    { WOCKY_STANZA_TYPE_STREAM_ERROR,       "error" },
 };
 
 typedef struct
@@ -296,6 +297,11 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
     }
 
   stanza = wocky_xmpp_stanza_new (get_type_name (type));
+
+  if (type == WOCKY_STANZA_TYPE_STREAM_FEATURES ||
+      type == WOCKY_STANZA_TYPE_STREAM ||
+      type == WOCKY_STANZA_TYPE_STREAM_ERROR)
+    wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_STREAM);
 
   sub_type_name = get_sub_type_name (sub_type);
   if (sub_type_name != NULL)
