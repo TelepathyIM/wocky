@@ -1,4 +1,7 @@
 
+#ifndef __WOCKY_NAMESPACES_H__
+#define __WOCKY_NAMESPACES_H__
+
 #define WOCKY_XMPP_NS_STREAM \
   (const gchar *)"http://etherx.jabber.org/streams"
 
@@ -13,3 +16,5 @@
 
 #define WOCKY_W3C_NS_XHTML \
   (const gchar *)"http://www.w3.org/1999/xhtml"
+
+#endif /* #ifndef __WOCKY_NAMESPACES_H__ */
