@@ -92,7 +92,7 @@ typedef enum
   LAST_WOCKY_STANZA_SUB_TYPE
 } WockyStanzaSubType;
 
-enum
+typedef enum
 {
   WOCKY_NODE,
   WOCKY_NODE_TEXT,
@@ -100,7 +100,7 @@ enum
   WOCKY_NODE_ATTRIBUTE,
   WOCKY_NODE_XMLNS,
   WOCKY_STANZA_END
-};
+} WockyBuildTag;
 
 WockyXmppStanza *
 wocky_xmpp_stanza_new(const gchar *name);

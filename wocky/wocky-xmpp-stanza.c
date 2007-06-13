@@ -166,10 +166,11 @@ wocky_xmpp_stanza_new (const gchar *name)
 }
 
 static void
-wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
+wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
+                                 WockyBuildTag arg,
+                                 va_list ap)
 {
   GSList *stack = NULL;
-  guint arg = spec;
 
   stack = g_slist_prepend (stack, node);
 
@@ -228,7 +229,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node, guint spec, va_list ap)
           g_assert_not_reached ();
         }
 
-      arg = va_arg (ap, guint);
+      arg = va_arg (ap, WockyBuildTag);
     }
 
   g_slist_free (stack);
@@ -337,7 +338,7 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
                           WockyStanzaSubType sub_type,
                           const gchar *from,
                           const gchar *to,
-                          guint spec,
+                          WockyBuildTag spec,
                           ...)
 
 {
