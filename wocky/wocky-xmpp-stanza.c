@@ -166,7 +166,7 @@ wocky_xmpp_stanza_new (const gchar *name)
   return result;
 }
 
-static void
+static gboolean
 wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
                                  WockyBuildTag arg,
                                  va_list ap)
@@ -184,8 +184,8 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
             gchar *key = va_arg (ap, gchar *);
             gchar *value = va_arg (ap, gchar *);
 
-            wocky_goto_if_fail (key != NULL, END);
-            wocky_goto_if_fail (value != NULL, END);
+            wocky_goto_if_fail (key != NULL, error_build_parsing);
+            wocky_goto_if_fail (value != NULL, error_build_parsing);
             wocky_xmpp_node_set_attribute (stack->data, key, value);
           }
           break;
@@ -195,7 +195,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
             gchar *name = va_arg (ap, gchar *);
             WockyXmppNode *child;
 
-            wocky_goto_if_fail (name != NULL, END);
+            wocky_goto_if_fail (name != NULL, error_build_parsing);
             child = wocky_xmpp_node_add_child (stack->data, name);
             stack = g_slist_prepend (stack, child);
           }
@@ -205,7 +205,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           {
             gchar *txt = va_arg (ap, gchar *);
 
-            wocky_goto_if_fail (txt != NULL, END);
+            wocky_goto_if_fail (txt != NULL, error_build_parsing);
             wocky_xmpp_node_set_content (stack->data, txt);
           }
           break;
@@ -214,7 +214,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           {
             gchar *ns = va_arg (ap, gchar *);
 
-            wocky_goto_if_fail (ns != NULL, END);
+            wocky_goto_if_fail (ns != NULL, error_build_parsing);
             wocky_xmpp_node_set_ns (stack->data, ns);
           }
           break;
@@ -227,14 +227,18 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           break;
 
         default:
-          wocky_goto_if_reached (END);
+          wocky_goto_if_reached (error_build_parsing);
         }
 
       arg = va_arg (ap, WockyBuildTag);
     }
 
-END:
   g_slist_free (stack);
+  return TRUE;
+
+error_build_parsing:
+  g_slist_free (stack);
+  return FALSE;
 }
 
 static const gchar *
@@ -361,7 +365,11 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
     wocky_xmpp_node_set_attribute (stanza->node, "to", to);
 
   va_start (ap, spec);
-  wocky_xmpp_stanza_add_build_va (stanza->node, spec, ap);
+  if (!wocky_xmpp_stanza_add_build_va (stanza->node, spec, ap))
+    {
+      g_object_unref (stanza);
+      stanza = NULL;
+    }
   va_end (ap);
 
   return stanza;
