@@ -24,6 +24,7 @@
 
 #include "wocky-xmpp-stanza.h"
 #include "wocky-namespaces.h"
+#include "wocky-debug.h"
 
 G_DEFINE_TYPE(WockyXmppStanza, wocky_xmpp_stanza, G_TYPE_OBJECT)
 
@@ -183,8 +184,8 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
             gchar *key = va_arg (ap, gchar *);
             gchar *value = va_arg (ap, gchar *);
 
-            g_return_if_fail (key != NULL);
-            g_return_if_fail (value != NULL);
+            wocky_goto_if_fail (key != NULL, END);
+            wocky_goto_if_fail (value != NULL, END);
             wocky_xmpp_node_set_attribute (stack->data, key, value);
           }
           break;
@@ -194,7 +195,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
             gchar *name = va_arg (ap, gchar *);
             WockyXmppNode *child;
 
-            g_return_if_fail (name != NULL);
+            wocky_goto_if_fail (name != NULL, END);
             child = wocky_xmpp_node_add_child (stack->data, name);
             stack = g_slist_prepend (stack, child);
           }
@@ -204,7 +205,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           {
             gchar *txt = va_arg (ap, gchar *);
 
-            g_return_if_fail (txt != NULL);
+            wocky_goto_if_fail (txt != NULL, END);
             wocky_xmpp_node_set_content (stack->data, txt);
           }
           break;
@@ -213,7 +214,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           {
             gchar *ns = va_arg (ap, gchar *);
 
-            g_return_if_fail (ns != NULL);
+            wocky_goto_if_fail (ns != NULL, END);
             wocky_xmpp_node_set_ns (stack->data, ns);
           }
           break;
@@ -226,12 +227,13 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           break;
 
         default:
-          g_return_if_reached ();
+          wocky_goto_if_reached (END);
         }
 
       arg = va_arg (ap, WockyBuildTag);
     }
 
+END:
   g_slist_free (stack);
 }
 
