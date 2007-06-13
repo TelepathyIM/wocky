@@ -14,6 +14,12 @@
 #define WOCKY_XMPP_NS_XHTML_IM \
   (const gchar *)"http://jabber.org/protocol/xhtml-im"
 
+#define WOCKY_XMPP_NS_IBB \
+  (const gchar *)"http://jabber.org/protocol/si"
+
+#define WOCKY_XMPP_NS_AMP \
+  (const gchar *)"http://jabber.org/protocol/amp"
+
 #define WOCKY_W3C_NS_XHTML \
   (const gchar *)"http://www.w3.org/1999/xhtml"
 
