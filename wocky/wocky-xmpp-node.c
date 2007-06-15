@@ -247,7 +247,8 @@ wocky_xmpp_node_get_ns(WockyXmppNode *node) {
 
 const gchar *
 wocky_xmpp_node_get_language(WockyXmppNode *node) {
-  return (node == NULL) ? NULL : node->language;
+  g_return_val_if_fail(node != NULL, NULL);
+  return node->language;
 }
 
 void 
