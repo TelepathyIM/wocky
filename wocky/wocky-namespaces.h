@@ -23,4 +23,7 @@
 #define WOCKY_W3C_NS_XHTML \
   (const gchar *)"http://www.w3.org/1999/xhtml"
 
+#define WOCKY_TELEPATHY_NS_TUBES \
+  (const gchar *)"http://telepathy.freedesktop.org/xmpp/tubes"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
