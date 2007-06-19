@@ -70,6 +70,8 @@ wocky_debug_stanza (DebugFlags flag,
                      const gchar *format,
                      ...)
 {
+  if (G_UNLIKELY(!initialized))
+    wocky_debug_set_flags_from_env();
   if (flag & flags)
     {
       va_list args;
