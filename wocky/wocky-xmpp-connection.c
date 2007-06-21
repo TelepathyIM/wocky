@@ -74,6 +74,7 @@ struct _WockyXmppConnectionPrivate
   WockyXmppWriter *writer;
   gboolean dispose_has_run;
   gboolean stream_opened;
+  guint last_id;
 };
 
 #define WOCKY_XMPP_CONNECTION_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_CONNECTION, WockyXmppConnectionPrivate))
@@ -106,8 +107,11 @@ wocky_xmpp_connection_constructor(GType type,
 }
 
 static void
-wocky_xmpp_connection_init (WockyXmppConnection *obj) {
+wocky_xmpp_connection_init (WockyXmppConnection *obj)
+{
+  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (obj);
   obj->transport = NULL;
+  priv->last_id = 0;
 }
 
 static void wocky_xmpp_connection_dispose (GObject *object);
@@ -340,4 +344,18 @@ _reader_received_stanza_cb(WockyXmppReader *reader, WockyXmppStanza *stanza,
                  gpointer user_data) {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
   g_signal_emit(self, signals[RECEIVED_STANZA], 0, stanza);
+}
+
+gchar *
+wocky_xmpp_connection_new_id (WockyXmppConnection *self)
+{
+  WockyXmppConnectionPrivate *priv =
+    WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+  GTimeVal tv;
+  glong val;
+
+  g_get_current_time (&tv);
+  val = (tv.tv_sec & tv.tv_usec) + priv->last_id++;
+
+  return g_strdup_printf ("%ld%ld", val, tv.tv_usec);
 }

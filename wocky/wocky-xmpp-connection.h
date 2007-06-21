@@ -80,6 +80,9 @@ gboolean wocky_xmpp_connection_send(WockyXmppConnection *connection,
                                     WockyXmppStanza *stanza, 
                                     GError **error);
 
+gchar *
+wocky_xmpp_connection_new_id (WockyXmppConnection *connection);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_CONNECTION_H__*/
