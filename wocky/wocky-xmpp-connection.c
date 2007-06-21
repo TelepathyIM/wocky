@@ -292,6 +292,15 @@ wocky_xmpp_connection_send(WockyXmppConnection *connection,
     WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
   const guint8 *data;
   gsize length;
+  const gchar *id;
+
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  if (id == NULL)
+    {
+      gchar *tmp = wocky_xmpp_connection_new_id (connection);
+      wocky_xmpp_node_set_attribute (stanza->node, "id", tmp);
+      g_free (tmp);
+    }
 
   if (!wocky_xmpp_writer_write_stanza(priv->writer, stanza,
                                       &data, &length, error)) {
