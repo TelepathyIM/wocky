@@ -203,6 +203,7 @@ wocky_xmpp_reader_finalize (GObject *object)
     priv->parser = NULL;
   }
   g_queue_free(priv->stanzas);
+  g_queue_free (priv->nodes);
   g_free(priv->to);
   g_free(priv->from);
   g_free(priv->version);
