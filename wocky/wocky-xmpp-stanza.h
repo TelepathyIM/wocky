@@ -111,6 +111,10 @@ WockyXmppStanza *
 wocky_xmpp_stanza_build (WockyStanzaType type, WockyStanzaSubType sub_type,
     const gchar *from, const gchar *to, guint spec, ...);
 
+void
+wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
+    WockyStanzaType *type, WockyStanzaSubType *sub_type);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_STANZA_H__*/

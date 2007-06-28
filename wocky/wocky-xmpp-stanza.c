@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "wocky-xmpp-stanza.h"
 #include "wocky-namespaces.h"
@@ -376,4 +377,66 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
   va_end (ap);
 
   return stanza;
+}
+
+void
+wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
+                                  WockyStanzaType *type,
+                                  WockyStanzaSubType *sub_type)
+{
+  g_return_if_fail (stanza != NULL);
+  WockyXmppNode *node = stanza->node;
+
+  if (node == NULL)
+    {
+      *type = WOCKY_STANZA_SUB_TYPE_NONE;
+      *sub_type = WOCKY_STANZA_SUB_TYPE_NONE;
+      return;
+    }
+
+  if (type != NULL)
+    {
+      guint i;
+
+      for (i = 0; i < LAST_WOCKY_STANZA_TYPE; i++)
+        {
+         if (type_names[i].name != NULL &&
+             strcmp (node->name, type_names[i].name) == 0)
+           {
+             *type = type_names[i].type;
+             break;
+           }
+        }
+
+      if (i == LAST_WOCKY_STANZA_TYPE)
+        /* We didn't find the type */
+        *type = WOCKY_STANZA_TYPE_UNKNOWN;
+    }
+
+  if (sub_type != NULL)
+    {
+      guint i;
+      const gchar *sub_type_str;
+
+      sub_type_str = wocky_xmpp_node_get_attribute (node, "type");
+      if (sub_type_str == NULL)
+        {
+          *sub_type = WOCKY_STANZA_SUB_TYPE_NONE;
+          return;
+        }
+
+      for (i = 0; i < LAST_WOCKY_STANZA_SUB_TYPE; i++)
+        {
+          if (sub_type_names[i].name != NULL &&
+              strcmp (sub_type_str, sub_type_names[i].name) == 0)
+            {
+              *sub_type = sub_type_names[i].sub_type;
+              return;
+            }
+        }
+
+      if (i == LAST_WOCKY_STANZA_SUB_TYPE)
+        /* We didn't find the sub type */
+        *sub_type = WOCKY_STANZA_SUB_TYPE_UNKNOWN;
+    }
 }
