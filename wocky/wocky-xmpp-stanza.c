@@ -379,15 +379,56 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
   return stanza;
 }
 
+static WockyStanzaType
+get_type_from_name (const gchar *name)
+{
+  guint i;
+
+  if (name == NULL)
+    return WOCKY_STANZA_TYPE_NONE;
+
+  /* We skip the first entry as it's NONE */
+  for (i = 1; i < WOCKY_STANZA_TYPE_UNKNOWN; i++)
+    {
+       if (type_names[i].name != NULL &&
+           strcmp (name, type_names[i].name) == 0)
+         {
+           return type_names[i].type;
+         }
+    }
+
+  return WOCKY_STANZA_TYPE_UNKNOWN;
+}
+
+static WockyStanzaSubType
+get_sub_type_from_name (const gchar *name)
+{
+  guint i;
+
+  if (name == NULL)
+    return WOCKY_STANZA_SUB_TYPE_NONE;
+
+  /* We skip the first entry as it's NONE */
+  for (i = 1; i < WOCKY_STANZA_SUB_TYPE_UNKNOWN; i++)
+    {
+      if (sub_type_names[i].name != NULL &&
+          strcmp (name, sub_type_names[i].name) == 0)
+        {
+          return sub_type_names[i].sub_type;
+        }
+    }
+
+  return WOCKY_STANZA_SUB_TYPE_UNKNOWN;
+}
+
 void
 wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
                                   WockyStanzaType *type,
                                   WockyStanzaSubType *sub_type)
 {
   g_return_if_fail (stanza != NULL);
-  WockyXmppNode *node = stanza->node;
 
-  if (node == NULL)
+  if (stanza->node == NULL)
     {
       *type = WOCKY_STANZA_SUB_TYPE_NONE;
       *sub_type = WOCKY_STANZA_SUB_TYPE_NONE;
@@ -395,48 +436,9 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
     }
 
   if (type != NULL)
-    {
-      guint i;
-
-      for (i = 0; i < NUM_WOCKY_STANZA_TYPE; i++)
-        {
-         if (type_names[i].name != NULL &&
-             strcmp (node->name, type_names[i].name) == 0)
-           {
-             *type = type_names[i].type;
-             break;
-           }
-        }
-
-      if (i == NUM_WOCKY_STANZA_TYPE)
-        /* We didn't find the type */
-        *type = WOCKY_STANZA_TYPE_UNKNOWN;
-    }
+    *type = get_type_from_name (stanza->node->name);
 
   if (sub_type != NULL)
-    {
-      guint i;
-      const gchar *sub_type_str;
-
-      sub_type_str = wocky_xmpp_node_get_attribute (node, "type");
-      if (sub_type_str == NULL)
-        {
-          *sub_type = WOCKY_STANZA_SUB_TYPE_NONE;
-          return;
-        }
-
-      for (i = 0; i < NUM_WOCKY_STANZA_SUB_TYPE; i++)
-        {
-          if (sub_type_names[i].name != NULL &&
-              strcmp (sub_type_str, sub_type_names[i].name) == 0)
-            {
-              *sub_type = sub_type_names[i].sub_type;
-              return;
-            }
-        }
-
-      if (i == NUM_WOCKY_STANZA_SUB_TYPE)
-        /* We didn't find the sub type */
-        *sub_type = WOCKY_STANZA_SUB_TYPE_UNKNOWN;
-    }
+    *sub_type = get_sub_type_from_name (wocky_xmpp_node_get_attribute (
+          stanza->node, "type"));
 }
