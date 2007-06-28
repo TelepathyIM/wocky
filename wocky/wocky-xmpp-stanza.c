@@ -427,13 +427,7 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
                                   WockyStanzaSubType *sub_type)
 {
   g_return_if_fail (stanza != NULL);
-
-  if (stanza->node == NULL)
-    {
-      *type = WOCKY_STANZA_SUB_TYPE_NONE;
-      *sub_type = WOCKY_STANZA_SUB_TYPE_NONE;
-      return;
-    }
+  g_assert (stanza->node != NULL);
 
   if (type != NULL)
     *type = get_type_from_name (stanza->node->name);
