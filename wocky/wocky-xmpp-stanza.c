@@ -59,6 +59,7 @@ static const StanzaTypeName type_names[LAST_WOCKY_STANZA_TYPE] =
     { WOCKY_STANZA_TYPE_SUCCESS,         "success",   NULL },
     { WOCKY_STANZA_TYPE_FAILURE,         "failure",   NULL },
     { WOCKY_STANZA_TYPE_STREAM_ERROR,    "error",     WOCKY_XMPP_NS_STREAM },
+    { WOCKY_STANZA_TYPE_UNKNOWN,         NULL,        NULL },
 };
 
 typedef struct
@@ -102,6 +103,8 @@ static const StanzaSubTypeName sub_type_names[LAST_WOCKY_STANZA_SUB_TYPE] =
         WOCKY_STANZA_TYPE_IQ },
     { WOCKY_STANZA_SUB_TYPE_ERROR,          "error",
         WOCKY_STANZA_TYPE_NONE },
+    { WOCKY_STANZA_SUB_TYPE_UNKNOWN,        NULL,
+        WOCKY_STANZA_TYPE_UNKNOWN },
 };
 
 static void
