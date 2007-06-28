@@ -46,7 +46,7 @@ typedef struct
     const gchar *ns;
 } StanzaTypeName;
 
-static const StanzaTypeName type_names[LAST_WOCKY_STANZA_TYPE] =
+static const StanzaTypeName type_names[NUM_WOCKY_STANZA_TYPE] =
 {
     { WOCKY_STANZA_TYPE_NONE,            NULL,        NULL },
     { WOCKY_STANZA_TYPE_MESSAGE,         "message",   NULL },
@@ -70,7 +70,7 @@ typedef struct
   WockyStanzaType type;
 } StanzaSubTypeName;
 
-static const StanzaSubTypeName sub_type_names[LAST_WOCKY_STANZA_SUB_TYPE] =
+static const StanzaSubTypeName sub_type_names[NUM_WOCKY_STANZA_SUB_TYPE] =
 {
     { WOCKY_STANZA_SUB_TYPE_NONE,           NULL,
         WOCKY_STANZA_TYPE_NONE },
@@ -249,7 +249,7 @@ static const gchar *
 get_type_name (WockyStanzaType type)
 {
   if (type < WOCKY_STANZA_TYPE_NONE ||
-      type >= LAST_WOCKY_STANZA_TYPE)
+      type >= NUM_WOCKY_STANZA_TYPE)
     return NULL;
 
   g_assert (type_names[type].type == type);
@@ -260,7 +260,7 @@ static const gchar *
 get_type_ns (WockyStanzaType type)
 {
   if (type < WOCKY_STANZA_TYPE_NONE ||
-      type >= LAST_WOCKY_STANZA_TYPE)
+      type >= NUM_WOCKY_STANZA_TYPE)
     return NULL;
 
   g_assert (type_names[type].type == type);
@@ -271,7 +271,7 @@ static const gchar *
 get_sub_type_name (WockyStanzaSubType sub_type)
 {
   if (sub_type < WOCKY_STANZA_SUB_TYPE_NONE ||
-      sub_type >= LAST_WOCKY_STANZA_SUB_TYPE)
+      sub_type >= NUM_WOCKY_STANZA_SUB_TYPE)
     return NULL;
 
   g_assert (sub_type_names[sub_type].sub_type == sub_type);
@@ -283,9 +283,9 @@ check_sub_type (WockyStanzaType type,
                 WockyStanzaSubType sub_type)
 {
   g_return_val_if_fail (type >= WOCKY_STANZA_TYPE_NONE &&
-      type < LAST_WOCKY_STANZA_TYPE, FALSE);
+      type < NUM_WOCKY_STANZA_TYPE, FALSE);
   g_return_val_if_fail (sub_type >= WOCKY_STANZA_SUB_TYPE_NONE &&
-      sub_type < LAST_WOCKY_STANZA_SUB_TYPE, FALSE);
+      sub_type < NUM_WOCKY_STANZA_SUB_TYPE, FALSE);
 
   g_assert (sub_type_names[sub_type].sub_type == sub_type);
   g_return_val_if_fail (
@@ -355,8 +355,8 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
   WockyXmppStanza *stanza;
   va_list ap;
 
-  g_return_val_if_fail (type < LAST_WOCKY_STANZA_TYPE, NULL);
-  g_return_val_if_fail (sub_type < LAST_WOCKY_STANZA_SUB_TYPE, NULL);
+  g_return_val_if_fail (type < NUM_WOCKY_STANZA_TYPE, NULL);
+  g_return_val_if_fail (sub_type < NUM_WOCKY_STANZA_SUB_TYPE, NULL);
 
   stanza = wocky_xmpp_stanza_new_with_sub_type (type, sub_type);
   if (stanza == NULL)
@@ -398,7 +398,7 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
     {
       guint i;
 
-      for (i = 0; i < LAST_WOCKY_STANZA_TYPE; i++)
+      for (i = 0; i < NUM_WOCKY_STANZA_TYPE; i++)
         {
          if (type_names[i].name != NULL &&
              strcmp (node->name, type_names[i].name) == 0)
@@ -408,7 +408,7 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
            }
         }
 
-      if (i == LAST_WOCKY_STANZA_TYPE)
+      if (i == NUM_WOCKY_STANZA_TYPE)
         /* We didn't find the type */
         *type = WOCKY_STANZA_TYPE_UNKNOWN;
     }
@@ -425,7 +425,7 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
           return;
         }
 
-      for (i = 0; i < LAST_WOCKY_STANZA_SUB_TYPE; i++)
+      for (i = 0; i < NUM_WOCKY_STANZA_SUB_TYPE; i++)
         {
           if (sub_type_names[i].name != NULL &&
               strcmp (sub_type_str, sub_type_names[i].name) == 0)
@@ -435,7 +435,7 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
             }
         }
 
-      if (i == LAST_WOCKY_STANZA_SUB_TYPE)
+      if (i == NUM_WOCKY_STANZA_SUB_TYPE)
         /* We didn't find the sub type */
         *sub_type = WOCKY_STANZA_SUB_TYPE_UNKNOWN;
     }
