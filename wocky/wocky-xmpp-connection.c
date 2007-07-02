@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "wocky-xmpp-connection.h"
-#include "wocky-xmpp-connection-signals-marshal.h"
+#include "signals-marshal.h"
 
 #include "wocky-xmpp-reader.h"
 #include "wocky-xmpp-writer.h"
@@ -135,7 +135,7 @@ wocky_xmpp_connection_class_init (WockyXmppConnectionClass *wocky_xmpp_connectio
                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
                  0,
                  NULL, NULL,
-                 wocky_xmpp_connection_marshal_VOID__STRING_STRING_STRING,
+                 _wocky_signals_marshal_VOID__STRING_STRING_STRING,
                  G_TYPE_NONE, 3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
   signals[STREAM_CLOSED] = 
     g_signal_new("stream-closed", 
