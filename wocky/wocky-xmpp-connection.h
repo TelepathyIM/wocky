@@ -31,6 +31,13 @@ G_BEGIN_DECLS
 typedef struct _WockyXmppConnection WockyXmppConnection;
 typedef struct _WockyXmppConnectionClass WockyXmppConnectionClass;
 
+
+#define WOCKY_XMPP_CONNECTION_STREAM_SENT 0x1
+#define WOCKY_XMPP_CONNECTION_STREAM_RECEIVED 0x2
+
+#define WOCKY_XMPP_CONNECTION_STREAM_FULLY_OPEN 0x3
+
+
 struct _WockyXmppConnectionClass {
     GObjectClass parent_class;
 };
@@ -38,7 +45,7 @@ struct _WockyXmppConnectionClass {
 struct _WockyXmppConnection {
     GObject parent;
     WockyTransport *transport;
-    gboolean stream_open;
+    guint8 stream_flags;
 };
 
 GType wocky_xmpp_connection_get_type(void);

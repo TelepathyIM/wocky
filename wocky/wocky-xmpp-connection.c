@@ -73,7 +73,6 @@ struct _WockyXmppConnectionPrivate
   WockyXmppReader *reader;
   WockyXmppWriter *writer;
   gboolean dispose_has_run;
-  gboolean stream_opened;
   guint last_id;
 };
 
@@ -94,7 +93,6 @@ wocky_xmpp_connection_constructor(GType type,
 
   priv->writer = wocky_xmpp_writer_new();
   priv->reader = wocky_xmpp_reader_new();
-  priv->stream_opened = FALSE;
 
   g_signal_connect(priv->reader, "stream-opened", 
                    G_CALLBACK(_reader_stream_opened_cb), obj);
@@ -233,24 +231,24 @@ wocky_xmpp_connection_open(WockyXmppConnection *connection,
   const guint8 *data;
   gsize length;
 
-  wocky_xmpp_writer_stream_open(priv->writer, to, from, 
+  g_assert((connection->stream_flags & WOCKY_XMPP_CONNECTION_STREAM_SENT)
+      == 0);
+
+  wocky_xmpp_writer_stream_open(priv->writer, to, from,
                                   version, &data, &length);
-  if (priv->stream_opened) {
-    /* Stream was already opened, ropening it */
-    wocky_xmpp_reader_reset(priv->reader);
-  }
-  priv->stream_opened = TRUE;
+  connection->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_SENT;
   wocky_transport_send(connection->transport, data, length, NULL);
 }
 
 void
 wocky_xmpp_connection_restart(WockyXmppConnection *connection) {
-  WockyXmppConnectionPrivate *priv = 
+  WockyXmppConnectionPrivate *priv =
     WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  g_assert(priv->stream_opened);
+  g_assert(connection->stream_flags
+      & WOCKY_XMPP_CONNECTION_STREAM_FULLY_OPEN);
   wocky_xmpp_reader_reset(priv->reader);
-  priv->stream_opened = FALSE;
+  connection->stream_flags = 0;
 }
 
 void 
@@ -336,6 +334,8 @@ _reader_stream_opened_cb(WockyXmppReader *reader,
                          const gchar *version,
                          gpointer user_data) {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
+
+  self->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_RECEIVED;
 
   g_signal_emit(self, signals[STREAM_OPENED], 0, to, from, version);
 }
