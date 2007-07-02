@@ -58,6 +58,7 @@ void
 auth_success(WockySaslAuth *sasl, gpointer user_data) {
   authenticated = TRUE;
   /* Reopen the connection */
+  wocky_xmpp_connection_restart(conn);
   wocky_xmpp_connection_open(conn, servername, NULL, "1.0");
 }
 
