@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "wocky-sasl-auth.h"
-#include "wocky-sasl-auth-signals-marshal.h"
+#include "signals-marshal.h"
 #include "wocky-namespaces.h"
 
 #include "libmd5-rfc/md5.h"
@@ -112,7 +112,7 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
                  G_SIGNAL_RUN_LAST,
                  0,
                  NULL, NULL,
-                 wocky_sasl_auth_marshal_STRING__VOID,
+                 _wocky_signals_marshal_STRING__VOID,
                  G_TYPE_STRING, 0);
 
   signals[PASSWORD_REQUESTED] = 
@@ -121,7 +121,7 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
                  G_SIGNAL_RUN_LAST,
                  0,
                  NULL, NULL,
-                 wocky_sasl_auth_marshal_STRING__VOID,
+                 _wocky_signals_marshal_STRING__VOID,
                  G_TYPE_STRING, 0);
   signals[AUTHENTICATION_SUCCEEDED] = 
     g_signal_new("authentication-succeeded",
@@ -137,7 +137,7 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
                  G_SIGNAL_RUN_LAST,
                  0,
                  NULL, NULL,
-                 wocky_sasl_auth_marshal_VOID__UINT_INT_STRING,
+                 _wocky_signals_marshal_VOID__UINT_INT_STRING,
                  G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
 
   object_class->dispose = wocky_sasl_auth_dispose;
