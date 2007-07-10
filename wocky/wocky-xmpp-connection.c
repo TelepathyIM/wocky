@@ -258,6 +258,8 @@ wocky_xmpp_connection_close(WockyXmppConnection *connection) {
   const guint8 *data;
   gsize length;
 
+  connection->stream_flags |= WOCKY_XMPP_CONNECTION_CLOSE_SENT;
+
   wocky_xmpp_writer_stream_close(priv->writer, &data, &length);
   wocky_transport_send(connection->transport, data, length, NULL);
 }
@@ -344,6 +346,8 @@ static void
 _reader_stream_closed_cb(WockyXmppReader *reader, 
                          gpointer user_data) {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
+
+  self->stream_flags |= WOCKY_XMPP_CONNECTION_CLOSE_RECEIVED;
 
   g_signal_emit(self, signals[STREAM_CLOSED], 0);
 }
