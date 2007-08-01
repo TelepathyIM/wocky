@@ -15,7 +15,7 @@
   (const gchar *)"http://jabber.org/protocol/xhtml-im"
 
 #define WOCKY_XMPP_NS_IBB \
-  (const gchar *)"http://jabber.org/protocol/si"
+  (const gchar *)"http://jabber.org/protocol/ibb"
 
 #define WOCKY_XMPP_NS_AMP \
   (const gchar *)"http://jabber.org/protocol/amp"
