@@ -26,4 +26,7 @@
 #define WOCKY_TELEPATHY_NS_TUBES \
   (const gchar *)"http://telepathy.freedesktop.org/xmpp/tubes"
 
+#define WOCKY_TELEPATHY_NS_OLPC_ACTIVITY_PROPS \
+  (const gchar *)"http://laptop.org/xmpp/activity-properties"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
