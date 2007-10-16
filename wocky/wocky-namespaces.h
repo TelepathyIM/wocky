@@ -29,4 +29,16 @@
 #define WOCKY_TELEPATHY_NS_OLPC_ACTIVITY_PROPS \
   (const gchar *)"http://laptop.org/xmpp/activity-properties"
 
+#define WOCKY_XMPP_NS_SI \
+  (const gchar *)"http://jabber.org/protocol/si"
+
+#define WOCKY_XMPP_NS_FEATURENEG \
+  (const gchar *)"http://jabber.org/protocol/feature-neg"
+
+#define WOCKY_XMPP_NS_DATA \
+  (const gchar *)"jabber:x:data"
+
+#define WOCKY_XMPP_NS_STANZAS \
+  (const gchar *)"urn:ietf:params:xml:ns:xmpp-stanzas"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
