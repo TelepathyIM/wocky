@@ -41,4 +41,7 @@
 #define WOCKY_XMPP_NS_STANZAS \
   (const gchar *)"urn:ietf:params:xml:ns:xmpp-stanzas"
 
+#define WOCKY_XMPP_NS_OOB \
+  (const gchar *)"jabber:iq:oob"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
