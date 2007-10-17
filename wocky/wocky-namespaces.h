@@ -44,4 +44,7 @@
 #define WOCKY_XMPP_NS_OOB \
   (const gchar *)"jabber:iq:oob"
 
+#define WOCKY_XMPP_NS_JINGLE_ERRORS \
+  (const gchar *)"http://jabber.org/protocol/jingle#errors"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
