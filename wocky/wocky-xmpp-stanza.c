@@ -230,6 +230,15 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           }
           break;
 
+        case WOCKY_NODE_ASSIGN_TO:
+          {
+            WockyXmppNode **dest = va_arg (ap, WockyXmppNode **);
+
+            wocky_goto_if_fail (dest != NULL, error_build_parsing);
+            *dest = stack->data;
+          }
+          break;
+
         default:
           wocky_goto_if_reached (error_build_parsing);
         }
