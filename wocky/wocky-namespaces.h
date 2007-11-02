@@ -47,7 +47,7 @@
 #define WOCKY_XMPP_NS_JINGLE_ERRORS \
   (const gchar *)"http://jabber.org/protocol/jingle#errors"
 
-#define WOCKY_TELEPATHY_NS_RMULTICAST \
-  (const gchar *)"http://telepathy.freedesktop.org/xmpp/ll/rmulticast"
+#define WOCKY_TELEPATHY_NS_CLIQUE \
+  (const gchar *)"http://telepathy.freedesktop.org/xmpp/clique"
 
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
