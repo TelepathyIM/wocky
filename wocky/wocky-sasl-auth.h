@@ -30,12 +30,12 @@ G_BEGIN_DECLS
 
 GQuark wocky_sasl_auth_error_quark (void);
 #define WOCKY_SASL_AUTH_ERROR \
-  wocky_sasl_auth_error_quark()
+  wocky_sasl_auth_error_quark ()
 
 typedef enum
 {
   /* Failed to initialize our sasl support */
-  WOCKY_SASL_AUTH_ERROR_INIT_FAILED, 
+  WOCKY_SASL_AUTH_ERROR_INIT_FAILED,
   /* Server doesn't support sasl (no mechanisms) */
   WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
   /* Server doesn't support any mechanisms that we support */
@@ -61,11 +61,11 @@ struct _WockySaslAuth {
     GObject parent;
 };
 
-GType wocky_sasl_auth_get_type(void);
+GType wocky_sasl_auth_get_type (void);
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_SASL_AUTH \
-  (wocky_sasl_auth_get_type())
+  (wocky_sasl_auth_get_type ())
 #define WOCKY_SASL_AUTH(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_SASL_AUTH, WockySaslAuth))
 #define WOCKY_SASL_AUTH_CLASS(klass) \
@@ -77,18 +77,15 @@ GType wocky_sasl_auth_get_type(void);
 #define WOCKY_SASL_AUTH_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_SASL_AUTH, WockySaslAuthClass))
 
-WockySaslAuth *wocky_sasl_auth_new(void);
+WockySaslAuth *wocky_sasl_auth_new (void);
 
 
 /* Initiate sasl auth. features should containt the stream features stanza as
- * receiver from the server */ 
-gboolean 
-wocky_sasl_auth_authenticate(WockySaslAuth *sasl,
-                              const gchar *server,
-                              WockyXmppConnection *connection,
-                              WockyXmppStanza *features,
-                              gboolean allow_plain,
-                              GError **error);
+ * receiver from the server */
+gboolean wocky_sasl_auth_authenticate (WockySaslAuth *sasl,
+    const gchar *server, WockyXmppConnection *connection,
+    WockyXmppStanza *features, gboolean allow_plain, GError **error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_SASL_AUTH_H__*/
