@@ -36,30 +36,32 @@ struct _WockyXmppReader {
     GObject parent;
 };
 
-GType wocky_xmpp_reader_get_type(void);
+GType wocky_xmpp_reader_get_type (void);
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_XMPP_READER \
-  (wocky_xmpp_reader_get_type())
+  (wocky_xmpp_reader_get_type ())
 #define WOCKY_XMPP_READER(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_READER, WockyXmppReader))
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_READER, \
+   WockyXmppReader))
 #define WOCKY_XMPP_READER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_READER, WockyXmppReaderClass))
+  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_READER,  \
+   WockyXmppReaderClass))
 #define WOCKY_IS_XMPP_READER(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_XMPP_READER))
 #define WOCKY_IS_XMPP_READER_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass), WOCKY_TYPE_XMPP_READER))
 #define WOCKY_XMPP_READER_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_READER, WockyXmppReaderClass))
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_READER, \
+   WockyXmppReaderClass))
 
 
-WockyXmppReader * wocky_xmpp_reader_new(void);
-WockyXmppReader * wocky_xmpp_reader_new_no_stream(void);
-void wocky_xmpp_reader_reset(WockyXmppReader *reader);
+WockyXmppReader * wocky_xmpp_reader_new (void);
+WockyXmppReader * wocky_xmpp_reader_new_no_stream (void);
+void wocky_xmpp_reader_reset (WockyXmppReader *reader);
 
-gboolean wocky_xmpp_reader_push(WockyXmppReader *reader, 
-                                const guint8 *data, gsize length,
-                                GError **error);
+gboolean wocky_xmpp_reader_push (WockyXmppReader *reader,
+    const guint8 *data, gsize length, GError **error);
 
 G_END_DECLS
 

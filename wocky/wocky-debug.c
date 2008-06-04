@@ -55,7 +55,7 @@ void wocky_debug (DebugFlags flag,
                    ...)
 {
   if (G_UNLIKELY(!initialized))
-    wocky_debug_set_flags_from_env();
+    wocky_debug_set_flags_from_env ();
   if (flag & flags)
     {
       va_list args;
@@ -72,7 +72,7 @@ wocky_debug_stanza (DebugFlags flag,
                      ...)
 {
   if (G_UNLIKELY(!initialized))
-    wocky_debug_set_flags_from_env();
+    wocky_debug_set_flags_from_env ();
   if (flag & flags)
     {
       va_list args;

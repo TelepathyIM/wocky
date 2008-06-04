@@ -54,47 +54,45 @@ struct _WockyXmppConnection {
     guint8 stream_flags;
 };
 
-GType wocky_xmpp_connection_get_type(void);
+GType wocky_xmpp_connection_get_type (void);
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_XMPP_CONNECTION \
-  (wocky_xmpp_connection_get_type())
+  (wocky_xmpp_connection_get_type ())
 #define WOCKY_XMPP_CONNECTION(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_CONNECTION, WockyXmppConnection))
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_CONNECTION, \
+   WockyXmppConnection))
 #define WOCKY_XMPP_CONNECTION_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_CONNECTION, WockyXmppConnectionClass))
+  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_CONNECTION, \
+   WockyXmppConnectionClass))
 #define WOCKY_IS_XMPP_CONNECTION(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_XMPP_CONNECTION))
 #define WOCKY_IS_XMPP_CONNECTION_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass), WOCKY_TYPE_XMPP_CONNECTION))
 #define WOCKY_XMPP_CONNECTION_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_CONNECTION, WockyXmppConnectionClass))
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_CONNECTION, \
+   WockyXmppConnectionClass))
 
+WockyXmppConnection *wocky_xmpp_connection_new (WockyTransport *transport);
 
-
-WockyXmppConnection *wocky_xmpp_connection_new(WockyTransport *transport); 
-
-void wocky_xmpp_connection_open(WockyXmppConnection *connection,
-                                const gchar *to, const gchar *from,
-                                const gchar *version);
+void wocky_xmpp_connection_open (WockyXmppConnection *connection,
+  const gchar *to, const gchar *from, const gchar *version);
 
 /* Prepare the connection for a reopen from the other side, for example after
  * successfull SASL authentication */
-void wocky_xmpp_connection_restart(WockyXmppConnection *connection);
+void wocky_xmpp_connection_restart (WockyXmppConnection *connection);
 
-void wocky_xmpp_connection_close(WockyXmppConnection *connection);
+void wocky_xmpp_connection_close (WockyXmppConnection *connection);
 
-void wocky_xmpp_connection_engage(WockyXmppConnection *connection,
-                                   WockyTransport *transport);
+void wocky_xmpp_connection_engage (WockyXmppConnection *connection,
+    WockyTransport *transport);
 
-void wocky_xmpp_connection_disengage(WockyXmppConnection *connection);
+void wocky_xmpp_connection_disengage (WockyXmppConnection *connection);
 
-gboolean wocky_xmpp_connection_send(WockyXmppConnection *connection, 
-                                    WockyXmppStanza *stanza, 
-                                    GError **error);
+gboolean wocky_xmpp_connection_send (WockyXmppConnection *connection,
+  WockyXmppStanza *stanza, GError **error);
 
-gchar *
-wocky_xmpp_connection_new_id (WockyXmppConnection *connection);
+gchar * wocky_xmpp_connection_new_id (WockyXmppConnection *connection);
 
 G_END_DECLS
 

@@ -153,7 +153,7 @@ wocky_xmpp_stanza_finalize (GObject *object)
   WockyXmppStanza *self = WOCKY_XMPP_STANZA (object);
 
   /* free any data held directly by the object here */
-  wocky_xmpp_node_free(self->node);
+  wocky_xmpp_node_free (self->node);
 
   G_OBJECT_CLASS (wocky_xmpp_stanza_parent_class)->finalize (object);
 }
@@ -164,8 +164,8 @@ wocky_xmpp_stanza_new (const gchar *name)
 {
   WockyXmppStanza *result;
 
-  result = WOCKY_XMPP_STANZA(g_object_new(WOCKY_TYPE_XMPP_STANZA, NULL));
-  result->node = wocky_xmpp_node_new(name); 
+  result = WOCKY_XMPP_STANZA (g_object_new (WOCKY_TYPE_XMPP_STANZA, NULL));
+  result->node = wocky_xmpp_node_new (name);
 
   return result;
 }

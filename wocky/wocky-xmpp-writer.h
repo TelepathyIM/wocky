@@ -38,39 +38,41 @@ struct _WockyXmppWriter {
     GObject parent;
 };
 
-GType wocky_xmpp_writer_get_type(void);
+GType wocky_xmpp_writer_get_type (void);
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_XMPP_WRITER \
-  (wocky_xmpp_writer_get_type())
+  (wocky_xmpp_writer_get_type ())
 #define WOCKY_XMPP_WRITER(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_WRITER, WockyXmppWriter))
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_WRITER, \
+  WockyXmppWriter))
 #define WOCKY_XMPP_WRITER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_WRITER, WockyXmppWriterClass))
+  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_WRITER, \
+   WockyXmppWriterClass))
 #define WOCKY_IS_XMPP_WRITER(obj) \
   (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_XMPP_WRITER))
 #define WOCKY_IS_XMPP_WRITER_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass), WOCKY_TYPE_XMPP_WRITER))
 #define WOCKY_XMPP_WRITER_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_WRITER, WockyXmppWriterClass))
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_WRITER, \
+   WockyXmppWriterClass))
 
 
-WockyXmppWriter *wocky_xmpp_writer_new(void);
-WockyXmppWriter *wocky_xmpp_writer_new_no_stream(void);
+WockyXmppWriter *wocky_xmpp_writer_new (void);
+WockyXmppWriter *wocky_xmpp_writer_new_no_stream (void);
 
-void wocky_xmpp_writer_stream_open(WockyXmppWriter *writer, 
-                                   const gchar *to, const gchar *from,  
-                                   const gchar *version,
-                                   const guint8 **data, gsize *length);
-void wocky_xmpp_writer_stream_close(WockyXmppWriter *writer,
-                                   const guint8 **data, gsize *length);
+void wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
+    const gchar *to, const gchar *from, const gchar *version,
+    const guint8 **data, gsize *length);
 
-gboolean wocky_xmpp_writer_write_stanza(WockyXmppWriter *writer, 
-                                        WockyXmppStanza *stanza,
-                                        const guint8 **data, gsize *length,
-                                        GError **error);
+void wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
+    const guint8 **data, gsize *length);
 
-void wocky_xmpp_writer_flush(WockyXmppWriter *writer);
+gboolean wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
+    WockyXmppStanza *stanza, const guint8 **data, gsize *length,
+    GError **error);
+
+void wocky_xmpp_writer_flush (WockyXmppWriter *writer);
 
 G_END_DECLS
 

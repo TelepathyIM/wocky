@@ -38,13 +38,14 @@ struct _WockyXmppStanza {
     WockyXmppNode *node;
 };
 
-GType wocky_xmpp_stanza_get_type(void);
+GType wocky_xmpp_stanza_get_type (void);
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_XMPP_STANZA \
-  (wocky_xmpp_stanza_get_type())
+  (wocky_xmpp_stanza_get_type ())
 #define WOCKY_XMPP_STANZA(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_STANZA, WockyXmppStanza))
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_XMPP_STANZA, \
+   WockyXmppStanza))
 #define WOCKY_XMPP_STANZA_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_XMPP_STANZA, WockyXmppStanzaClass))
 #define WOCKY_IS_XMPP_STANZA(obj) \
@@ -105,15 +106,13 @@ typedef enum
   WOCKY_STANZA_END
 } WockyBuildTag;
 
-WockyXmppStanza *
-wocky_xmpp_stanza_new(const gchar *name);
+WockyXmppStanza * wocky_xmpp_stanza_new (const gchar *name);
 
-WockyXmppStanza *
-wocky_xmpp_stanza_build (WockyStanzaType type, WockyStanzaSubType sub_type,
-    const gchar *from, const gchar *to, guint spec, ...);
+WockyXmppStanza * wocky_xmpp_stanza_build (WockyStanzaType type,
+    WockyStanzaSubType sub_type, const gchar *from, const gchar *to,
+    guint spec, ...);
 
-void
-wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
+void wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
     WockyStanzaType *type, WockyStanzaSubType *sub_type);
 
 G_END_DECLS
