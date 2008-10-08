@@ -3,64 +3,64 @@
 #define __WOCKY_NAMESPACES_H__
 
 #define WOCKY_XMPP_NS_STREAM \
-  (const gchar *)"http://etherx.jabber.org/streams"
+  "http://etherx.jabber.org/streams"
 
 #define WOCKY_XMPP_NS_TLS \
-  (const gchar *)"urn:ietf:params:xml:ns:xmpp-tls"
+  "urn:ietf:params:xml:ns:xmpp-tls"
 
 #define WOCKY_XMPP_NS_SASL_AUTH \
-  (const gchar *)"urn:ietf:params:xml:ns:xmpp-sasl"
+  "urn:ietf:params:xml:ns:xmpp-sasl"
 
 #define NS_DISCO_INFO \
-  (const gchar *)"http://jabber.org/protocol/disco#info"
+  "http://jabber.org/protocol/disco#info"
 
 #define NS_DISCO_ITEMS \
-  (const gchar *)"http://jabber.org/protocol/disco#items"
+  "http://jabber.org/protocol/disco#items"
 
 #define WOCKY_XMPP_NS_XHTML_IM \
-  (const gchar *)"http://jabber.org/protocol/xhtml-im"
+  "http://jabber.org/protocol/xhtml-im"
 
 #define WOCKY_XMPP_NS_IBB \
-  (const gchar *)"http://jabber.org/protocol/ibb"
+  "http://jabber.org/protocol/ibb"
 
 #define WOCKY_XMPP_NS_AMP \
-  (const gchar *)"http://jabber.org/protocol/amp"
+  "http://jabber.org/protocol/amp"
 
 #define WOCKY_W3C_NS_XHTML \
-  (const gchar *)"http://www.w3.org/1999/xhtml"
+  "http://www.w3.org/1999/xhtml"
 
 #define WOCKY_TELEPATHY_NS_CAPS \
-  (const gchar *)"http://telepathy.freedesktop.org/caps"
+  "http://telepathy.freedesktop.org/caps"
 
 #define WOCKY_TELEPATHY_NS_TUBES \
-  (const gchar *)"http://telepathy.freedesktop.org/xmpp/tubes"
+  "http://telepathy.freedesktop.org/xmpp/tubes"
 
 #define WOCKY_TELEPATHY_NS_OLPC_ACTIVITY_PROPS \
-  (const gchar *)"http://laptop.org/xmpp/activity-properties"
+  "http://laptop.org/xmpp/activity-properties"
 
 #define WOCKY_XMPP_NS_SI \
-  (const gchar *)"http://jabber.org/protocol/si"
+  "http://jabber.org/protocol/si"
 
 #define WOCKY_XMPP_NS_FEATURENEG \
-  (const gchar *)"http://jabber.org/protocol/feature-neg"
+  "http://jabber.org/protocol/feature-neg"
 
 #define WOCKY_XMPP_NS_DATA \
-  (const gchar *)"jabber:x:data"
+  "jabber:x:data"
 
 #define WOCKY_XMPP_NS_EVENT \
   (const gchar *)"jabber:x:event"
 
 #define WOCKY_XMPP_NS_STANZAS \
-  (const gchar *)"urn:ietf:params:xml:ns:xmpp-stanzas"
+  "urn:ietf:params:xml:ns:xmpp-stanzas"
 
 #define WOCKY_XMPP_NS_OOB \
-  (const gchar *)"jabber:iq:oob"
+  "jabber:iq:oob"
 
 #define WOCKY_XMPP_NS_JINGLE_ERRORS \
-  (const gchar *)"http://jabber.org/protocol/jingle#errors"
+  "http://jabber.org/protocol/jingle#errors"
 
 #define WOCKY_TELEPATHY_NS_CLIQUE \
-  (const gchar *)"http://telepathy.freedesktop.org/xmpp/clique"
+  "http://telepathy.freedesktop.org/xmpp/clique"
 
 #define WOCKY_XMPP_NS_OOB \
   (const gchar *)"jabber:iq:oob"
