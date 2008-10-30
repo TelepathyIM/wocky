@@ -38,6 +38,9 @@
 #define WOCKY_XMPP_NS_DATA \
   (const gchar *)"jabber:x:data"
 
+#define WOCKY_XMPP_NS_EVENT \
+  (const gchar *)"jabber:x:event"
+
 #define WOCKY_XMPP_NS_STANZAS \
   (const gchar *)"urn:ietf:params:xml:ns:xmpp-stanzas"
 
