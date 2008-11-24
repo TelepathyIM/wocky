@@ -48,7 +48,7 @@
   "jabber:x:data"
 
 #define WOCKY_XMPP_NS_EVENT \
-  (const gchar *)"jabber:x:event"
+  "jabber:x:event"
 
 #define WOCKY_XMPP_NS_STANZAS \
   "urn:ietf:params:xml:ns:xmpp-stanzas"
@@ -61,11 +61,5 @@
 
 #define WOCKY_TELEPATHY_NS_CLIQUE \
   "http://telepathy.freedesktop.org/xmpp/clique"
-
-#define WOCKY_XMPP_NS_OOB \
-  (const gchar *)"jabber:iq:oob"
-
-#define WOCKY_XMPP_NS_STANZAS \
-  (const gchar *)"urn:ietf:params:xml:ns:xmpp-stanzas"
 
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
