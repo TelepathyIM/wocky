@@ -271,7 +271,7 @@ wocky_sasl_auth_mechanisms_to_list (WockyXmppNode *mechanisms)
   return result;
 }
 
-gboolean
+static gboolean
 wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
   GSList *t;
   for (t = list ; t != NULL ; t = g_slist_next (t)) {
