@@ -29,7 +29,7 @@ typedef enum
 
 #define DEBUG_XMPP (DEBUG_XMPP_READER | DEBUG_XMPP_WRITER)
 
-void wocky_debug_set_flags_from_env ();
+void wocky_debug_set_flags_from_env (void);
 void wocky_debug_set_flags (DebugFlags flags);
 gboolean wocky_debug_flag_is_set (DebugFlags flag);
 void wocky_debug (DebugFlags flag, const gchar *format, ...)
