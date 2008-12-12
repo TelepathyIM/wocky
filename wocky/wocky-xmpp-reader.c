@@ -26,7 +26,7 @@
 #include <libxml/parser.h>
 
 #include "wocky-xmpp-reader.h"
-#include "signals-marshal.h"
+#include "wocky-signals-marshal.h"
 
 #include "wocky-xmpp-stanza.h"
 

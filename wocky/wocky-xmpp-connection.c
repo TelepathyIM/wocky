@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "wocky-xmpp-connection.h"
-#include "signals-marshal.h"
+#include "wocky-signals-marshal.h"
 
 #include "wocky-xmpp-reader.h"
 #include "wocky-xmpp-writer.h"
