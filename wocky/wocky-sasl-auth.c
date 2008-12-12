@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "wocky-sasl-auth.h"
-#include "signals-marshal.h"
+#include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 
 #include "libmd5-rfc/md5.h"
