@@ -6,6 +6,7 @@
 #include <wocky/wocky-sasl-auth.h>
 
 #include <check.h>
+#include "wocky-test.h"
 
 typedef struct {
   gchar *description;
@@ -40,9 +41,9 @@ got_error (GQuark domain, int code, const gchar *message)
   g_main_loop_quit (mainloop);
 }
 
-gboolean
+static gboolean
 send_hook (WockyTransport *transport, const guint8 *data,
-   gsize length, GError **error, gpointer user_data)
+   gsize length, GError **err, gpointer user_data)
 {
   WockyTransport *target =
      (servertransport == transport) ? clienttransport : servertransport;
@@ -51,14 +52,14 @@ send_hook (WockyTransport *transport, const guint8 *data,
   return TRUE;
 }
 
-gchar *
+static gchar *
 return_str (WockySaslAuth *auth, gpointer user_data)
 {
   return g_strdup (user_data);
 }
 
-void
-auth_success (WockySaslAuth *sasl, gpointer user_data)
+static void
+auth_success (WockySaslAuth *sasl_, gpointer user_data)
 {
   authenticated = TRUE;
   /* Reopen the connection */
@@ -66,8 +67,8 @@ auth_success (WockySaslAuth *sasl, gpointer user_data)
   wocky_xmpp_connection_open (conn, servername, NULL, "1.0");
 }
 
-void
-auth_failed (WockySaslAuth *sasl, GQuark domain,
+static void
+auth_failed (WockySaslAuth *sasl_, GQuark domain,
     int code, gchar *message, gpointer user_data)
 {
   got_error (domain, code, message);
@@ -100,7 +101,7 @@ received_stanza (WockyXmppConnection *connection, WockyXmppStanza *stanza,
 {
   if (sasl == NULL)
     {
-      GError *error = NULL;
+      GError *err = NULL;
       sasl = wocky_sasl_auth_new ();
 
       g_signal_connect (sasl, "username-requested",
@@ -113,15 +114,15 @@ received_stanza (WockyXmppConnection *connection, WockyXmppStanza *stanza,
           G_CALLBACK (auth_failed), NULL);
 
       if (!wocky_sasl_auth_authenticate (sasl, servername, connection, stanza,
-          current_test->allow_plain, &error))
+          current_test->allow_plain, &err))
         {
-          got_error (error->domain, error->code, error->message);
-          g_error_free (error);
+          got_error (err->domain, err->code, err->message);
+          g_error_free (err);
         }
     }
 }
 
-void
+static void
 run_rest (test_t *test)
 {
   TestSaslAuthServer *server;
