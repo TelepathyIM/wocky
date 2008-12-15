@@ -275,7 +275,7 @@ static gboolean
 wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
   GSList *t;
   for (t = list ; t != NULL ; t = g_slist_next (t)) {
-    if (!strcmp ((gchar *)t->data, mech)) {
+    if (!strcmp ((gchar *) t->data, mech)) {
       return TRUE;
     }
   }
@@ -385,7 +385,7 @@ digest_md5_generate_cnonce (void)
   for (i = 0; i < NR; i++)
     n[i] = g_random_int ();
 
-  return g_base64_encode ((guchar *)n, sizeof (n));
+  return g_base64_encode ((guchar *) n, sizeof (n));
 }
 
 static gchar *
@@ -506,7 +506,7 @@ digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   DEBUG ("Prepared response: %s", response);
 
-  response64 = g_base64_encode ((guchar *)response, strlen (response));
+  response64 = g_base64_encode ((guchar *) response, strlen (response));
 
   stanza = wocky_xmpp_stanza_new ("response");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
@@ -573,7 +573,7 @@ digest_md5_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza)
 
   if (stanza->node->content != NULL)
     {
-      challenge = (gchar *)g_base64_decode (stanza->node->content, &len);
+      challenge = (gchar *) g_base64_decode (stanza->node->content, &len);
       DEBUG("Got digest-md5 challenge: %s", challenge);
       h = digest_md5_challenge_to_hash (challenge);
       g_free (challenge);
@@ -613,7 +613,7 @@ digest_md5_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
     {
       /* TODO add a wocky xmpp node utility to either get the first child or
        * iterate the children list */
-      reason = (WockyXmppNode *)stanza->node->children->data;
+      reason = (WockyXmppNode *) stanza->node->children->data;
     }
   /* TODO Handle the different error cases in a different way. i.e.
    * make it clear for the user if it's credentials were wrong, if the server
@@ -668,7 +668,7 @@ plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
     {
       /* TODO add a wocky xmpp node utility to either get the first child or
        * iterate the children list */
-      reason = (WockyXmppNode *)stanza->node->children->data;
+      reason = (WockyXmppNode *) stanza->node->children->data;
     }
     /* TODO Handle the different error cases in a different way. i.e.
      * make it clear for the user if it's credentials were wrong, if the server
@@ -762,7 +762,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
         g_string_append (str, username);
         g_string_append_c (str, '\0');
         g_string_append (str, password);
-        cstr = g_base64_encode ((guchar *)str->str, str->len);
+        cstr = g_base64_encode ((guchar *) str->str, str->len);
 
         wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "PLAIN");
         wocky_xmpp_node_set_content (stanza->node, cstr);
