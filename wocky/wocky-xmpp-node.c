@@ -61,13 +61,13 @@ wocky_xmpp_node_free (WockyXmppNode *node)
 
   for (l = node->children; l != NULL ; l = l->next)
     {
-      wocky_xmpp_node_free ((WockyXmppNode *)l->data);
+      wocky_xmpp_node_free ((WockyXmppNode *) l->data);
     }
   g_slist_free (node->children);
 
   for (l = node->attributes; l != NULL ; l = l->next)
     {
-      Attribute *a = (Attribute *)l->data;
+      Attribute *a = (Attribute *) l->data;
       g_free (a->key);
       g_free (a->value);
       g_slice_free (Attribute, a);
@@ -85,7 +85,7 @@ wocky_xmpp_node_each_attribute (WockyXmppNode *node,
 
   for (l = node->attributes; l != NULL ; l = l->next)
     {
-      Attribute *a = (Attribute *)l->data;
+      Attribute *a = (Attribute *) l->data;
       if (!func (a->key, a->value, g_quark_to_string (a->ns), user_data))
         {
           return;
@@ -101,7 +101,7 @@ wocky_xmpp_node_each_child (WockyXmppNode *node,
 
   for (l = node->children; l != NULL ; l = l->next)
     {
-      WockyXmppNode *n = (WockyXmppNode *)l->data;
+      WockyXmppNode *n = (WockyXmppNode *) l->data;
       if (!func (n, user_data))
         {
           return;
@@ -131,12 +131,12 @@ wocky_xmpp_node_get_attribute_ns (WockyXmppNode *node,
   GSList *link;
   Tuple search;
 
-  search.key = (gchar *)key;
+  search.key = (gchar *) key;
   search.ns = (ns != NULL ? g_quark_from_string (ns) : 0);
 
   link = g_slist_find_custom (node->attributes, &search, attribute_compare);
 
-  return (link == NULL) ? NULL : ((Attribute *)(link->data))->value;
+  return (link == NULL) ? NULL : ((Attribute *) (link->data))->value;
 }
 
 const gchar *
@@ -183,7 +183,7 @@ static gint
 node_compare_child (gconstpointer a, gconstpointer b)
 {
   const WockyXmppNode *node = (const WockyXmppNode *)a;
-  Tuple *target = (Tuple *)b;
+  Tuple *target = (Tuple *) b;
 
   if (target->ns != 0 && target->ns != node->ns)
     {
@@ -205,7 +205,7 @@ wocky_xmpp_node_get_child_ns (WockyXmppNode *node, const gchar *name,
 
   link = g_slist_find_custom (node->children, &t, node_compare_child);
 
-  return (link == NULL) ? NULL : (WockyXmppNode *)(link->data);
+  return (link == NULL) ? NULL : (WockyXmppNode *) (link->data);
 }
 
 WockyXmppNode *
