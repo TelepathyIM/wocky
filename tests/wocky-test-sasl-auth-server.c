@@ -246,7 +246,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   priv->state = AUTH_STATE_CHALLENGE;
 
 
-  ret = sasl_server_start (priv->sasl_conn, mech, (gchar *)response,
+  ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
 
   CHECK_SASL_RETURN (ret);
@@ -260,7 +260,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           priv->state = AUTH_STATE_FINAL_CHALLENGE;
         }
 
-      challenge64 = g_base64_encode ((guchar *)challenge, challenge_len);
+      challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
 
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
@@ -307,7 +307,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       response = g_base64_decode (stanza->node->content, &response_len);
     }
 
-  ret = sasl_server_step (priv->sasl_conn, (gchar *)response,
+  ret = sasl_server_step (priv->sasl_conn, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
 
   CHECK_SASL_RETURN (ret);
@@ -322,7 +322,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           priv->state = AUTH_STATE_FINAL_CHALLENGE;
         }
 
-      challenge64 = g_base64_encode ((guchar *)challenge, challenge_len);
+      challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
 
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
