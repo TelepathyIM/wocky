@@ -8,9 +8,9 @@
 
 #include "wocky-xmpp-stanza.h"
 
-#ifdef ENABLE_DEBUG
-
 G_BEGIN_DECLS
+
+#ifdef ENABLE_DEBUG
 
 typedef enum
 {
@@ -70,4 +70,3 @@ void wocky_debug_stanza (DebugFlags flag, WockyXmppStanza *stanza,
 G_END_DECLS
 
 #endif
-
