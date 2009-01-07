@@ -5,6 +5,8 @@
 
 #include "wocky-debug.h"
 
+#ifdef ENABLE_DEBUG
+
 static DebugFlags flags = 0;
 static gboolean initialized = FALSE;
 
@@ -91,3 +93,5 @@ wocky_debug_stanza (DebugFlags flag,
       g_free (node_str);
     }
 }
+
+#endif
