@@ -253,7 +253,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
 static const gchar *
 get_type_name (WockyStanzaType type)
 {
-  if (type < WOCKY_STANZA_TYPE_NONE ||
+  if (type <= WOCKY_STANZA_TYPE_NONE ||
       type >= NUM_WOCKY_STANZA_TYPE)
     return NULL;
 
@@ -264,7 +264,7 @@ get_type_name (WockyStanzaType type)
 static const gchar *
 get_type_ns (WockyStanzaType type)
 {
-  if (type < WOCKY_STANZA_TYPE_NONE ||
+  if (type <= WOCKY_STANZA_TYPE_NONE ||
       type >= NUM_WOCKY_STANZA_TYPE)
     return NULL;
 
@@ -275,7 +275,7 @@ get_type_ns (WockyStanzaType type)
 static const gchar *
 get_sub_type_name (WockyStanzaSubType sub_type)
 {
-  if (sub_type < WOCKY_STANZA_SUB_TYPE_NONE ||
+  if (sub_type <= WOCKY_STANZA_SUB_TYPE_NONE ||
       sub_type >= NUM_WOCKY_STANZA_SUB_TYPE)
     return NULL;
 
@@ -287,10 +287,9 @@ static gboolean
 check_sub_type (WockyStanzaType type,
                 WockyStanzaSubType sub_type)
 {
-  g_return_val_if_fail (type >= WOCKY_STANZA_TYPE_NONE &&
+  g_return_val_if_fail (type > WOCKY_STANZA_TYPE_NONE &&
       type < NUM_WOCKY_STANZA_TYPE, FALSE);
-  g_return_val_if_fail (sub_type >= WOCKY_STANZA_SUB_TYPE_NONE &&
-      sub_type < NUM_WOCKY_STANZA_SUB_TYPE, FALSE);
+  g_return_val_if_fail (sub_type < NUM_WOCKY_STANZA_SUB_TYPE, FALSE);
 
   g_assert (sub_type_names[sub_type].sub_type == sub_type);
   g_return_val_if_fail (
