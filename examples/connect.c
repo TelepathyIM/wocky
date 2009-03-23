@@ -8,6 +8,7 @@
 #include <gio/gnio.h>
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-namespaces.h>
+#include <wocky/wocky-sasl-auth.h>
 
 typedef enum {
   INITIAL,
@@ -24,7 +25,7 @@ WockyXmppConnection *conn;
 const gchar *server;
 const gchar *username;
 const gchar *password;
-//WockySaslAuth *sasl = NULL;
+WockySaslAuth *sasl = NULL;
 GTcpConnection *tcp;
 
 GTLSConnection *ssl;
@@ -93,15 +94,13 @@ conn_stream_closed(WockyXmppConnection *connection, gpointer user_data) {
   wocky_xmpp_connection_close(connection);
 }
 
-#if 0
-
-gchar *
+static gchar *
 return_str(WockySaslAuth *auth, gpointer user_data) {
   return g_strdup(user_data);
 }
 
-void
-auth_success(WockySaslAuth *sasl, gpointer user_data) {
+static void
+auth_success(WockySaslAuth *auth, gpointer user_data) {
   printf("Authentication successfull!!\n");
   state = DONE;
   /* Reopen the connection */
@@ -109,14 +108,12 @@ auth_success(WockySaslAuth *sasl, gpointer user_data) {
   wocky_xmpp_connection_open(conn, server, NULL, "1.0");
 }
 
-void
-auth_failed(WockySaslAuth *sasl, GQuark domain, 
+static void
+auth_failed(WockySaslAuth *auth, GQuark domain, 
     int code, gchar *message, gpointer user_data) {
   printf("Authentication failed: %s\n", message);
   g_main_loop_quit(mainloop);
 }
-
-#endif 
 
 static void
 start_ssl (WockyXmppConnection *connection, WockyXmppStanza *stanza) {
@@ -171,7 +168,6 @@ negotiate_ssl(WockyXmppConnection *connection, WockyXmppStanza *stanza) {
   g_object_unref(starttls);
 }
 
-#if 0
 static void
 start_sasl_helper(WockyXmppConnection *connection, WockyXmppStanza *stanza) {
   GError *error;
@@ -193,7 +189,6 @@ start_sasl_helper(WockyXmppConnection *connection, WockyXmppStanza *stanza) {
      g_main_loop_quit(mainloop);
   }
 }
-#endif
 
 static void
 conn_received_stanza(WockyXmppConnection *connection,
@@ -208,7 +203,7 @@ conn_received_stanza(WockyXmppConnection *connection,
       start_ssl(connection, stanza);
       break;
     case SSL_DONE:
-      //start_sasl_helper(connection, stanza);
+      start_sasl_helper(connection, stanza);
       break;
     case SASL:
     case DONE:
