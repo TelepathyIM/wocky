@@ -5,11 +5,12 @@ BUILT_SOURCES = \
   wocky-signals-marshal.h \
   wocky-signals-marshal.c
 
-HANDWRITTEN_SOURCES =             \
+HANDWRITTEN_SOURCES =            \
   wocky-xmpp-connection.c        \
   wocky-xmpp-connection.h        \
   wocky-debug.c                  \
   wocky-debug.h                  \
+  wocky-namespaces.h             \
   wocky-xmpp-node.c              \
   wocky-xmpp-node.h              \
   wocky-xmpp-reader.c            \
