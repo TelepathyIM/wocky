@@ -117,8 +117,9 @@ AC_SUBST(LIBXML2_LIBS)
 
 AC_SUBST(PACKAGE_STRING)
 
-AC_OUTPUT( Makefile                       \
-           wocky/Makefile                 \
-           m4/Makefile                    \
-           tools/Makefile                    \
+AC_OUTPUT( Makefile            \
+           wocky/Makefile      \
+           m4/Makefile         \
+           tools/Makefile      \
+           examples/Makefile   \
 )
