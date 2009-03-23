@@ -31,46 +31,6 @@ GTcpConnection *tcp;
 GTLSConnection *ssl;
 GTLSSession *ssl_session;
 
-#if 0
-void
-tcp_disconnected(WockyTCPTransport *tcp, gpointer user_data) {
-  printf("TCP transport disconnected!\n");
-  g_main_loop_quit(mainloop);
-}
-
-void
-tcp_error(WockyTCPTransport *tcp, guint domain, 
-          guint code, gchar *message, gpointer user_data) {
-  printf("TCP transport  got an error: %s\n", message);
-    g_main_loop_quit(mainloop);
-}
-
-void
-ssl_connected(WockySSLTransport *ssl, gpointer user_data) {
-  printf("SSL transport connected!\n");
-  state = SSL_DONE;
-  wocky_xmpp_connection_open(conn, server, NULL, "1.0");
-}
-
-void
-ssl_connecting(WockySSLTransport *ssl, gpointer user_data) {
-  printf("SSL transport connecting!\n");
-}
-
-void
-ssl_disconnected(WockySSLTransport *ssl, gpointer user_data) {
-  printf("TCP transport disconnected!\n");
-  g_main_loop_quit(mainloop);
-}
-
-void
-ssl_error(WockySSLTransport *ssl, guint domain, 
-          guint code, gchar *message, gpointer user_data) {
-  printf("SSL transport  got an error: %s\n", message);
-  g_main_loop_quit(mainloop);
-}
-#endif
-
 static void
 conn_parse_error(WockyXmppConnection *connection, gpointer user_data) {
   fprintf(stderr, "PARSE ERROR\n");
@@ -254,21 +214,6 @@ main(int argc, char **argv) {
 
   g_tcp_client_connect_to_service_async (client, server,
     "xmpp-client", NULL, tcp_connected, NULL);
-
-/*
-  tcp = wocky_tcp_transport_new();
-  g_signal_connect(tcp, "connected", 
-                   G_CALLBACK(tcp_connected), NULL);
-  g_signal_connect(tcp, "connecting", 
-                   G_CALLBACK(tcp_connecting), NULL);
-  g_signal_connect(tcp, "disconnected", 
-                   G_CALLBACK(tcp_disconnected), NULL);
-  g_signal_connect(tcp, "error", 
-                   G_CALLBACK(tcp_error), NULL);
-
-
-  conn = wocky_xmpp_connection_new(WOCKY_TRANSPORT(tcp));
-  */
 
   g_main_loop_run(mainloop);
   return 0;
