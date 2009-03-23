@@ -73,6 +73,22 @@ fi
 
 AC_SUBST([ENABLE_CODING_STYLE_CHECKS])
 
+dnl debugging stuff
+AC_ARG_ENABLE(debug,
+  AC_HELP_STRING([--disable-debug],[compile without debug code]),
+  [
+    case "${enableval}" in
+      yes|no) enable="${enableval}" ;;
+      *)   AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+    esac
+  ],
+  [enable=yes])
+
+if test "$enable" = yes; then
+  AC_DEFINE(ENABLE_DEBUG, [], [Enable debug code])
+fi
+
+
 dnl Check for code generation tools
 AC_HEADER_STDC([])
 AC_C_INLINE
