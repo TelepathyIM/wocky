@@ -22,8 +22,8 @@
 #define __WOCKY_XMPP_CONNECTION_H__
 
 #include <glib-object.h>
+#include <gio/gnio.h>
 
-#include "wocky-transport.h"
 #include "wocky-xmpp-stanza.h"
 
 G_BEGIN_DECLS
@@ -50,7 +50,7 @@ struct _WockyXmppConnectionClass {
 
 struct _WockyXmppConnection {
     GObject parent;
-    WockyTransport *transport;
+    GIOStream *stream;
     guint8 stream_flags;
 };
 
@@ -73,7 +73,7 @@ GType wocky_xmpp_connection_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_XMPP_CONNECTION, \
    WockyXmppConnectionClass))
 
-WockyXmppConnection *wocky_xmpp_connection_new (WockyTransport *transport);
+WockyXmppConnection *wocky_xmpp_connection_new (GIOStream *stream);
 
 void wocky_xmpp_connection_open (WockyXmppConnection *connection,
   const gchar *to, const gchar *from, const gchar *version);
@@ -85,7 +85,7 @@ void wocky_xmpp_connection_restart (WockyXmppConnection *connection);
 void wocky_xmpp_connection_close (WockyXmppConnection *connection);
 
 void wocky_xmpp_connection_engage (WockyXmppConnection *connection,
-    WockyTransport *transport);
+    GIOStream *stream);
 
 void wocky_xmpp_connection_disengage (WockyXmppConnection *connection);
 
@@ -93,9 +93,6 @@ gboolean wocky_xmpp_connection_send (WockyXmppConnection *connection,
   WockyXmppStanza *stanza, GError **error);
 
 gchar * wocky_xmpp_connection_new_id (WockyXmppConnection *connection);
-
-WockyXmppConnection * wocky_xmpp_connection_new_no_stream (
-    WockyTransport *transport);
 
 G_END_DECLS
 
