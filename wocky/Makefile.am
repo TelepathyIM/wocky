@@ -18,7 +18,9 @@ HANDWRITTEN_SOURCES =            \
   wocky-xmpp-stanza.c            \
   wocky-xmpp-stanza.h            \
   wocky-xmpp-writer.c            \
-  wocky-xmpp-writer.h
+  wocky-xmpp-writer.h            \
+  wocky-sasl-auth.c              \
+  wocky-sasl-auth.h
 
 libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES) $(BUILT_SOURCES)
 
