@@ -28,8 +28,6 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 
-#include "libmd5-rfc/md5.h"
-
 #define DEBUG_FLAG DEBUG_SASL
 #include "wocky-debug.h"
 
@@ -355,22 +353,32 @@ error:
   return NULL;
 }
 
-static gchar *
-md5_hex_hash (gchar *value, gsize len)
+static guint8 *
+md5_hash (gchar *value)
 {
-  md5_byte_t digest_md5[16];
-  md5_state_t md5_calc;
-  GString *str = g_string_sized_new (32);
-  int i;
+  GChecksum *checksum;
+  guint8 *result;
+  gsize len;
 
-  md5_init (&md5_calc);
-  md5_append (&md5_calc, (const md5_byte_t *)value, len);
-  md5_finish (&md5_calc, digest_md5);
-  for (i = 0 ; i < 16 ; i++)
-    {
-      g_string_append_printf (str, "%02x", digest_md5[i]);
-    }
-  return g_string_free (str, FALSE);
+  len = g_checksum_type_get_length (G_CHECKSUM_MD5);
+  g_assert (len == 16);
+
+  result = g_malloc (len);
+
+  checksum = g_checksum_new (G_CHECKSUM_MD5);
+  g_checksum_update (checksum, (guchar *)value, -1);
+  g_checksum_get_digest (checksum, result, &len);
+  g_checksum_free (checksum);
+
+  g_assert (len == 16);
+
+  return result;
+}
+
+static gchar *
+md5_hex_hash (gchar *value)
+{
+  return g_compute_checksum_for_string (G_CHECKSUM_MD5, value, -1);
 }
 
 static gchar *
@@ -399,8 +407,7 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
   gchar *username = NULL;
   gchar *password = NULL;
   gchar *tmp;
-  md5_byte_t digest_md5[16];
-  md5_state_t md5_calc;
+  guint8 *digest_md5;
   gsize len;
 
   g_signal_emit (sasl, signals[USERNAME_REQUESTED], 0, &username);
@@ -441,21 +448,22 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
   g_string_append_printf (response, ",qop=auth,charset=utf-8");
 
   tmp = g_strdup_printf ("%s:%s:%s", username, realm, password);
-  md5_init (&md5_calc);
-  md5_append (&md5_calc, (const md5_byte_t *)tmp, strlen (tmp));
-  md5_finish (&md5_calc, digest_md5);
+  digest_md5 = md5_hash (tmp);
   g_free (tmp);
 
   a1 = g_strdup_printf ("0123456789012345:%s:%s", nonce, cnonce);
   len = strlen (a1);
+  /* MD5 hash is 16 bytes */
   memcpy (a1, digest_md5, 16);
-  a1h = md5_hex_hash (a1, len);
+  a1h = md5_hex_hash (a1);
+
+  g_free (digest_md5);
 
   a2 = g_strdup_printf ("AUTHENTICATE:xmpp/%s", realm);
-  a2h = md5_hex_hash (a2, strlen (a2));
+  a2h = md5_hex_hash (a2);
 
   kd = g_strdup_printf ("%s:%s:00000001:%s:auth:%s", a1h, nonce, cnonce, a2h);
-  kdh = md5_hex_hash (kd, strlen (kd));
+  kdh = md5_hex_hash (kd);
   g_string_append_printf (response, ",response=%s", kdh);
 
   g_free (kd);
@@ -465,11 +473,11 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   /* Calculate the response we expect from the server */
   a2 = g_strdup_printf (":xmpp/%s", realm);
-  a2h = md5_hex_hash (a2, strlen (a2));
+  a2h = md5_hex_hash (a2);
 
   kd =  g_strdup_printf ("%s:%s:00000001:%s:auth:%s", a1h, nonce, cnonce, a2h);
   g_free (priv->digest_md5_rspauth);
-  priv->digest_md5_rspauth = md5_hex_hash (kd, strlen (kd));
+  priv->digest_md5_rspauth = md5_hex_hash (kd);
 
   g_free (a1);
   g_free (a1h);
