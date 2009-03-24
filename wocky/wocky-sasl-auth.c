@@ -366,7 +366,7 @@ md5_hash (gchar *value)
   result = g_malloc (len);
 
   checksum = g_checksum_new (G_CHECKSUM_MD5);
-  g_checksum_update (checksum, (guchar *)value, -1);
+  g_checksum_update (checksum, (guchar *) value, -1);
   g_checksum_get_digest (checksum, result, &len);
   g_checksum_free (checksum);
 
