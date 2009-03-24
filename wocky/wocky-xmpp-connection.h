@@ -1,7 +1,7 @@
 /*
  * wocky-xmpp-connection.h - Header for WockyXmppConnection
- * Copyright (C) 2006 Collabora Ltd.
- * @author Sjoerd Simons <sjoerd@luon.net>
+ * Copyright (C) 2006-2009 Collabora Ltd.
+ * @author Sjoerd Simons <sjoerd.simons@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
