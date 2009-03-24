@@ -122,4 +122,5 @@ AC_OUTPUT( Makefile            \
            m4/Makefile         \
            tools/Makefile      \
            examples/Makefile   \
+           tests/Makefile      \
 )

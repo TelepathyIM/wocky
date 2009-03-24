@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = wocky tools m4 examples
+SUBDIRS = wocky tools m4 examples tests
 
 dist-hook:
 	chmod u+w ${distdir}/ChangeLog
