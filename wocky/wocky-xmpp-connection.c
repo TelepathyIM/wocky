@@ -240,6 +240,7 @@ wocky_xmpp_connection_open (WockyXmppConnection *connection,
       &length);
   connection->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_SENT;
 
+  /* FIXME catch errors */
   g_output_stream_write_all (priv->output_stream,
     data, length, NULL, NULL, NULL);
 }
@@ -351,6 +352,7 @@ wocky_xmpp_connection_send (WockyXmppConnection *connection,
       return FALSE;
     }
 
+  /* FIXME catch errors harder */
   return g_output_stream_write_all (priv->output_stream, data, length,
     NULL, NULL, NULL);
 }
