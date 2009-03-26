@@ -368,8 +368,6 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
   gssize size;
   GError *error = NULL;
 
-  printf ("Got data: %p :%s \n", source, G_OBJECT_TYPE_NAME (source));
-
   size = g_input_stream_read_finish (priv->input_stream, result, &error);
 
   if (size < 1)
