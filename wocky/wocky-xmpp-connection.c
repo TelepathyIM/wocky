@@ -32,7 +32,6 @@
 #include "wocky-xmpp-stanza.h"
 
 #define BUFFER_SIZE 1024
-#define XMPP_STREAM_NAMESPACE "http://etherx.jabber.org/streams"
 
 static void _xmpp_connection_received_data (GObject *source,
     GAsyncResult *result, gpointer user_data);

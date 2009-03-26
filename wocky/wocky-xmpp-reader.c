@@ -28,9 +28,9 @@
 #include "wocky-xmpp-reader.h"
 #include "wocky-signals-marshal.h"
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-namespaces.h"
 
-#define XMPP_STREAM_NAMESPACE "http://etherx.jabber.org/streams"
+#include "wocky-xmpp-stanza.h"
 
 #define DEBUG_FLAG DEBUG_XMPP_READER
 #include "wocky-debug.h"
@@ -253,7 +253,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
   if (priv->stream_mode && G_UNLIKELY (priv->depth == 0))
     {
       if (strcmp ("stream", (gchar *) localname)
-          || strcmp (XMPP_STREAM_NAMESPACE, (gchar *) uri))
+          || strcmp (WOCKY_XMPP_NS_STREAM, (gchar *) uri))
         {
           priv->error = TRUE;
           return;
