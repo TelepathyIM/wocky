@@ -3,11 +3,7 @@
 #include <glib.h>
 
 #include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-transport.h>
-#include "test-transport.h"
-#include "check-wocky.h"
-
-#include <check.h>
+#include "wocky-test-stream.h"
 
 struct _FileChunker {
   gchar *contents;
@@ -52,19 +48,27 @@ file_chunker_get_chunk (FileChunker *fc,
 
 
 static void
-test_instantiation
+test_instantiation (void)
 {
   WockyXmppConnection *connection;
-  TestTransport *transport;
+  WockyTestStream *stream;;
 
-  transport = test_transport_new (NULL, NULL);
-  connection = wocky_xmpp_connection_new (WOCKY_TRANSPORT(transport));
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  connection = wocky_xmpp_connection_new (stream->stream0);
 
   g_assert (connection != NULL);
 
   connection = wocky_xmpp_connection_new (NULL);
 
   g_assert (connection != NULL);
+}
+
+static void
+stanza_received_cb (WockyXmppConnection *connection,
+  WockyXmppStanza *stanza, gpointer user_data)
+{
+  gboolean *message_parsed = user_data;
+  *message_parsed = TRUE;
 }
 
 static void
@@ -75,13 +79,14 @@ parse_error_cb (WockyXmppConnection *connection, gpointer user_data)
 }
 
 static void
-test_simple_message
+test_simple_message (void)
 {
   WockyXmppConnection *connection;
-  TestTransport *transport;
+  WockyTestStream *stream;
   gchar *chunk;
   gsize chunk_length;
   gboolean parse_error_found = FALSE;
+  gboolean message_parsed = FALSE;
   const gchar *srcdir;
   gchar *file;
   FileChunker *fc;
@@ -99,8 +104,11 @@ test_simple_message
   fc = file_chunker_new (file, 10);
   g_assert (fc != NULL);
 
-  transport = test_transport_new (NULL, NULL);
-  connection = wocky_xmpp_connection_new (WOCKY_TRANSPORT(transport));
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  connection = wocky_xmpp_connection_new (stream->stream0);
+
+  g_signal_connect (connection, "received-stanza",
+      G_CALLBACK(stanza_received_cb), &message_parsed);
 
   g_signal_connect (connection, "parse-error",
       G_CALLBACK(parse_error_cb), &parse_error_found);
@@ -108,10 +116,12 @@ test_simple_message
   while (!parse_error_found &&
       file_chunker_get_chunk (fc, &chunk, &chunk_length))
     {
-      test_transport_write (transport, (guint8 *) chunk, chunk_length);
+      g_output_stream_write_all (stream->stream1_output,
+        chunk, chunk_length, NULL, NULL, NULL);
     }
 
   g_assert (!parse_error_found);
+  g_assert (message_parsed);
 
   g_free (file);
   file_chunker_destroy (fc);
@@ -120,10 +130,14 @@ test_simple_message
 int
 main (int argc, char **argv)
 {
-    g_test_init (&argc, &argv, NULL);
+  g_thread_init (NULL);
 
-    g_test_add_func ("/xmpp-connection/initiation", test_instantiation);
-    g_test_add_func ("/xmpp-connection/simpe-message",
-      test_simple_message);
-    return tc;
+  g_test_init (&argc, &argv, NULL);
+  g_type_init ();
+
+  g_test_add_func ("/xmpp-connection/initiation", test_instantiation);
+  g_test_add_func ("/xmpp-connection/simpe-message",
+    test_simple_message);
+
+  return g_test_run ();
 }
