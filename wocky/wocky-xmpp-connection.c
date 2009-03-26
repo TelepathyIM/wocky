@@ -270,8 +270,9 @@ wocky_xmpp_connection_close (WockyXmppConnection *connection)
   connection->stream_flags |= WOCKY_XMPP_CONNECTION_CLOSE_SENT;
 
   wocky_xmpp_writer_stream_close (priv->writer, &data, &length);
-  /* FIXME */
-  //wocky_transport_send (connection->transport, data, length, NULL);
+  /* FIXME
+  wocky_transport_send (connection->transport, data, length, NULL);
+  */
 }
 
 static void
