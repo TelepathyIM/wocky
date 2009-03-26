@@ -1,51 +1,21 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+
 #include <glib.h>
 
 #include <wocky/wocky-xmpp-connection.h>
 #include "wocky-test-stream.h"
 
-struct _FileChunker {
-  gchar *contents;
-  gsize length;
-  gsize size;
-  gsize offset;
-};
-typedef struct _FileChunker FileChunker;
-
-static void
-file_chunker_destroy (FileChunker *fc) {
-  g_free (fc->contents);
-  g_free (fc);
-}
-
-
-static FileChunker *
-file_chunker_new (const gchar *filename, gsize chunk_size) {
-  FileChunker *fc;
-  fc = g_new0 (FileChunker, 1);
-
-  fc->size = chunk_size;
-  if (!g_file_get_contents (filename, &fc->contents, &fc->length, NULL)) {
-    file_chunker_destroy (fc);
-    return NULL;
-  }
-  return fc;
-}
-
-static gboolean
-file_chunker_get_chunk (FileChunker *fc,
-                        gchar **chunk,
-                        gsize *chunk_size) {
-  if (fc->offset < fc->length) {
-    *chunk_size = MIN (fc->length - fc->offset, fc->size);
-    *chunk = fc->contents + fc->offset;
-    fc->offset += *chunk_size;
-    return TRUE;
-  }
-  return FALSE;
-}
-
+#define SIMPLE_MESSAGE \
+"<?xml version='1.0' encoding='UTF-8'?>                                    " \
+"<stream:stream xmlns='jabber:client'                                      " \
+"  xmlns:stream='http://etherx.jabber.org/streams'>                        " \
+"  <message to='juliet@example.com' from='romeo@example.net' xml:lang='en' " \
+"   id=\"0\">                                                              " \
+"    <body>Art thou not Romeo, and a Montague?</body>                      " \
+"  </message>                                                              " \
+"</stream:stream>"
 
 static void
 test_instantiation (void)
@@ -68,6 +38,7 @@ stanza_received_cb (WockyXmppConnection *connection,
   WockyXmppStanza *stanza, gpointer user_data)
 {
   gboolean *message_parsed = user_data;
+
   *message_parsed = TRUE;
 }
 
@@ -75,7 +46,19 @@ static void
 parse_error_cb (WockyXmppConnection *connection, gpointer user_data)
 {
   gboolean *parse_error_found = user_data;
+
   *parse_error_found = TRUE;
+}
+
+#define CHUNK_SIZE 13
+
+static gboolean
+timeout_cb (gpointer data)
+{
+  g_test_message ("Timeout reached :(");
+  g_assert_not_reached ();
+
+  return FALSE;
 }
 
 static void
@@ -83,26 +66,16 @@ test_simple_message (void)
 {
   WockyXmppConnection *connection;
   WockyTestStream *stream;
-  gchar *chunk;
-  gsize chunk_length;
+  gsize len;
+  gsize offset = 0;
   gboolean parse_error_found = FALSE;
   gboolean message_parsed = FALSE;
-  const gchar *srcdir;
-  gchar *file;
-  FileChunker *fc;
+  gchar message[] = SIMPLE_MESSAGE;
+  GMainLoop *loop = NULL;
 
-  srcdir = g_getenv ("srcdir");
-  if (srcdir == NULL)
-    {
-      file = g_strdup ("inputs/simple-message.input");
-    }
-  else
-    {
-      file = g_strdup_printf ("%s/inputs/simple-message.input", srcdir);
-    }
+  loop = g_main_loop_new (NULL, FALSE);
 
-  fc = file_chunker_new (file, 10);
-  g_assert (fc != NULL);
+  len = strlen (message);
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
@@ -113,18 +86,23 @@ test_simple_message (void)
   g_signal_connect (connection, "parse-error",
       G_CALLBACK(parse_error_cb), &parse_error_found);
 
-  while (!parse_error_found &&
-      file_chunker_get_chunk (fc, &chunk, &chunk_length))
+  while (!parse_error_found && offset < len)
     {
+      guint l = MIN (len - offset, CHUNK_SIZE);
       g_output_stream_write_all (stream->stream1_output,
-        chunk, chunk_length, NULL, NULL, NULL);
+        message + offset, l, NULL, NULL, NULL);
+      offset += l;
     }
+
+  g_timeout_add (1000, timeout_cb, NULL);
+
+  while (g_main_context_iteration (NULL, TRUE) && !message_parsed)
+    ;
 
   g_assert (!parse_error_found);
   g_assert (message_parsed);
 
-  g_free (file);
-  file_chunker_destroy (fc);
+  g_main_loop_unref (loop);
 }
 
 int
