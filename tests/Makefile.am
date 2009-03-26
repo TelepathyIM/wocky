@@ -5,8 +5,8 @@ wocky_xmpp_connection_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
-AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ \
-   $(top_builddir)/wocky/libwocky.la
+AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
+LDADD = $(top_builddir)/wocky/libwocky.la
 
 check_PROGRAMS = $(test_programs)
 TESTS = $(test_programs)
