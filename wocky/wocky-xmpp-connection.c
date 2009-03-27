@@ -361,20 +361,31 @@ static void
 _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
   gpointer user_data)
 {
-  WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
-  WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+  WockyXmppConnection *self;
+  WockyXmppConnectionPrivate *priv;
   gboolean ret;
   gssize size;
   GError *error = NULL;
 
-  size = g_input_stream_read_finish (priv->input_stream, result, &error);
+  size = g_input_stream_read_finish (G_INPUT_STREAM (source),
+    result, &error);
 
-  if (size < 1)
-    g_error ("connect: %s: %d, %s", g_quark_to_string (error->domain),
-      error->code, error->message);
+  if (size < 0)
+    {
+      if (g_error_matches (error,
+          G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        {
+          return;
+        }
+      g_error ("connect: %s: %d, %s", g_quark_to_string (error->domain),
+        error->code, error->message);
+    }
 
-  g_assert_cmpint (size, >, 0);
+  if (size == 0)
+    return;
+
+  self = WOCKY_XMPP_CONNECTION (user_data);
+  priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
 
   /* Ensure we're not disposed inside while running the reader is busy */
   g_object_ref (self);
