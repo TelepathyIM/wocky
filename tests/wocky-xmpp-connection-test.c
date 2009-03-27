@@ -28,6 +28,9 @@ test_instantiation (void)
 
   g_assert (connection != NULL);
 
+  g_object_unref (connection);
+  g_object_unref (stream);
+
   connection = wocky_xmpp_connection_new (NULL);
 
   g_assert (connection != NULL);
