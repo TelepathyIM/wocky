@@ -31,6 +31,8 @@ test_instantiation (void)
   connection = wocky_xmpp_connection_new (NULL);
 
   g_assert (connection != NULL);
+
+  g_object_unref (connection);
 }
 
 static void
@@ -103,6 +105,9 @@ test_simple_message (void)
   g_assert (message_parsed);
 
   g_main_loop_unref (loop);
+
+  g_object_unref (stream);
+  g_object_unref (connection);
 }
 
 int
