@@ -24,7 +24,7 @@
 
 #include "wocky-test-stream.h"
 
-G_DEFINE_TYPE(WockyTestStream, wocky_test_stream, G_TYPE_OBJECT);
+G_DEFINE_TYPE (WockyTestStream, wocky_test_stream, G_TYPE_OBJECT);
 
 struct _WockyTestStreamPrivate {
   gboolean dispose_has_run;
