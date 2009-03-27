@@ -63,7 +63,7 @@ typedef struct {
 
 typedef struct {
   GInputStream parent;
-  WockyTestOutputStream *source;
+  GAsyncQueue *queue;
   guint offset;
   GArray *out_array;
   gboolean dispose_has_run;
@@ -109,12 +109,14 @@ wocky_test_stream_init (WockyTestStream *self)
   self->stream1_output = g_object_new (WOCKY_TYPE_TEST_OUTPUT_STREAM, NULL);
 
   self->stream0_input = g_object_new (WOCKY_TYPE_TEST_INPUT_STREAM, NULL);
-  WOCKY_TEST_INPUT_STREAM (self->stream0_input)->source =
-    WOCKY_TEST_OUTPUT_STREAM (self->stream1_output);
+  WOCKY_TEST_INPUT_STREAM (self->stream0_input)->queue =
+    g_async_queue_ref (
+      WOCKY_TEST_OUTPUT_STREAM (self->stream1_output)->queue);
 
   self->stream1_input = g_object_new (WOCKY_TYPE_TEST_INPUT_STREAM, NULL);
-  WOCKY_TEST_INPUT_STREAM (self->stream1_input)->source =
-    WOCKY_TEST_OUTPUT_STREAM (self->stream0_output);
+  WOCKY_TEST_INPUT_STREAM (self->stream1_input)->queue =
+    g_async_queue_ref (
+      WOCKY_TEST_OUTPUT_STREAM (self->stream0_output)->queue);
 
   self->stream0 = g_object_new (WOCKY_TYPE_TEST_IO_STREAM, NULL);
   WOCKY_TEST_IO_STREAM (self->stream0)->input = self->stream0_input;
@@ -244,7 +246,7 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
   if (self->out_array == NULL)
     {
       g_assert (self->offset == 0);
-      self->out_array = g_async_queue_pop (self->source->queue);
+      self->out_array = g_async_queue_pop (self->queue);
     }
 
   len = MIN (self->out_array->len - self->offset, count);
@@ -279,6 +281,10 @@ wocky_test_input_stream_dispose (GObject *object)
   if (self->out_array != NULL)
     g_array_free (self->out_array, TRUE);
   self->out_array = NULL;
+
+  if (self->queue != NULL)
+    g_async_queue_unref (self->queue);
+  self->queue = NULL;
 
   /* release any references held by the object here */
   if (G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose)
@@ -322,6 +328,8 @@ wocky_test_output_stream_dispose (GObject *object)
 
   self->dispose_has_run = TRUE;
 
+  g_async_queue_push (self->queue,
+    g_array_sized_new (FALSE, FALSE, sizeof (guint8), 0));
   g_async_queue_unref (self->queue);
 
   /* release any references held by the object here */
