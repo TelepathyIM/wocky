@@ -1,7 +1,7 @@
 /*
  * wocky-xmpp-writer.c - Source for WockyXmppWriter
- * Copyright (C) 2006 Collabora Ltd.
- * @author Sjoerd Simons <sjoerd@luon.net>
+ * Copyright (C) 2006-2009 Collabora Ltd.
+ * @author Sjoerd Simons <sjoerd.simons@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,11 @@ G_DEFINE_TYPE (WockyXmppWriter, wocky_xmpp_writer, G_TYPE_OBJECT)
 
 #define DEBUG_FLAG DEBUG_XMPP_WRITER
 #include "wocky-debug.h"
+
+/* properties */
+enum {
+  PROP_STREAMING_MODE = 1,
+};
 
 /* private structure */
 typedef struct _WockyXmppWriterPrivate WockyXmppWriterPrivate;
@@ -65,17 +70,37 @@ wocky_xmpp_writer_init (WockyXmppWriter *obj)
 
 static void wocky_xmpp_writer_dispose (GObject *object);
 static void wocky_xmpp_writer_finalize (GObject *object);
+static void wocky_xmpp_write_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec);
+static void wocky_xmpp_write_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec);
 
 static void
 wocky_xmpp_writer_class_init (WockyXmppWriterClass *wocky_xmpp_writer_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_writer_class);
+  GParamSpec *param_spec;
 
   g_type_class_add_private (wocky_xmpp_writer_class,
       sizeof (WockyXmppWriterPrivate));
 
   object_class->dispose = wocky_xmpp_writer_dispose;
   object_class->finalize = wocky_xmpp_writer_finalize;
+
+  object_class->set_property = wocky_xmpp_write_set_property;
+  object_class->get_property = wocky_xmpp_write_get_property;
+
+  param_spec = g_param_spec_boolean ("streamimg-mode", "streaming-mode",
+    "Whether the xml to be written is one big stream or seperate documents",
+    TRUE,
+    G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_property (object_class, PROP_STREAMING_MODE,
+    param_spec);
 }
 
 void
@@ -90,7 +115,6 @@ wocky_xmpp_writer_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-
   if (G_OBJECT_CLASS (wocky_xmpp_writer_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_xmpp_writer_parent_class)->dispose (object);
 }
@@ -108,6 +132,47 @@ wocky_xmpp_writer_finalize (GObject *object)
   G_OBJECT_CLASS (wocky_xmpp_writer_parent_class)->finalize (object);
 }
 
+static void
+wocky_xmpp_write_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  WockyXmppWriter *writer = WOCKY_XMPP_WRITER (object);
+  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+
+  switch (property_id)
+    {
+      case PROP_STREAMING_MODE:
+        priv->stream_mode = g_value_get_boolean (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+wocky_xmpp_write_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  WockyXmppWriter *writer = WOCKY_XMPP_WRITER (object);
+  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+
+  switch (property_id)
+    {
+      case PROP_STREAMING_MODE:
+        g_value_set_boolean (value, priv->stream_mode);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+
 WockyXmppWriter *
 wocky_xmpp_writer_new (void)
 {
@@ -117,12 +182,7 @@ wocky_xmpp_writer_new (void)
 WockyXmppWriter *
 wocky_xmpp_writer_new_no_stream (void)
 {
-  WockyXmppWriter *result =  g_object_new (WOCKY_TYPE_XMPP_WRITER, NULL);
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (result);
-
-  priv->stream_mode = FALSE;
-
-  return result;
+  return g_object_new (WOCKY_TYPE_XMPP_WRITER, "streaming-mode", FALSE, NULL);
 }
 
 void
