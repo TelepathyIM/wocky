@@ -117,10 +117,14 @@ AC_SUBST(LIBXML2_LIBS)
 
 AC_SUBST(PACKAGE_STRING)
 
+GTK_DOC_CHECK([1.10])
+
 AC_OUTPUT( Makefile            \
            wocky/Makefile      \
            m4/Makefile         \
            tools/Makefile      \
            examples/Makefile   \
            tests/Makefile      \
+           docs/Makefile      \
+           docs/reference/Makefile      \
 )
