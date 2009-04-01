@@ -28,6 +28,7 @@ const gchar *password;
 WockySaslAuth *sasl = NULL;
 GTcpConnection *tcp;
 
+GTcpClient *client;
 GTLSConnection *ssl;
 GTLSSession *ssl_session;
 
@@ -172,11 +173,8 @@ conn_received_stanza(WockyXmppConnection *connection,
 }
 
 static void
-tcp_connected(GObject *source, GAsyncResult *result, gpointer user_data) {
-
-  tcp = g_tcp_client_connect_to_service_finish ( G_TCP_CLIENT (source),
-    result, NULL);
-
+tcp_do_connect(void)
+{
   g_assert (tcp != NULL);
 
   printf ("TCP connection established\n");
@@ -194,10 +192,62 @@ tcp_connected(GObject *source, GAsyncResult *result, gpointer user_data) {
       G_CALLBACK(conn_received_stanza), NULL);
 }
 
-int
-main(int argc, char **argv) {
-  GTcpClient *client;
+static void
+tcp_host_connected (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  GError *error = NULL;
 
+  tcp = g_tcp_client_connect_to_host_finish (G_TCP_CLIENT (source),
+    result, &error);
+
+  if (tcp == NULL)
+    {
+      g_message ("HOST connect failed: %s: %d, %s\n",
+        g_quark_to_string (error->domain),
+        error->code, error->message);
+
+      g_error_free (error);
+      g_main_loop_quit (mainloop);
+    }
+  else
+    {
+      tcp_do_connect();
+    }
+}
+
+static void
+tcp_srv_connected (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  GError *error = NULL;
+
+  tcp = g_tcp_client_connect_to_service_finish (G_TCP_CLIENT (source),
+    result, &error);
+
+  if (tcp == NULL)
+    {
+      g_message ("SRV connect failed: %s: %d, %s",
+        g_quark_to_string (error->domain),
+        error->code, error->message);
+
+      g_message ("Falling back to direct connection");
+      g_error_free (error);
+      g_tcp_client_connect_to_host_async (client, server, "5222", NULL,
+          tcp_host_connected, NULL);
+    }
+  else
+    {
+      tcp_do_connect();
+    }
+}
+
+int
+main(int argc,
+    char **argv)
+{
   g_type_init();
 
   g_assert(argc == 4);
@@ -213,7 +263,7 @@ main(int argc, char **argv) {
   printf ("Connecting to %s\n", server);
 
   g_tcp_client_connect_to_service_async (client, server,
-    "xmpp-client", NULL, tcp_connected, NULL);
+    "xmpp-client", NULL, tcp_srv_connected, NULL);
 
   g_main_loop_run(mainloop);
   return 0;
