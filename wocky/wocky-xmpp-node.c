@@ -243,7 +243,10 @@ wocky_xmpp_node_add_child_with_content_ns (WockyXmppNode *node,
   WockyXmppNode *result = wocky_xmpp_node_new (name);
 
   wocky_xmpp_node_set_content (result, content);
-  wocky_xmpp_node_set_ns (result, ns);
+  if (ns != NULL)
+    wocky_xmpp_node_set_ns (result, ns);
+  else
+    result->ns = node->ns;
 
   node->children = g_slist_append (node->children, result);
   return result;
