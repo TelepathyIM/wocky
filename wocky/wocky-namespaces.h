@@ -2,6 +2,9 @@
 #ifndef __WOCKY_NAMESPACES_H__
 #define __WOCKY_NAMESPACES_H__
 
+#define WOCKY_XMPP_NS_JABBER_CLIENT \
+  "jabber:client"
+
 #define WOCKY_XMPP_NS_STREAM \
   "http://etherx.jabber.org/streams"
 
