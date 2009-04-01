@@ -185,6 +185,15 @@ wocky_xmpp_writer_new_no_stream (void)
   return g_object_new (WOCKY_TYPE_XMPP_WRITER, "streaming-mode", FALSE, NULL);
 }
 
+/**
+ * wocky_xmpp_writer_stream_open:
+ * @writer: a WockyXmppWriter
+ * @to: the target of the stream opening (usually the xmpp server name)
+ * @from: the sender of the stream opening (usually the jid of the client)
+ * @version: XMPP version
+ * @data: location to store a pointer to the data buffer
+ * @length: length of the data buffer
+ */
 void
 wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
     const gchar *to, const gchar *from, const gchar *version,
@@ -239,6 +248,10 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
   DEBUG ("Writing xml: %.*s", (int)*length, *data);
 }
 
+/**
+ * wocky_xmpp_writer_stream_close:
+ * @writer: a WockyXmppWriter
+ */
 void
 wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
     const guint8 **data, gsize *length)
@@ -350,6 +363,13 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
   priv->current_ns = oldns;
 }
 
+/**
+ * wocky_xmpp_writer_write_stanza:
+ * @writer: a WockyXmppWriter
+ * @stanza: the target of the stream opening (usually the xmpp server name)
+ * @data: location to store a pointer to the data buffer
+ * @length: length of the data buffer
+ */
 gboolean
 wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
     WockyXmppStanza *stanza, const guint8 **data, gsize *length,
@@ -380,6 +400,12 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_writer_flush:
+ * @writer: a WockyXmppWriter
+ *
+ * Flushes and frees the internal buffer of teh writer
+ */
 void
 wocky_xmpp_writer_flush (WockyXmppWriter *writer)
 {
