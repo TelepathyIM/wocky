@@ -192,6 +192,8 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
 {
   WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
 
+  g_assert (priv->stream_mode);
+
   xmlBufferEmpty (priv->buffer);
   xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)
       "<?xml version='1.0' encoding='UTF-8'?>\n"            \
@@ -241,7 +243,10 @@ void
 wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
     const guint8 **data, gsize *length)
 {
+  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
   static const guint8 *close = (const guint8 *)"</stream:stream>\n";
+
+  g_assert (priv->stream_mode);
 
   *data = close;
   *length = strlen ((gchar *) close);
