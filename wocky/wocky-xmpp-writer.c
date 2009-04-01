@@ -94,7 +94,7 @@ wocky_xmpp_writer_class_init (WockyXmppWriterClass *wocky_xmpp_writer_class)
   object_class->set_property = wocky_xmpp_write_set_property;
   object_class->get_property = wocky_xmpp_write_get_property;
 
-  param_spec = g_param_spec_boolean ("streamimg-mode", "streaming-mode",
+  param_spec = g_param_spec_boolean ("streaming-mode", "streaming-mode",
     "Whether the xml to be written is one big stream or seperate documents",
     TRUE,
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
