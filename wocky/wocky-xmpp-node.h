@@ -120,6 +120,10 @@ WockyXmppNode *wocky_xmpp_node_new (const char *name);
 /* Frees the node and all it's children! */
 void wocky_xmpp_node_free (WockyXmppNode *node);
 
+/* Compare two nodes and all the children */
+gboolean wocky_xmpp_node_compare (WockyXmppNode *node0,
+    WockyXmppNode *node1);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_NODE_H__*/

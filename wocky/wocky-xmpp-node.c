@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "wocky-xmpp-node.h"
+#include "wocky-utils.h"
 
 typedef struct {
   gchar *key;
@@ -386,3 +387,54 @@ wocky_xmpp_node_to_string (WockyXmppNode *node)
   g_string_free (data.string, FALSE);
   return result;
 }
+
+gboolean
+wocky_xmpp_node_compare (WockyXmppNode *node0,
+    WockyXmppNode *node1)
+{
+  GSList *l0, *l1;
+
+  if (wocky_strdiff (node0->name, node1->name))
+    return FALSE;
+
+  if (wocky_strdiff (node0->content, node1->content))
+    return FALSE;
+
+  if (wocky_strdiff (node0->language, node1->language))
+    return FALSE;
+
+  if (node0->ns != node1->ns)
+    return FALSE;
+
+  /* Compare attributes */
+  for (l0 = node0->attributes ; l0 != NULL;  l0 = g_slist_next (l0))
+    {
+      Attribute *a = (Attribute *) l0->data;
+      const gchar *c;
+
+      c = wocky_xmpp_node_get_attribute_ns (node1, a->key,
+        a->ns == 0 ? NULL : g_quark_to_string (a->ns));
+
+      if (wocky_strdiff (a->value, c))
+        return FALSE;
+    }
+
+  /* Recursively compare children, order matters */
+  for (l0 = node0->children, l1 = node1->children ;
+      l0 != NULL && l1 != NULL;
+      l0 = g_slist_next (l0), l1 = g_slist_next (l1))
+    {
+      WockyXmppNode *c0 = (WockyXmppNode *) l0->data;
+      WockyXmppNode *c1 = (WockyXmppNode *) l1->data;
+
+      if (!wocky_xmpp_node_compare (c0, c1))
+        return FALSE;
+    }
+
+  if (l0 != NULL || l1 != NULL)
+    return FALSE;
+
+  return TRUE;
+}
+
+
