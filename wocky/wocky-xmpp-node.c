@@ -389,7 +389,7 @@ wocky_xmpp_node_to_string (WockyXmppNode *node)
 }
 
 gboolean
-wocky_xmpp_node_compare (WockyXmppNode *node0,
+wocky_xmpp_node_equal (WockyXmppNode *node0,
     WockyXmppNode *node1)
 {
   GSList *l0, *l1;
@@ -427,7 +427,7 @@ wocky_xmpp_node_compare (WockyXmppNode *node0,
       WockyXmppNode *c0 = (WockyXmppNode *) l0->data;
       WockyXmppNode *c1 = (WockyXmppNode *) l1->data;
 
-      if (!wocky_xmpp_node_compare (c0, c1))
+      if (!wocky_xmpp_node_equal (c0, c1))
         return FALSE;
     }
 
