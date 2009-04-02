@@ -34,7 +34,8 @@
  *          neither is %NULL and both have the same contents; %TRUE otherwise
  */
 gboolean
-wocky_strdiff (const gchar *left, const gchar *right)
+wocky_strdiff (const gchar *left,
+    const gchar *right)
 {
   if ((NULL == left) != (NULL == right))
     return TRUE;
