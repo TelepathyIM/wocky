@@ -106,8 +106,6 @@ test_readwrite (void)
 
   g_assert (!closed);
   g_assert (received != NULL);
-  //printf ("-> %s\n", wocky_xmpp_node_to_string (sent->node));
-  //printf ("-> %s\n", wocky_xmpp_node_to_string (received->node));
   g_assert (wocky_xmpp_node_compare (sent->node, received->node));
 
   wocky_xmpp_writer_stream_close (writer, &data, &length);
