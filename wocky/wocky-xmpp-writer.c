@@ -18,6 +18,15 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-xmpp-writer
+ * @title: WockyXmppWriter
+ * @short_description: Xmpp stanza to XML serializer
+ *
+ * The #WockyXmppWriter serializes #WockyXmppStanzas and xmpp stream opening
+ * and closing to raw XML. The various functions provide a pointer to an
+ * internal buffer, which remains valid until the next call to the writer.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,13 +181,27 @@ wocky_xmpp_write_get_property (GObject *object,
     }
 }
 
-
+/**
+ * wocky_xmpp_writer_new
+ *
+ * Convenience function to create a new #WockyXmppWriter.
+ *
+ * Returns: a new #WockyXmppWriter
+ */
 WockyXmppWriter *
 wocky_xmpp_writer_new (void)
 {
   return g_object_new (WOCKY_TYPE_XMPP_WRITER, NULL);
 }
 
+/**
+ * wocky_xmpp_writer_new_no_stream
+ *
+ * Convenience function to create a new #WockyXmppWriter that has streaming
+ * mode disabled.
+ *
+ * Returns: a new #WockyXmppWriter in non-streaming mode
+ */
 WockyXmppWriter *
 wocky_xmpp_writer_new_no_stream (void)
 {
@@ -193,6 +216,12 @@ wocky_xmpp_writer_new_no_stream (void)
  * @version: XMPP version
  * @data: location to store a pointer to the data buffer
  * @length: length of the data buffer
+ *
+ * Create the XML opening header of an XMPP stream. The result is available in
+ * the @data buffer. The buffer is only untill the next call to a function the
+ * writer.
+ *
+ * This function can only be called in streaming mode.
  */
 void
 wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
@@ -251,6 +280,13 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
 /**
  * wocky_xmpp_writer_stream_close:
  * @writer: a WockyXmppWriter
+ * @data: location to store a pointer to the data buffer
+ * @length: length of the data buffer
+ *
+ * Create the XML closing footer of an XMPP stream . The result is available
+ * in the @data buffer. The buffer is only untill the next call to a function
+ *
+ * This function can only be called in streaming mode.
  */
 void
 wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
@@ -311,7 +347,6 @@ _write_child (WockyXmppNode *node, gpointer user_data)
   return TRUE;
 }
 
-
 static void
 _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
 {
@@ -369,6 +404,9 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
  * @stanza: the target of the stream opening (usually the xmpp server name)
  * @data: location to store a pointer to the data buffer
  * @length: length of the data buffer
+ *
+ * Serialize the @stanza to XML. The result is available in the
+ * @data buffer. The buffer is only untill the next call to a function
  */
 void
 wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
@@ -395,15 +433,13 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
   *length  = priv->buffer->use;
 
   DEBUG ("Writing xml: %.*s.", (int)*length, *data);
-
-  return TRUE;
 }
 
 /**
  * wocky_xmpp_writer_flush:
  * @writer: a WockyXmppWriter
  *
- * Flushes and frees the internal buffer of teh writer
+ * Flushes and frees the internal data buffer
  */
 void
 wocky_xmpp_writer_flush (WockyXmppWriter *writer)
