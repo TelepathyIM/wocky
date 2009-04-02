@@ -111,6 +111,10 @@ test_readwrite (void)
   wocky_xmpp_writer_stream_close (writer, &data, &length);
   g_assert (wocky_xmpp_reader_push (reader, data, length, NULL));
   g_assert (closed);
+
+  g_object_unref (reader);
+  g_object_unref (writer);
+  g_object_unref (received);
 }
 
 static void
@@ -137,6 +141,10 @@ test_readwrite_nostream (void)
   g_assert (wocky_xmpp_reader_push (reader, data, length, NULL));
   g_assert (received != NULL);
   g_assert (wocky_xmpp_node_compare (sent->node, received->node));
+
+  g_object_unref (reader);
+  g_object_unref (writer);
+  g_object_unref (received);
 }
 
 
