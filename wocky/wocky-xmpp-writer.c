@@ -370,10 +370,9 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
  * @data: location to store a pointer to the data buffer
  * @length: length of the data buffer
  */
-gboolean
+void
 wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
-    WockyXmppStanza *stanza, const guint8 **data, gsize *length,
-    GError **error)
+    WockyXmppStanza *stanza, const guint8 **data, gsize *length)
 {
   WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
 

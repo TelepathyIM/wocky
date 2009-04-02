@@ -346,11 +346,7 @@ wocky_xmpp_connection_send (WockyXmppConnection *connection,
       g_free (tmp);
     }
 
-  if (!wocky_xmpp_writer_write_stanza (priv->writer, stanza,
-      &data, &length, error))
-    {
-      return FALSE;
-    }
+  wocky_xmpp_writer_write_stanza (priv->writer, stanza, &data, &length);
 
   /* FIXME catch errors harder */
   return g_output_stream_write_all (priv->output_stream, data, length,
