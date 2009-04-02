@@ -218,8 +218,8 @@ wocky_xmpp_writer_new_no_stream (void)
  * @length: length of the data buffer
  *
  * Create the XML opening header of an XMPP stream. The result is available in
- * the @data buffer. The buffer is only untill the next call to a function the
- * writer.
+ * the @data buffer. The buffer is only valid until the next call to a function
+ * the writer.
  *
  * This function can only be called in streaming mode.
  */
@@ -284,7 +284,8 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
  * @length: length of the data buffer
  *
  * Create the XML closing footer of an XMPP stream . The result is available
- * in the @data buffer. The buffer is only untill the next call to a function
+ * in the @data buffer. The buffer is only valid until the next call to a
+ * function
  *
  * This function can only be called in streaming mode.
  */
@@ -406,7 +407,7 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
  * @length: length of the data buffer
  *
  * Serialize the @stanza to XML. The result is available in the
- * @data buffer. The buffer is only untill the next call to a function
+ * @data buffer. The buffer is only valid until the next call to a function
  */
 void
 wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
