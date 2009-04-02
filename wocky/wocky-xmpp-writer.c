@@ -410,7 +410,9 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
  */
 void
 wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
-    WockyXmppStanza *stanza, const guint8 **data, gsize *length)
+    WockyXmppStanza *stanza,
+    const guint8 **data,
+    gsize *length)
 {
   WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
 
