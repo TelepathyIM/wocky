@@ -6,7 +6,6 @@
 
 #include <wocky/wocky-xmpp-reader.h>
 #include <wocky/wocky-xmpp-writer.h>
-#include <wocky/wocky-xmpp-writer.h>
 #include <wocky/wocky-utils.h>
 
 #define TO "example.net"
