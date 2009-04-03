@@ -40,6 +40,7 @@ test_readwrite (void)
   const guint8 *data;
   gsize length;
   gchar *to, *from, *version, *lang;
+  int i;
 
   writer = wocky_xmpp_writer_new ();
   reader = wocky_xmpp_reader_new ();
@@ -69,13 +70,20 @@ test_readwrite (void)
   g_free (lang);
 
   sent = create_stanza ();
-  wocky_xmpp_writer_write_stanza (writer, sent, &data, &length);
-  wocky_xmpp_reader_push (reader, data, length);
 
-  received = wocky_xmpp_reader_pop_stanza (reader);
+  for (i = 0; i < 3 ; i ++)
+    {
+      g_assert (wocky_xmpp_reader_get_state (reader)
+        == WOCKY_XMPP_READER_OPENED);
 
-  g_assert (received != NULL);
-  g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+      wocky_xmpp_writer_write_stanza (writer, sent, &data, &length);
+      wocky_xmpp_reader_push (reader, data, length);
+
+      received = wocky_xmpp_reader_pop_stanza (reader);
+
+      g_assert (received != NULL);
+      g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+    }
 
   wocky_xmpp_writer_stream_close (writer, &data, &length);
   wocky_xmpp_reader_push (reader, data, length);
@@ -95,27 +103,38 @@ test_readwrite_nostream (void)
   WockyXmppStanza *received = NULL, *sent;
   const guint8 *data;
   gsize length;
+  int i;
 
   writer = wocky_xmpp_writer_new_no_stream ();
   reader = wocky_xmpp_reader_new_no_stream ();
 
-  g_assert (wocky_xmpp_reader_get_state (reader) == WOCKY_XMPP_READER_OPENED);
-
   sent = create_stanza ();
 
-  wocky_xmpp_writer_write_stanza (writer, sent, &data, &length);
-  wocky_xmpp_reader_push (reader, data, length);
 
-  received = wocky_xmpp_reader_pop_stanza (reader);
+  for (i = 0 ; i < 3 ; i++ )
+    {
+      g_assert (wocky_xmpp_reader_get_state (reader)
+        == WOCKY_XMPP_READER_OPENED);
 
-  g_assert (received != NULL);
-  g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+      wocky_xmpp_writer_write_stanza (writer, sent, &data, &length);
+      wocky_xmpp_reader_push (reader, data, length);
 
-  g_assert (wocky_xmpp_reader_get_state (reader) == WOCKY_XMPP_READER_CLOSED);
+      received = wocky_xmpp_reader_pop_stanza (reader);
 
+      g_assert (received != NULL);
+      g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+
+      g_assert (wocky_xmpp_reader_get_state (reader) ==
+        WOCKY_XMPP_READER_CLOSED);
+
+      wocky_xmpp_reader_reset (reader);
+
+      g_object_unref (received);
+    }
+
+  g_object_unref (sent);
   g_object_unref (reader);
   g_object_unref (writer);
-  g_object_unref (received);
 }
 
 int
