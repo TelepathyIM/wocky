@@ -507,7 +507,8 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
   xmlParserCtxtPtr parser;
 
-  g_assert (!priv->error);
+  g_return_if_fail (priv->state < WOCKY_XMPP_READER_CLOSED);
+
   DEBUG ("Parsing chunk: %.*s", (int)length, data);
 
   parser = priv->parser;
