@@ -85,17 +85,36 @@ test_readwrite (void)
 
       g_assert (received != NULL);
       g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+
+      /* No more stanzas in the queue */
+      received = wocky_xmpp_reader_pop_stanza (reader);
+      g_assert (received == NULL);
     }
+
+  wocky_xmpp_writer_write_stanza (writer, sent, &data, &length);
+  wocky_xmpp_reader_push (reader, data, length);
 
   wocky_xmpp_writer_stream_close (writer, &data, &length);
   wocky_xmpp_reader_push (reader, data, length);
 
+  /*  Stream state should stay open untill we popped the last stanza */
+  g_assert (wocky_xmpp_reader_get_state (reader)
+     == WOCKY_XMPP_READER_STATE_OPENED);
+
+  received = wocky_xmpp_reader_pop_stanza (reader);
+  g_assert (received != NULL);
+  g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+
+  /* Last stanza pop, stream should be closed */
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_CLOSED);
 
+  /* No more stanzas in the queue */
+  received = wocky_xmpp_reader_pop_stanza (reader);
+  g_assert (received == NULL);
+
   g_object_unref (reader);
   g_object_unref (writer);
-  g_object_unref (received);
 }
 
 static void
