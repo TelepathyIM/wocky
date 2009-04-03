@@ -88,10 +88,20 @@ struct _WockyXmppReaderPrivate
   WockyXmppReaderState state;
 };
 
+GQuark
+wocky_xmpp_reader_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string ("wocky-xmpp-reader-error");
+
+  return quark;
+}
+
 #define WOCKY_XMPP_READER_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_READER, \
    WockyXmppReaderPrivate))
-
 
 static void
 wocky_init_xml_parser (WockyXmppReader *obj)

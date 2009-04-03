@@ -44,6 +44,14 @@ typedef enum {
   WOCKY_XMPP_READER_STATE_ERROR,
 } WockyXmppReaderState;
 
+typedef enum {
+  WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
+  WOCKY_XMPP_READER_ERROR_PARSE_ERROR,
+} WockyXmppReaderError;
+
+GQuark wocky_xmpp_reader_error_quark (void);
+#define WOCKY_XMPP_READER_ERROR (wocky_xmpp_reader_error_quark ())
+
 GType wocky_xmpp_reader_get_type (void);
 
 /* TYPE MACROS */
