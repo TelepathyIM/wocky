@@ -551,9 +551,9 @@ wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
   if (g_queue_is_empty (priv->stanzas))
     return NULL;
 
-  wocky_xmpp_reader_check_eos (reader);
-
   s = g_queue_pop_head (priv->stanzas);
+
+  wocky_xmpp_reader_check_eos (reader);
 
   if (!priv->stream_mode)
     {
