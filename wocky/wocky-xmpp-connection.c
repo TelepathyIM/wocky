@@ -219,8 +219,8 @@ wocky_xmpp_connection_open (WockyXmppConnection *connection,
   g_assert ((connection->stream_flags & WOCKY_XMPP_CONNECTION_STREAM_SENT)
       == 0);
 
-  wocky_xmpp_writer_stream_open (priv->writer, to, from, version, &data,
-      &length);
+  wocky_xmpp_writer_stream_open (priv->writer, to, from, version, NULL,
+      &data, &length);
   connection->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_SENT;
 
   /* FIXME catch errors */

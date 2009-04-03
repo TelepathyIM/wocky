@@ -107,6 +107,18 @@ wocky_init_xml_parser (WockyXmppReader *obj)
   priv->state = priv->stream_mode ? WOCKY_XMPP_READER_INITIAL :
       WOCKY_XMPP_READER_OPENED;
   priv->error = FALSE;
+
+  g_free (priv->to);
+  priv->to = NULL;
+
+  g_free (priv->from);
+  priv->from = NULL;
+
+  g_free (priv->lang);
+  priv->lang = NULL;
+
+  g_free (priv->version);
+  priv->version = NULL;
 }
 
 static void
@@ -350,6 +362,13 @@ _start_element_ns (void *user_data, const xmlChar *localname,
             {
               g_free (priv->version);
               priv->version = g_strndup ((gchar *) attributes[i+3],
+                  (gsize) (attributes[i+4] - attributes[i+3]));
+            }
+          if (!strcmp ((gchar *) attributes[i], "lang") &&
+              !strcmp ((gchar *) attributes[i + 1], "xml"))
+            {
+              g_free (priv->lang);
+              priv->lang = g_strndup ((gchar *) attributes[i+3],
                   (gsize) (attributes[i+4] - attributes[i+3]));
             }
         }

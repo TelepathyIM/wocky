@@ -62,8 +62,12 @@ WockyXmppWriter *wocky_xmpp_writer_new (void);
 WockyXmppWriter *wocky_xmpp_writer_new_no_stream (void);
 
 void wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
-    const gchar *to, const gchar *from, const gchar *version,
-    const guint8 **data, gsize *length);
+    const gchar *to,
+    const gchar *from,
+    const gchar *version,
+    const gchar *lang,
+    const guint8 **data,
+    gsize *length);
 
 void wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
     const guint8 **data, gsize *length);

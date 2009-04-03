@@ -12,7 +12,7 @@
 #define TO "example.net"
 #define FROM "julliet@example.com"
 #define VERSION "1.0"
-#define LANG NULL
+#define LANG "en"
 
 static WockyXmppStanza *
 create_stanza (void)
@@ -46,7 +46,7 @@ test_readwrite (void)
 
   g_assert (wocky_xmpp_reader_get_state (reader) == WOCKY_XMPP_READER_INITIAL);
 
-  wocky_xmpp_writer_stream_open (writer, TO, FROM, VERSION,
+  wocky_xmpp_writer_stream_open (writer, TO, FROM, VERSION, LANG,
       &data, &length);
   wocky_xmpp_reader_push (reader, data, length);
   g_assert (wocky_xmpp_reader_get_state (reader) == WOCKY_XMPP_READER_OPENED);
@@ -117,7 +117,6 @@ test_readwrite_nostream (void)
   g_object_unref (writer);
   g_object_unref (received);
 }
-
 
 int
 main (int argc,
