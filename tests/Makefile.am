@@ -1,4 +1,6 @@
-TEST_PROGS = wocky-xmpp-connection-test wocky-xmpp-readwrite-test
+TEST_PROGS = wocky-xmpp-reader-test \
+  wocky-xmpp-readwrite-test \
+  wocky-xmpp-connection-test
 
 wocky_xmpp_connection_test_SOURCES = \
   wocky-xmpp-connection-test.c \
@@ -6,6 +8,9 @@ wocky_xmpp_connection_test_SOURCES = \
 
 wocky_xmpp_readwrite_test_SOURCES = \
   wocky-xmpp-readwrite-test.c
+
+wocky_xmpp_reader_test_SOURCES = \
+  wocky-xmpp-reader-test.c
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
