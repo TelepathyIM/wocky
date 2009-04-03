@@ -373,7 +373,7 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
   wocky_xmpp_reader_push (priv->reader, priv->buffer, size);
   if (!(self->stream_flags | WOCKY_XMPP_CONNECTION_STREAM_RECEIVED)
       && (wocky_xmpp_reader_get_state (priv->reader) ==
-          WOCKY_XMPP_READER_OPENED))
+          WOCKY_XMPP_READER_STATE_OPENED))
     {
       gchar *to, *from, *version;
 
@@ -398,11 +398,11 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
 
   switch (wocky_xmpp_reader_get_state (priv->reader))
     {
-      case WOCKY_XMPP_READER_CLOSED:
+      case WOCKY_XMPP_READER_STATE_CLOSED:
         self->stream_flags |= WOCKY_XMPP_CONNECTION_CLOSE_RECEIVED;
         g_signal_emit (self, signals[STREAM_CLOSED], 0);
         break;
-      case WOCKY_XMPP_READER_ERROR:
+      case WOCKY_XMPP_READER_STATE_ERROR:
         g_signal_emit (self, signals[PARSE_ERROR], 0);
         break;
       default:

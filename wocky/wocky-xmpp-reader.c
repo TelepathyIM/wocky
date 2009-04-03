@@ -104,8 +104,8 @@ wocky_init_xml_parser (WockyXmppReader *obj)
   priv->parser = xmlCreatePushParserCtxt (&parser_handler, obj, NULL, 0, NULL);
   xmlCtxtUseOptions (priv->parser, XML_PARSE_NOENT);
   priv->depth = 0;
-  priv->state = priv->stream_mode ? WOCKY_XMPP_READER_INITIAL :
-      WOCKY_XMPP_READER_OPENED;
+  priv->state = priv->stream_mode ? WOCKY_XMPP_READER_STATE_INITIAL :
+      WOCKY_XMPP_READER_STATE_OPENED;
   priv->error = FALSE;
 
   g_free (priv->to);
@@ -340,7 +340,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
           return;
         }
 
-      priv->state = WOCKY_XMPP_READER_OPENED;
+      priv->state = WOCKY_XMPP_READER_STATE_OPENED;
 
       for (i = 0; i < nb_attributes * 5; i+=5)
         {
@@ -495,8 +495,8 @@ wocky_xmpp_reader_check_eos (WockyXmppReader *reader)
   if (!g_queue_is_empty (priv->stanzas)
       && g_queue_peek_head (priv->stanzas) == NULL)
     {
-      priv->state = priv->error ? WOCKY_XMPP_READER_ERROR :
-        WOCKY_XMPP_READER_CLOSED;
+      priv->state = priv->error ? WOCKY_XMPP_READER_STATE_ERROR :
+        WOCKY_XMPP_READER_STATE_CLOSED;
     }
 }
 
@@ -507,7 +507,7 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
   xmlParserCtxtPtr parser;
 
-  g_return_if_fail (priv->state < WOCKY_XMPP_READER_CLOSED);
+  g_return_if_fail (priv->state < WOCKY_XMPP_READER_STATE_CLOSED);
 
   DEBUG ("Parsing chunk: %.*s", (int)length, data);
 
@@ -538,7 +538,7 @@ wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
 
   if (!priv->stream_mode)
     {
-      priv->state = WOCKY_XMPP_READER_CLOSED;
+      priv->state = WOCKY_XMPP_READER_STATE_CLOSED;
     }
 
   return s;
