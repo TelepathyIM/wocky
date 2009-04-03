@@ -82,7 +82,7 @@ struct _WockyXmppReaderPrivate
   gchar *version;
   gchar *lang;
   gboolean dispose_has_run;
-  gboolean error;
+  GError *error /* defeat the coding style checker... */;
   gboolean stream_mode;
   GQueue *stanzas;
   WockyXmppReaderState state;
@@ -245,12 +245,15 @@ wocky_xmpp_reader_finalize (GObject *object)
     xmlFreeParserCtxt (priv->parser);
     priv->parser = NULL;
   }
+
   g_queue_free (priv->stanzas);
   g_queue_free (priv->nodes);
   g_free (priv->to);
   g_free (priv->from);
   g_free (priv->version);
   g_free (priv->lang);
+  if (priv->error != NULL)
+    g_error_free (priv->error);
 
   G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->finalize (object);
 }
@@ -346,7 +349,10 @@ _start_element_ns (void *user_data, const xmlChar *localname,
       if (strcmp ("stream", (gchar *) localname)
           || strcmp (WOCKY_XMPP_NS_STREAM, (gchar *) uri))
         {
-          priv->error = TRUE;
+          priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
+            WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
+            "Invalid start of the XMPP stream");
+          g_queue_push_tail (priv->stanzas, NULL);
           return;
         }
 
@@ -484,9 +490,12 @@ _error (void *user_data, xmlErrorPtr error)
 {
   WockyXmppReader *self = WOCKY_XMPP_READER (user_data);
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (self);
-  priv->error = TRUE;
+
+  priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
+    WOCKY_XMPP_READER_ERROR_PARSE_ERROR, error->message);
 
   DEBUG ("Parsing failed %s", error->message);
+  g_queue_push_tail (priv->stanzas, NULL);
 }
 
 WockyXmppReaderState
@@ -557,13 +566,21 @@ wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
 GError *
 wocky_xmpp_reader_get_error (WockyXmppReader *reader)
 {
-  /* stub */
-  return NULL;
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
+  return priv->error == NULL ? NULL : g_error_copy (priv->error);
 }
 
 void
 wocky_xmpp_reader_reset (WockyXmppReader *reader)
 {
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
   DEBUG ("Resetting xmpp reader");
+
+  if (priv->error != NULL)
+    g_error_free (priv->error);
+  priv->error = NULL;
+
   wocky_init_xml_parser (reader);
 }
