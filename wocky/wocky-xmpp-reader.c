@@ -35,17 +35,16 @@
 #define DEBUG_FLAG DEBUG_XMPP_READER
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE (WockyXmppReader, wocky_xmpp_reader, G_TYPE_OBJECT)
-
-/* signal enum */
+/* properties */
 enum {
-  RECEIVED_STANZA,
-  STREAM_OPENED,
-  STREAM_CLOSED,
-  LAST_SIGNAL
+  PROP_STREAMING_MODE = 1,
+  PROP_TO,
+  PROP_FROM,
+  PROP_VERSION,
+  PROP_LANG,
 };
 
-static guint signals[LAST_SIGNAL] = {0};
+G_DEFINE_TYPE (WockyXmppReader, wocky_xmpp_reader, G_TYPE_OBJECT)
 
 /* Parser prototypes */
 static void _start_element_ns (void *user_data,
@@ -68,13 +67,6 @@ static xmlSAXHandler parser_handler = {
   .serror         = _error,
 };
 
-typedef enum {
-  STATE_STREAM_CLOSE,
-  STATE_STREAM_OPENED,
-  STATE_STREAM_OPEN,
-  STATE_STREAM_CLOSED,
-} StreamState;
-
 /* private structure */
 typedef struct _WockyXmppReaderPrivate WockyXmppReaderPrivate;
 
@@ -88,11 +80,12 @@ struct _WockyXmppReaderPrivate
   gchar *to;
   gchar *from;
   gchar *version;
+  gchar *lang;
   gboolean dispose_has_run;
   gboolean error;
   gboolean stream_mode;
   GQueue *stanzas;
-  StreamState state;
+  WockyXmppReaderState state;
 };
 
 #define WOCKY_XMPP_READER_GET_PRIVATE(o)  \
@@ -111,7 +104,15 @@ wocky_init_xml_parser (WockyXmppReader *obj)
   priv->parser = xmlCreatePushParserCtxt (&parser_handler, obj, NULL, 0, NULL);
   xmlCtxtUseOptions (priv->parser, XML_PARSE_NOENT);
   priv->depth = 0;
-  priv->state = STATE_STREAM_CLOSE;
+  priv->state = priv->stream_mode ? WOCKY_XMPP_READER_INITIAL :
+      WOCKY_XMPP_READER_OPENED;
+  priv->error = FALSE;
+}
+
+static void
+wocky_xmpp_reader_constructed (GObject *obj)
+{
+  wocky_init_xml_parser (WOCKY_XMPP_READER (obj));
 }
 
 static void
@@ -125,49 +126,67 @@ wocky_xmpp_reader_init (WockyXmppReader *obj)
   priv->stanza = NULL;
   priv->nodes = g_queue_new ();
   priv->node = NULL;
-  priv->error = FALSE;
-  priv->stream_mode = TRUE;
   priv->stanzas = g_queue_new ();
-  priv->state = STATE_STREAM_CLOSE;
 }
 
 static void wocky_xmpp_reader_dispose (GObject *object);
 static void wocky_xmpp_reader_finalize (GObject *object);
+static void wocky_xmpp_reader_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec);
+static void wocky_xmpp_reader_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec);
 
 static void
 wocky_xmpp_reader_class_init (WockyXmppReaderClass *wocky_xmpp_reader_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_reader_class);
+  GParamSpec *param_spec;
 
   g_type_class_add_private (wocky_xmpp_reader_class,
       sizeof (WockyXmppReaderPrivate));
 
+  object_class->constructed = wocky_xmpp_reader_constructed;
   object_class->dispose = wocky_xmpp_reader_dispose;
   object_class->finalize = wocky_xmpp_reader_finalize;
+  object_class->set_property = wocky_xmpp_reader_set_property;
+  object_class->get_property = wocky_xmpp_reader_get_property;
 
-  signals[RECEIVED_STANZA] = g_signal_new ("received-stanza",
-      G_OBJECT_CLASS_TYPE(wocky_xmpp_reader_class),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL, NULL,
-      g_cclosure_marshal_VOID__OBJECT,
-      G_TYPE_NONE, 1, WOCKY_TYPE_XMPP_STANZA);
+  param_spec = g_param_spec_boolean ("streaming-mode", "streaming-mode",
+    "Whether the xml to be read is one big stream or seperate documents",
+    TRUE,
+    G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-  signals[STREAM_OPENED] = g_signal_new ("stream-opened",
-      G_OBJECT_CLASS_TYPE(wocky_xmpp_reader_class),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL, NULL,
-      _wocky_signals_marshal_VOID__STRING_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+  g_object_class_install_property (object_class, PROP_STREAMING_MODE,
+    param_spec);
 
-  signals[STREAM_CLOSED] = g_signal_new ("stream-closed",
-      G_OBJECT_CLASS_TYPE(wocky_xmpp_reader_class),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL, NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
+  param_spec = g_param_spec_string ("to", "to",
+    "to attribute in the xml stream opening",
+    NULL,
+    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_property (object_class, PROP_TO, param_spec);
+
+  param_spec = g_param_spec_string ("from", "from",
+    "from attribute in the xml stream opening",
+    NULL,
+    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_FROM, param_spec);
+
+  param_spec = g_param_spec_string ("version", "version",
+    "version attribute in the xml stream opening",
+    NULL,
+    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_VERSION, param_spec);
+
+  param_spec = g_param_spec_string ("lang", "lang",
+    "xml:lang attribute in the xml stream opening",
+    NULL,
+    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_LANG, param_spec);
 }
 
 void
@@ -185,7 +204,8 @@ wocky_xmpp_reader_dispose (GObject *object)
   while (!g_queue_is_empty (priv->stanzas)) {
     gpointer stanza;
     stanza = g_queue_pop_head (priv->stanzas);
-    g_object_unref (stanza);
+    if (stanza != NULL)
+      g_object_unref (stanza);
   }
 
   if (G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->dispose)
@@ -208,10 +228,62 @@ wocky_xmpp_reader_finalize (GObject *object)
   g_free (priv->to);
   g_free (priv->from);
   g_free (priv->version);
+  g_free (priv->lang);
 
   G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->finalize (object);
 }
 
+static void
+wocky_xmpp_reader_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  WockyXmppReader *reader = WOCKY_XMPP_READER (object);
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
+  switch (property_id)
+    {
+      case PROP_STREAMING_MODE:
+        priv->stream_mode = g_value_get_boolean (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+wocky_xmpp_reader_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  WockyXmppReader *reader = WOCKY_XMPP_READER (object);
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
+  switch (property_id)
+    {
+      case PROP_STREAMING_MODE:
+        g_value_set_boolean (value, priv->stream_mode);
+        break;
+      case PROP_FROM:
+        g_value_set_string (value, priv->from);
+        break;
+      case PROP_TO:
+        g_value_set_string (value, priv->to);
+        break;
+      case PROP_LANG:
+        g_value_set_string (value, priv->lang);
+        break;
+      case PROP_VERSION:
+        g_value_set_string (value, priv->version);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
 
 WockyXmppReader *
 wocky_xmpp_reader_new (void)
@@ -222,12 +294,9 @@ wocky_xmpp_reader_new (void)
 WockyXmppReader *
 wocky_xmpp_reader_new_no_stream (void)
 {
-  WockyXmppReader *result = g_object_new (WOCKY_TYPE_XMPP_READER, NULL);
-  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (result);
-
-  priv->stream_mode = FALSE;
-
-  return result;
+  return g_object_new (WOCKY_TYPE_XMPP_READER,
+      "streaming-mode", FALSE,
+      NULL);
 }
 
 static void
@@ -258,7 +327,8 @@ _start_element_ns (void *user_data, const xmlChar *localname,
           priv->error = TRUE;
           return;
         }
-      priv->state = STATE_STREAM_OPENED;
+
+      priv->state = WOCKY_XMPP_READER_OPENED;
 
       for (i = 0; i < nb_attributes * 5; i+=5)
         {
@@ -363,7 +433,8 @@ _end_element_ns (void *user_data, const xmlChar *localname,
 
   if (priv->stream_mode && priv->depth == 0)
     {
-      priv->state = STATE_STREAM_CLOSED;
+      DEBUG ("Stream ended");
+      g_queue_push_tail (priv->stanzas, NULL);
     }
   else if (priv->depth == (priv->stream_mode ? 1 : 0))
     {
@@ -389,9 +460,30 @@ _error (void *user_data, xmlErrorPtr error)
   DEBUG ("Parsing failed %s", error->message);
 }
 
-gboolean
+WockyXmppReaderState
+wocky_xmpp_reader_get_state (WockyXmppReader *reader)
+{
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
+  return priv->state;
+}
+
+static void
+wocky_xmpp_reader_check_eos (WockyXmppReader *reader)
+{
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
+  if (!g_queue_is_empty (priv->stanzas)
+      && g_queue_peek_head (priv->stanzas) == NULL)
+    {
+      priv->state = priv->error ? WOCKY_XMPP_READER_ERROR :
+        WOCKY_XMPP_READER_CLOSED;
+    }
+}
+
+void
 wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
-    gsize length, GError **error)
+    gsize length)
 {
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
   xmlParserCtxtPtr parser;
@@ -402,33 +494,41 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
   parser = priv->parser;
   xmlParseChunk (parser, (const char*)data, length, FALSE);
 
-  if (priv->state == STATE_STREAM_OPENED)
-    {
-      priv->state = STATE_STREAM_OPEN;
-      g_signal_emit (reader, signals[STREAM_OPENED], 0,
-          priv->to, priv->from, priv->version);
-    }
+  wocky_xmpp_reader_check_eos (reader);
 
-  while (!g_queue_is_empty (priv->stanzas))
-    {
-      gpointer stanza;
-      stanza = g_queue_pop_head (priv->stanzas);
-      g_signal_emit (reader, signals[RECEIVED_STANZA], 0, stanza);
-      g_object_unref (stanza);
-    }
-
-  if (priv->state == STATE_STREAM_CLOSED)
-    {
-      priv->state = STATE_STREAM_CLOSE;
-      g_signal_emit (reader, signals[STREAM_CLOSED], 0);
-    }
-
+ /* When in non-streaming mode, prepare the parser for the next hunk */
  if (!priv->stream_mode)
    {
      wocky_init_xml_parser (reader);
    }
+}
 
-  return !priv->error;
+WockyXmppStanza *
+wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
+{
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+  WockyXmppStanza *s;
+
+  if (g_queue_is_empty (priv->stanzas))
+    return NULL;
+
+  wocky_xmpp_reader_check_eos (reader);
+
+  s = g_queue_pop_head (priv->stanzas);
+
+  if (!priv->stream_mode)
+    {
+      priv->state = WOCKY_XMPP_READER_CLOSED;
+    }
+
+  return s;
+}
+
+GError *
+wocky_xmpp_reader_get_error (WockyXmppReader *reader)
+{
+  /* stub */
+  return NULL;
 }
 
 void
@@ -437,4 +537,3 @@ wocky_xmpp_reader_reset (WockyXmppReader *reader)
   DEBUG ("Resetting xmpp reader");
   wocky_init_xml_parser (reader);
 }
-

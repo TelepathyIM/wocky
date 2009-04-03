@@ -22,6 +22,7 @@
 #define __WOCKY_XMPP_READER_H__
 
 #include <glib-object.h>
+#include <wocky/wocky-xmpp-stanza.h>
 
 G_BEGIN_DECLS
 
@@ -35,6 +36,13 @@ struct _WockyXmppReaderClass {
 struct _WockyXmppReader {
     GObject parent;
 };
+
+typedef enum {
+  WOCKY_XMPP_READER_INITIAL,
+  WOCKY_XMPP_READER_OPENED,
+  WOCKY_XMPP_READER_CLOSED,
+  WOCKY_XMPP_READER_ERROR,
+} WockyXmppReaderState;
 
 GType wocky_xmpp_reader_get_type (void);
 
@@ -58,10 +66,18 @@ GType wocky_xmpp_reader_get_type (void);
 
 WockyXmppReader * wocky_xmpp_reader_new (void);
 WockyXmppReader * wocky_xmpp_reader_new_no_stream (void);
-void wocky_xmpp_reader_reset (WockyXmppReader *reader);
 
-gboolean wocky_xmpp_reader_push (WockyXmppReader *reader,
-    const guint8 *data, gsize length, GError **error);
+
+WockyXmppReaderState wocky_xmpp_reader_get_state (WockyXmppReader *reader);
+
+void wocky_xmpp_reader_push (WockyXmppReader *reader,
+    const guint8 *data,
+    gsize length);
+
+WockyXmppStanza *wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader);
+
+GError *wocky_xmpp_reader_get_error (WockyXmppReader *reader);
+void wocky_xmpp_reader_reset (WockyXmppReader *reader);
 
 G_END_DECLS
 

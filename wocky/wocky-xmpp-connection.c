@@ -50,16 +50,6 @@ enum
 
 static guint signals[LAST_SIGNAL] = {0};
 
-static void _reader_stream_opened_cb (WockyXmppReader *reader,
-    const gchar *to, const gchar *from, const gchar *version,
-    gpointer user_data);
-
-static void _reader_stream_closed_cb (WockyXmppReader *reader,
-    gpointer user_data);
-
-static void _reader_received_stanza_cb (WockyXmppReader *reader,
-    WockyXmppStanza *stanza, gpointer user_data);
-
 /* private structure */
 typedef struct _WockyXmppConnectionPrivate WockyXmppConnectionPrivate;
 
@@ -94,13 +84,6 @@ wocky_xmpp_connection_constructor (GType type,
 
   priv->writer = wocky_xmpp_writer_new ();
   priv->reader = wocky_xmpp_reader_new ();
-
-  g_signal_connect (priv->reader, "stream-opened",
-      G_CALLBACK (_reader_stream_opened_cb), obj);
-  g_signal_connect (priv->reader, "stream-closed",
-      G_CALLBACK (_reader_stream_closed_cb), obj);
-  g_signal_connect (priv->reader, "received-stanza",
-      G_CALLBACK (_reader_received_stanza_cb), obj);
 
   return obj;
 }
@@ -359,7 +342,8 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
 {
   WockyXmppConnection *self;
   WockyXmppConnectionPrivate *priv;
-  gboolean ret;
+  WockyXmppStanza *stanza;
+  /* gboolean ret; */
   gssize size;
   GError *error = NULL;
 
@@ -386,45 +370,46 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
   /* Ensure we're not disposed inside while running the reader is busy */
   g_object_ref (self);
 
-  ret = wocky_xmpp_reader_push (priv->reader, priv->buffer, size, &error);
-
-  if (!ret)
+  wocky_xmpp_reader_push (priv->reader, priv->buffer, size);
+  if (!(self->stream_flags | WOCKY_XMPP_CONNECTION_STREAM_RECEIVED)
+      && (wocky_xmpp_reader_get_state (priv->reader) ==
+          WOCKY_XMPP_READER_OPENED))
     {
-      g_signal_emit (self, signals[PARSE_ERROR], 0);
+      gchar *to, *from, *version;
+
+      g_object_get (priv->reader,
+        "to", &to,
+        "from", &from,
+        "version", version,
+        NULL);
+
+      self->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_RECEIVED;
+      g_signal_emit (self, signals[STREAM_OPENED], 0, to, from, version);
+
+      g_free (to);
+      g_free (from);
+      g_free (version);
     }
 
-  wocky_xmpp_connection_do_read (self);
+  while ((stanza = wocky_xmpp_reader_pop_stanza (priv->reader)) != NULL)
+    {
+      g_signal_emit (self, signals[RECEIVED_STANZA], 0, stanza);
+    }
+
+  switch (wocky_xmpp_reader_get_state (priv->reader))
+    {
+      case WOCKY_XMPP_READER_CLOSED:
+        self->stream_flags |= WOCKY_XMPP_CONNECTION_CLOSE_RECEIVED;
+        g_signal_emit (self, signals[STREAM_CLOSED], 0);
+        break;
+      case WOCKY_XMPP_READER_ERROR:
+        g_signal_emit (self, signals[PARSE_ERROR], 0);
+        break;
+      default:
+        wocky_xmpp_connection_do_read (self);
+    }
 
   g_object_unref (self);
-}
-
-static void
-_reader_stream_opened_cb (WockyXmppReader *reader, const gchar *to,
-    const gchar *from, const gchar *version, gpointer user_data)
-{
-  WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
-
-  self->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_RECEIVED;
-
-  g_signal_emit (self, signals[STREAM_OPENED], 0, to, from, version);
-}
-
-static void
-_reader_stream_closed_cb (WockyXmppReader *reader, gpointer user_data)
-{
-  WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
-
-  self->stream_flags |= WOCKY_XMPP_CONNECTION_CLOSE_RECEIVED;
-
-  g_signal_emit (self, signals[STREAM_CLOSED], 0);
-}
-
-static void
-_reader_received_stanza_cb (WockyXmppReader *reader, WockyXmppStanza *stanza,
-    gpointer user_data)
-{
-  WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
-  g_signal_emit (self, signals[RECEIVED_STANZA], 0, stanza);
 }
 
 gchar *
