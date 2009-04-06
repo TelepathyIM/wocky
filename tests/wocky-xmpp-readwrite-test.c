@@ -146,6 +146,9 @@ test_readwrite_nostream (void)
       wocky_xmpp_writer_write_stanza (writer, sent, &data, &length);
       wocky_xmpp_reader_push (reader, data, length);
 
+      g_assert (wocky_xmpp_reader_get_state (reader)
+        == WOCKY_XMPP_READER_STATE_OPENED);
+
       received = wocky_xmpp_reader_pop_stanza (reader);
 
       g_assert (received != NULL);
