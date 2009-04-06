@@ -534,12 +534,6 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
   xmlParseChunk (parser, (const char*)data, length, FALSE);
 
   wocky_xmpp_reader_check_eos (reader);
-
- /* When in non-streaming mode, prepare the parser for the next hunk */
- if (!priv->stream_mode)
-   {
-     wocky_init_xml_parser (reader);
-   }
 }
 
 WockyXmppStanza *
