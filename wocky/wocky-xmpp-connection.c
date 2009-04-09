@@ -178,6 +178,18 @@ wocky_xmpp_connection_dispose (GObject *object)
       priv->writer = NULL;
     }
 
+  if (priv->cancel_read != NULL)
+    g_object_unref (priv->cancel_read);
+  priv->cancel_read = NULL;
+
+  if (priv->input_stream != NULL)
+    g_object_unref (priv->input_stream);
+  priv->input_stream = NULL;
+
+  if (priv->output_stream != NULL)
+    g_object_unref (priv->output_stream);
+  priv->output_stream = NULL;
+
   /* release any references held by the object here */
 
   if (G_OBJECT_CLASS (wocky_xmpp_connection_parent_class)->dispose)
@@ -394,6 +406,7 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
   while ((stanza = wocky_xmpp_reader_pop_stanza (priv->reader)) != NULL)
     {
       g_signal_emit (self, signals[RECEIVED_STANZA], 0, stanza);
+      g_object_unref (stanza);
     }
 
   switch (wocky_xmpp_reader_get_state (priv->reader))
