@@ -55,6 +55,8 @@ test_stream_open_error (void)
   g_assert (g_error_matches (error, WOCKY_XMPP_READER_ERROR,
     WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START));
 
+  g_error_free (error);
+
   g_object_unref (reader);
 }
 
@@ -90,6 +92,7 @@ test_parse_error (void)
   g_assert (g_error_matches (error, WOCKY_XMPP_READER_ERROR,
     WOCKY_XMPP_READER_ERROR_PARSE_ERROR));
 
+  g_error_free (error);
   g_object_unref (reader);
 }
 
