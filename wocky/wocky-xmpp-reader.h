@@ -37,6 +37,15 @@ struct _WockyXmppReader {
     GObject parent;
 };
 
+/**
+ * WockyXmppReaderState:
+ * @WOCKY_XMPP_READER_STATE_INITIAL : initial state
+ * @WOCKY_XMPP_READER_STATE_OPENED  : stream is open
+ * @WOCKY_XMPP_READER_STATE_CLOSED  : stream has been closed
+ * @WOCKY_XMPP_READER_STATE_ERROR   : stream reader hit an error
+ *
+ * The possible states a reader can be in.
+ */
 typedef enum {
   WOCKY_XMPP_READER_STATE_INITIAL,
   WOCKY_XMPP_READER_STATE_OPENED,
@@ -44,12 +53,25 @@ typedef enum {
   WOCKY_XMPP_READER_STATE_ERROR,
 } WockyXmppReaderState;
 
+/**
+ * WockyXmppReaderError:
+ * @WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START : invalid start of xmpp stream
+ * @WOCKY_XMPP_READER_ERROR_PARSE_ERROR          : error in parsing the XML
+ *
+ * The different errors that can occur while reading a stream
+ */
 typedef enum {
   WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
   WOCKY_XMPP_READER_ERROR_PARSE_ERROR,
 } WockyXmppReaderError;
 
 GQuark wocky_xmpp_reader_error_quark (void);
+
+/**
+ * WOCKY_XMPP_READER_ERROR:
+ *
+ * Get access to the error quark of the reader.
+ */
 #define WOCKY_XMPP_READER_ERROR (wocky_xmpp_reader_error_quark ())
 
 GType wocky_xmpp_reader_get_type (void);

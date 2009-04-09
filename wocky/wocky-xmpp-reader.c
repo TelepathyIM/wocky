@@ -95,6 +95,13 @@ struct _WockyXmppReaderPrivate
   WockyXmppReaderState state;
 };
 
+/**
+ * wocky_xmpp_reader_error_quark
+ *
+ * Get the error quark used by the reader.
+ *
+ * Returns: the quark for reader errors.
+ */
 GQuark
 wocky_xmpp_reader_error_quark (void)
 {
