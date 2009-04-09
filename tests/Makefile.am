@@ -27,6 +27,36 @@ test-report.xml: ${TEST_PROGS} test
 test: ${TEST_PROGS}
 	gtester -o test-report.xml -k --verbose ${TEST_PROGS}
 
-.PHONE: test test-report
+.PHONY: test test-report
 
 check-local: test
+
+# valgrind any given test by running make test.valgrind
+%.valgrind: %
+	G_SLICE=always-malloc               \
+	G_DEBUG=gc-friendly              \
+	/usr/bin/valgrind -q \
+	$(foreach s,$(SUPPRESSIONS),--suppressions=$(s))   \
+	--tool=memcheck --leak-check=full --trace-children=yes   \
+	--leak-resolution=high --num-callers=20         \
+	./$* 2>&1 | tee "valgrind.$*.log"
+	@if grep "==" "valgrind.$*.log" > /dev/null 2>&1; then   \
+		exit 1;                \
+	fi
+
+valgrind: $(TEST_PROGS)
+	@echo "Valgrinding tests ..."
+	@failed=0;                    \
+	for t in $(filter-out $(VALGRIND_TESTS_DISABLE),$(TEST_PROGS)); do  \
+		$(MAKE) $$t.valgrind;               \
+		if test "$$?" -ne 0; then                               \
+			echo "Valgrind error for test $$t";    \
+			failed=`expr $$failed + 1`;         \
+			whicht="$$whicht $$t";           \
+		fi;                    \
+	done;                      \
+	if test "$$failed" -ne 0; then               \
+		echo "$$failed tests had leaks or errors under valgrind:";  \
+		echo "$$whicht";              \
+		false;                     \
+	fi
