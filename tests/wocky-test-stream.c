@@ -153,11 +153,22 @@ wocky_test_stream_dispose (GObject *object)
   self->priv->dispose_has_run = TRUE;
 
   g_object_unref (self->stream0);
+  self->stream0 = NULL;
+
   g_object_unref (self->stream1);
+  self->stream1 = NULL;
+
   g_object_unref (self->stream0_input);
+  self->stream0_input = NULL;
+
   g_object_unref (self->stream0_output);
+  self->stream0_output = NULL;
+
   g_object_unref (self->stream1_input);
+  self->stream1_input = NULL;
+
   g_object_unref (self->stream1_output);
+  self->stream1_output = NULL;
 
   if (G_OBJECT_CLASS (wocky_test_stream_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_test_stream_parent_class)->dispose (object);
