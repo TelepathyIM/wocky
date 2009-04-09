@@ -331,7 +331,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
   return stanza;
 }
 
-/**
+/*
  * wocky_xmpp_stanza_build
  *
  * Build a XMPP stanza from a list of arguments.
