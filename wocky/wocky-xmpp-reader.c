@@ -244,6 +244,15 @@ wocky_xmpp_reader_dispose (GObject *object)
       g_object_unref (stanza);
   }
 
+  if (priv->stanza != NULL)
+    g_object_unref (priv->stanza);
+  priv->stanza = NULL;
+
+  g_queue_clear (priv->nodes);
+  priv->node = NULL;
+  priv->depth = 0;
+
+
   if (G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->dispose (object);
 }
