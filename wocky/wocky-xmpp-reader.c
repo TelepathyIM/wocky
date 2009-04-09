@@ -18,6 +18,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-xmpp-reader
+ * @title: WockyXmppReader
+ * @short_description: Xmpp XML to stanza deserializer
+ *
+ * The #WockyXmppReader deserializes XML to #WockyXmppStanzas, misc, other
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -310,12 +317,27 @@ wocky_xmpp_reader_get_property (GObject *object,
     }
 }
 
+/**
+ * wocky_xmpp_reader_new
+ *
+ * Convenience function to create a new #WockyXmppReader.
+ *
+ * Returns: a new #WockyXmppReader
+ */
 WockyXmppReader *
 wocky_xmpp_reader_new (void)
 {
   return g_object_new (WOCKY_TYPE_XMPP_READER, NULL);
 }
 
+/**
+ * wocky_xmpp_reader_new_no_stream
+ *
+ * Convenience function to create a new #WockyXmppReader that has streaming
+ * mode disabled.
+ *
+ * Returns: a new #WockyXmppReader in non-streaming mode
+ */
 WockyXmppReader *
 wocky_xmpp_reader_new_no_stream (void)
 {
@@ -498,6 +520,12 @@ _error (void *user_data, xmlErrorPtr error)
   g_queue_push_tail (priv->stanzas, NULL);
 }
 
+/**
+ * wocky_xmpp_reader_get_state:
+ * @reader: a WockyXmppReader
+ *
+ * Returns: The current state of the reader
+ */
 WockyXmppReaderState
 wocky_xmpp_reader_get_state (WockyXmppReader *reader)
 {
@@ -519,6 +547,14 @@ wocky_xmpp_reader_check_eos (WockyXmppReader *reader)
     }
 }
 
+/**
+ * wocky_xmpp_reader_push:
+ * @reader: a WockyXmppReader
+ * @data: Data to read
+ * @length: Size of @data
+ *
+ * Push a amount of data to parse
+ */
 void
 wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
     gsize length)
@@ -536,6 +572,15 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
   wocky_xmpp_reader_check_eos (reader);
 }
 
+/**
+ * wocky_xmpp_reader_pop_stanza:
+ * @reader: a WockyXmppReader
+ *
+ * Gets one #WockyXmppStanza out of the reader or NULL if there are no
+ * available stanzas.
+ *
+ * Returns: One #WockyXmppStanza or NULL if there are no available stanzas
+ */
 WockyXmppStanza *
 wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
 {
@@ -557,6 +602,15 @@ wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
   return s;
 }
 
+/**
+ * wocky_xmpp_reader_get_error:
+ * @reader: a WockyXmppReader
+ *
+ * Get the error from the reader
+ *
+ * Returns: A copy of the error as encountered by the reader or NULL if there
+ * was no error. Free after use
+ */
 GError *
 wocky_xmpp_reader_get_error (WockyXmppReader *reader)
 {
@@ -565,6 +619,13 @@ wocky_xmpp_reader_get_error (WockyXmppReader *reader)
   return priv->error == NULL ? NULL : g_error_copy (priv->error);
 }
 
+/**
+ * wocky_xmpp_reader_reset:
+ * @reader: a WockyXmppReader
+ *
+ * Resets the xml parser
+ *
+ */
 void
 wocky_xmpp_reader_reset (WockyXmppReader *reader)
 {
