@@ -3,7 +3,9 @@ noinst_LTLIBRARIES = libwocky.la
 BUILT_SOURCES = \
   wocky-signals-marshal.list \
   wocky-signals-marshal.h \
-  wocky-signals-marshal.c
+  wocky-signals-marshal.c \
+  wocky-xmpp-reader-enumtypes.h \
+  wocky-xmpp-reader-enumtypes.c
 
 HANDWRITTEN_SOURCES =            \
   wocky-xmpp-connection.c        \
