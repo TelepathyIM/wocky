@@ -33,22 +33,16 @@
 
 #define BUFFER_SIZE 1024
 
-static void _xmpp_connection_received_data (GObject *source,
-    GAsyncResult *result, gpointer user_data);
+//static void _xmpp_connection_received_data (GObject *source,
+//    GAsyncResult *result, gpointer user_data);
 
 G_DEFINE_TYPE(WockyXmppConnection, wocky_xmpp_connection, G_TYPE_OBJECT)
 
-/* signal enum */
+/* properties */
 enum
 {
-  STREAM_OPENED,
-  STREAM_CLOSED,
-  PARSE_ERROR,
-  RECEIVED_STANZA,
-  LAST_SIGNAL
+  PROP_BASE_STREAM = 1,
 };
-
-static guint signals[LAST_SIGNAL] = {0};
 
 /* private structure */
 typedef struct _WockyXmppConnectionPrivate WockyXmppConnectionPrivate;
@@ -58,6 +52,7 @@ struct _WockyXmppConnectionPrivate
   WockyXmppReader *reader;
   WockyXmppWriter *writer;
   gboolean dispose_has_run;
+  GIOStream *stream;
   GInputStream *input_stream;
   GOutputStream *output_stream;
   guint last_id;
@@ -103,50 +98,73 @@ static void wocky_xmpp_connection_dispose (GObject *object);
 static void wocky_xmpp_connection_finalize (GObject *object);
 
 static void
+wocky_xmpp_connection_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (object);
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  switch (property_id)
+    {
+      case PROP_BASE_STREAM:
+        g_assert (priv->stream == NULL);
+        priv->stream = g_value_dup_object (value);
+        g_assert (priv->stream != NULL);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+wocky_xmpp_connection_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (object);
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  switch (property_id)
+    {
+      case PROP_BASE_STREAM:
+        g_value_set_object (value, priv->stream);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
 wocky_xmpp_connection_class_init (
     WockyXmppConnectionClass *wocky_xmpp_connection_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_connection_class);
+  GParamSpec *spec;
 
   g_type_class_add_private (wocky_xmpp_connection_class,
       sizeof (WockyXmppConnectionPrivate));
 
+  object_class->set_property = wocky_xmpp_connection_set_property;
+  object_class->get_property = wocky_xmpp_connection_get_property;
   object_class->dispose = wocky_xmpp_connection_dispose;
   object_class->finalize = wocky_xmpp_connection_finalize;
 
   object_class->constructor = wocky_xmpp_connection_constructor;
 
-  signals[STREAM_OPENED] = g_signal_new ("stream-opened",
-      G_OBJECT_CLASS_TYPE (wocky_xmpp_connection_class),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL, NULL,
-      _wocky_signals_marshal_VOID__STRING_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+  spec = g_param_spec_object ("base-stream", "base stream",
+    "the stream that the XMPP connection communicates over",
+    G_TYPE_IO_STREAM,
+    G_PARAM_READWRITE |
+    G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-  signals[STREAM_CLOSED] = g_signal_new ("stream-closed",
-       G_OBJECT_CLASS_TYPE (wocky_xmpp_connection_class),
-       G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-       0,
-       NULL, NULL,
-       g_cclosure_marshal_VOID__VOID,
-       G_TYPE_NONE, 0);
-
-  signals[RECEIVED_STANZA] = g_signal_new ("received-stanza",
-      G_OBJECT_CLASS_TYPE (wocky_xmpp_connection_class),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL, NULL,
-      g_cclosure_marshal_VOID__OBJECT,
-      G_TYPE_NONE, 1, WOCKY_TYPE_XMPP_STANZA);
-
-  signals[PARSE_ERROR] = g_signal_new ("parse-error",
-      G_OBJECT_CLASS_TYPE(wocky_xmpp_connection_class),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL, NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
+  g_object_class_install_property (object_class, PROP_BASE_STREAM, spec);
 }
 
 void
@@ -209,16 +227,13 @@ wocky_xmpp_connection_new (GIOStream *stream)
 {
   WockyXmppConnection * result;
 
-  result = g_object_new (WOCKY_TYPE_XMPP_CONNECTION, NULL);
-
-  if (stream != NULL)
-    {
-      wocky_xmpp_connection_engage (result, stream);
-    }
+  result = g_object_new (WOCKY_TYPE_XMPP_CONNECTION,
+    "base-stream", stream, NULL);
 
   return result;
 }
 
+#if 0
 void
 wocky_xmpp_connection_open (WockyXmppConnection *connection,
     const gchar *to, const gchar *from, const gchar *version)
@@ -285,6 +300,7 @@ wocky_xmpp_connection_do_read (WockyXmppConnection *self)
       self);
 }
 
+
 void
 wocky_xmpp_connection_engage (WockyXmppConnection *connection,
     GIOStream *stream)
@@ -321,7 +337,9 @@ wocky_xmpp_connection_disengage (WockyXmppConnection *connection)
   g_object_unref (connection->stream);
   connection->stream = NULL;
 }
+#endif
 
+#if 0
 gboolean
 wocky_xmpp_connection_send (WockyXmppConnection *connection,
     WockyXmppStanza *stanza, GError **error)
@@ -419,10 +437,113 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
         g_signal_emit (self, signals[PARSE_ERROR], 0);
         break;
       default:
-        wocky_xmpp_connection_do_read (self);
+        //wocky_xmpp_connection_do_read (self);
+        break;
     }
 
   g_object_unref (self);
+}
+#endif
+
+void
+wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
+    const gchar *to,
+    const gchar *from,
+    const gchar *version,
+    const gchar *lang,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  /* stub */
+}
+
+gboolean
+wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  /* stub */
+  return TRUE;
+}
+
+void
+wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  /* stub */
+}
+
+gboolean
+wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
+    GAsyncResult *result,
+    const gchar **to,
+    const gchar **from,
+    const gchar **version,
+    const gchar **lang,
+    GError **error)
+{
+  /* stub */
+  return TRUE;
+}
+
+void
+wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
+    WockyXmppStanza *stanza,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  /* stub */
+}
+
+gboolean
+wocky_xmpp_connection_send_stanza_async_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  /* stub */
+  return TRUE;
+}
+
+void
+wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  /* stub */
+}
+
+WockyXmppStanza *
+wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  /* stub */
+  return NULL;
+}
+
+
+void
+wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  /* stub */
+}
+
+gboolean
+wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  /* stub */
+  return TRUE;
 }
 
 gchar *

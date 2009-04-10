@@ -75,22 +75,64 @@ GType wocky_xmpp_connection_get_type (void);
 
 WockyXmppConnection *wocky_xmpp_connection_new (GIOStream *stream);
 
-void wocky_xmpp_connection_open (WockyXmppConnection *connection,
-  const gchar *to, const gchar *from, const gchar *version);
+void wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
+    const gchar *to,
+    const gchar *from,
+    const gchar *version,
+    const gchar *lang,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
-/* Prepare the connection for a reopen from the other side, for example after
- * successfull SASL authentication */
-void wocky_xmpp_connection_restart (WockyXmppConnection *connection);
+gboolean wocky_xmpp_connection_send_open_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error);
 
-void wocky_xmpp_connection_close (WockyXmppConnection *connection);
+void wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
-void wocky_xmpp_connection_engage (WockyXmppConnection *connection,
-    GIOStream *stream);
+gboolean wocky_xmpp_connection_recv_open_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    const gchar **to,
+    const gchar **from,
+    const gchar **version,
+    const gchar **lang,
+    GError **error);
 
-void wocky_xmpp_connection_disengage (WockyXmppConnection *connection);
+void wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
+    WockyXmppStanza *stanza,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
-gboolean wocky_xmpp_connection_send (WockyXmppConnection *connection,
-  WockyXmppStanza *stanza, GError **error);
+gboolean wocky_xmpp_connection_send_stanza_async_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error);
+
+void wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+WockyXmppStanza *wocky_xmpp_connection_recv_stanza_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error);
+
+void wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_xmpp_connection_send_close_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error);
 
 gchar * wocky_xmpp_connection_new_id (WockyXmppConnection *connection);
 
