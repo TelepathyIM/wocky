@@ -31,6 +31,8 @@ test: ${TEST_PROGS}
 
 check-local: test
 
+SUPPRESSIONS=threadlocal.supp
+
 # valgrind any given test by running make test.valgrind
 %.valgrind: %
 	G_SLICE=always-malloc               \
@@ -60,3 +62,6 @@ valgrind: $(TEST_PROGS)
 		echo "$$whicht";              \
 		false;                     \
 	fi
+
+
+EXTRA_DIST = $(SURPRESSIONS)
