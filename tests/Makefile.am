@@ -37,7 +37,7 @@ SUPPRESSIONS=threadlocal.supp
 %.valgrind: %
 	G_SLICE=always-malloc               \
 	G_DEBUG=gc-friendly              \
-	/usr/bin/valgrind -q \
+	valgrind -q \
 	$(foreach s,$(SUPPRESSIONS),--suppressions=$(s))   \
 	--tool=memcheck --leak-check=full --trace-children=yes   \
 	--leak-resolution=high --num-callers=20         \
