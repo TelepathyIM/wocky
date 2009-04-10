@@ -12,6 +12,20 @@ wocky_xmpp_readwrite_test_SOURCES = \
 wocky_xmpp_reader_test_SOURCES = \
   wocky-xmpp-reader-test.c
 
+if HAVE_LIBSASL2
+  TEST_PROGS += wocky-test-sasl-auth
+
+  wocky_test_sasl_auth_SOURCES = \
+      wocky-test-sasl-auth.c \
+      wocky-test-sasl-auth-server.c \
+      wocky-test-sasl-auth-server.h
+
+  wocky_test_sasl_auth_LDADD = @LIBSASL2_LIBS@
+  wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
+endif
+
+
+
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
 LDADD = $(top_builddir)/wocky/libwocky.la

@@ -112,6 +112,20 @@ AC_SUBST(GLIB_GENMARSHAL)
 dnl Check for libxml2
 PKG_CHECK_MODULES(LIBXML2, [libxml-2.0])
 
+dnl check for libsasl2 (for sasl test)
+AC_CHECK_LIB(sasl2, sasl_server_new,
+             [LIBSASL2_LIBS="-lsasl2"
+              LIBSASL2_CFLAGS=""
+              HAVE_LIBSASL2=yes
+              AC_DEFINE(HAVE_LIBSASL2, 1,
+                        [Define if libsasl2 support is available])
+             ],
+             [ AC_MSG_WARN(libsasl2 not found: not building sasl tests) ] )
+
+AC_SUBST(LIBSASL2_LIBS)
+AC_SUBST(LIBSASL2_CFLAGS)
+AM_CONDITIONAL(HAVE_LIBSASL2, test "x$HAVE_LIBSASL2" = "xyes")
+
 AC_SUBST(LIBXML2_CFLAGS)
 AC_SUBST(LIBXML2_LIBS)
 
