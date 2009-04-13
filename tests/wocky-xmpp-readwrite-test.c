@@ -99,7 +99,7 @@ test_readwrite (void)
   wocky_xmpp_writer_stream_close (writer, &data, &length);
   wocky_xmpp_reader_push (reader, data, length);
 
-  /*  Stream state should stay open untill we popped the last stanza */
+  /*  Stream state should stay open until we popped the last stanza */
   g_assert (wocky_xmpp_reader_get_state (reader)
      == WOCKY_XMPP_READER_STATE_OPENED);
 
