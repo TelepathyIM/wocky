@@ -109,10 +109,11 @@ received_stanza (WockyXmppConnection *connection, WockyXmppStanza *stanza,
 }
 
 static void
-run_test (test_t *test)
+run_test (gconstpointer user_data)
 {
   TestSaslAuthServer *server;
   WockyTestStream *stream;
+  test_t *test = (test_t *)user_data;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
 
@@ -162,40 +163,34 @@ run_test (test_t *test)
 
 #define NUMBER_OF_TEST 6
 
-static void
-test_sasl_auth (void)
-{
-  test_t tests[NUMBER_OF_TEST] = {
-    SUCCESS("Normal authentication", NULL, TRUE),
-    SUCCESS("Disallow PLAIN", "PLAIN", TRUE),
-    SUCCESS("Plain method authentication", "PLAIN", TRUE),
-    SUCCESS("Normal DIGEST-MD5 authentication", "DIGEST-MD5", TRUE),
-
-    { "No supported mechanisms", "NONSENSE", TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-       SERVER_PROBLEM_NO_PROBLEM },
-    { "No sasl support in server", NULL, TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
-       SERVER_PROBLEM_NO_SASL },
-  };
-
-  mainloop = g_main_loop_new (NULL, FALSE);
-
-  for (int i = 0; i < NUMBER_OF_TEST; i++)
-    run_test (&(tests[i]));
-}
-
-
 int
 main (int argc,
     char **argv)
 {
+  test_t tests[NUMBER_OF_TEST] = {
+    SUCCESS("/xmpp-sasl/normal-auth", NULL, TRUE),
+    SUCCESS("/xmpp-sasl/no-plain", "PLAIN", TRUE),
+    SUCCESS("/xmpp-sasl/only-plain", "PLAIN", TRUE),
+    SUCCESS("/xmpp-sasl/only-digest-md5", "DIGEST-MD5", TRUE),
+
+    { "/xmpp-sasl/no-supported-mechs", "NONSENSE", TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
+       SERVER_PROBLEM_NO_PROBLEM },
+    { "/xmpp-sasl/no-sasl-support", NULL, TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
+       SERVER_PROBLEM_NO_SASL },
+  };
+
   g_thread_init (NULL);
 
   g_test_init (&argc, &argv, NULL);
   g_type_init ();
 
-  g_test_add_func ("/xmpp-sasl/authentication", test_sasl_auth);
+  mainloop = g_main_loop_new (NULL, FALSE);
+
+  for (int i = 0; i < NUMBER_OF_TEST; i++)
+    g_test_add_data_func (tests[i].description,
+      &tests[i], run_test);
 
   return g_test_run ();
 }
