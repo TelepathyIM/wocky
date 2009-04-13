@@ -1,12 +1,10 @@
 #include <stdio.h>
 
 #include "wocky-test-sasl-auth-server.h"
-#include "test-transport.h"
+#include "wocky-test-stream.h"
+
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-sasl-auth.h>
-
-#include <check.h>
-#include "wocky-test.h"
 
 typedef struct {
   gchar *description;
@@ -18,8 +16,6 @@ typedef struct {
 } test_t;
 
 GMainLoop *mainloop;
-WockyTransport *servertransport;
-WockyTransport *clienttransport;
 WockyXmppConnection *conn;
 WockySaslAuth *sasl = NULL;
 
@@ -39,17 +35,6 @@ got_error (GQuark domain, int code, const gchar *message)
   g_set_error (&error, domain, code, "%s", message);
   run_done = TRUE;
   g_main_loop_quit (mainloop);
-}
-
-static gboolean
-send_hook (WockyTransport *transport, const guint8 *data,
-   gsize length, GError **err, gpointer user_data)
-{
-  WockyTransport *target =
-     (servertransport == transport) ? clienttransport : servertransport;
-
-  test_transport_write (TEST_TRANSPORT (target), data, length);
-  return TRUE;
 }
 
 static gchar *
@@ -77,7 +62,7 @@ auth_failed (WockySaslAuth *sasl_, GQuark domain,
 static void
 parse_error (WockyXmppConnection *connection, gpointer user_data)
 {
-  fail ();
+  g_assert_not_reached ();
 }
 
 static void
@@ -99,6 +84,7 @@ static void
 received_stanza (WockyXmppConnection *connection, WockyXmppStanza *stanza,
    gpointer user_data)
 {
+
   if (sasl == NULL)
     {
       GError *err = NULL;
@@ -123,21 +109,21 @@ received_stanza (WockyXmppConnection *connection, WockyXmppStanza *stanza,
 }
 
 static void
-run_rest (test_t *test)
+run_test (test_t *test)
 {
   TestSaslAuthServer *server;
+  WockyTestStream *stream;
 
-  servertransport = WOCKY_TRANSPORT(test_transport_new (send_hook, NULL));
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
 
-  server = test_sasl_auth_server_new (servertransport, test->mech, username,
+  server = test_sasl_auth_server_new (stream->stream0, test->mech, username,
       password, test->problem);
 
   authenticated = FALSE;
   run_done = FALSE;
   current_test = test;
 
-  clienttransport = WOCKY_TRANSPORT (test_transport_new (send_hook, NULL));
-  conn = wocky_xmpp_connection_new (clienttransport);
+  conn = wocky_xmpp_connection_new (stream->stream1);
 
   g_signal_connect (conn, "parse-error", G_CALLBACK (parse_error), NULL);
   g_signal_connect (conn, "stream-opened", G_CALLBACK (stream_opened), NULL);
@@ -157,18 +143,13 @@ run_rest (test_t *test)
       sasl = NULL;
     }
 
-  g_object_unref (servertransport);
-  g_object_unref (clienttransport);
+  g_object_unref (stream);
   g_object_unref (conn);
 
-  fail_if (test->domain == 0 && error != NULL);
-  fail_if (test->domain != 0 && error == NULL);
-
-  if (error != NULL)
-    {
-      fail_if (test->domain != error->domain);
-      fail_if (test->code != error->code);
-    }
+  if (test->domain == 0)
+    g_assert (error == NULL);
+  else
+    g_assert (g_error_matches (error, test->domain, test->code));
 
   if (error != NULL)
     g_error_free (error);
@@ -181,7 +162,8 @@ run_rest (test_t *test)
 
 #define NUMBER_OF_TEST 6
 
-START_TEST (test_auth)
+static void
+test_sasl_auth (void)
 {
   test_t tests[NUMBER_OF_TEST] = {
     SUCCESS("Normal authentication", NULL, TRUE),
@@ -197,17 +179,23 @@ START_TEST (test_auth)
        SERVER_PROBLEM_NO_SASL },
   };
 
-  g_type_init ();
-
   mainloop = g_main_loop_new (NULL, FALSE);
 
-  run_rest (&(tests[_i]));
-} END_TEST
+  for (int i = 0; i < NUMBER_OF_TEST; i++)
+    run_test (&(tests[i]));
+}
 
-TCase *
-make_wocky_sasl_auth_tcase (void)
+
+int
+main (int argc,
+    char **argv)
 {
-    TCase *tc = tcase_create ("SASL Auth");
-    tcase_add_loop_test (tc, test_auth, 0, NUMBER_OF_TEST);
-    return tc;
+  g_thread_init (NULL);
+
+  g_test_init (&argc, &argv, NULL);
+  g_type_init ();
+
+  g_test_add_func ("/xmpp-sasl/authentication", test_sasl_auth);
+
+  return g_test_run ();
 }
