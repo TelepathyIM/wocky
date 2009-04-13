@@ -14,25 +14,29 @@ wocky_xmpp_reader_test_SOURCES = \
 
 if HAVE_LIBSASL2
   TEST_PROGS += wocky-test-sasl-auth
-
-  wocky_test_sasl_auth_SOURCES = \
-      wocky-test-sasl-auth.c \
-      wocky-test-sasl-auth-server.c \
-      wocky-test-sasl-auth-server.h \
-      wocky-test-stream.c \
-      wocky-test-stream.h
-
-  wocky_test_sasl_auth_LDADD = $(LDADD) @LIBSASL2_LIBS@
-  wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
 endif
 
+wocky_test_sasl_auth_SOURCES = \
+   wocky-test-sasl-auth.c \
+   wocky-test-sasl-auth-server.c \
+   wocky-test-sasl-auth-server.h \
+   wocky-test-stream.c \
+   wocky-test-stream.h
 
+wocky_test_sasl_auth_LDADD = $(LDADD) @LIBSASL2_LIBS@
+wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
 LDADD = $(top_builddir)/wocky/libwocky.la
 
 check_PROGRAMS = $(TEST_PROGS)
+
+check_c_sources = \
+  $(wocky_test_sasl_auth_SOURCES) \
+  $(wocky_xmpp_connection_test_SOURCES) \
+  $(wocky_xmpp_readwrite_test_SOURCES) \
+  $(wocky_xmpp_reader_test_SOURCES)
 
 test-report: test-report.xml
 	gtester-report $(top_builddir)/tests/$@.xml > \
@@ -45,7 +49,8 @@ test: ${TEST_PROGS}
 
 .PHONY: test test-report
 
-check-local: test
+include $(top_srcdir)/tools/check-coding-style.mk
+check-local: test check-coding-style
 
 SUPPRESSIONS=threadlocal.supp
 
