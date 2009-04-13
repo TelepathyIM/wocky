@@ -73,7 +73,7 @@ test_readwrite (void)
 
   sent = create_stanza ();
 
-  for (i = 0; i < 3 ; i ++)
+  for (i = 0; i < 3 ; i++)
     {
       g_assert (wocky_xmpp_reader_get_state (reader)
         == WOCKY_XMPP_READER_STATE_OPENED);
@@ -138,7 +138,7 @@ test_readwrite_nostream (void)
   sent = create_stanza ();
 
 
-  for (i = 0 ; i < 3 ; i++ )
+  for (i = 0 ; i < 3 ; i++)
     {
       g_assert (wocky_xmpp_reader_get_state (reader)
         == WOCKY_XMPP_READER_STATE_OPENED);
