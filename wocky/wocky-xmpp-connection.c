@@ -383,7 +383,8 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
   g_object_ref (self);
 
   wocky_xmpp_reader_push (priv->reader, priv->buffer, size);
-  if (!(self->stream_flags | WOCKY_XMPP_CONNECTION_STREAM_RECEIVED)
+
+  if (!(self->stream_flags & WOCKY_XMPP_CONNECTION_STREAM_RECEIVED)
       && (wocky_xmpp_reader_get_state (priv->reader) ==
           WOCKY_XMPP_READER_STATE_OPENED))
     {
