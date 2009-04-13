@@ -23,7 +23,7 @@
 
 #include <glib-object.h>
 
-#include <wocky/wocky-transport.h>
+#include <gio/gnio.h>
 
 G_BEGIN_DECLS
 
@@ -64,7 +64,7 @@ GType test_sasl_auth_server_get_type (void);
    TestSaslAuthServerClass))
 
 
-TestSaslAuthServer * test_sasl_auth_server_new (WockyTransport *transport,
+TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *password,
     ServerProblem problem);
 

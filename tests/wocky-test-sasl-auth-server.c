@@ -23,11 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <gio/gnio.h>
+
 #include "wocky-test-sasl-auth-server.h"
 
 #include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-transport.h>
 
 #include <wocky/wocky-namespaces.h>
 
@@ -408,7 +409,7 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
 }
 
 TestSaslAuthServer *
-test_sasl_auth_server_new (WockyTransport *transport, gchar *mech,
+test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
     const gchar *user, const gchar *password, ServerProblem problem)
 {
   TestSaslAuthServer *server;
@@ -446,7 +447,7 @@ test_sasl_auth_server_new (WockyTransport *transport, gchar *mech,
   priv->mech = g_strdup (mech);
   priv->problem = problem;
 
-  priv->conn = wocky_xmpp_connection_new (transport);
+  priv->conn = wocky_xmpp_connection_new (stream);
   g_signal_connect (priv->conn, "parse-error",
       G_CALLBACK (parse_error), server);
   g_signal_connect (priv->conn, "stream-opened",
