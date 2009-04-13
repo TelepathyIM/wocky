@@ -550,6 +550,10 @@ wocky_xmpp_reader_get_state (WockyXmppReader *reader)
   return priv->state;
 }
 
+/* When the end of stream is reached the parser puts a NULL entry on the
+ * queue. When that's the only entry left, go into either closed or ready state
+ * (depending if an error was hit)
+ */
 static void
 wocky_xmpp_reader_check_eos (WockyXmppReader *reader)
 {
