@@ -393,7 +393,7 @@ _xmpp_connection_received_data (GObject *source, GAsyncResult *result,
       g_object_get (priv->reader,
         "to", &to,
         "from", &from,
-        "version", version,
+        "version", &version,
         NULL);
 
       self->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_RECEIVED;
