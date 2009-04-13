@@ -169,7 +169,7 @@ main (int argc,
 {
   test_t tests[NUMBER_OF_TEST] = {
     SUCCESS("/xmpp-sasl/normal-auth", NULL, TRUE),
-    SUCCESS("/xmpp-sasl/no-plain", "PLAIN", TRUE),
+    SUCCESS("/xmpp-sasl/no-plain", NULL, FALSE),
     SUCCESS("/xmpp-sasl/only-plain", "PLAIN", TRUE),
     SUCCESS("/xmpp-sasl/only-digest-md5", "DIGEST-MD5", TRUE),
 
