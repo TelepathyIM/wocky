@@ -161,7 +161,7 @@ run_test (gconstpointer user_data)
 #define SUCCESS(desc, mech, allow_plain)                 \
  { desc, mech, allow_plain, 0, 0, SERVER_PROBLEM_NO_PROBLEM }
 
-#define NUMBER_OF_TEST 6
+#define NUMBER_OF_TEST 7
 
 int
 main (int argc,
@@ -174,6 +174,9 @@ main (int argc,
     SUCCESS("/xmpp-sasl/only-digest-md5", "DIGEST-MD5", TRUE),
 
     { "/xmpp-sasl/no-supported-mechs", "NONSENSE", TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
+       SERVER_PROBLEM_NO_PROBLEM },
+    { "/xmpp-sasl/refuse-plain-only", "PLAIN", FALSE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
        SERVER_PROBLEM_NO_PROBLEM },
     { "/xmpp-sasl/no-sasl-support", NULL, TRUE,
