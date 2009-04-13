@@ -20,7 +20,7 @@
 
 /**
  * SECTION: wocky-xmpp-reader
- * @title: WockyXmppReader
+ * @title: #WockyXmppReader
  * @short_description: Xmpp XML to stanza deserializer
  *
  * The #WockyXmppReader deserializes XML to #WockyXmppStanzas, misc, other
@@ -538,7 +538,7 @@ _error (void *user_data, xmlErrorPtr error)
 
 /**
  * wocky_xmpp_reader_get_state:
- * @reader: a WockyXmppReader
+ * @reader: a #WockyXmppReader
  *
  * Returns: The current state of the reader
  */
@@ -573,7 +573,7 @@ wocky_xmpp_reader_check_eos (WockyXmppReader *reader)
  * @data: Data to read
  * @length: Size of @data
  *
- * Push a amount of data to parse
+ * Push an amount of data to parse.
  */
 void
 wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
@@ -594,7 +594,7 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
 
 /**
  * wocky_xmpp_reader_pop_stanza:
- * @reader: a WockyXmppReader
+ * @reader: a #WockyXmppReader
  *
  * Gets one #WockyXmppStanza out of the reader or NULL if there are no
  * available stanzas.
@@ -624,12 +624,12 @@ wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
 
 /**
  * wocky_xmpp_reader_get_error:
- * @reader: a WockyXmppReader
+ * @reader: a #WockyXmppReader
  *
  * Get the error from the reader
  *
  * Returns: A copy of the error as encountered by the reader or NULL if there
- * was no error. Free after use
+ * was no error. Free after use.
  */
 GError *
 wocky_xmpp_reader_get_error (WockyXmppReader *reader)
@@ -641,9 +641,9 @@ wocky_xmpp_reader_get_error (WockyXmppReader *reader)
 
 /**
  * wocky_xmpp_reader_reset:
- * @reader: a WockyXmppReader
+ * @reader: a #WockyXmppReader
  *
- * Resets the xml parser
+ * Reset the xml parser.
  *
  */
 void
