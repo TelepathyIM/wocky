@@ -48,11 +48,11 @@ struct _WockyTestStream {
     WockyTestStreamPrivate *priv;
 };
 
-GType wocky_test_stream_get_type(void);
+GType wocky_test_stream_get_type (void);
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_TEST_STREAM \
-  (wocky_test_stream_get_type())
+  (wocky_test_stream_get_type ())
 #define WOCKY_TEST_STREAM(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_TEST_STREAM, WockyTestStream))
 #define WOCKY_TEST_STREAM_CLASS(klass) \

@@ -36,7 +36,7 @@ static void
 test_stream_open_error (void)
 {
   WockyXmppReader *reader;
-  GError *error;
+  GError *error = NULL;
 
   reader = wocky_xmpp_reader_new ();
 
@@ -64,7 +64,7 @@ static void
 test_parse_error (void)
 {
   WockyXmppReader *reader;
-  GError *error;
+  GError *error = NULL;
 
   reader = wocky_xmpp_reader_new ();
 

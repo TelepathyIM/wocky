@@ -113,7 +113,7 @@ run_test (gconstpointer user_data)
 {
   TestSaslAuthServer *server;
   WockyTestStream *stream;
-  test_t *test = (test_t *)user_data;
+  test_t *test = (test_t *) user_data;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
 
