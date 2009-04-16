@@ -105,6 +105,7 @@ void wocky_xmpp_reader_push (WockyXmppReader *reader,
     gsize length);
 
 WockyXmppStanza *wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader);
+WockyXmppStanza *wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader);
 
 GError *wocky_xmpp_reader_get_error (WockyXmppReader *reader);
 void wocky_xmpp_reader_reset (WockyXmppReader *reader);

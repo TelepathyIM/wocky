@@ -593,6 +593,25 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
 }
 
 /**
+ * wocky_xmpp_reader_peek_stanza:
+ * @reader: a #WockyXmppReader
+ *
+ * Returns the first #WockyXmppStanza availble from reader or NULL
+ * if there are no available stanzas. The stanza is not removed from the
+ * readers queue
+ *
+ * Returns: One #WockyXmppStanza or NULL if there are no available stanzas. The
+ * stanza is owned by the #WockyXmppReader
+ */
+WockyXmppStanza *
+wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader)
+{
+  WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (reader);
+
+  return g_queue_peek_head (priv->stanzas);
+}
+
+/**
  * wocky_xmpp_reader_pop_stanza:
  * @reader: a #WockyXmppReader
  *
