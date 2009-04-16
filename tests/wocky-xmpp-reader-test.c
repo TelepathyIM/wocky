@@ -82,6 +82,11 @@ test_parse_error (void)
 
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_ERROR);
+
+  g_assert (wocky_xmpp_reader_peek_stanza (reader) == NULL);
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_ERROR);
+
   g_assert (wocky_xmpp_reader_pop_stanza (reader) == NULL);
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_ERROR);
@@ -121,6 +126,7 @@ test_no_stream_hunks (void)
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_OPENED);
 
+  g_assert ((stanza = wocky_xmpp_reader_peek_stanza (reader)) != NULL);
   g_assert ((stanza = wocky_xmpp_reader_pop_stanza (reader)) != NULL);
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_CLOSED);
