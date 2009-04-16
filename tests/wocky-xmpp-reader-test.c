@@ -12,6 +12,8 @@
 "<stream:stream xmlns='jabber:client'                                      " \
 "  xmlns:stream='http://etherx.jabber.org/streams'>                        "
 
+#define FOOTER "</stream:stream> "
+
 #define BROKEN_HEADER \
 "<?xml version='1.0' encoding='UTF-8'?>                                    " \
 "<stream:streamsss xmlns='jabber:client'                                   " \
@@ -31,6 +33,38 @@
 #define MESSAGE_CHUNK1 \
 "       and a Montague?</body>                                             " \
 "  </message>                                                              "
+
+static void
+test_stream_no_stanzas (void)
+{
+  WockyXmppReader *reader;
+  GError *error = NULL;
+
+  reader = wocky_xmpp_reader_new ();
+
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_INITIAL);
+
+  wocky_xmpp_reader_push (reader,
+    (guint8 *) HEADER FOOTER, strlen (HEADER FOOTER));
+
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_CLOSED);
+  g_assert (wocky_xmpp_reader_peek_stanza (reader) == NULL);
+
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_CLOSED);
+  g_assert (wocky_xmpp_reader_pop_stanza (reader) == NULL);
+
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_CLOSED);
+
+  error = wocky_xmpp_reader_get_error (reader);
+
+  g_assert (error == NULL);
+
+  g_object_unref (reader);
+}
 
 static void
 test_stream_open_error (void)
@@ -144,6 +178,7 @@ main (int argc,
   g_test_init (&argc, &argv, NULL);
   g_type_init ();
 
+  g_test_add_func ("/xmpp-reader/stream-no-stanzas", test_stream_no_stanzas);
   g_test_add_func ("/xmpp-reader/stream-open-error", test_stream_open_error);
   g_test_add_func ("/xmpp-reader/parse-error", test_parse_error);
   g_test_add_func ("/xmpp-reader/no-stream-hunks", test_no_stream_hunks);
