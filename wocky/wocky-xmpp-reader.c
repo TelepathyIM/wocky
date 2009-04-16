@@ -618,7 +618,8 @@ wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader)
  * Gets one #WockyXmppStanza out of the reader or NULL if there are no
  * available stanzas.
  *
- * Returns: One #WockyXmppStanza or NULL if there are no available stanzas
+ * Returns: One #WockyXmppStanza or NULL if there are no available stanzas.
+ * Caller owns the returned stanza.
  */
 WockyXmppStanza *
 wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
