@@ -71,8 +71,6 @@ struct _WockyXmppConnectionClass {
 
 struct _WockyXmppConnection {
     GObject parent;
-    GIOStream *stream;
-    guint8 stream_flags;
 };
 
 GType wocky_xmpp_connection_get_type (void);
