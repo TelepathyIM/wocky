@@ -596,7 +596,7 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
  * wocky_xmpp_reader_peek_stanza:
  * @reader: a #WockyXmppReader
  *
- * Returns the first #WockyXmppStanza availble from reader or NULL
+ * Returns the first #WockyXmppStanza available from reader or NULL
  * if there are no available stanzas. The stanza is not removed from the
  * readers queue
  *
