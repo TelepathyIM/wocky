@@ -48,6 +48,7 @@ config.log
 config.status
 config.sub
 configure
+gtk-doc.make
 install-sh
 libtool
 ltmain.sh
@@ -55,6 +56,7 @@ missing
 stamp-h1
 depcomp
 
+m4/gtk-doc.m4
 m4/libtool.m4
 m4/ltoptions.m4
 m4/ltsugar.m4
@@ -62,8 +64,13 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 
 wocky/*-signals-marshal.*
+wocky/*-enumtypes.*
 
+tests/sasl-test.db
 tests/test-report.xml
+tests/wocky-test-sasl-auth
 tests/wocky-xmpp-connection-test
+tests/wocky-xmpp-reader-test
+tests/wocky-xmpp-readwrite-test
 
 examples/wocky-connect
