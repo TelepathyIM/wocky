@@ -16,6 +16,7 @@ typedef struct {
 } test_t;
 
 GMainLoop *mainloop;
+GIOStream *xmpp_connection;
 WockyXmppConnection *conn;
 WockySaslAuth *sasl = NULL;
 
@@ -48,8 +49,12 @@ auth_success (WockySaslAuth *sasl_, gpointer user_data)
 {
   authenticated = TRUE;
   /* Reopen the connection */
-  wocky_xmpp_connection_restart (conn);
-  wocky_xmpp_connection_open (conn, servername, NULL, "1.0");
+  g_object_unref (conn);
+  conn = wocky_xmpp_connection_new (xmpp_connection);
+  /* FIXME watch for send errors */
+  wocky_xmpp_connection_send_open_async (conn,
+    servername, NULL, "1.0", NULL,
+    NULL, NULL, NULL);
 }
 
 static void
@@ -70,7 +75,8 @@ stream_opened (WockyXmppConnection *connection,
               gchar *from, gchar *to, gchar *version, gpointer user_data)
 {
   if (authenticated)
-    wocky_xmpp_connection_close (conn);
+    wocky_xmpp_connection_send_close_async (conn,
+      NULL, NULL, NULL);
 }
 
 static void
@@ -124,14 +130,18 @@ run_test (gconstpointer user_data)
   run_done = FALSE;
   current_test = test;
 
-  conn = wocky_xmpp_connection_new (stream->stream1);
+  xmpp_connection = stream->stream1;
+  conn = wocky_xmpp_connection_new (xmpp_connection);
 
   g_signal_connect (conn, "parse-error", G_CALLBACK (parse_error), NULL);
   g_signal_connect (conn, "stream-opened", G_CALLBACK (stream_opened), NULL);
   g_signal_connect (conn, "stream-closed", G_CALLBACK (stream_closed), NULL);
   g_signal_connect (conn, "received-stanza",
       G_CALLBACK (received_stanza), NULL);
-  wocky_xmpp_connection_open (conn, servername, NULL, "1.0");
+
+  wocky_xmpp_connection_send_open_async (conn,
+    servername, NULL, "1.0", NULL,
+    NULL, NULL, NULL);
 
   if (!run_done)
     {

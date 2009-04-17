@@ -69,6 +69,7 @@ struct _TestSaslAuthServerPrivate
 {
   gboolean dispose_has_run;
   WockyXmppConnection *conn;
+  GIOStream *stream;
   sasl_conn_t *sasl_conn;
   gchar *username;
   gchar *password;
@@ -158,7 +159,10 @@ stream_opened (WockyXmppConnection *connection, const gchar *to,
   WockyXmppStanza *stanza;
   WockyXmppNode *mechnode = NULL;
 
-  wocky_xmpp_connection_open (connection, NULL, "testserver", "1.0");
+  wocky_xmpp_connection_send_open_async (connection,
+    NULL, "testserver", "1.0", NULL,
+    NULL, NULL, NULL);
+
   /* Send stream features */
   stanza = wocky_xmpp_stanza_new ("features");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_STREAM);
@@ -195,14 +199,15 @@ stream_opened (WockyXmppConnection *connection, const gchar *to,
         }
     }
 
-  g_assert (wocky_xmpp_connection_send (connection, stanza, NULL));
+  wocky_xmpp_connection_send_stanza_async (connection, stanza,
+    NULL, NULL, NULL);
   g_object_unref (stanza);
 }
 
 static void
 stream_closed (WockyXmppConnection *connection, gpointer user_data)
 {
-  wocky_xmpp_connection_close (connection);
+  wocky_xmpp_connection_send_close_async (connection, NULL, NULL, NULL);
 }
 
 static void
@@ -219,9 +224,11 @@ auth_succeeded (TestSaslAuthServer *self)
 
   /* As a result of how the test works, sending out the success will cause the
    * reopening of the stream, so we need to restart the connection first! */
-  wocky_xmpp_connection_restart (priv->conn);
+  g_object_unref (priv->conn);
+  priv->conn = wocky_xmpp_connection_new (priv->stream);
 
-  g_assert (wocky_xmpp_connection_send (priv->conn, s, NULL));
+  /* FIXME check return */
+  wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL, NULL, NULL);
 
   g_object_unref (s);
 }
@@ -266,7 +273,8 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
-      g_assert (wocky_xmpp_connection_send (priv->conn, c, NULL));
+      wocky_xmpp_connection_send_stanza_async (priv->conn, c,
+        NULL, NULL, NULL);
       g_object_unref (c);
 
       g_free (challenge64);
@@ -328,7 +336,8 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
-      g_assert (wocky_xmpp_connection_send (priv->conn, c, NULL));
+      wocky_xmpp_connection_send_stanza_async (priv->conn, c,
+        NULL, NULL, NULL);
       g_object_unref (c);
 
       g_free (challenge64);
@@ -432,6 +441,7 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (server);
 
   priv->state = AUTH_STATE_STARTED;
+  priv->stream = g_object_ref (stream);
 
   ret = sasl_server_new ("xmpp", NULL, NULL, NULL, NULL, callbacks,
       SASL_SUCCESS_DATA, &(priv->sasl_conn));
