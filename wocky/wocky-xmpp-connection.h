@@ -44,6 +44,27 @@ typedef enum
     WOCKY_XMPP_CONNECTION_CLOSE_SENT|WOCKY_XMPP_CONNECTION_CLOSE_RECEIVED,
 } WockyXmppConnectionFlags;
 
+/**
+ * WockyXmppConnectionError:
+ * @WOCKY_XMPP_CONNECTION_ERROR_EOS : Other side closed the connection without sending close
+ * @WOCKY_XMPP_CONNECTION_ERROR_CLOSED : Other side closed the xmpp stream
+ *
+ * The different errors that can occur while reading a stream
+ */
+typedef enum {
+  WOCKY_XMPP_CONNECTION_ERROR_EOS,
+  WOCKY_XMPP_CONNECTION_ERROR_CLOSED,
+} WockyXmppConnectionError;
+
+GQuark wocky_xmpp_connection_error_quark (void);
+
+/**
+ * WOCKY_XMPP_CONNECTION_ERROR:
+ *
+ * Get access to the error quark of the xmpp connection.
+ */
+#define WOCKY_XMPP_CONNECTION_ERROR (wocky_xmpp_connection_error_quark ())
+
 struct _WockyXmppConnectionClass {
     GObjectClass parent_class;
 };

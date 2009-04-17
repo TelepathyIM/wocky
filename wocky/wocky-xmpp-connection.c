@@ -61,6 +61,24 @@ struct _WockyXmppConnectionPrivate
   guint8 buffer[BUFFER_SIZE];
 };
 
+/**
+ * wocky_xmpp_connection_error_quark
+ *
+ * Get the error quark used by the connection.
+ *
+ * Returns: the quark for connection errors.
+ */
+GQuark
+wocky_xmpp_connection_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string ("wocky-xmpp-connection-error");
+
+  return quark;
+}
+
 #define WOCKY_XMPP_CONNECTION_GET_PRIVATE(o)  \
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_CONNECTION, \
     WockyXmppConnectionPrivate))
