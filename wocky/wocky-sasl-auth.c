@@ -504,7 +504,6 @@ digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge)
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppStanza *stanza;
   gchar *response, *response64;
-  GError *send_error = NULL;
 
   response = md5_prepare_response (sasl, challenge);
   if (response == NULL)
@@ -522,12 +521,9 @@ digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_AUTH_RESPONSE;
 
-  if (!wocky_xmpp_connection_send (priv->connection, stanza, &send_error))
-    {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NETWORK,
-          "Failed to send response: %s", send_error->message);
-      g_error_free (send_error);
-    }
+  /* FIXME handle send error */
+  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
+    NULL, NULL, NULL);
 
   g_free (response);
   g_free (response64);
@@ -539,7 +535,6 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge)
 {
   WockyXmppStanza *stanza;
   const gchar *rspauth;
-  GError *send_error = NULL;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
 
   rspauth = g_hash_table_lookup (challenge, "rspauth");
@@ -562,12 +557,10 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_FINAL_RESPONSE;
 
-  if (!wocky_xmpp_connection_send (priv->connection, stanza, &send_error))
-    {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NETWORK,
-          "Failed to send response: %s", send_error->message);
-      g_error_free (send_error);
-    }
+  /* FIXME handle send error */
+  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
+    NULL, NULL, NULL);
+
   g_object_unref (stanza);
 }
 
@@ -737,7 +730,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 {
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
-  GError *send_error = NULL;
   gboolean ret = TRUE;
 
   priv->mech = mech;
@@ -791,14 +783,9 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
       g_assert_not_reached ();
   }
 
-  if (!wocky_xmpp_connection_send (priv->connection, stanza, &send_error))
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_NETWORK,
-          "%s", send_error->message);
-      g_error_free (send_error);
-      ret = FALSE;
-    }
+  /* FIXME handle send error */
+  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
+    NULL, NULL, NULL);
 
 out:
   g_object_unref (stanza);
