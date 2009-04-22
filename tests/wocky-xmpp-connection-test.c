@@ -154,7 +154,8 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
       wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
         NULL, send_stanza_received_cb, data);
 
-      wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (source),
+      wocky_xmpp_connection_send_close_async (
+        WOCKY_XMPP_CONNECTION (data->in),
         NULL, NULL, NULL);
 
       g_object_unref (s);
