@@ -37,6 +37,7 @@
 
 static void _xmpp_connection_received_data (GObject *source,
     GAsyncResult *result, gpointer user_data);
+static void wocky_xmpp_connection_do_write (WockyXmppConnection *self);
 
 G_DEFINE_TYPE(WockyXmppConnection, wocky_xmpp_connection, G_TYPE_OBJECT)
 
@@ -65,7 +66,11 @@ struct _WockyXmppConnectionPrivate
   GSimpleAsyncResult *output_result;
   GCancellable *output_cancellable;
 
-  guint8 buffer[BUFFER_SIZE];
+  guint8 input_buffer[BUFFER_SIZE];
+
+  const guint8 *output_buffer;
+  gsize offset;
+  gsize length;
 
   guint last_id;
 };
@@ -240,6 +245,80 @@ wocky_xmpp_connection_new (GIOStream *stream)
   return result;
 }
 
+static void
+wocky_xmpp_connection_write_cb (GObject *source,
+    GAsyncResult *res, gpointer
+    user_data)
+{
+  WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+  gssize written;
+  GError *error = NULL;
+
+  written = g_output_stream_write_finish (G_OUTPUT_STREAM (source), res,
+      &error);
+
+  if (G_UNLIKELY (written < 0))
+    {
+      g_simple_async_result_set_from_error (priv->input_result, error);
+      g_error_free (error);
+
+      goto finished;
+    }
+
+  if (G_UNLIKELY (written == 0))
+    {
+      g_simple_async_result_set_error (priv->input_result,
+        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_EOS,
+        "Connection got disconnected" );
+      goto finished;
+    }
+
+  priv->offset += written;
+
+  if (priv->offset == priv->length)
+    {
+      /* Done ! */
+      priv->stream_flags |= WOCKY_XMPP_CONNECTION_STREAM_SENT;
+      goto finished;
+    }
+
+  wocky_xmpp_connection_do_write (self);
+  return;
+
+finished:
+  {
+    GSimpleAsyncResult *r = priv->output_result;
+
+    priv->output_cancellable = NULL;
+    priv->output_result = NULL;
+
+    g_simple_async_result_complete (r);
+    g_object_unref (r);
+  }
+}
+
+static void
+wocky_xmpp_connection_do_write (WockyXmppConnection *self)
+{
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+  GOutputStream *output = g_io_stream_get_output_stream (priv->stream);
+
+  g_assert (priv->length != priv->offset);
+
+  g_output_stream_write_async (output,
+    priv->output_buffer + priv->offset,
+    priv->length - priv->offset,
+    G_PRIORITY_DEFAULT,
+    priv->output_cancellable,
+    wocky_xmpp_connection_write_cb,
+    self);
+
+  g_object_unref (output);
+}
+
 void
 wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     const gchar *to,
@@ -250,7 +329,25 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  /* stub */
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  g_assert (
+    (priv->stream_flags &  WOCKY_XMPP_CONNECTION_STREAM_SENT) == 0);
+  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_cancellable == NULL);
+
+  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
+    callback, user_data, wocky_xmpp_connection_send_open_finish);
+
+  priv->output_cancellable = cancellable;
+  priv->offset = 0;
+  priv->length = 0;
+
+  wocky_xmpp_writer_stream_open (priv->writer,
+    to, from, version, lang, &priv->output_buffer, &priv->length);
+
+  wocky_xmpp_connection_do_write (connection);
 }
 
 gboolean
@@ -258,10 +355,15 @@ wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error)
 {
-  /* stub */
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_send_open_finish), FALSE);
+
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
   return TRUE;
 }
-
 
 static void
 wocky_xmpp_connection_do_read (WockyXmppConnection *self)
@@ -271,7 +373,7 @@ wocky_xmpp_connection_do_read (WockyXmppConnection *self)
   GInputStream *input = g_io_stream_get_input_stream (priv->stream);
 
   g_input_stream_read_async (input,
-    priv->buffer, BUFFER_SIZE,
+    priv->input_buffer, BUFFER_SIZE,
     G_PRIORITY_DEFAULT,
     priv->input_cancellable,
     _xmpp_connection_received_data,
@@ -310,7 +412,7 @@ _xmpp_connection_received_data (GObject *source,
     }
 
 
-  wocky_xmpp_reader_push (priv->reader, priv->buffer, size);
+  wocky_xmpp_reader_push (priv->reader, priv->input_buffer, size);
 
   if (!(priv->stream_flags & WOCKY_XMPP_CONNECTION_STREAM_RECEIVED)
       && (wocky_xmpp_reader_get_state (priv->reader) ==
@@ -414,7 +516,25 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  /* stub */
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  g_assert (
+    (priv->stream_flags &  WOCKY_XMPP_CONNECTION_STREAM_SENT) != 0);
+  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_cancellable == NULL);
+
+  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
+    callback, user_data, wocky_xmpp_connection_send_stanza_async_finish);
+
+  priv->output_cancellable = cancellable;
+  priv->offset = 0;
+  priv->length = 0;
+
+  wocky_xmpp_writer_write_stanza (priv->writer, stanza, &priv->output_buffer,
+      &priv->length);
+
+  wocky_xmpp_connection_do_write (connection);
 }
 
 gboolean
@@ -423,7 +543,14 @@ wocky_xmpp_connection_send_stanza_async_finish (
     GAsyncResult *result,
     GError **error)
 {
-  /* stub */
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_async_finish),
+      FALSE);
+
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
   return TRUE;
 }
 
@@ -504,7 +631,25 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  /* stub */
+  WockyXmppConnectionPrivate *priv =
+      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  g_assert (
+    (priv->stream_flags & WOCKY_XMPP_CONNECTION_STREAM_SENT) != 0);
+  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_cancellable == NULL);
+
+  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
+    callback, user_data, wocky_xmpp_connection_send_close_finish);
+
+  priv->output_cancellable = cancellable;
+  priv->offset = 0;
+  priv->length = 0;
+
+  wocky_xmpp_writer_stream_close (priv->writer, &priv->output_buffer,
+      &priv->length);
+
+  wocky_xmpp_connection_do_write (connection);
 }
 
 gboolean
@@ -512,7 +657,13 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error)
 {
-  /* stub */
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_send_close_finish), FALSE);
+
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
   return TRUE;
 }
 
