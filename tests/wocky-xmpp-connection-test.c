@@ -169,6 +169,13 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
 }
 
 static void
+send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_stanza_async_finish (
+      WOCKY_XMPP_CONNECTION (source), res, NULL));
+}
+
+static void
 send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
@@ -189,12 +196,19 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
     WOCKY_STANZA_END);
 
   wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (d->in),
-    s, NULL, NULL, NULL);
+    s, NULL, send_stanza_cb, NULL);
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
     NULL, send_stanza_received_cb, user_data);
 
   g_object_unref (s);
+}
+
+static void
+send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), res, NULL));
 }
 
 static void
@@ -219,7 +233,7 @@ test_send_simple_message (void)
 
   wocky_xmpp_connection_send_open_async (conn_in,
       NULL, NULL, NULL, NULL,
-      NULL, NULL, NULL);
+      NULL, send_open_cb, NULL);
   wocky_xmpp_connection_recv_open_async (conn_out,
       NULL, send_received_open_cb, &data);
 
