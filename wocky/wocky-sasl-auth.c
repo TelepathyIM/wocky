@@ -51,6 +51,8 @@ typedef enum {
   WOCKY_SASL_AUTH_STATE_DIGEST_MD5_STARTED,
   WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_AUTH_RESPONSE,
   WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_FINAL_RESPONSE,
+  WOCKY_SASL_AUTH_STATE_SUCCEEDED,
+  WOCKY_SASL_AUTH_STATE_FAILED,
 } WockySaslAuthState;
 
 typedef enum {
@@ -68,7 +70,6 @@ struct _WockySaslAuthPrivate
   WockyXmppConnection *connection;
   gchar *server;
   gchar *digest_md5_rspauth;
-  gulong stanza_signal_id;
   WockySaslAuthState state;
   WockySaslAuthMechanism mech;
 };
@@ -154,12 +155,6 @@ wocky_sasl_auth_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-  if (priv->stanza_signal_id > 0)
-    {
-      g_assert (priv->connection != NULL);
-      g_signal_handler_disconnect (priv->connection, priv->stanza_signal_id);
-    }
-
   if (priv->connection != NULL)
     {
       g_object_unref (priv->connection);
@@ -194,25 +189,20 @@ auth_reset (WockySaslAuth *sasl)
   g_free (priv->digest_md5_rspauth);
   priv->digest_md5_rspauth = NULL;
 
-  if (priv->stanza_signal_id > 0)
-    {
-      g_assert (priv->connection != NULL);
-      g_signal_handler_disconnect (priv->connection, priv->stanza_signal_id);
-      priv->stanza_signal_id = 0;
-    }
-
   if (priv->connection != NULL)
     {
       g_object_unref (priv->connection);
       priv->connection = NULL;
     }
-
-  priv->state = WOCKY_SASL_AUTH_STATE_NO_MECH;
 }
 
 static void
 auth_succeeded (WockySaslAuth *sasl)
 {
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+
+  priv->state = WOCKY_SASL_AUTH_STATE_SUCCEEDED;
+
   auth_reset (sasl);
   DEBUG ("Authentication succeeded");
   g_signal_emit (sasl, signals[AUTHENTICATION_SUCCEEDED], 0);
@@ -223,6 +213,7 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
 
   auth_reset (sasl);
 
@@ -231,6 +222,7 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   va_end (args);
 
   DEBUG ("Authentication failed!: %s", message);
+  priv->state = WOCKY_SASL_AUTH_STATE_FAILED;
 
   g_signal_emit (sasl, signals[AUTHENTICATION_FAILED], 0,
      WOCKY_SASL_AUTH_ERROR, error, message);
@@ -689,17 +681,24 @@ plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
                       { NULL, NULL }         \
                     }
 static void
-sasl_auth_stanza_received (WockyXmppConnection *connection,
-    WockyXmppStanza *stanza,
-    WockySaslAuth *sasl)
+sasl_auth_stanza_received (GObject *source,
+  GAsyncResult *res,
+  gpointer user_data)
 {
-  int i;
+  WockySaslAuth *sasl = WOCKY_SASL_AUTH (user_data);
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockyXmppStanza *stanza;
+  int i;
   struct {
     const gchar *name;
     void (*func)(WockySaslAuth *sasl, WockyXmppStanza *stanza);
   } handlers[WOCKY_SASL_AUTH_NR_MECHANISMS][4] = { HANDLERS(plain),
                                                    HANDLERS(digest_md5) };
+
+  stanza = wocky_xmpp_connection_recv_stanza_finish (
+    WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
+
+  g_assert (stanza != NULL);
 
   if (strcmp (
       wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_SASL_AUTH))
@@ -715,6 +714,12 @@ sasl_auth_stanza_received (WockyXmppConnection *connection,
       if (!strcmp (stanza->node->name, handlers[priv->mech][i].name))
         {
           handlers[priv->mech][i].func (sasl, stanza);
+          if (priv->state < WOCKY_SASL_AUTH_STATE_SUCCEEDED)
+            {
+              wocky_xmpp_connection_recv_stanza_async (priv->connection,
+                  NULL, sasl_auth_stanza_received, sasl);
+            }
+          g_object_unref (stanza);
           return;
         }
     }
@@ -733,10 +738,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   gboolean ret = TRUE;
 
   priv->mech = mech;
-
-  priv->stanza_signal_id =
-      g_signal_connect (priv->connection, "received-stanza",
-          G_CALLBACK (sasl_auth_stanza_received), sasl);
 
   stanza = wocky_xmpp_stanza_new ("auth");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
@@ -786,6 +787,8 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   /* FIXME handle send error */
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
     NULL, NULL, NULL);
+  wocky_xmpp_connection_recv_stanza_async (priv->connection,
+    NULL, sasl_auth_stanza_received, sasl);
 
 out:
   g_object_unref (stanza);
@@ -841,6 +844,7 @@ wocky_sasl_auth_authenticate (WockySaslAuth *sasl,
     }
   else
     {
+      DEBUG ("No supported mechanisms found");
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
         WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
         "No supported mechanisms found");
