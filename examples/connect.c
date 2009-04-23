@@ -10,16 +10,6 @@
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-sasl-auth.h>
 
-typedef enum {
-  INITIAL,
-  SSL,
-  SSL_DONE,
-  SASL,
-  DONE,
-} State;
-
-
-State state = INITIAL;
 GMainLoop *mainloop;
 WockyXmppConnection *conn;
 const gchar *server;
@@ -32,62 +22,155 @@ GTcpClient *client;
 GTLSConnection *ssl;
 GTLSSession *ssl_session;
 
-static void
-conn_parse_error(WockyXmppConnection *connection, gpointer user_data) {
-  fprintf(stderr, "PARSE ERROR\n");
-  exit(1);
-}
-
-static void
-conn_stream_opened(WockyXmppConnection *connection, 
-              const gchar *to, const gchar *from, const gchar *version,
-              gpointer user_data) {
-  printf("Stream opened -- from: %s version: %s\n", from, version);
-  if (version == NULL || strcmp(version, "1.0")) {
-    printf("Server is not xmpp compliant\n");
-    g_main_loop_quit(mainloop);
-  }
-}
-
-static void
-conn_stream_closed(WockyXmppConnection *connection, gpointer user_data) {
-  printf("Stream opened\n");
-  wocky_xmpp_connection_close(connection);
-}
-
 static gchar *
-return_str(WockySaslAuth *auth, gpointer user_data) {
-  return g_strdup(user_data);
+return_str (WockySaslAuth *auth,
+    gpointer user_data)
+{
+  return g_strdup (user_data);
 }
 
 static void
-auth_success(WockySaslAuth *auth, gpointer user_data) {
+post_auth_open_sent_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  if (!wocky_xmpp_connection_send_open_finish (conn, result, NULL))
+    {
+      printf ("Sending open failed\n");
+      g_main_loop_quit (mainloop);
+    }
+}
+
+static void
+auth_success(WockySaslAuth *auth,
+    gpointer user_data)
+{
   printf("Authentication successfull!!\n");
-  state = DONE;
+
   /* Reopen the connection */
-  wocky_xmpp_connection_restart(conn);
-  wocky_xmpp_connection_open(conn, server, NULL, "1.0");
+  wocky_xmpp_connection_reset (conn);
+  wocky_xmpp_connection_send_open_async (conn,
+      server, NULL, "1.0", NULL,
+      NULL, post_auth_open_sent_cb, NULL);
 }
 
 static void
-auth_failed(WockySaslAuth *auth, GQuark domain, 
-    int code, gchar *message, gpointer user_data) {
-  printf("Authentication failed: %s\n", message);
-  g_main_loop_quit(mainloop);
+auth_failed(WockySaslAuth *auth,
+    GQuark domain,
+    int code,
+    gchar *message,
+    gpointer user_data)
+{
+  printf ("Authentication failed: %s\n", message);
+  g_main_loop_quit (mainloop);
 }
 
 static void
-start_ssl (WockyXmppConnection *connection, WockyXmppStanza *stanza) {
+ssl_features_received_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  WockyXmppStanza *stanza;
+  GError *error;
+
+  stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
+
+  g_assert (stanza != NULL);
+
+  if (strcmp (stanza->node->name, "features")
+      || strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM))
+    {
+      printf ("Didn't receive features stanza\n");
+      g_main_loop_quit (mainloop);
+      return;
+    }
+
+  sasl = wocky_sasl_auth_new ();
+  g_signal_connect (sasl, "username-requested",
+      G_CALLBACK (return_str), (gpointer)username);
+  g_signal_connect (sasl, "password-requested",
+      G_CALLBACK (return_str), (gpointer)password);
+  g_signal_connect (sasl, "authentication-succeeded",
+      G_CALLBACK (auth_success), NULL);
+  g_signal_connect (sasl, "authentication-failed",
+      G_CALLBACK (auth_failed), NULL);
+
+  if (!wocky_sasl_auth_authenticate (sasl, server, conn, stanza, TRUE, &error))
+    {
+      printf ("Sasl auth start failed: %s\n", error->message);
+      g_main_loop_quit (mainloop);
+    }
+}
+
+
+static void
+ssl_received_open_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  gchar *version;
+  gchar *from;
+
+  if (!wocky_xmpp_connection_recv_open_finish (conn, result,
+      NULL, &from, &version, NULL, NULL))
+    {
+      printf ("Didn't receive open\n");
+      g_main_loop_quit (mainloop);
+      return;
+    }
+
+  printf ("Stream opened -- from: %s version: %s\n", from, version);
+  if (version == NULL || strcmp (version, "1.0"))
+    {
+      printf ("Server is not xmpp compliant\n");
+      g_main_loop_quit (mainloop);
+    }
+
+  /* waiting for features */
+  wocky_xmpp_connection_recv_stanza_async (conn,
+    NULL, ssl_features_received_cb, NULL);
+
+  g_free (version);
+  g_free (from);
+}
+
+static void
+ssl_open_sent_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  if (!wocky_xmpp_connection_send_open_finish (conn, result, NULL))
+    {
+      printf ("Sending open failed\n");
+      g_main_loop_quit (mainloop);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_open_async (conn, NULL,
+    ssl_received_open_cb, NULL);
+}
+
+static void
+tcp_start_tls_recv_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  WockyXmppStanza *stanza;
   GError *error = NULL;
 
-  if (strcmp(stanza->node->name, "proceed") 
-    || strcmp(wocky_xmpp_node_get_ns(stanza->node), 
-          WOCKY_XMPP_NS_TLS)) {
-    printf("Server doesn't want to start tls");
-    g_main_loop_quit(mainloop);
-  }
+  stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
-  wocky_xmpp_connection_disengage(connection);
+  g_assert (stanza != NULL);
+
+  if (strcmp (stanza->node->name, "proceed")
+      || strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_TLS))
+    {
+      printf ("Server doesn't want to start tls");
+      g_main_loop_quit (mainloop);
+      return;
+    }
+
+  g_object_unref (conn);
 
   ssl_session = g_tls_session_new (G_IO_STREAM (tcp));
   ssl = g_tls_session_handshake (ssl_session, NULL, &error);
@@ -96,80 +179,109 @@ start_ssl (WockyXmppConnection *connection, WockyXmppStanza *stanza) {
     g_error ("connect: %s: %d, %s", g_quark_to_string (error->domain),
       error->code, error->message);
 
-  wocky_xmpp_connection_restart(connection);
-  wocky_xmpp_connection_engage(connection, G_IO_STREAM(ssl));
-  wocky_xmpp_connection_open(conn, server, NULL, "1.0");
-
-  state = SSL_DONE;
+  conn = wocky_xmpp_connection_new (G_IO_STREAM (ssl));
+  wocky_xmpp_connection_send_open_async (conn,
+      server, NULL, "1.0", NULL,
+      NULL, ssl_open_sent_cb, NULL);
 }
 
 static void
-negotiate_ssl(WockyXmppConnection *connection, WockyXmppStanza *stanza) {
+tcp_start_tls_send_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_stanza_finish (conn, result, NULL));
+
+  wocky_xmpp_connection_recv_stanza_async (conn,
+      NULL, tcp_start_tls_recv_cb, NULL);
+}
+
+static void
+tcp_features_received_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  WockyXmppStanza *stanza;
   WockyXmppNode *tls;
   WockyXmppStanza *starttls;
-  if (strcmp(stanza->node->name, "features") 
-    || strcmp(wocky_xmpp_node_get_ns(stanza->node),WOCKY_XMPP_NS_STREAM)) {
-    printf("Didn't receive features stanza\n");
-    g_main_loop_quit(mainloop);
-  }
 
-  tls = wocky_xmpp_node_get_child_ns(stanza->node, "starttls",
-                                      WOCKY_XMPP_NS_TLS);
-  if (tls == NULL) {
-    printf("Server doesn't support tls\n");
-    g_main_loop_quit(mainloop);
-  }
+  stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
-  starttls = wocky_xmpp_stanza_new("starttls");
-  wocky_xmpp_node_set_ns(starttls->node, WOCKY_XMPP_NS_TLS);
+  g_assert (stanza != NULL);
 
-  state = SSL;
+  if (strcmp (stanza->node->name, "features")
+      || strcmp(wocky_xmpp_node_get_ns (stanza->node),WOCKY_XMPP_NS_STREAM))
+    {
+      printf ("Didn't receive features stanza\n");
+      g_main_loop_quit (mainloop);
+      return;
+    }
 
-  g_assert(wocky_xmpp_connection_send(connection, starttls, NULL));
-  g_object_unref(starttls);
+  tls = wocky_xmpp_node_get_child_ns (stanza->node, "starttls",
+      WOCKY_XMPP_NS_TLS);
+
+  if (tls == NULL)
+    {
+      printf ("Server doesn't support tls\n");
+      g_main_loop_quit (mainloop);
+    }
+
+  starttls = wocky_xmpp_stanza_new ("starttls");
+  wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
+
+  wocky_xmpp_connection_send_stanza_async (conn, starttls,
+    NULL, tcp_start_tls_send_cb, NULL);
+
+  g_object_unref (stanza);
+  g_object_unref (starttls);
 }
 
 static void
-start_sasl_helper(WockyXmppConnection *connection, WockyXmppStanza *stanza) {
-  GError *error;
+tcp_received_open_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  gchar *version;
+  gchar *from;
 
-  state = SASL;
-  sasl = wocky_sasl_auth_new();
-  g_signal_connect(sasl, "username-requested",
-                    G_CALLBACK(return_str), (gpointer)username);
-  g_signal_connect(sasl, "password-requested",
-                    G_CALLBACK(return_str), (gpointer)password);
-  g_signal_connect(sasl, "authentication-succeeded",
-                    G_CALLBACK(auth_success), NULL);
-  g_signal_connect(sasl, "authentication-failed",
-                    G_CALLBACK(auth_failed), NULL);
+  if (!wocky_xmpp_connection_recv_open_finish (conn, result,
+      NULL, &from, &version, NULL, NULL))
+    {
+      printf ("Didn't receive open\n");
+      g_main_loop_quit (mainloop);
+      return;
+    }
 
-  if (!wocky_sasl_auth_authenticate(sasl, server, 
-                                  connection, stanza, TRUE, &error)) {
-     printf("Sasl auth start failed: %s\n", error->message);
-     g_main_loop_quit(mainloop);
-  }
+  printf ("Stream opened -- from: %s version: %s\n", from, version);
+
+  if (version == NULL || strcmp (version, "1.0"))
+    {
+      printf ("Server is not xmpp compliant\n");
+      g_main_loop_quit (mainloop);
+    }
+
+  /* waiting for features */
+  wocky_xmpp_connection_recv_stanza_async (conn,
+    NULL, tcp_features_received_cb, NULL);
+
+  g_free (version);
+  g_free (from);
 }
 
 static void
-conn_received_stanza(WockyXmppConnection *connection,
-                WockyXmppStanza *stanza,
-                gpointer user_data) {
+tcp_sent_open_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  if (!wocky_xmpp_connection_send_open_finish (conn, result, NULL))
+    {
+      printf ("Sending open failed\n");
+      g_main_loop_quit (mainloop);
+      return;
+    }
 
-  switch (state ) {
-    case INITIAL:
-      negotiate_ssl(connection, stanza);
-      break;
-    case SSL:
-      start_ssl(connection, stanza);
-      break;
-    case SSL_DONE:
-      start_sasl_helper(connection, stanza);
-      break;
-    case SASL:
-    case DONE:
-      break;
-  }
+  wocky_xmpp_connection_recv_open_async (conn, NULL,
+    tcp_received_open_cb, NULL);
 }
 
 static void
@@ -180,16 +292,10 @@ tcp_do_connect(void)
   printf ("TCP connection established\n");
 
   conn = wocky_xmpp_connection_new (G_IO_STREAM (tcp));
-  wocky_xmpp_connection_open(conn, server, NULL, "1.0");
 
-  g_signal_connect(conn, "parse-error",
-      G_CALLBACK(conn_parse_error), NULL);
-  g_signal_connect(conn, "stream-opened",
-      G_CALLBACK(conn_stream_opened), NULL);
-  g_signal_connect(conn, "stream-closed",
-      G_CALLBACK(conn_stream_closed), NULL);
-  g_signal_connect(conn, "received-stanza",
-      G_CALLBACK(conn_received_stanza), NULL);
+  wocky_xmpp_connection_send_open_async (conn,
+      server, NULL, "1.0", NULL,
+      NULL, tcp_sent_open_cb, NULL);
 }
 
 static void
@@ -213,7 +319,7 @@ tcp_host_connected (GObject *source,
     }
   else
     {
-      tcp_do_connect();
+      tcp_do_connect ();
     }
 }
 
@@ -240,7 +346,7 @@ tcp_srv_connected (GObject *source,
     }
   else
     {
-      tcp_do_connect();
+      tcp_do_connect ();
     }
 }
 
@@ -248,11 +354,11 @@ int
 main(int argc,
     char **argv)
 {
-  g_type_init();
+  g_type_init ();
 
-  g_assert(argc == 4);
+  g_assert (argc == 4);
 
-  mainloop = g_main_loop_new(NULL, FALSE);
+  mainloop = g_main_loop_new (NULL, FALSE);
 
   client =  g_tcp_client_new ();
 
@@ -265,6 +371,6 @@ main(int argc,
   g_tcp_client_connect_to_service_async (client, server,
     "xmpp-client", NULL, tcp_srv_connected, NULL);
 
-  g_main_loop_run(mainloop);
+  g_main_loop_run (mainloop);
   return 0;
 }
