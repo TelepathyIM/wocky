@@ -45,16 +45,85 @@ return_str (WockySaslAuth *auth, gpointer user_data)
 }
 
 static void
+post_auth_recv_stanza (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  WockyXmppStanza *stanza;
+  GError *e = NULL;
+
+  /* ignore all stanza until close */
+  stanza = wocky_xmpp_connection_recv_stanza_finish (
+    WOCKY_XMPP_CONNECTION (source), result, &e);
+
+  if (stanza != NULL)
+    {
+      g_object_unref (stanza);
+      wocky_xmpp_connection_recv_stanza_async (
+          WOCKY_XMPP_CONNECTION (source), NULL,
+          post_auth_recv_stanza, user_data);
+    }
+  else
+    {
+      g_assert (g_error_matches (e, WOCKY_XMPP_CONNECTION_ERROR,
+          WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+
+      g_error_free (e);
+
+      run_done = TRUE;
+      g_main_loop_quit (mainloop);
+    }
+}
+
+static void
+post_auth_close_sent (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_close_finish (
+    WOCKY_XMPP_CONNECTION (source), result,
+    NULL));
+
+  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
+      NULL, post_auth_recv_stanza, user_data);
+}
+
+static void
+post_auth_open_received (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_recv_open_finish (
+    WOCKY_XMPP_CONNECTION (source), result,
+    NULL, NULL, NULL, NULL,
+    NULL));
+
+  wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (source),
+    NULL, post_auth_close_sent, user_data);
+}
+
+static void
+post_auth_open_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_open_finish (
+    WOCKY_XMPP_CONNECTION (source), result, NULL));
+
+  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (source),
+    NULL, post_auth_open_received, user_data);
+}
+
+static void
 auth_success (WockySaslAuth *sasl_, gpointer user_data)
 {
   authenticated = TRUE;
-  /* Reopen the connection */
-  g_object_unref (conn);
-  conn = wocky_xmpp_connection_new (xmpp_connection);
-  /* FIXME watch for send errors */
+
+  wocky_xmpp_connection_reset (conn);
+
   wocky_xmpp_connection_send_open_async (conn,
     servername, NULL, "1.0", NULL,
-    NULL, NULL, NULL);
+    NULL, post_auth_open_sent, NULL);
 }
 
 static void
@@ -65,53 +134,66 @@ auth_failed (WockySaslAuth *sasl_, GQuark domain,
 }
 
 static void
-parse_error (WockyXmppConnection *connection, gpointer user_data)
+feature_stanza_received (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
 {
-  g_assert_not_reached ();
-}
+  WockyXmppStanza *stanza;
+  GError *err = NULL;
 
-static void
-stream_opened (WockyXmppConnection *connection,
-              gchar *from, gchar *to, gchar *version, gpointer user_data)
-{
-  if (authenticated)
-    wocky_xmpp_connection_send_close_async (conn,
-      NULL, NULL, NULL);
-}
+  stanza = wocky_xmpp_connection_recv_stanza_finish (
+    WOCKY_XMPP_CONNECTION (source), res, NULL);
 
-static void
-stream_closed (WockyXmppConnection *connection, gpointer user_data)
-{
-  run_done = TRUE;
-  g_main_loop_quit (mainloop);
-}
+  g_assert (stanza != NULL);
 
-static void
-received_stanza (WockyXmppConnection *connection, WockyXmppStanza *stanza,
-   gpointer user_data)
-{
+  g_assert (sasl == NULL);
+  sasl = wocky_sasl_auth_new ();
 
-  if (sasl == NULL)
+  g_signal_connect (sasl, "username-requested",
+    G_CALLBACK (return_str), (gpointer)username);
+  g_signal_connect (sasl, "password-requested",
+    G_CALLBACK (return_str), (gpointer)password);
+  g_signal_connect (sasl, "authentication-succeeded",
+    G_CALLBACK (auth_success), NULL);
+  g_signal_connect (sasl, "authentication-failed",
+    G_CALLBACK (auth_failed), NULL);
+
+  if (!wocky_sasl_auth_authenticate (sasl, servername,
+      WOCKY_XMPP_CONNECTION (source), stanza,
+      current_test->allow_plain, &err))
     {
-      GError *err = NULL;
-      sasl = wocky_sasl_auth_new ();
-
-      g_signal_connect (sasl, "username-requested",
-          G_CALLBACK (return_str), (gpointer)username);
-      g_signal_connect (sasl, "password-requested",
-          G_CALLBACK (return_str), (gpointer)password);
-      g_signal_connect (sasl, "authentication-succeeded",
-          G_CALLBACK (auth_success), NULL);
-      g_signal_connect (sasl, "authentication-failed",
-          G_CALLBACK (auth_failed), NULL);
-
-      if (!wocky_sasl_auth_authenticate (sasl, servername, connection, stanza,
-          current_test->allow_plain, &err))
-        {
-          got_error (err->domain, err->code, err->message);
-          g_error_free (err);
-        }
+      got_error (err->domain, err->code, err->message);
+      g_error_free (err);
     }
+
+  g_object_unref (stanza);
+}
+
+static void
+stream_open_received (GObject *source,
+  GAsyncResult *res,
+  gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_recv_open_finish (
+    WOCKY_XMPP_CONNECTION (source), res,
+    NULL, NULL, NULL, NULL,
+    NULL));
+
+  /* Get the features stanza and wait for the connection closing*/
+  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
+    NULL, feature_stanza_received, user_data);
+}
+
+static void
+stream_open_sent (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_open_finish (
+    WOCKY_XMPP_CONNECTION (source), res, NULL));
+
+  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (source),
+    NULL, stream_open_received, user_data);
 }
 
 static void
@@ -133,15 +215,9 @@ run_test (gconstpointer user_data)
   xmpp_connection = stream->stream1;
   conn = wocky_xmpp_connection_new (xmpp_connection);
 
-  g_signal_connect (conn, "parse-error", G_CALLBACK (parse_error), NULL);
-  g_signal_connect (conn, "stream-opened", G_CALLBACK (stream_opened), NULL);
-  g_signal_connect (conn, "stream-closed", G_CALLBACK (stream_closed), NULL);
-  g_signal_connect (conn, "received-stanza",
-      G_CALLBACK (received_stanza), NULL);
-
   wocky_xmpp_connection_send_open_async (conn,
     servername, NULL, "1.0", NULL,
-    NULL, NULL, NULL);
+    NULL, stream_open_sent, NULL);
 
   if (!run_done)
     {
@@ -154,6 +230,7 @@ run_test (gconstpointer user_data)
       sasl = NULL;
     }
 
+  g_object_unref (server);
   g_object_unref (stream);
   g_object_unref (conn);
 
