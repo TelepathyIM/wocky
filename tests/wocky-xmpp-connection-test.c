@@ -171,7 +171,7 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
 static void
 send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
-  g_assert (wocky_xmpp_connection_send_stanza_async_finish (
+  g_assert (wocky_xmpp_connection_send_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), res, NULL));
 }
 

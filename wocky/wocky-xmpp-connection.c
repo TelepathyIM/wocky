@@ -525,7 +525,7 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   g_assert (priv->output_cancellable == NULL);
 
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_stanza_async_finish);
+    callback, user_data, wocky_xmpp_connection_send_stanza_finish);
 
   priv->output_cancellable = cancellable;
   priv->offset = 0;
@@ -538,13 +538,13 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
 }
 
 gboolean
-wocky_xmpp_connection_send_stanza_async_finish (
+wocky_xmpp_connection_send_stanza_finish (
     WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error)
 {
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_async_finish),
+      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_finish),
       FALSE);
 
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
@@ -608,7 +608,7 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
         break;
       case WOCKY_XMPP_READER_STATE_ERROR:
         {
-          GError *e;
+          GError *e /* default coding style checker */;
 
           e = wocky_xmpp_reader_get_error (priv->reader);
 

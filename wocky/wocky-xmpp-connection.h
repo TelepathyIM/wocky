@@ -128,7 +128,7 @@ void wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-gboolean wocky_xmpp_connection_send_stanza_async_finish (
+gboolean wocky_xmpp_connection_send_stanza_finish (
     WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error);
