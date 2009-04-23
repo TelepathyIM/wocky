@@ -219,7 +219,6 @@ wocky_test_io_stream_dispose (GObject *object)
   self->output = NULL;
   self->input = NULL;
 
-
   /* release any references held by the object here */
   if (G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose (object);
