@@ -477,10 +477,10 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
 gboolean
 wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
-    const gchar **to,
-    const gchar **from,
-    const gchar **version,
-    const gchar **lang,
+    gchar **to,
+    gchar **from,
+    gchar **version,
+    gchar **lang,
     GError **error)
 {
   WockyXmppConnectionPrivate *priv;
