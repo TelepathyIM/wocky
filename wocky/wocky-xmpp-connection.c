@@ -667,6 +667,20 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
   return TRUE;
 }
 
+void
+wocky_xmpp_connection_reset (WockyXmppConnection *connection)
+{
+  WockyXmppConnectionPrivate *priv =
+    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  /* There can't be any pending operations */
+  g_assert (priv->input_result == NULL);
+  g_assert (priv->output_result == NULL);
+
+  priv->stream_flags = 0;
+  wocky_xmpp_reader_reset (priv->reader);
+}
+
 gchar *
 wocky_xmpp_connection_new_id (WockyXmppConnection *self)
 {
