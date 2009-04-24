@@ -18,6 +18,14 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-xmpp-connection
+ * @title: WockyXmppConnection
+ * @short_description: Low-level XMPP connection
+ *
+ * Sends and receives WockyXmppStanzas from an underlying GIOStream
+ */
+
 
 #include <stdio.h>
 #include <unistd.h>
@@ -218,6 +226,14 @@ wocky_xmpp_connection_finalize (GObject *object)
   G_OBJECT_CLASS (wocky_xmpp_connection_parent_class)->finalize (object);
 }
 
+/**
+ * wocky_xmpp_connection_new:
+ * @stream: GIOStream over wich all the data will be sent/received
+ *
+ * Convenience function to create a new #WockyXmppConnection
+ *
+ * Returns: a new #WockyXmppConnection
+ */
 WockyXmppConnection *
 wocky_xmpp_connection_new (GIOStream *stream)
 {
@@ -303,6 +319,22 @@ wocky_xmpp_connection_do_write (WockyXmppConnection *self)
   g_object_unref (output);
 }
 
+/**
+ * wocky_xmpp_connection_send_open_async:
+ * @connection: a #WockyXmppConnection
+ * @to: destination in the XMPP opening (can NULL)
+ * @from: sender in the XMPP opening (can be NULL)
+ * @version: XMPP version sent (can be NULL)
+ * @lang: language sent (can be NULL)
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of an XMPP stream opening over the stream. When
+ * the operation is finished callback will be called. You can then call
+ * wocky_xmpp_connection_send_open_finish() to get the result of the operation.
+ *
+ */
 void
 wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     const gchar *to,
@@ -334,6 +366,16 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   wocky_xmpp_connection_do_write (connection);
 }
 
+/**
+ * wocky_xmpp_connection_send_open_finish:
+ * @connection: a #WockyXmppConnection
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes sending a stream opening.
+ *
+ * Returns: TRUE if the opening was succesfully sent, FALSE on error.
+ */
 gboolean
 wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
@@ -435,6 +477,19 @@ finished:
   }
 }
 
+
+/**
+ * wocky_xmpp_connection_recv_open_async:
+ * @connection: a #WockyXmppConnection
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous receiving of an XMPP stream opening over the stream.
+ * When the operation is finished callback will be called. You can then call
+ * wocky_xmpp_connection_recv_open_finish() to get the result of the operation.
+ *
+ */
 void
 wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
     GCancellable *cancellable,
@@ -457,6 +512,24 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   wocky_xmpp_connection_do_read (connection);
 }
 
+/**
+ * wocky_xmpp_connection_recv_open_finish:
+ * @connection: a #WockyXmppConnection
+ * @result: a GAsyncResult.
+ * @to: Optional location to store the to attribute in the XMPP open stanza
+ *  will be stored (free after usage)
+ * @from: Optional location to store the from attribute in the XMPP open stanza
+ *  will be stored (free after usage)
+ * @version: Optional location to store the version attribute in the XMPP open
+ *  stanza will be stored (free after usage)
+ * @lang: Optional location to store the lang attribute in the XMPP open
+ *  stanza will be stored (free after usage)
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes receiving a stream opening.
+ *
+ * Returns: TRUE if the opening was succesfully sent, FALSE on error.
+ */
 gboolean
 wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
@@ -492,6 +565,22 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_connection_send_stanza_async:
+ * @stanza: #WockyXmppStanza to send
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of a #WockyXmppStanza. When the operation is
+ * finished callback will be called. You can then call
+ * wocky_xmpp_connection_send_stanza_finish() to get the result of
+ * the operation.
+ *
+ * can only be called after wocky_xmpp_connection_send_open_async has finished
+ * its operation.
+ *
+ */
 void
 wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
     WockyXmppStanza *stanza,
@@ -520,6 +609,16 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   wocky_xmpp_connection_do_write (connection);
 }
 
+/**
+ * wocky_xmpp_connection_send_stanza_finish:
+ * @connection: a #WockyXmppConnection
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes sending a stanza.
+ *
+ * Returns: TRUE if the stanza was succesfully sent, FALSE on error.
+ */
 gboolean
 wocky_xmpp_connection_send_stanza_finish (
     WockyXmppConnection *connection,
@@ -537,6 +636,20 @@ wocky_xmpp_connection_send_stanza_finish (
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_connection_recv_stanza_async:
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Asynchronous receive a #WockyXmppStanza. When the operation is
+ * finished callback will be called. You can then call
+ * wocky_xmpp_connection_recv_stanza_finish() to get the result of
+ * the operation.
+ *
+ * can only be called after wocky_xmpp_connection_recv_open_async has finished
+ * its operation.
+ */
 void
 wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
     GCancellable *cancellable,
@@ -558,6 +671,17 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
 
   wocky_xmpp_connection_do_read (connection);
 }
+
+/**
+ * wocky_xmpp_connection_recv_stanza_finish:
+ * @connection: a #WockyXmppConnection
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes receiving a stanza
+ *
+ * Returns: A #WockyXmppStanza or NULL on error (unref after usage)
+ */
 
 WockyXmppStanza *
 wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
@@ -607,7 +731,22 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
   return stanza;
 }
 
-
+/**
+ * wocky_xmpp_connection_send_close_async:
+ * @connection: a #WockyXmppConnection
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of an XMPP stream close. When
+ * the operation is finished callback will be called. You can then call
+ * wocky_xmpp_connection_send_close_finish() to get the result of the
+ * operation.
+ *
+ * can only be called after wocky_xmpp_connection_send_open_async has finished
+ * its operation.
+ *
+ */
 void
 wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
     GCancellable *cancellable,
@@ -635,6 +774,16 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
   wocky_xmpp_connection_do_write (connection);
 }
 
+/**
+ * wocky_xmpp_connection_send_close_finish:
+ * @connection: a #WockyXmppConnection
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes send the xmpp stream close.
+ *
+ * Returns: TRUE on success or FALSE on error.
+ */
 gboolean
 wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
@@ -650,6 +799,14 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_connection_recv_stanza_finish:
+ * @connection: a #WockyXmppConnection
+ *
+ * Reset the XMPP Connection. After the reset the connection is back in its
+ * initial state (as if wocky_xmpp_connection_send_open_async and
+ * wocky_xmpp_connection_recv_open_async were never called).
+ */
 void
 wocky_xmpp_connection_reset (WockyXmppConnection *connection)
 {
@@ -664,6 +821,12 @@ wocky_xmpp_connection_reset (WockyXmppConnection *connection)
   wocky_xmpp_reader_reset (priv->reader);
 }
 
+/**
+ * wocky_xmpp_connection_new_id:
+ * @self: a #WockyXmppConnection
+ *
+ * Returns: A short unique string for usage as the id attribute on a stanza.
+ */
 gchar *
 wocky_xmpp_connection_new_id (WockyXmppConnection *self)
 {
