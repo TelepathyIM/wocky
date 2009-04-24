@@ -46,10 +46,12 @@ typedef enum
 
 /**
  * WockyXmppConnectionError:
- * @WOCKY_XMPP_CONNECTION_ERROR_EOS : Other side closed the connection without sending close
+ * @WOCKY_XMPP_CONNECTION_ERROR_EOS : Connection got closed before receiving
+ *                                    an XMPP stream close
  * @WOCKY_XMPP_CONNECTION_ERROR_CLOSED : Other side closed the xmpp stream
  *
- * The different errors that can occur while reading a stream
+ * The #WockyXmppConnection specific errors that can occur while
+ *  reading a stream.
  */
 typedef enum {
   WOCKY_XMPP_CONNECTION_ERROR_EOS,
