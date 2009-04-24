@@ -247,8 +247,8 @@ wocky_xmpp_connection_new (GIOStream *stream)
 
 static void
 wocky_xmpp_connection_write_cb (GObject *source,
-    GAsyncResult *res, gpointer
-    user_data)
+    GAsyncResult *res,
+    gpointer user_data)
 {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
   WockyXmppConnectionPrivate *priv =
@@ -410,7 +410,6 @@ _xmpp_connection_received_data (GObject *source,
         "Connection got disconnected" );
       goto finished;
     }
-
 
   wocky_xmpp_reader_push (priv->reader, priv->input_buffer, size);
 
