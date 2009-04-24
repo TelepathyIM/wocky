@@ -207,8 +207,13 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
+  test_data_t *data = (test_data_t *) user_data;
+
   g_assert (wocky_xmpp_connection_send_open_finish (
       WOCKY_XMPP_CONNECTION (source), res, NULL));
+
+  wocky_xmpp_connection_recv_open_async (data->out,
+      NULL, send_received_open_cb, user_data);
 }
 
 static void
@@ -233,9 +238,7 @@ test_send_simple_message (void)
 
   wocky_xmpp_connection_send_open_async (conn_in,
       NULL, NULL, NULL, NULL,
-      NULL, send_open_cb, NULL);
-  wocky_xmpp_connection_recv_open_async (conn_out,
-      NULL, send_received_open_cb, &data);
+      NULL, send_open_cb, &data);
 
   g_main_loop_run (loop);
   g_main_loop_unref (loop);
