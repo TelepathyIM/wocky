@@ -82,3 +82,6 @@ tests/wocky-xmpp-stanza-test
 examples/wocky-connect
 
 coverage/
+
+/shave
+/shave-libtool

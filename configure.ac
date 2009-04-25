@@ -146,6 +146,8 @@ AC_SUBST(PACKAGE_STRING)
 
 GTK_DOC_CHECK([1.10])
 
+SHAVE_INIT(.)
+
 AC_OUTPUT( Makefile            \
            wocky/Makefile      \
            wocky/wocky-uninstalled.pc \
@@ -155,4 +157,6 @@ AC_OUTPUT( Makefile            \
            tests/Makefile      \
            docs/Makefile      \
            docs/reference/Makefile      \
+           shave               \
+           shave-libtool       \
 )
