@@ -18,6 +18,51 @@
 "  </message>                                                              " \
 "</stream:stream>"
 
+typedef struct {
+  GMainLoop *loop;
+  gboolean parsed_stanza;
+  WockyXmppConnection *in;
+  WockyXmppConnection *out;
+  WockyTestStream *stream;
+} test_data_t;
+
+static gboolean
+timeout_cb (gpointer data)
+{
+  g_test_message ("Timeout reached :(");
+  g_assert_not_reached ();
+
+  return FALSE;
+}
+
+static test_data_t *
+setup_test (void)
+{
+  test_data_t *data;
+
+  data = g_new0 (test_data_t, 1);
+  data->loop = g_main_loop_new (NULL, FALSE);
+
+  data->stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  data->in = wocky_xmpp_connection_new (data->stream->stream0);
+  data->out = wocky_xmpp_connection_new (data->stream->stream1);
+
+  g_timeout_add (1000, timeout_cb, NULL);
+
+  return data;
+}
+
+static void
+teardown_test (test_data_t *data)
+{
+  g_main_loop_unref (data->loop);
+  g_object_unref (data->stream);
+  g_object_unref (data->in);
+  g_object_unref (data->out);
+
+  g_free (data);
+}
+
 static void
 test_instantiation (void)
 {
@@ -34,13 +79,6 @@ test_instantiation (void)
 }
 
 /* Simple message test */
-typedef struct {
-  GMainLoop *loop;
-  gboolean parsed_stanza;
-  WockyXmppConnection *in;
-  WockyXmppConnection *out;
-} test_data_t;
-
 static void
 stanza_received_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
@@ -82,15 +120,6 @@ received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 }
 
 #define CHUNK_SIZE 13
-
-static gboolean
-timeout_cb (gpointer data)
-{
-  g_test_message ("Timeout reached :(");
-  g_assert_not_reached ();
-
-  return FALSE;
-}
 
 static void
 test_recv_simple_message (void)
@@ -219,35 +248,16 @@ send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 test_send_simple_message (void)
 {
-  WockyXmppConnection *conn_in, *conn_out;
-  WockyTestStream *stream;
-  GMainLoop *loop = NULL;
-  test_data_t data = { NULL, FALSE };
+  test_data_t *test = setup_test ();
 
-  loop = g_main_loop_new (NULL, FALSE);
-
-  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
-  conn_in = wocky_xmpp_connection_new (stream->stream0);
-  conn_out = wocky_xmpp_connection_new (stream->stream1);
-
-  g_timeout_add (1000, timeout_cb, NULL);
-
-  data.loop = loop;
-  data.in = conn_in;
-  data.out = conn_out;
-
-  wocky_xmpp_connection_send_open_async (conn_in,
+  wocky_xmpp_connection_send_open_async (test->in,
       NULL, NULL, NULL, NULL,
-      NULL, send_open_cb, &data);
+      NULL, send_open_cb, test);
 
-  g_main_loop_run (loop);
-  g_main_loop_unref (loop);
+  g_main_loop_run (test->loop);
 
-  g_object_unref (stream);
-  g_object_unref (conn_in);
-  g_object_unref (conn_out);
+  teardown_test (test);
 }
-
 
 int
 main (int argc, char **argv)
