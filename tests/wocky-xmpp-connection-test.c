@@ -556,6 +556,86 @@ test_error_pending (void)
   g_object_unref (stanza);
 }
 
+/* not open errors */
+static void
+error_not_open_send_stanza_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_not_open_send_close_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_close_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_not_open_recv_stanza_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (wocky_xmpp_connection_recv_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error) == NULL);
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_error_not_open (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_send_stanza_async (test->in, stanza, NULL,
+    error_not_open_send_stanza_cb, test);
+
+  wocky_xmpp_connection_send_close_async (test->in, NULL,
+    error_not_open_send_close_cb, test);
+
+  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
+    error_not_open_recv_stanza_cb, test);
+
+  test->outstanding = 3;
+  test_wait_pending (test);
+
+  teardown_test (test);
+  g_object_unref (stanza);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -569,7 +649,7 @@ main (int argc, char **argv)
     test_recv_simple_message);
   g_test_add_func ("/xmpp-connection/send-simple-message",
     test_send_simple_message);
-  g_test_add_func ("/xmpp-connection/error-pending",
-      test_error_pending);
+  g_test_add_func ("/xmpp-connection/error-pending", test_error_pending);
+  g_test_add_func ("/xmpp-connection/error-not-open", test_error_not_open);
   return g_test_run ();
 }
