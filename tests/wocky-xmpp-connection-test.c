@@ -24,6 +24,7 @@ typedef struct {
   WockyXmppConnection *in;
   WockyXmppConnection *out;
   WockyTestStream *stream;
+  guint outstanding;
 } test_data_t;
 
 static gboolean
@@ -61,6 +62,13 @@ teardown_test (test_data_t *data)
   g_object_unref (data->out);
 
   g_free (data);
+}
+
+static void
+test_wait_pending (test_data_t *test)
+{
+  while (test->outstanding > 0)
+    g_main_loop_run (test->loop);
 }
 
 static void
@@ -259,6 +267,270 @@ test_send_simple_message (void)
   teardown_test (test);
 }
 
+/* Test for various error codes */
+static void
+error_pending_open_received_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_recv_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result,
+      NULL, NULL, NULL, NULL, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_pending_recv_open_pending_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_recv_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL, NULL, NULL, NULL, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_PENDING));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  g_error_free (error);
+}
+
+static void
+error_pending_stanza_received_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *s;
+
+  g_assert ((s = wocky_xmpp_connection_recv_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL)) != NULL);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  g_object_unref (s);
+}
+
+static void
+error_pending_recv_stanza_pending_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (wocky_xmpp_connection_recv_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error) == NULL);
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_PENDING));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  g_error_free (error);
+}
+
+
+static void
+error_pending_open_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_pending_open_pending_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_PENDING));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  g_error_free (error);
+}
+
+static void
+error_pending_stanza_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_pending_stanza_pending_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_PENDING));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  g_error_free (error);
+}
+
+static void
+error_pending_close_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_close_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_pending_close_pending_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_close_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_PENDING));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  g_error_free (error);
+}
+
+static void
+test_error_pending_send_pending (test_data_t *test)
+{
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+
+  /* should get a _PENDING error */
+  wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL,
+    NULL, error_pending_open_pending_cb, test);
+
+  /* should get a _PENDING error */
+  wocky_xmpp_connection_send_stanza_async (test->in, stanza, NULL,
+    error_pending_stanza_pending_cb, test);
+
+  /* should get a _PENDING error */
+  wocky_xmpp_connection_send_close_async (test->in, NULL,
+    error_pending_close_pending_cb, test);
+
+  test->outstanding += 3;
+
+  g_object_unref (stanza);
+}
+
+static void
+test_error_pending (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_recv_open_async (test->out, NULL,
+    error_pending_open_received_cb, test);
+  test->outstanding++;
+
+  wocky_xmpp_connection_recv_open_async (test->out, NULL,
+    error_pending_open_pending_cb, test);
+  test->outstanding++;
+
+  g_main_loop_run (test->loop);
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+    error_pending_recv_stanza_pending_cb, test);
+  test->outstanding++;
+
+  g_main_loop_run (test->loop);
+
+  /* Should succeed */
+  wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL,
+    NULL, error_pending_open_sent_cb, test);
+  test->outstanding++;
+
+  test_error_pending_send_pending (test);
+  test_wait_pending (test);
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+    error_pending_stanza_received_cb, test);
+  test->outstanding++;
+
+  wocky_xmpp_connection_recv_open_async (test->out, NULL,
+    error_pending_recv_open_pending_cb, test);
+  test->outstanding++;
+
+  g_main_loop_run (test->loop);
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+    error_pending_recv_stanza_pending_cb, test);
+  test->outstanding++;
+
+  g_main_loop_run (test->loop);
+
+  /* should succeed */
+  wocky_xmpp_connection_send_stanza_async (test->in, stanza, NULL,
+    error_pending_stanza_sent_cb, test);
+  test->outstanding++;
+
+  test_error_pending_send_pending (test);
+  test_wait_pending (test);
+
+  /* should succeed */
+  wocky_xmpp_connection_send_close_async (test->in, NULL,
+    error_pending_close_sent_cb, test);
+  test->outstanding++;
+
+  test_error_pending_send_pending (test);
+  test_wait_pending (test);
+
+  teardown_test (test);
+  g_object_unref (stanza);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -272,6 +544,7 @@ main (int argc, char **argv)
     test_recv_simple_message);
   g_test_add_func ("/xmpp-connection/send-simple-message",
     test_send_simple_message);
-
+  g_test_add_func ("/xmpp-connection/error-pending",
+      test_error_pending);
   return g_test_run ();
 }
