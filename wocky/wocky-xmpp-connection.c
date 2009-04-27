@@ -97,27 +97,13 @@ wocky_xmpp_connection_error_quark (void)
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_CONNECTION, \
     WockyXmppConnectionPrivate))
 
-static GObject *
-wocky_xmpp_connection_constructor (GType type,
-    guint n_props, GObjectConstructParam *props)
-{
-  GObject *obj;
-  WockyXmppConnectionPrivate *priv;
-
-  obj = G_OBJECT_CLASS (wocky_xmpp_connection_parent_class)->
-        constructor (type, n_props, props);
-
-  priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (obj);
-
-  priv->writer = wocky_xmpp_writer_new ();
-  priv->reader = wocky_xmpp_reader_new ();
-
-  return obj;
-}
-
 static void
 wocky_xmpp_connection_init (WockyXmppConnection *obj)
 {
+  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (obj);
+
+  priv->writer = wocky_xmpp_writer_new ();
+  priv->reader = wocky_xmpp_reader_new ();
 }
 
 static void wocky_xmpp_connection_dispose (GObject *object);
@@ -181,8 +167,6 @@ wocky_xmpp_connection_class_init (
   object_class->get_property = wocky_xmpp_connection_get_property;
   object_class->dispose = wocky_xmpp_connection_dispose;
   object_class->finalize = wocky_xmpp_connection_finalize;
-
-  object_class->constructor = wocky_xmpp_connection_constructor;
 
   spec = g_param_spec_object ("base-stream", "base stream",
     "the stream that the XMPP connection communicates over",
