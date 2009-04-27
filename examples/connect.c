@@ -42,10 +42,10 @@ post_auth_open_sent_cb (GObject *source,
 }
 
 static void
-auth_success(WockySaslAuth *auth,
+auth_success (WockySaslAuth *auth,
     gpointer user_data)
 {
-  printf("Authentication successfull!!\n");
+  printf ("Authentication successfull!!\n");
 
   /* Reopen the connection */
   wocky_xmpp_connection_reset (conn);
@@ -55,7 +55,7 @@ auth_success(WockySaslAuth *auth,
 }
 
 static void
-auth_failed(WockySaslAuth *auth,
+auth_failed (WockySaslAuth *auth,
     GQuark domain,
     int code,
     gchar *message,
@@ -71,7 +71,7 @@ ssl_features_received_cb (GObject *source,
   gpointer user_data)
 {
   WockyXmppStanza *stanza;
-  GError *error;
+  GError *error = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
@@ -210,7 +210,7 @@ tcp_features_received_cb (GObject *source,
   g_assert (stanza != NULL);
 
   if (strcmp (stanza->node->name, "features")
-      || strcmp(wocky_xmpp_node_get_ns (stanza->node),WOCKY_XMPP_NS_STREAM))
+      || strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM))
     {
       printf ("Didn't receive features stanza\n");
       g_main_loop_quit (mainloop);
@@ -285,7 +285,7 @@ tcp_sent_open_cb (GObject *source,
 }
 
 static void
-tcp_do_connect(void)
+tcp_do_connect (void)
 {
   g_assert (tcp != NULL);
 
@@ -351,7 +351,7 @@ tcp_srv_connected (GObject *source,
 }
 
 int
-main(int argc,
+main (int argc,
     char **argv)
 {
   g_type_init ();
