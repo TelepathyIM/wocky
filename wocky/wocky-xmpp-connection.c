@@ -353,6 +353,15 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
+  if (priv->output_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (connection),
+        callback, user_data,
+        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+        "Another send operation is pending");
+      return;
+    }
+
   g_assert (!priv->output_open);
   g_assert (priv->output_result == NULL);
   g_assert (priv->output_cancellable == NULL);
@@ -508,6 +517,15 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
     WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
+  if (priv->input_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (connection),
+        callback, user_data,
+        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+        "Another receive operation is pending");
+      return;
+    }
+
   g_assert (!priv->input_open);
   g_assert (priv->input_result == NULL);
   g_assert (priv->input_cancellable == NULL);
@@ -600,6 +618,15 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
+  if (priv->output_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (connection),
+        callback, user_data,
+        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+        "Another send operation is pending");
+      return;
+    }
+
   g_assert (priv->output_open && !priv->output_closed);
   g_assert (priv->output_result == NULL);
   g_assert (priv->output_cancellable == NULL);
@@ -666,6 +693,15 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
 {
   WockyXmppConnectionPrivate *priv =
     WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  if (priv->input_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (connection),
+        callback, user_data,
+        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+        "Another receive operation is pending");
+      return;
+    }
 
   g_assert (priv->input_open && !priv->input_closed);
   g_assert (priv->input_result == NULL);
@@ -762,6 +798,15 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
 {
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  if (priv->output_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (connection),
+        callback, user_data,
+        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+        "Another send operation is pending");
+      return;
+    }
 
   g_assert (priv->output_open && !priv->output_closed);
   g_assert (priv->output_result == NULL);
