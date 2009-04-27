@@ -388,12 +388,12 @@ wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_send_open_finish), FALSE);
-
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
     return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_send_open_finish), FALSE);
 
   priv->output_open = TRUE;
 
@@ -549,12 +549,12 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
 {
   WockyXmppConnectionPrivate *priv;
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_recv_open_finish), FALSE);
-
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
     return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_recv_open_finish), FALSE);
 
   priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
   priv->input_open = TRUE;
@@ -633,13 +633,13 @@ wocky_xmpp_connection_send_stanza_finish (
     GAsyncResult *result,
     GError **error)
 {
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_finish),
-      FALSE);
-
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
     return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_finish),
+      FALSE);
 
   return TRUE;
 }
@@ -698,12 +698,12 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv;
   WockyXmppStanza *stanza = NULL;
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_recv_stanza_finish), NULL);
-
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
     return NULL;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_recv_stanza_finish), NULL);
 
   priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
@@ -798,12 +798,12 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_send_close_finish), FALSE);
-
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
     return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_send_close_finish), FALSE);
 
   priv->output_closed = TRUE;
 
