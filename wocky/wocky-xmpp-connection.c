@@ -513,7 +513,6 @@ finished:
   }
 }
 
-
 /**
  * wocky_xmpp_connection_recv_open_async:
  * @connection: a #WockyXmppConnection.
