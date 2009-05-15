@@ -174,6 +174,19 @@ test_recv_simple_message (void)
 
 /* simple send message testing */
 static void
+send_stanza_close_cb (GObject *source, GAsyncResult *res,
+  gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_close_finish (
+    WOCKY_XMPP_CONNECTION (source), res, NULL));
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
+}
+
+static void
 send_stanza_received_cb (GObject *source, GAsyncResult *res,
   gpointer user_data)
 {
@@ -190,26 +203,34 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
       data->parsed_stanza = TRUE;
       wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
         NULL, send_stanza_received_cb, data);
+      data->outstanding++;
 
       wocky_xmpp_connection_send_close_async (
         WOCKY_XMPP_CONNECTION (data->in),
-        NULL, NULL, NULL);
+        NULL, send_stanza_close_cb, data);
+      data->outstanding++;
 
       g_object_unref (s);
     }
   else
    {
       g_assert (s == NULL);
-      g_main_loop_quit (data->loop);
       g_error_free (error);
    }
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
 }
 
 static void
 send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
+  test_data_t *data = (test_data_t *) user_data;
   g_assert (wocky_xmpp_connection_send_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), res, NULL));
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
 }
 
 static void
@@ -233,10 +254,13 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
     WOCKY_STANZA_END);
 
   wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (d->in),
-    s, NULL, send_stanza_cb, NULL);
+    s, NULL, send_stanza_cb, user_data);
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
     NULL, send_stanza_received_cb, user_data);
+
+  /* We're not outstanding anymore, but two new callbacks are */
+  d->outstanding++;
 
   g_object_unref (s);
 }
@@ -261,8 +285,9 @@ test_send_simple_message (void)
   wocky_xmpp_connection_send_open_async (test->in,
       NULL, NULL, NULL, NULL,
       NULL, send_open_cb, test);
+  test->outstanding++;
 
-  g_main_loop_run (test->loop);
+  test_wait_pending (test);
 
   teardown_test (test);
 }
