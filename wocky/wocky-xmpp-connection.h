@@ -40,8 +40,10 @@ typedef struct _WockyXmppConnectionClass WockyXmppConnectionClass;
  * operation is still pending.
  * @WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN : Trying to send or receive while the
  * connection isn't open.
- * @WOCKY_XMPP_CONNECTION_ERROR_ALREADY_CLOSED : Trying to send or receive
- * while the connection is already closed.
+ * @WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED : Trying to send or receive
+ * while the connection is closed.
+ * @WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN: Trying to send or receive
+ * the connection opening when it's already open
  *
  * The #WockyXmppConnection specific errors that can occur while
  *  reading a stream.
@@ -51,7 +53,8 @@ typedef enum {
   WOCKY_XMPP_CONNECTION_ERROR_CLOSED,
   WOCKY_XMPP_CONNECTION_ERROR_PENDING,
   WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-  WOCKY_XMPP_CONNECTION_ERROR_ALREADY_CLOSED,
+  WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+  WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
 } WockyXmppConnectionError;
 
 GQuark wocky_xmpp_connection_error_quark (void);
