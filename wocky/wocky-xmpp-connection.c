@@ -267,7 +267,7 @@ wocky_xmpp_connection_write_cb (GObject *source,
 
   if (G_UNLIKELY (written < 0))
     {
-      g_simple_async_result_set_from_error (priv->input_result, error);
+      g_simple_async_result_set_from_error (priv->output_result, error);
       g_error_free (error);
 
       goto finished;
@@ -275,7 +275,7 @@ wocky_xmpp_connection_write_cb (GObject *source,
 
   if (G_UNLIKELY (written == 0))
     {
-      g_simple_async_result_set_error (priv->input_result,
+      g_simple_async_result_set_error (priv->output_result,
         WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_EOS,
         "Connection got disconnected" );
       goto finished;
