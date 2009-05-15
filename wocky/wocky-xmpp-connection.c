@@ -483,6 +483,11 @@ _xmpp_connection_received_data (GObject *source,
       priv->input_open = TRUE;
       goto finished;
     }
+  else if (wocky_xmpp_reader_get_state (priv->reader) >
+      WOCKY_XMPP_READER_STATE_OPENED)
+    {
+      priv->input_closed = TRUE;
+    }
 
   if (wocky_xmpp_reader_peek_stanza (priv->reader) != NULL)
     goto finished;
