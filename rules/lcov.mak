@@ -27,6 +27,4 @@ lcov-report:
 	@lcov --quiet --compat-libtool -r $(COVERAGE_DIR)/lcov.info `cat $(COVERAGE_DIR)/remove` > $(COVERAGE_DIR)/lcov.cleaned.info
 	@rm $(COVERAGE_DIR)/remove
 	@mv $(COVERAGE_DIR)/lcov.cleaned.info $(COVERAGE_DIR)/lcov.info
-	@echo =================================================
-	@genhtml -t "$(PACKAGE_STRING)" -o $(COVERAGE_DIR) $(COVERAGE_DIR)/lcov.info |grep 'Overall'
-	@echo =================================================
+	@genhtml -t "$(PACKAGE_STRING)" -o $(COVERAGE_DIR) $(COVERAGE_DIR)/lcov.info
