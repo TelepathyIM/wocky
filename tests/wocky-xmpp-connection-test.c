@@ -570,6 +570,7 @@ error_not_open_send_stanza_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -588,6 +589,7 @@ error_not_open_send_close_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -606,6 +608,7 @@ error_not_open_recv_stanza_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -650,6 +653,7 @@ error_is_open_send_open_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -683,6 +687,7 @@ error_is_open_recv_open_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -729,6 +734,7 @@ is_open_recv_close_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -747,6 +753,7 @@ error_is_closed_send_open_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -765,6 +772,7 @@ error_is_closed_send_stanza_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -783,6 +791,7 @@ error_is_closed_send_close_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -803,6 +812,7 @@ error_is_closed_recv_open_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -822,6 +832,7 @@ error_is_closed_recv_stanza_cb (GObject *source,
 
   g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
