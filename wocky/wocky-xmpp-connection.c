@@ -320,8 +320,6 @@ wocky_xmpp_connection_do_write (WockyXmppConnection *self)
     priv->output_cancellable,
     wocky_xmpp_connection_write_cb,
     self);
-
-  g_object_unref (output);
 }
 
 /**
@@ -422,8 +420,6 @@ wocky_xmpp_connection_do_read (WockyXmppConnection *self)
     priv->input_cancellable,
     _xmpp_connection_received_data,
     self);
-
-  g_object_unref (input);
 }
 
 static void
