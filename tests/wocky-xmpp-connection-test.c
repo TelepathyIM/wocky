@@ -636,6 +636,251 @@ test_error_not_open (void)
   g_object_unref (stanza);
 }
 
+/* is open tests */
+static void
+error_is_open_send_open_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+is_open_send_open_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL));
+
+  wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (source),
+    NULL, NULL, NULL, NULL,
+    NULL, error_is_open_send_open_cb, user_data);
+}
+
+static void
+error_is_open_recv_open_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_recv_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result,
+      NULL, NULL, NULL, NULL,
+      &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+is_open_recv_open_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_recv_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL, NULL, NULL, NULL, NULL));
+
+  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (source),
+    NULL, error_is_open_recv_open_cb, user_data);
+}
+
+static void
+is_open_send_close_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_close_finish (
+      WOCKY_XMPP_CONNECTION (source), result,
+      NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+is_open_recv_close_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (wocky_xmpp_connection_recv_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result,
+      &error) == NULL);
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_is_closed_send_open_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_is_closed_send_stanza_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_is_closed_send_close_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_close_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_is_closed_recv_open_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_recv_open_finish (
+      WOCKY_XMPP_CONNECTION (source), result,
+      NULL, NULL, NULL, NULL,
+      &error));
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+error_is_closed_recv_stanza_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (wocky_xmpp_connection_recv_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result,
+      &error) == NULL);
+
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_error_is_open_or_closed (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+
+
+  wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (test->in),
+    NULL, NULL, NULL, NULL,
+    NULL, is_open_send_open_cb, test);
+
+  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (test->out),
+    NULL, is_open_recv_open_cb, test);
+
+  test->outstanding = 2;
+  test_wait_pending (test);
+
+  /* Input and output side are open, so they can be closed */
+  wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (test->in),
+    NULL, is_open_send_close_cb, test);
+  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (test->out),
+    NULL, is_open_recv_close_cb, test);
+
+  test->outstanding = 2;
+  test_wait_pending (test);
+
+  /* both sides are closed, all calls should yield _IS_CLOSED errors */
+  wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (test->in),
+    NULL, NULL, NULL, NULL,
+    NULL, error_is_closed_send_open_cb, test);
+
+  wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (test->in),
+    stanza, NULL, error_is_closed_send_stanza_cb, test);
+
+  wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (test->in),
+    NULL, error_is_closed_send_close_cb, test);
+
+  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (test->out),
+    NULL, error_is_closed_recv_open_cb, test);
+
+  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (test->out),
+    NULL, error_is_closed_recv_stanza_cb, test);
+
+  test->outstanding = 5;
+  test_wait_pending (test);
+
+
+  teardown_test (test);
+  g_object_unref (stanza);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -651,5 +896,7 @@ main (int argc, char **argv)
     test_send_simple_message);
   g_test_add_func ("/xmpp-connection/error-pending", test_error_pending);
   g_test_add_func ("/xmpp-connection/error-not-open", test_error_not_open);
+  g_test_add_func ("/xmpp-connection/error-is-open-or-closed",
+    test_error_is_open_or_closed);
   return g_test_run ();
 }
