@@ -284,8 +284,8 @@ wocky_test_input_stream_dispose (GObject *object)
   self->queue = NULL;
 
   /* release any references held by the object here */
-  if (G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose (object);
+  if (G_OBJECT_CLASS (wocky_test_input_stream_parent_class)->dispose)
+    G_OBJECT_CLASS (wocky_test_input_stream_parent_class)->dispose (object);
 }
 
 static void
@@ -330,8 +330,8 @@ wocky_test_output_stream_dispose (GObject *object)
   g_async_queue_unref (self->queue);
 
   /* release any references held by the object here */
-  if (G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose (object);
+  if (G_OBJECT_CLASS (wocky_test_output_stream_parent_class)->dispose)
+    G_OBJECT_CLASS (wocky_test_output_stream_parent_class)->dispose (object);
 }
 
 static void
