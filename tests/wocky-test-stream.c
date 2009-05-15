@@ -125,7 +125,6 @@ wocky_test_stream_init (WockyTestStream *self)
 }
 
 static void wocky_test_stream_dispose (GObject *object);
-static void wocky_test_stream_finalize (GObject *object);
 
 static void
 wocky_test_stream_class_init (WockyTestStreamClass *wocky_test_stream_class)
@@ -136,7 +135,6 @@ wocky_test_stream_class_init (WockyTestStreamClass *wocky_test_stream_class)
     sizeof (WockyTestStreamPrivate));
 
   object_class->dispose = wocky_test_stream_dispose;
-  object_class->finalize = wocky_test_stream_finalize;
 }
 
 static void
@@ -157,13 +155,6 @@ wocky_test_stream_dispose (GObject *object)
 
   if (G_OBJECT_CLASS (wocky_test_stream_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_test_stream_parent_class)->dispose (object);
-}
-
-static void
-wocky_test_stream_finalize (GObject *object)
-{
-  /* free any data held directly by the object here */
-  G_OBJECT_CLASS (wocky_test_stream_parent_class)->finalize (object);
 }
 
 /* IO stream */
