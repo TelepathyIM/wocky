@@ -8,3 +8,6 @@ dist-hook:
 		git log --stat > ${distdir}/ChangeLog || \
 		git log > ${distdir}/ChangeLog; \
 	fi
+
+include $(top_srcdir)/rules/lcov.mak
+

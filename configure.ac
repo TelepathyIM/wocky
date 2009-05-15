@@ -129,6 +129,19 @@ AM_CONDITIONAL(HAVE_LIBSASL2, test "x$HAVE_LIBSASL2" = "xyes")
 AC_SUBST(LIBXML2_CFLAGS)
 AC_SUBST(LIBXML2_LIBS)
 
+AC_ARG_ENABLE(coverage, AC_HELP_STRING([--enable-coverage],
+      [compile with coverage profiling instrumentation (gcc only)]),
+    [
+      case "${enableval}" in
+        "yes"|"no") coverage="${enableval}" ;;
+        *)   AC_MSG_ERROR(bad value ${enableval} for --enable-coverage) ;;
+      esac
+    ]
+)
+
+WOCKY_GCOV(${coverage})
+WOCKY_LCOV(${coverage})
+
 AC_SUBST(PACKAGE_STRING)
 
 GTK_DOC_CHECK([1.10])
