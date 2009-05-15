@@ -40,15 +40,13 @@ static GType wocky_test_input_stream_get_type (void);
 static GType wocky_test_output_stream_get_type (void);
 
 typedef struct {
-  GObject parent;
+  GIOStream parent;
   GInputStream *input;
   GOutputStream *output;
-  gboolean dispose_has_run;
 } WockyTestIOStream;
 
 typedef struct {
-  GObjectClass parent;
-  gboolean dispose_has_run;
+  GIOStreamClass parent;
 } WockyTestIOStreamClass;
 
 typedef struct {
@@ -74,8 +72,7 @@ typedef struct {
 } WockyTestInputStreamClass;
 
 
-G_DEFINE_TYPE_WITH_CODE (WockyTestIOStream, wocky_test_io_stream,
-  G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (G_TYPE_IO_STREAM, NULL));
+G_DEFINE_TYPE (WockyTestIOStream, wocky_test_io_stream, G_TYPE_IO_STREAM);
 G_DEFINE_TYPE (WockyTestInputStream, wocky_test_input_stream,
   G_TYPE_INPUT_STREAM);
 G_DEFINE_TYPE (WockyTestOutputStream, wocky_test_output_stream,
@@ -158,18 +155,6 @@ wocky_test_stream_dispose (GObject *object)
   g_object_unref (self->stream1);
   self->stream1 = NULL;
 
-  g_object_unref (self->stream0_input);
-  self->stream0_input = NULL;
-
-  g_object_unref (self->stream0_output);
-  self->stream0_output = NULL;
-
-  g_object_unref (self->stream1_input);
-  self->stream1_input = NULL;
-
-  g_object_unref (self->stream1_output);
-  self->stream1_output = NULL;
-
   if (G_OBJECT_CLASS (wocky_test_stream_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_test_stream_parent_class)->dispose (object);
 }
@@ -207,21 +192,27 @@ wocky_test_io_stream_class_get_property (GObject *object, guint property_id,
 }
 
 static void
-wocky_test_io_stream_dispose (GObject *object)
+wocky_test_io_stream_finalize (GObject *object)
 {
   WockyTestIOStream *self = WOCKY_TEST_IO_STREAM (object);
 
-  if (self->dispose_has_run)
-    return;
+  g_object_unref (self->input);
+  g_object_unref (self->output);
 
-  self->dispose_has_run = TRUE;
+  if (G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->finalize)
+    G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->finalize (object);
+}
 
-  self->output = NULL;
-  self->input = NULL;
+static GInputStream *
+wocky_test_io_stream_get_input_stream (GIOStream *stream)
+{
+  return WOCKY_TEST_IO_STREAM (stream)->input;
+}
 
-  /* release any references held by the object here */
-  if (G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_test_io_stream_parent_class)->dispose (object);
+static GOutputStream *
+wocky_test_io_stream_get_output_stream (GIOStream *stream)
+{
+  return WOCKY_TEST_IO_STREAM (stream)->output;
 }
 
 static void
@@ -229,9 +220,14 @@ wocky_test_io_stream_class_init (
   WockyTestIOStreamClass *wocky_test_io_stream_class)
 {
   GObjectClass *obj_class = G_OBJECT_CLASS (wocky_test_io_stream_class);
+  GIOStreamClass *stream_class = G_IO_STREAM_CLASS
+    (wocky_test_io_stream_class);
 
-  obj_class->dispose = wocky_test_io_stream_dispose;
+  obj_class->finalize = wocky_test_io_stream_finalize;
   obj_class->get_property = wocky_test_io_stream_class_get_property;
+
+  stream_class->get_input_stream = wocky_test_io_stream_get_input_stream;
+  stream_class->get_output_stream = wocky_test_io_stream_get_output_stream;
 
   g_object_class_install_property (obj_class, PROP_IO_INPUT_STREAM,
     g_param_spec_object ("input-stream", "Input stream",
