@@ -351,16 +351,15 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  if (priv->output_result != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-        "Another send operation is pending");
-      return;
-    }
+  if (G_UNLIKELY (priv->output_result != NULL))
+    goto pending;
 
-  g_assert (!priv->output_open);
+  if (G_UNLIKELY (priv->output_closed))
+    goto is_closed;
+
+  if (G_UNLIKELY (priv->output_open))
+    goto is_open;
+
   g_assert (priv->output_result == NULL);
   g_assert (priv->output_cancellable == NULL);
 
@@ -375,6 +374,29 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     to, from, version, lang, &priv->output_buffer, &priv->length);
 
   wocky_xmpp_connection_do_write (connection);
+
+  return;
+
+pending:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+    "Another send operation is pending");
+  return;
+
+is_open:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
+    "Connection is already open");
+  return;
+
+is_closed:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+    "Connection is closed for sending");
+  return;
 }
 
 /**
@@ -513,16 +535,15 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
     WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  if (priv->input_result != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-        "Another receive operation is pending");
-      return;
-    }
+  if (G_UNLIKELY (priv->input_result != NULL))
+    goto pending;
 
-  g_assert (!priv->input_open);
+  if (G_UNLIKELY (priv->input_closed))
+    goto is_closed;
+
+  if (G_UNLIKELY (priv->input_open))
+    goto is_open;
+
   g_assert (priv->input_result == NULL);
   g_assert (priv->input_cancellable == NULL);
 
@@ -532,6 +553,29 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   priv->input_cancellable = cancellable;
 
   wocky_xmpp_connection_do_read (connection);
+
+  return;
+
+pending:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+    "Another receive operation is pending");
+  return;
+
+is_closed:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+    "Connection is closed for receiving");
+  return;
+
+is_open:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
+    "Connection has already recieved open");
+  return;
 }
 
 /**
@@ -614,23 +658,14 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  if (priv->output_result != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-        "Another send operation is pending");
-      return;
-    }
+  if (G_UNLIKELY (priv->output_result != NULL))
+    goto pending;
 
   if (G_UNLIKELY (!priv->output_open))
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-        "Connections hasn't been opened for sending");
-      return;
-    }
+    goto not_open;
+
+  if (G_UNLIKELY (priv->output_closed))
+    goto is_closed;
 
   g_assert (!priv->output_closed);
   g_assert (priv->output_result == NULL);
@@ -647,6 +682,29 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
       &priv->length);
 
   wocky_xmpp_connection_do_write (connection);
+
+  return;
+
+pending:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+    "Another send operation is pending");
+  return;
+
+not_open:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+    "Connections hasn't been opened for sending");
+  return;
+
+is_closed:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+    "Connections has been closed for sending");
+  return;
 }
 
 /**
@@ -699,25 +757,15 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
     WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  if (priv->input_result != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-        "Another receive operation is pending");
-      return;
-    }
+  if (G_UNLIKELY (priv->input_result != NULL))
+    goto pending;
 
   if (G_UNLIKELY (!priv->input_open))
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-        "Connection hasn't been opened for reading stanzas");
-      return;
-    }
+    goto not_open;
 
-  g_assert (priv->input_open && !priv->input_closed);
+  if (G_UNLIKELY (priv->input_closed))
+    goto is_closed;
+
   g_assert (priv->input_result == NULL);
   g_assert (priv->input_cancellable == NULL);
 
@@ -727,6 +775,28 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   priv->input_cancellable = cancellable;
 
   wocky_xmpp_connection_do_read (connection);
+  return;
+
+pending:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+    "Another receive operation is pending");
+  return;
+
+not_open:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+    "Connection hasn't been opened for reading stanzas");
+  return;
+
+is_closed:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+    "Connection has been closed for reading stanzas");
+  return;
 }
 
 /**
@@ -813,25 +883,15 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
 
-  if (priv->output_result != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-        "Another send operation is pending");
-      return;
-    }
+  if (G_UNLIKELY (priv->output_result != NULL))
+    goto pending;
+
+  if (G_UNLIKELY (priv->output_closed))
+    goto is_closed;
 
   if (G_UNLIKELY (!priv->output_open))
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-        callback, user_data,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-        "Connections hasn't been opened for sending");
-      return;
-    }
+    goto not_open;
 
-  g_assert (!priv->output_closed);
   g_assert (priv->output_result == NULL);
   g_assert (priv->output_cancellable == NULL);
 
@@ -846,6 +906,29 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
       &priv->length);
 
   wocky_xmpp_connection_do_write (connection);
+
+  return;
+
+pending:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
+    "Another send operation is pending");
+  return;
+
+not_open:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+    "Connections hasn't been opened for sending");
+  return;
+
+is_closed:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+    "Connections has been closed sending");
+  return;
 }
 
 /**
