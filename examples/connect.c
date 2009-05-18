@@ -354,17 +354,34 @@ int
 main (int argc,
     char **argv)
 {
+  gchar *jid;
+  char *c;
+
   g_type_init ();
 
-  g_assert (argc == 4);
+  if (argc != 3)
+    {
+      printf ("Usage: %s <jid> <password>\n", argv[0]);
+      return -1;
+    }
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
   client =  g_tcp_client_new ();
 
-  server = argv[1];
-  username = argv[2];
-  password = argv[3];
+  jid = g_strdup (argv[1]);
+  password = argv[2];
+
+  c = rindex (jid, '@');
+  if (c == NULL)
+    {
+      printf ("JID should contain an @ sign\n");
+      return -1;
+    }
+  *c = '\0';
+
+  server = c + 1;
+  username = jid;
 
   printf ("Connecting to %s\n", server);
 
@@ -372,5 +389,7 @@ main (int argc,
     "xmpp-client", NULL, tcp_srv_connected, NULL);
 
   g_main_loop_run (mainloop);
+
+  g_free (jid);
   return 0;
 }
