@@ -16,9 +16,9 @@ const gchar *server;
 const gchar *username;
 const gchar *password;
 WockySaslAuth *sasl = NULL;
-GTcpConnection *tcp;
+GSocketConnection *tcp;
 
-GTcpClient *client;
+GSocketClient *client;
 GTLSConnection *ssl;
 GTLSSession *ssl_session;
 
@@ -305,7 +305,7 @@ tcp_host_connected (GObject *source,
 {
   GError *error = NULL;
 
-  tcp = g_tcp_client_connect_to_host_finish (G_TCP_CLIENT (source),
+  tcp = g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (source),
     result, &error);
 
   if (tcp == NULL)
@@ -330,7 +330,7 @@ tcp_srv_connected (GObject *source,
 {
   GError *error = NULL;
 
-  tcp = g_tcp_client_connect_to_service_finish (G_TCP_CLIENT (source),
+  tcp = g_socket_client_connect_to_service_finish (G_SOCKET_CLIENT (source),
     result, &error);
 
   if (tcp == NULL)
@@ -341,7 +341,7 @@ tcp_srv_connected (GObject *source,
 
       g_message ("Falling back to direct connection");
       g_error_free (error);
-      g_tcp_client_connect_to_host_async (client, server, "5222", NULL,
+      g_socket_client_connect_to_host_async (client, server, 5222, NULL,
           tcp_host_connected, NULL);
     }
   else
@@ -367,7 +367,7 @@ main (int argc,
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
-  client =  g_tcp_client_new ();
+  client =  g_socket_client_new ();
 
   jid = g_strdup (argv[1]);
   password = argv[2];
@@ -385,7 +385,7 @@ main (int argc,
 
   printf ("Connecting to %s\n", server);
 
-  g_tcp_client_connect_to_service_async (client, server,
+  g_socket_client_connect_to_service_async (client, server,
     "xmpp-client", NULL, tcp_srv_connected, NULL);
 
   g_main_loop_run (mainloop);
