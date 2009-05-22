@@ -38,8 +38,6 @@ enum
 {
     USERNAME_REQUESTED,
     PASSWORD_REQUESTED,
-    AUTHENTICATION_SUCCEEDED,
-    AUTHENTICATION_FAILED,
     LAST_SIGNAL
 };
 
@@ -72,6 +70,8 @@ struct _WockySaslAuthPrivate
   gchar *digest_md5_rspauth;
   WockySaslAuthState state;
   WockySaslAuthMechanism mech;
+  GCancellable *cancel;
+  GSimpleAsyncResult *result;
 };
 
 #define WOCKY_SASL_AUTH_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_SASL_AUTH, WockySaslAuthPrivate))
@@ -121,22 +121,6 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
       NULL, NULL,
       _wocky_signals_marshal_STRING__VOID,
       G_TYPE_STRING, 0);
-
-  signals[AUTHENTICATION_SUCCEEDED] = g_signal_new ("authentication-succeeded",
-      G_OBJECT_CLASS_TYPE(wocky_sasl_auth_class),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL, NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
-
-  signals[AUTHENTICATION_FAILED] = g_signal_new ("authentication-failed",
-      G_OBJECT_CLASS_TYPE(wocky_sasl_auth_class),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL, NULL,
-      _wocky_signals_marshal_VOID__UINT_INT_STRING,
-      G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
 
   object_class->dispose = wocky_sasl_auth_dispose;
   object_class->finalize = wocky_sasl_auth_finalize;
@@ -200,12 +184,16 @@ static void
 auth_succeeded (WockySaslAuth *sasl)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  GSimpleAsyncResult *r;
 
+  DEBUG ("Authentication succeeded");
   priv->state = WOCKY_SASL_AUTH_STATE_SUCCEEDED;
 
-  auth_reset (sasl);
-  DEBUG ("Authentication succeeded");
-  g_signal_emit (sasl, signals[AUTHENTICATION_SUCCEEDED], 0);
+  r = priv->result;
+  priv->result = NULL;
+
+  g_simple_async_result_complete (r);
+  g_object_unref (r);
 }
 
 static void
@@ -213,6 +201,7 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
+  GSimpleAsyncResult *r;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
 
   auth_reset (sasl);
@@ -224,8 +213,14 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   DEBUG ("Authentication failed!: %s", message);
   priv->state = WOCKY_SASL_AUTH_STATE_FAILED;
 
-  g_signal_emit (sasl, signals[AUTHENTICATION_FAILED], 0,
-     WOCKY_SASL_AUTH_ERROR, error, message);
+  r = priv->result;
+  priv->result = NULL;
+
+  g_simple_async_result_set_error (r,
+    WOCKY_SASL_AUTH_ERROR, error, "%s", message);
+
+  g_simple_async_result_complete (r);
+  g_object_unref (r);
 
   g_free (message);
 }
@@ -407,10 +402,17 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   if (username == NULL || password == NULL)
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-                 "No username or password provided");
+      g_simple_async_result_set_error (priv->result, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+          "No username or password provided");
+
+      g_simple_async_result_complete_in_idle (priv->result);
+
+      g_object_unref (priv->result);
+      priv->result = NULL;
       goto error;
     }
+
   DEBUG ("Got username and password");
 
   nonce = g_hash_table_lookup (challenge, "nonce");
@@ -731,7 +733,7 @@ sasl_auth_stanza_received (GObject *source,
 
 static gboolean
 wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
-    WockySaslAuthMechanism mech, GError **error)
+    WockySaslAuthMechanism mech)
 {
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
@@ -796,17 +798,37 @@ out:
   return ret;
 }
 
+
+gboolean
+wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
+  GAsyncResult *result,
+  GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (sasl), wocky_sasl_auth_authenticate_finish), FALSE);
+
+  auth_reset (sasl);
+
+  return TRUE;
+}
+
 /* Initiate sasl auth. features should containt the stream features stanza as
  * receiver from the server */
-gboolean
-wocky_sasl_auth_authenticate (WockySaslAuth *sasl,
+void
+wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     const gchar *server, WockyXmppConnection *connection,
-    WockyXmppStanza *features, gboolean allow_plain, GError **error)
+    WockyXmppStanza *features, gboolean allow_plain,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppNode *mech_node;
   GSList *mechanisms, *t;
-  gboolean ret = TRUE;
 
   g_assert (sasl != NULL);
   g_assert (server != NULL);
@@ -818,37 +840,45 @@ wocky_sasl_auth_authenticate (WockySaslAuth *sasl,
 
   mechanisms = wocky_sasl_auth_mechanisms_to_list (mech_node);
 
-  if (mechanisms == NULL)
+  if (G_UNLIKELY (mechanisms == NULL))
     {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
+      g_simple_async_report_error_in_idle (G_OBJECT (sasl),
+          callback, user_data,
+          WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
           "Server doesn't have any sasl mechanisms");
-      goto error;
+      goto out;
     }
 
   priv->connection = g_object_ref (connection);
   priv->server = g_strdup (server);
+  priv->result = g_simple_async_result_new (G_OBJECT (sasl),
+    callback, user_data, wocky_sasl_auth_authenticate_finish);
 
   if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
     {
       DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
-      ret = wocky_sasl_auth_start_mechanism (sasl,
-        WOCKY_SASL_AUTH_DIGEST_MD5, error);
+      wocky_sasl_auth_start_mechanism (sasl, WOCKY_SASL_AUTH_DIGEST_MD5);
     }
   else if (allow_plain &&
       wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
     {
       DEBUG ("Choosing PLAIN as auth mechanism");
-      ret = wocky_sasl_auth_start_mechanism (sasl,
-         WOCKY_SASL_AUTH_PLAIN, error);
+      wocky_sasl_auth_start_mechanism (sasl, WOCKY_SASL_AUTH_PLAIN);
     }
   else
     {
       DEBUG ("No supported mechanisms found");
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-        WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-        "No supported mechanisms found");
-      goto error;
+
+      g_object_unref (priv->result);
+      priv->result = NULL;
+
+      g_simple_async_report_error_in_idle (G_OBJECT (sasl),
+          callback, user_data,
+          WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
+          "No supported mechanisms found");
+
+      goto out;
     }
 
 out:
@@ -858,11 +888,4 @@ out:
     }
 
   g_slist_free (mechanisms);
-  return ret;
-
-error:
-  auth_reset (sasl);
-  ret = FALSE;
-  goto out;
 }
-

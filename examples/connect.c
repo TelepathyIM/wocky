@@ -42,9 +42,21 @@ post_auth_open_sent_cb (GObject *source,
 }
 
 static void
-auth_success (WockySaslAuth *auth,
+auth_done_cb (GObject *source,
+    GAsyncResult *result,
     gpointer user_data)
 {
+  GError *error = NULL;
+
+  if (!wocky_sasl_auth_authenticate_finish (WOCKY_SASL_AUTH (source),
+      result, &error))
+    {
+      printf ("Authentication failed: %s\n", error->message);
+      g_error_free (error);
+      g_main_loop_quit (mainloop);
+      return;
+    }
+
   printf ("Authentication successfull!!\n");
 
   /* Reopen the connection */
@@ -55,23 +67,11 @@ auth_success (WockySaslAuth *auth,
 }
 
 static void
-auth_failed (WockySaslAuth *auth,
-    GQuark domain,
-    int code,
-    gchar *message,
-    gpointer user_data)
-{
-  printf ("Authentication failed: %s\n", message);
-  g_main_loop_quit (mainloop);
-}
-
-static void
 ssl_features_received_cb (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
   WockyXmppStanza *stanza;
-  GError *error = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
@@ -90,16 +90,9 @@ ssl_features_received_cb (GObject *source,
       G_CALLBACK (return_str), (gpointer)username);
   g_signal_connect (sasl, "password-requested",
       G_CALLBACK (return_str), (gpointer)password);
-  g_signal_connect (sasl, "authentication-succeeded",
-      G_CALLBACK (auth_success), NULL);
-  g_signal_connect (sasl, "authentication-failed",
-      G_CALLBACK (auth_failed), NULL);
 
-  if (!wocky_sasl_auth_authenticate (sasl, server, conn, stanza, TRUE, &error))
-    {
-      printf ("Sasl auth start failed: %s\n", error->message);
-      g_main_loop_quit (mainloop);
-    }
+  wocky_sasl_auth_authenticate_async (sasl, server, conn, stanza, TRUE,
+    NULL, auth_done_cb, NULL);
 }
 
 

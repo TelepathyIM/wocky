@@ -30,14 +30,6 @@ gboolean run_done = FALSE;
 test_t *current_test = NULL;
 GError *error = NULL;
 
-static void
-got_error (GQuark domain, int code, const gchar *message)
-{
-  g_set_error (&error, domain, code, "%s", message);
-  run_done = TRUE;
-  g_main_loop_quit (mainloop);
-}
-
 static gchar *
 return_str (WockySaslAuth *auth, gpointer user_data)
 {
@@ -115,22 +107,29 @@ post_auth_open_sent (GObject *source,
 }
 
 static void
-auth_success (WockySaslAuth *sasl_, gpointer user_data)
+sasl_auth_finished_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
 {
-  authenticated = TRUE;
+  GError *auth_error = NULL;
 
-  wocky_xmpp_connection_reset (conn);
+  if (wocky_sasl_auth_authenticate_finish (WOCKY_SASL_AUTH (source),
+      res, &auth_error))
+    {
+      authenticated = TRUE;
 
-  wocky_xmpp_connection_send_open_async (conn,
-    servername, NULL, "1.0", NULL,
-    NULL, post_auth_open_sent, NULL);
-}
+      wocky_xmpp_connection_reset (conn);
 
-static void
-auth_failed (WockySaslAuth *sasl_, GQuark domain,
-    int code, gchar *message, gpointer user_data)
-{
-  got_error (domain, code, message);
+      wocky_xmpp_connection_send_open_async (conn,
+       servername, NULL, "1.0", NULL,
+        NULL, post_auth_open_sent, NULL);
+    }
+  else
+    {
+      error = auth_error;
+      run_done = TRUE;
+      g_main_loop_quit (mainloop);
+    }
 }
 
 static void
@@ -139,7 +138,6 @@ feature_stanza_received (GObject *source,
     gpointer user_data)
 {
   WockyXmppStanza *stanza;
-  GError *err = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (source), res, NULL);
@@ -153,18 +151,12 @@ feature_stanza_received (GObject *source,
     G_CALLBACK (return_str), (gpointer)username);
   g_signal_connect (sasl, "password-requested",
     G_CALLBACK (return_str), (gpointer)password);
-  g_signal_connect (sasl, "authentication-succeeded",
-    G_CALLBACK (auth_success), NULL);
-  g_signal_connect (sasl, "authentication-failed",
-    G_CALLBACK (auth_failed), NULL);
 
-  if (!wocky_sasl_auth_authenticate (sasl, servername,
+  wocky_sasl_auth_authenticate_async (sasl, servername,
       WOCKY_XMPP_CONNECTION (source), stanza,
-      current_test->allow_plain, &err))
-    {
-      got_error (err->domain, err->code, err->message);
-      g_error_free (err);
-    }
+      current_test->allow_plain, NULL,
+      sasl_auth_finished_cb,
+      NULL);
 
   g_object_unref (stanza);
 }

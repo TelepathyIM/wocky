@@ -79,12 +79,18 @@ GType wocky_sasl_auth_get_type (void);
 
 WockySaslAuth *wocky_sasl_auth_new (void);
 
+void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
+    const gchar *server,
+    WockyXmppConnection *connection,
+    WockyXmppStanza *features,
+    gboolean allow_plain,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
-/* Initiate sasl auth. features should containt the stream features stanza as
- * receiver from the server */
-gboolean wocky_sasl_auth_authenticate (WockySaslAuth *sasl,
-    const gchar *server, WockyXmppConnection *connection,
-    WockyXmppStanza *features, gboolean allow_plain, GError **error);
+gboolean wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
+  GAsyncResult *result,
+  GError **error);
 
 G_END_DECLS
 
