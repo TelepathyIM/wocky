@@ -69,30 +69,4 @@ void wocky_debug (DebugFlags flag,
     }
 }
 
-void
-wocky_debug_stanza (DebugFlags flag,
-                     WockyXmppStanza *stanza,
-                     const gchar *format,
-                     ...)
-{
-  if (G_UNLIKELY(!initialized))
-    wocky_debug_set_flags_from_env ();
-  if (flag & flags)
-    {
-      va_list args;
-      gchar *msg, *node_str;
-
-      va_start (args, format);
-      msg = g_strdup_vprintf (format, args);
-      va_end (args);
-
-      node_str = wocky_xmpp_node_to_string (stanza->node);
-
-      g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "%s\n%s", msg, node_str);
-
-      g_free (msg);
-      g_free (node_str);
-    }
-}
-
 #endif
