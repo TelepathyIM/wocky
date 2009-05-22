@@ -48,7 +48,8 @@ void wocky_debug_set_flags (DebugFlags new_flags)
   initialized = TRUE;
 }
 
-gboolean wocky_debug_flag_is_set (DebugFlags flag)
+gboolean
+wocky_debug_flag_is_set (DebugFlags flag)
 {
   return flag & flags;
 }
