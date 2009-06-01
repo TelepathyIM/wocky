@@ -133,7 +133,7 @@ struct _WockyConnectorPrivate
   (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_CONNECTOR,WockyConnectorPrivate))
 
 #define WOCKY_CONNECTOR_CHOOSE_BY_STATE( p, v, a, b, c ) \
-  if (p->authed) v = a; else if (p->tls) v = b; else v = c;
+  if (p->authed) v = a; else if (p->tls != NULL) v = b; else v = c;
 
 #define WOCKY_CONNECTOR_BAILOUT( obj, message )
 
@@ -300,11 +300,11 @@ wocky_connector_class_init ( WockyConnectorClass *klass )
   g_object_class_install_property( oclass, PROP_CALLBACK, spec )
 }
 
-#define UNREF_AND_FORGET(x) if (x) { g_object_unref( x ); x = NULL; }
+#define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
 #define GFREE_AND_FORGET(x) g_free (x); x = NULL;
 
 void
-wocky_connector_dispose( GObject *object )
+wocky_connector_dispose (GObject *object)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -328,13 +328,13 @@ wocky_connector_dispose( GObject *object )
 }
 
 void
-wocky_connector_finalise( GObject *object )
+wocky_connector_finalise (GObject *object)
 {
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
 
 void
-wocky_connector_connect( GObject *object, void *cb )
+wocky_connector_connect (GObject *object, void *cb)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -345,9 +345,9 @@ wocky_connector_connect( GObject *object, void *cb )
 
   if (priv->state != WCON_DISCONNECTED)
     WOCKY_CONNECTOR_BAILOUT (self, "Invalid state: Cannot connect");
-  if (!host)
+  if ( host == NULL )
     WOCKY_CONNECTOR_BAILOUT (self, "Invalid JID");
-  if (!*(++host))
+  if (*(++host) == '\0')
     WOCKY_CONNECTOR_BAILOUT (self, "Invalid JID: No domain");
 
   priv->domain = g_strdup (host);
@@ -380,7 +380,7 @@ tcp_srv_connected (GObject *source,
     g_socket_client_connect_to_service_finish (G_SOCKET_CLIENT( source ),
         result, &erro);
 
-  if (!priv->sock)
+  if (priv->sock == NULL)
     {
       const gchar *host = rindex (priv->jid, '@') + 1;
       g_message ("SRV connect failed: %s: %d, %s",
@@ -474,7 +474,7 @@ xmpp_init_recv_cb (GObject source, GAsyncResult *result, gpointer data)
       WOCKY_CONNECTOR_BAILOUT( self, msg );
     }
 
-  if (!version || strcmp( version, "1.0" ))
+  if ((version == NULL) || strcmp (version, "1.0"))
     WOCKY_CONNECTOR_BAILOUT (self, "Server not XMPP Compliant");
 
   wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
@@ -495,11 +495,11 @@ xmpp_features_cb (GObject source, GAsyncResult *result, gpointer data)
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, NULL);
 
-  if (!stanza)
+  if (stanza == NULL)
     WOCKY_CONNECTOR_BAILOUT (self, "disconnected before XMPP features stanza");
 
-  if (strcmp( stanza->node->name, "features" ) ||
-      strcmp( wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM ))
+  if (strcmp (stanza->node->name, "features") ||
+      strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM))
     {
       const char *msg
       WOCKY_CONNECTOR_CHOOSE_BY_STATE (priv, msg,
@@ -511,7 +511,7 @@ xmpp_features_cb (GObject source, GAsyncResult *result, gpointer data)
 
   tls = wocky_xmpp_node_get_child_ns (stanza->node, WOCKY_XMPP_NS_TLS);
 
-  if (!tls && priv->tls_required)
+  if ((tls == NULL) && priv->tls_required)
     WOCKY_CONNECTOR_BAILOUT (self, "TLS requested but lack server support");
 
   if (priv->authed) /* already authorised. hopefully we are done: */
@@ -519,7 +519,8 @@ xmpp_features_cb (GObject source, GAsyncResult *result, gpointer data)
       if (!wocky_xmpp_connection_send_open_finish( priv->conn, result, NULL ))
         WOCKY_CONNECTOR_BAILOUT (self, "post-auth open not sent");
     }
-  else if (priv->tls || !tls) /* already in tls mode or tls not supported: */
+  /* already in tls or no tls support: */
+  else if ((priv->tls != NULL) || (tls == NULL)) 
     {
       request_auth (self, stanza);
     }
@@ -558,11 +559,11 @@ starttls_recv_cb (GObject source, GAsyncResult *result, gpointer data)
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, NULL);
 
-  if (!stanza)
+  if (stanza == NULL)
     WOCKY_CONNECTOR_BAILOUT (self, "STARTTLS reply not received");
 
-  if (strcmp( stanza->node->name, "proceed" ) ||
-      strcmp( wocky_xmpp_node_get_ns( stanza->node ), WOCKY_XMPP_NS_TLS ))
+  if (strcmp (stanza->node->name, "proceed") ||
+      strcmp (wocky_xmpp_node_get_ns( stanza->node ), WOCKY_XMPP_NS_TLS))
     {
       if (priv->tls_required)
         WOCKY_CONNECTOR_BAILOUT (self, "STARTTLS refused by server");
@@ -574,7 +575,7 @@ starttls_recv_cb (GObject source, GAsyncResult *result, gpointer data)
       priv->tls_sess = g_tls_session_new (G_IO_STREAM( priv->sock ));
       priv->tls = g_tls_session_handshake (priv->tls_sess, NULL, &error);
 
-      if (!priv->tls)
+      if (priv->tls == NULL)
         WOCKY_CONNECTOR_BAILOUT (self, "TLS Handshake Error");
 
       priv->conn = wocky_xmpp_connection_new (G_IO_STREAM( priv->tls ));
