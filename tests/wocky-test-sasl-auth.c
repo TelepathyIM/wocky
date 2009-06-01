@@ -13,6 +13,8 @@ typedef struct {
   GQuark domain;
   int code;
   ServerProblem problem;
+  gboolean wrong_username;
+  gboolean wrong_password;
 } test_t;
 
 GMainLoop *mainloop;
@@ -138,6 +140,7 @@ feature_stanza_received (GObject *source,
     gpointer user_data)
 {
   WockyXmppStanza *stanza;
+  test_t *test = (test_t *) user_data;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (source), res, NULL);
@@ -148,9 +151,11 @@ feature_stanza_received (GObject *source,
   sasl = wocky_sasl_auth_new ();
 
   g_signal_connect (sasl, "username-requested",
-    G_CALLBACK (return_str), (gpointer)username);
+    G_CALLBACK (return_str),
+      test->wrong_username ? "wrong" : (gpointer)username);
   g_signal_connect (sasl, "password-requested",
-    G_CALLBACK (return_str), (gpointer)password);
+    G_CALLBACK (return_str),
+      test->wrong_password ? "wrong" : (gpointer)password);
 
   wocky_sasl_auth_authenticate_async (sasl, servername,
       WOCKY_XMPP_CONNECTION (source), stanza,
@@ -209,7 +214,7 @@ run_test (gconstpointer user_data)
 
   wocky_xmpp_connection_send_open_async (conn,
     servername, NULL, "1.0", NULL,
-    NULL, stream_open_sent, NULL);
+    NULL, stream_open_sent, test);
 
   if (!run_done)
     {
@@ -238,9 +243,9 @@ run_test (gconstpointer user_data)
 }
 
 #define SUCCESS(desc, mech, allow_plain)                 \
- { desc, mech, allow_plain, 0, 0, SERVER_PROBLEM_NO_PROBLEM }
+ { desc, mech, allow_plain, 0, 0, SERVER_PROBLEM_NO_PROBLEM, FALSE, FALSE}
 
-#define NUMBER_OF_TEST 7
+#define NUMBER_OF_TEST 11
 
 int
 main (int argc,
@@ -261,6 +266,18 @@ main (int argc,
     { "/xmpp-sasl/no-sasl-support", NULL, TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
        SERVER_PROBLEM_NO_SASL },
+    { "/xmpp-sasl/wrong-username-plain", "PLAIN", TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE },
+    { "/xmpp-sasl/wrong-username-md5", "DIGEST-MD5", TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE },
+    { "/xmpp-sasl/wrong-password-plain", "PLAIN", TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE },
+    { "/xmpp-sasl/wrong-password-md5", "DIGEST-MD5", TRUE,
+       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE },
   };
 
   g_thread_init (NULL);

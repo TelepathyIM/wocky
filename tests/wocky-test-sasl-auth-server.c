@@ -361,6 +361,62 @@ auth_succeeded (TestSaslAuthServer *self)
 }
 
 static void
+failure_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  g_assert (wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, NULL));
+}
+
+static void
+not_authorized (TestSaslAuthServer *self)
+{
+  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE(self);
+  WockyXmppStanza *s;
+
+  g_assert (priv->state < AUTH_STATE_AUTHENTICATED);
+  priv->state = AUTH_STATE_AUTHENTICATED;
+
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_FAILURE,
+    WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+      WOCKY_NODE, "not-authorized", WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+  wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
+    failure_sent, NULL);
+
+  g_object_unref (s);
+}
+
+/* check if the return of the sasl function  was as expected, if not FALSE is
+ * returend and the call function should stop processing */
+static gboolean
+check_sasl_return (TestSaslAuthServer *self, int ret)
+{
+  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+
+  switch (ret)
+    {
+      case SASL_BADAUTH:
+        /* Bad password provided */
+        g_assert (priv->problem == SERVER_PROBLEM_INVALID_PASSWORD);
+        not_authorized (self);
+        return FALSE;
+      case SASL_NOUSER:
+        /* Unknown user */
+        g_assert (priv->problem == SERVER_PROBLEM_INVALID_USERNAME);
+        not_authorized (self);
+        return FALSE;
+      default:
+        /* sasl auth should be ok */
+        CHECK_SASL_RETURN (ret);
+        break;
+    }
+
+  return TRUE;
+}
+
+static void
 handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 {
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
@@ -380,11 +436,12 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   g_assert (priv->state == AUTH_STATE_STARTED);
   priv->state = AUTH_STATE_CHALLENGE;
 
-
   ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
 
-  CHECK_SASL_RETURN (ret);
+  if (!check_sasl_return (self, ret))
+    return;
+
   if (challenge_len > 0)
     {
       WockyXmppStanza *c;
@@ -446,7 +503,8 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   ret = sasl_server_step (priv->sasl_conn, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
 
-  CHECK_SASL_RETURN (ret);
+  if (!check_sasl_return (self, ret))
+    return;
 
   if (challenge_len > 0)
     {
@@ -480,6 +538,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 
   g_free (response);
 }
+
 
 #define HANDLE(x) { #x, handle_##x }
 static void
