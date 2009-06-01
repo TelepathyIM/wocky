@@ -84,7 +84,7 @@ enum
   PROP_CALLBACK
 };
 
-typedef enum 
+typedef enum
 {
   WCON_DISCONNECTED    ,
   WCON_TCP_CONNECTING  ,
@@ -123,7 +123,7 @@ struct _WockyConnectorPrivate
   GSocketClient     *client;
   GSocketConnection *sock;
 
-  GTLSSession    *tls_sess;  
+  GTLSSession    *tls_sess;
   GTLSConnection *tls;
 
   WockyXmppConnection *conn;
@@ -133,7 +133,7 @@ struct _WockyConnectorPrivate
   (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_CONNECTOR,WockyConnectorPrivate))
 
 #define WOCKY_CONNECTOR_CHOOSE_BY_STATE( p, v, a, b, c ) \
-  if( p->authed ) v = a; else if ( p->tls ) v = b; else v = c;
+  if (p->authed) v = a; else if (p->tls) v = b; else v = c;
 
 #define WOCKY_CONNECTOR_BAILOUT( obj, message )
 
@@ -141,7 +141,7 @@ static void
 wocky_connector_init ( WockyConnector *obj )
 {
  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE( obj );
- 
+
  priv->writer = wocky_xmpp_writer_new();
  priv->reader = wocky_xmpp_reader_new();
 }
@@ -254,7 +254,7 @@ wocky_connector_class_init ( WockyConnectorClass *klass )
   GParamSpec *pspec;
 
   g_type_class_add_private( klass, sizeof(WockyConnectorPrivate) );
-  
+
   oclass->set_property = wocky_connector_set_property;
   oclass->get_property = wocky_connector_get_private;
   oclass->dispose      = wocky_connector_dispose;
@@ -279,29 +279,29 @@ wocky_connector_class_init ( WockyConnectorClass *klass )
   spec = g_param_spec_string( "jid", "jid", "The XMPP jid", NULL, attrib );
   g_object_class_install_property( oclass, PROP_JID, INIT_PATTR );
 
-  spec = g_param_spec_string( "resource", "resource", 
+  spec = g_param_spec_string( "resource", "resource",
       "XMPP resource to append to the jid", g_strdup("wocky"), PATTR );
   g_object_class_install_property( oclass, PROP_RESOURCE, spec );
 
-  spec = g_param_spec_string( "identity", "identity", 
+  spec = g_param_spec_string( "identity", "identity",
       "jid + resource (set by XMPP server)", NULL, PATTR );
   g_object_class_install_property( oclass, PROP_IDENTITY, spec );
- 
-  spec = g_param_spec_string( "xmpp-server", "server", 
+
+  spec = g_param_spec_string( "xmpp-server", "server",
       "XMPP connect server", NULL, PATTR );
   g_object_class_install_property( oclass, PROP_XMPP_HOST, spec );
 
-  spec = g_param_spec_uint( "xmpp-port", "port", 
+  spec = g_param_spec_uint( "xmpp-port", "port",
       "XMPP port", 0, 65535, 5222, PATTR );
-  g_object_class_install_property( oclass, PROP_XMPP_PORT, spec );  
+  g_object_class_install_property( oclass, PROP_XMPP_PORT, spec );
 
-  spec = g_param_spec_pointer( "callback", "callback", 
+  spec = g_param_spec_pointer( "callback", "callback",
       "callback(Connector,Message) is called on completion or error", PATTR );
   g_object_class_install_property( oclass, PROP_CALLBACK, spec )
 }
 
-#define UNREF_AND_FORGET(x) if( x ) { g_object_unref( x ); x = NULL; }
-#define GFREE_AND_FORGET(x) g_free( x ); x = NULL;
+#define UNREF_AND_FORGET(x) if (x) { g_object_unref( x ); x = NULL; }
+#define GFREE_AND_FORGET(x) g_free (x); x = NULL;
 
 void
 wocky_connector_dispose( GObject *object )
@@ -309,9 +309,9 @@ wocky_connector_dispose( GObject *object )
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  if( priv->defunct ) 
+  if (priv->defunct)
     return;
-  
+
   priv->defunct = TRUE;
 
   UNREF_AND_FORGET( priv->stream );
@@ -323,14 +323,14 @@ wocky_connector_dispose( GObject *object )
   GFREE_AND_FORGET( priv->identity  );
   GFREE_AND_FORGET( priv->xmpp_host );
 
-  if( G_OBJECT_CLASS( wocky_connector_parent_class )->dispose  )
-    G_OBJECT_CLASS( wocky_connector_parent_class )->dispose( object );
+  if (G_OBJECT_CLASS (wocky_connector_parent_class )->dispose)
+    G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
 }
 
 void
 wocky_connector_finalise( GObject *object )
 {
-  G_OBJECT_CLASS( wocky_connector_parent_class )->finalize( object );
+  G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
 
 void
@@ -339,31 +339,31 @@ wocky_connector_connect( GObject *object, void *cb )
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  const gchar *host = priv->jid ? rindex( priv->jid, '@' ) : NULL;
+  const gchar *host = priv->jid ? rindex (priv->jid, '@') : NULL;
 
   priv->callback = cb;
 
-  if( priv->state != WCON_DISCONNECTED )
-    WOCKY_CONNECTOR_BAILOUT( self, "Invalid state: Cannot connect" );
-  if( !host )
-    WOCKY_CONNECTOR_BAILOUT( self, "Invalid JID" );
-  if( !*(++host) )
-    WOCKY_CONNECTOR_BAILOUT( self, "Invalid JID: No domain" );
+  if (priv->state != WCON_DISCONNECTED)
+    WOCKY_CONNECTOR_BAILOUT (self, "Invalid state: Cannot connect");
+  if (!host)
+    WOCKY_CONNECTOR_BAILOUT (self, "Invalid JID");
+  if (!*(++host))
+    WOCKY_CONNECTOR_BAILOUT (self, "Invalid JID: No domain");
 
-  priv->domain = g_strdup( host );
-  priv->client = g_socket_client_new();
+  priv->domain = g_strdup (host);
+  priv->client = g_socket_client_new ();
   priv->state  = WCON_CONNECTING;
 
-  if( priv->xmpp_host )
+  if (priv->xmpp_host)
     {
-      g_socket_client_connect_to_host_async( priv->client,
-          priv->xmpp_host, priv->xmpp_port, NULL, 
-          tcp_host_connected, object );
+      g_socket_client_connect_to_host_async (priv->client,
+          priv->xmpp_host, priv->xmpp_port, NULL,
+          tcp_host_connected, object);
     }
   else
     {
-      g_socket_client_connect_to_service_async( priv->client, 
-          host, "xmpp-client", NULL, tcp_srv_connected, object );
+      g_socket_client_connect_to_service_async (priv->client,
+          host, "xmpp-client", NULL, tcp_srv_connected, object);
     }
 }
 
@@ -376,25 +376,25 @@ tcp_srv_connected (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  priv->sock = 
-    g_socket_client_connect_to_service_finish( G_SOCKET_CLIENT( source ),
-        result, &error);
+  priv->sock =
+    g_socket_client_connect_to_service_finish (G_SOCKET_CLIENT( source ),
+        result, &erro);
 
-  if( !priv->sock )
+  if (!priv->sock)
     {
-      const gchar *host = rindex( priv->jid, '@' ) + 1;
-      g_message( "SRV connect failed: %s: %d, %s",
-          g_quark_to_string( error->domain ), error->code, error->message );
-      g_message( "Falling back to direct connection" );
-      g_error_free( error );
+      const gchar *host = rindex (priv->jid, '@') + 1;
+      g_message ("SRV connect failed: %s: %d, %s",
+          g_quark_to_string (error->domain), error->code, error->message);
+      g_message ("Falling back to direct connection");
+      g_error_free (error);
       priv->
-      g_socket_client_connect_to_host_async( priv->client, 
-          host, priv->xmpp_port, NULL, tcp_host_connected, connector );
+        g_socket_client_connect_to_host_async (priv->client,
+            host, priv->xmpp_port, NULL, tcp_host_connected, connector);
     }
   else
     {
       priv->state = WCON_TCP_CONNECTED;
-      xmpp_init( connector );
+      xmpp_init (connector);
     }
 }
 
@@ -405,87 +405,87 @@ tcp_host_connected (GObject *source,
 {
   GError *error = NULL;
 
-  priv->sock = 
-    g_socket_client_connect_to_host_finish( G_SOCKET_CLIENT( source ),
-        result, &error);
+  priv->sock =
+    g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT( source ),
+        result, &erro);
 
-  if ( !priv->sock )
+  if  (!priv->sock)
     {
-      g_message( "HOST connect failed: %s: %d, %s\n",
+      g_message ("HOST connect failed: %s: %d, %s\n",
           g_quark_to_string( error->domain ),
-          error->code, error->message );
-      WOCKY_CONNECTOR_BAILOUT( connector, "connection failed" );
+          error->code, error->message);
+      WOCKY_CONNECTOR_BAILOUT (connector, "connection failed");
     }
   else
     {
       priv->state = WCON_TCP_CONNECTED;
-      xmpp_init( connector );
+      xmpp_init (connector);
     }
 }
 
 static void
-xmpp_init( GObject connector )
+xmpp_init (GObject connector)
 {
   WockyConnector *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  priv->conn = wocky_xmpp_connection_new( G_IO_STREAM(priv->sock) );
-  wocky_xmpp_connection_send_open_async( priv->conn, priv->domain, NULL, "1.0"
-      NULL, NULL, xmpp_init_sent_cb, connector );
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
+  wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL, "1.0"
+      NULL, NULL, xmpp_init_sent_cb, connector);
 }
 
 static void
-xmpp_init_sent_cb( GObject source, GAsyncResult *result, gpointer data )
+xmpp_init_sent_cb (GObject source, GAsyncResult *result, gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  if( !wocky_xmpp_connection_send_open_finish(priv->conn, result, NULL) )
+  if (!wocky_xmpp_connection_send_open_finish(priv->conn, result, NULL))
     {
       const char *msg = NULL;
-      WOCKY_CONNECTOR_CHOOSE_BY_STATE( priv, msg ,
+      WOCKY_CONNECTOR_CHOOSE_BY_STATE (priv, msg ,
           "Failed to send post-auth open",
           "Failed to send post-TLS open" ,
-          "Failed to send XMPP open"     );
-      WOCKY_CONNECTOR_BAILOUT( self, msg );
+          "Failed to send XMPP open"    );
+      WOCKY_CONNECTOR_BAILOUT (self, msg);
     }
 
-  wocky_xmpp_connection_recv_open_async( priv->conn, 
-      NULL, xmpp_init_recv_cb, data );
+  wocky_xmpp_connection_recv_open_async (priv->conn,
+      NULL, xmpp_init_recv_cb, data);
 }
 
-static void 
-xmpp_init_recv_cb( GObject source, GAsyncResult *result, gpointer data )
+static void
+xmpp_init_recv_cb (GObject source, GAsyncResult *result, gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
   gchar *version;
   gchar *from;
-  
-  if( !wocky_xmpp_connection_recv_open_finish( priv->conn, result, NULL,
-          &from, &version, NULL, NULL ) )
+
+  if (!wocky_xmpp_connection_recv_open_finish( priv->conn, result, NULL,
+          &from, &version, NULL, NULL ))
     {
       const char *msg = NULL;
-      WOCKY_CONNECTOR_CHOOSE_BY_STATE( priv, msg, 
+      WOCKY_CONNECTOR_CHOOSE_BY_STATE (priv, msg,
           "post-auth open response not received",
-          "post-TLS open response not received" ,
-          "XMPP open response not received"     );
+          "post-TLS open response not received",
+          "XMPP open response not received");
       WOCKY_CONNECTOR_BAILOUT( self, msg );
     }
-  
-  if( !version || strcmp( version, "1.0" ) )
-    WOCKY_CONNECTOR_BAILOUT( self, "Server not XMPP Compliant" );
 
-  wocky_xmpp_connection_recv_stanza_async( priv->conn, NULL, 
-      xmpp_features_cb, data );
+  if (!version || strcmp( version, "1.0" ))
+    WOCKY_CONNECTOR_BAILOUT (self, "Server not XMPP Compliant");
 
-  g_free( version );
-  g_free( from    );
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      xmpp_features_cb, data);
+
+  g_free (version);
+  g_free (from   );
 }
 
 static void
-xmpp_features_cb( GObject source, GAsyncResult *result, gpointer data )
+xmpp_features_cb (GObject source, GAsyncResult *result, gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -493,129 +493,129 @@ xmpp_features_cb( GObject source, GAsyncResult *result, gpointer data )
   WockyXmppNode   *tls;
   WockyXmppStanza *starttls;
 
-  stanza = wocky_xmpp_connection_recv_stanza_finish( priv->conn, result, NULL );
-  
-  if( !stanza )
-    WOCKY_CONNECTOR_BAILOUT( self, "disconnected before XMPP features stanza" );
+  stanza = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, NULL);
 
-  if( strcmp( stanza->node->name, "features" ) ||
-      strcmp( wocky_xmpp_node_get_ns( stanza->node ), WOCKY_XMPP_NS_STREAM ) )
+  if (!stanza)
+    WOCKY_CONNECTOR_BAILOUT (self, "disconnected before XMPP features stanza");
+
+  if (strcmp( stanza->node->name, "features" ) ||
+      strcmp( wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM ))
     {
       const char *msg
-      WOCKY_CONNECTOR_CHOOSE_BY_STATE( priv, msg, 
-          "Malformed post-auth feature stanza" ,
-          "Malformed post-TLS feature stanza"  ,
-          "Malformed XMPP feature stanza"      );
-      WOCKY_CONNECTOR_BAILOUT( self, msg );
+      WOCKY_CONNECTOR_CHOOSE_BY_STATE (priv, msg,
+          "Malformed post-auth feature stanza",
+          "Malformed post-TLS feature stanza",
+          "Malformed XMPP feature stanza");
+      WOCKY_CONNECTOR_BAILOUT (self, msg);
     }
 
-  tls = wocky_xmpp_node_get_child_ns( stanza->node, WOCKY_XMPP_NS_TLS );
-  
-  if( !tls && priv->tls_required )
-    WOCKY_CONNECTOR_BAILOUT( self, "TLS requested but lack server support" );
+  tls = wocky_xmpp_node_get_child_ns (stanza->node, WOCKY_XMPP_NS_TLS);
 
-  if( priv->authed ) /* already authorised. hopefully we are done: */
+  if (!tls && priv->tls_required)
+    WOCKY_CONNECTOR_BAILOUT (self, "TLS requested but lack server support");
+
+  if (priv->authed) /* already authorised. hopefully we are done: */
     {
-      if( !wocky_xmpp_connection_send_open_finish( priv->conn, result, NULL ) )
-        WOCKY_CONNECTOR_BAILOUT( self, "post-auth open not sent" );
+      if (!wocky_xmpp_connection_send_open_finish( priv->conn, result, NULL ))
+        WOCKY_CONNECTOR_BAILOUT (self, "post-auth open not sent");
     }
-  else if( priv->tls || !tls ) /* already in tls mode or tls not supported: */
+  else if (priv->tls || !tls) /* already in tls mode or tls not supported: */
     {
-      request_auth( self, stanza );
+      request_auth (self, stanza);
     }
   else
     {
-      starttls = wocky_xmpp_stanza_new( "starttls" );
-      wocky_xmpp_node_set_ns( starttls->node, WOCKY_XMPP_NS_TLS );
-      wocky_xmpp_connection_send_stanza_async( priv->conn, starttls,
-          NULL, starttls_sent_cb, data );
-      g_object_unref( starttls );
+      starttls = wocky_xmpp_stanza_new ("starttls");
+      wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
+      wocky_xmpp_connection_send_stanza_async (priv->conn, starttls,
+          NULL, starttls_sent_cb, data);
+      g_object_unref (starttls);
     }
-  
-  g_object_unref( stanza );
+
+  g_object_unref (stanza);
 }
 
 static void
-starttls_sent_cb( GObject source, GAsyncResult *result, gpointer data )
+starttls_sent_cb (GObject source, GAsyncResult *result, gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  if( !wocky_xmpp_connection_send_stanza_finish( priv->conn, result, NULL) )
-    WOCKY_CONNECTOR_BAILOUT( self, "Failed to send STARTTLS stanza" );
+  if (!wocky_xmpp_connection_send_stanza_finish( priv->conn, result, NULL))
+    WOCKY_CONNECTOR_BAILOUT (self, "Failed to send STARTTLS stanza");
 
-  wocky_xmpp_connection_recv_stanza_async( priv->conn,
-      NULL, starttls_recv_cb, data );
+  wocky_xmpp_connection_recv_stanza_async (priv->conn,
+      NULL, starttls_recv_cb, data);
 }
 
 static void
-starttls_recv_cb( GObject source, GAsyncResult *result, gpointer data )
+starttls_recv_cb (GObject source, GAsyncResult *result, gpointer data)
 {
   WockyXmppStanza *stanza;
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  stanza = wocky_xmpp_connection_recv_stanza_finish( priv->conn, result, NULL );
+  stanza = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, NULL);
 
-  if( !stanza )
-    WOCKY_CONNECTOR_BAILOUT( self, "STARTTLS reply not received" );
+  if (!stanza)
+    WOCKY_CONNECTOR_BAILOUT (self, "STARTTLS reply not received");
 
-  if( strcmp( stanza->node->name, "proceed" ) || 
-      strcmp( wocky_xmpp_node_get_ns( stanza->node ), WOCKY_XMPP_NS_TLS ) )
+  if (strcmp( stanza->node->name, "proceed" ) ||
+      strcmp( wocky_xmpp_node_get_ns( stanza->node ), WOCKY_XMPP_NS_TLS ))
     {
-      if( priv->tls_required )
-        WOCKY_CONNECTOR_BAILOUT( self, "STARTTLS refused by server" );
+      if (priv->tls_required)
+        WOCKY_CONNECTOR_BAILOUT (self, "STARTTLS refused by server");
       else
-        request_auth( self, stanza );
+        request_auth (self, stanza);
     }
-  else 
+  else
     {
-      priv->tls_sess = g_tls_session_new( G_IO_STREAM( priv->sock ) );
-      priv->tls = g_tls_session_handshake( priv->tls_sess, NULL, &error );
+      priv->tls_sess = g_tls_session_new (G_IO_STREAM( priv->sock ));
+      priv->tls = g_tls_session_handshake (priv->tls_sess, NULL, &error);
 
-      if( !priv->tls )
-        WOCKY_CONNECTOR_BAILOUT( self, "TLS Handshake Error" );
+      if (!priv->tls)
+        WOCKY_CONNECTOR_BAILOUT (self, "TLS Handshake Error");
 
-      priv->conn = wocky_xmpp_connection_new( G_IO_STREAM( priv->tls ) );
-      wocky_xmpp_connection_send_open_async( priv->conn, priv->domain, 
-          NULL, "1.0", NULL, NULL, xmpp_init_sent_cb, data );
+      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM( priv->tls ));
+      wocky_xmpp_connection_send_open_async (priv->conn, priv->domain,
+          NULL, "1.0", NULL, NULL, xmpp_init_sent_cb, data);
     }
 }
 
 static void
-request_auth( GObject *object, WockyXmppStanza *stanza )
+request_auth (GObject *object, WockyXmppStanza *stanza)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   WockySaslAuth *s = priv->sasl = wocky_sasl_auth_new();
 
-  g_signal_connect( s, "username-requested", G_CALLBACK(get_string), self );
-  g_signal_connect( s, "password-requested", G_CALLBACK(get_secret), self );
-  g_signal_connect( s, "authentication-succeeded", G_CALLBACK(auth_ok ), self );
-  g_signal_connect( s, "authentication-failed"   , G_CALLBACK(auth_bad), self );
-  
-  if( !wocky_sasl_auth_authenticate( s, priv->domain, priv->conn, 
-          stanza, TRUE, &error,  ) )
+  g_signal_connect (s, "username-requested", G_CALLBACK(get_string), self);
+  g_signal_connect (s, "password-requested", G_CALLBACK(get_secret), self);
+  g_signal_connect (s, "authentication-succeeded", G_CALLBACK(auth_ok ), self);
+  g_signal_connect (s, "authentication-failed"   , G_CALLBACK(auth_bad), self);
+
+  if (!wocky_sasl_auth_authenticate( s, priv->domain, priv->conn,
+          stanza, TRUE, &error,  ))
     {
-      WOCKY_CONNECTOR_BAILOUT( self, "SASL auth start failed" );
+      WOCKY_CONNECTOR_BAILOUT (self, "SASL auth start failed");
     }
 }
 
-static void 
-auth_ok( WockySaslAuth *sasl,  gpointer data )
+static void
+auth_ok (WockySaslAuth *sasl,  gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
   priv->authed = TRUE;
-  wocky_xmpp_connection_reset( self->conn );
-  wocky_xmpp_connection_send_open_async( priv->conn, priv->domain, NULL, 
-      "1.0", NULL, NULL, xmpp_init_sent_cb, self );
+  wocky_xmpp_connection_reset (self->conn);
+  wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
+      "1.0", NULL, NULL, xmpp_init_sent_cb, self);
 }
 
 static void
-auth_bad( WockySaslAuth *sasl, GQuark dom, int err, gchar *msg,  gpointer data )
+auth_bad (WockySaslAuth *sasl, GQuark dom, int err, gchar *msg,  gpointer data)
 {
-  WOCKY_CONNECTOR_BAILOUT( data, msg );
+  WOCKY_CONNECTOR_BAILOUT (data, msg);
 }
