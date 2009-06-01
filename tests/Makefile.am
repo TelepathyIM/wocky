@@ -1,6 +1,7 @@
 TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
-  wocky-xmpp-connection-test
+  wocky-xmpp-connection-test \
+  wocky-xmpp-scheduler-test
 
 wocky_xmpp_connection_test_SOURCES = \
   wocky-xmpp-connection-test.c \
@@ -25,6 +26,10 @@ wocky_test_sasl_auth_SOURCES = \
 
 wocky_test_sasl_auth_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
+
+wocky_xmpp_scheduler_test_SOURCES = \
+  wocky-xmpp-scheduler-test.c \
+  wocky-test-stream.c wocky-test-stream.h
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
