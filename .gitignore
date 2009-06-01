@@ -74,6 +74,7 @@ tests/wocky-test-sasl-auth
 tests/wocky-xmpp-connection-test
 tests/wocky-xmpp-reader-test
 tests/wocky-xmpp-readwrite-test
+tests/wocky-xmpp-scheduler-test
 
 examples/wocky-connect
 
