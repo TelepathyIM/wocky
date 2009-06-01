@@ -32,12 +32,6 @@ gboolean run_done = FALSE;
 test_t *current_test = NULL;
 GError *error = NULL;
 
-static gchar *
-return_str (WockySaslAuth *auth, gpointer user_data)
-{
-  return g_strdup (user_data);
-}
-
 static void
 post_auth_recv_stanza (GObject *source,
   GAsyncResult *result,
@@ -148,17 +142,13 @@ feature_stanza_received (GObject *source,
   g_assert (stanza != NULL);
 
   g_assert (sasl == NULL);
-  sasl = wocky_sasl_auth_new ();
+  sasl = wocky_sasl_auth_new (servername,
+    test->wrong_username ? "wrong" : username,
+    test->wrong_password ? "wrong" : password,
+    WOCKY_XMPP_CONNECTION (source));
 
-  g_signal_connect (sasl, "username-requested",
-    G_CALLBACK (return_str),
-      test->wrong_username ? "wrong" : (gpointer)username);
-  g_signal_connect (sasl, "password-requested",
-    G_CALLBACK (return_str),
-      test->wrong_password ? "wrong" : (gpointer)password);
-
-  wocky_sasl_auth_authenticate_async (sasl, servername,
-      WOCKY_XMPP_CONNECTION (source), stanza,
+  wocky_sasl_auth_authenticate_async (sasl,
+      stanza,
       current_test->allow_plain, NULL,
       sasl_auth_finished_cb,
       NULL);

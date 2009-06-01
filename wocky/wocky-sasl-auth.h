@@ -77,11 +77,12 @@ GType wocky_sasl_auth_get_type (void);
 #define WOCKY_SASL_AUTH_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_SASL_AUTH, WockySaslAuthClass))
 
-WockySaslAuth *wocky_sasl_auth_new (void);
+WockySaslAuth *wocky_sasl_auth_new (const gchar *server,
+    const gchar *username,
+    const gchar *password,
+    WockyXmppConnection *connection);
 
 void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
-    const gchar *server,
-    WockyXmppConnection *connection,
     WockyXmppStanza *features,
     gboolean allow_plain,
     GCancellable *cancellable,

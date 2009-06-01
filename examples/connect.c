@@ -22,13 +22,6 @@ GSocketClient *client;
 GTLSConnection *ssl;
 GTLSSession *ssl_session;
 
-static gchar *
-return_str (WockySaslAuth *auth,
-    gpointer user_data)
-{
-  return g_strdup (user_data);
-}
-
 static void
 post_auth_open_sent_cb (GObject *source,
   GAsyncResult *result,
@@ -85,13 +78,9 @@ ssl_features_received_cb (GObject *source,
       return;
     }
 
-  sasl = wocky_sasl_auth_new ();
-  g_signal_connect (sasl, "username-requested",
-      G_CALLBACK (return_str), (gpointer)username);
-  g_signal_connect (sasl, "password-requested",
-      G_CALLBACK (return_str), (gpointer)password);
+  sasl = wocky_sasl_auth_new (server, username, password, conn);
 
-  wocky_sasl_auth_authenticate_async (sasl, server, conn, stanza, TRUE,
+  wocky_sasl_auth_authenticate_async (sasl, stanza, TRUE,
     NULL, auth_done_cb, NULL);
 }
 

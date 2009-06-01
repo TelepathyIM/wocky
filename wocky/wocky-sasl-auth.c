@@ -33,15 +33,13 @@
 
 G_DEFINE_TYPE(WockySaslAuth, wocky_sasl_auth, G_TYPE_OBJECT)
 
-/* signal enum */
 enum
 {
-    USERNAME_REQUESTED,
-    PASSWORD_REQUESTED,
-    LAST_SIGNAL
+    PROP_SERVER = 1,
+    PROP_USERNAME,
+    PROP_PASSWORD,
+    PROP_CONNECTION
 };
-
-static guint signals[LAST_SIGNAL] = {0};
 
 typedef enum {
   WOCKY_SASL_AUTH_STATE_NO_MECH = 0,
@@ -66,6 +64,8 @@ struct _WockySaslAuthPrivate
 {
   gboolean dispose_has_run;
   WockyXmppConnection *connection;
+  gchar *username;
+  gchar *password;
   gchar *server;
   gchar *digest_md5_rspauth;
   WockySaslAuthState state;
@@ -99,28 +99,99 @@ static void wocky_sasl_auth_dispose (GObject *object);
 static void wocky_sasl_auth_finalize (GObject *object);
 
 static void
+wocky_sasl_auth_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  WockySaslAuth *sasl = WOCKY_SASL_AUTH (object);
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+
+  switch (property_id)
+    {
+      case PROP_SERVER:
+        g_free (priv->server);
+        priv->server = g_value_dup_string (value);
+        break;
+      case PROP_USERNAME:
+        g_free (priv->username);
+        priv->username = g_value_dup_string (value);
+        break;
+      case PROP_PASSWORD:
+        g_free (priv->password);
+        priv->password = g_value_dup_string (value);
+        break;
+      case PROP_CONNECTION:
+        priv->connection = g_value_dup_object (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+wocky_sasl_auth_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  WockySaslAuth *sasl = WOCKY_SASL_AUTH (object);
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+
+  switch (property_id)
+    {
+      case PROP_SERVER:
+        g_value_set_string (value, priv->server);
+        break;
+      case PROP_CONNECTION:
+        g_value_set_object (value, priv->connection);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
 wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_sasl_auth_class);
+  GParamSpec *spec;
 
   g_type_class_add_private (wocky_sasl_auth_class,
       sizeof (WockySaslAuthPrivate));
 
-  signals[USERNAME_REQUESTED] = g_signal_new ("username-requested",
-      G_OBJECT_CLASS_TYPE(wocky_sasl_auth_class),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL, NULL,
-      _wocky_signals_marshal_STRING__VOID,
-      G_TYPE_STRING, 0);
+  object_class->set_property = wocky_sasl_auth_set_property;
+  object_class->get_property = wocky_sasl_auth_get_property;
 
-  signals[PASSWORD_REQUESTED] = g_signal_new ("password-requested",
-      G_OBJECT_CLASS_TYPE(wocky_sasl_auth_class),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL, NULL,
-      _wocky_signals_marshal_STRING__VOID,
-      G_TYPE_STRING, 0);
+  spec = g_param_spec_string ("server",
+    "server",
+    "The name of the server",
+    NULL,
+    G_PARAM_READWRITE|G_PARAM_CONSTRUCT);
+  g_object_class_install_property (object_class, PROP_SERVER, spec);
+
+  spec = g_param_spec_string ("username",
+    "username",
+    "The username to authenticate with",
+    NULL,
+    G_PARAM_WRITABLE|G_PARAM_CONSTRUCT);
+  g_object_class_install_property (object_class, PROP_USERNAME, spec);
+
+  spec = g_param_spec_string ("password",
+    "password",
+    "The password to authenticate with",
+    NULL,
+    G_PARAM_WRITABLE|G_PARAM_CONSTRUCT);
+  g_object_class_install_property (object_class, PROP_PASSWORD, spec);
+
+  spec = g_param_spec_object ("connection",
+    "connection",
+    "The Xmpp connection to user",
+    WOCKY_TYPE_XMPP_CONNECTION,
+    G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
+  g_object_class_install_property (object_class, PROP_CONNECTION, spec);
 
   object_class->dispose = wocky_sasl_auth_dispose;
   object_class->finalize = wocky_sasl_auth_finalize;
@@ -156,8 +227,9 @@ wocky_sasl_auth_finalize (GObject *object)
 
   /* free any data held directly by the object here */
   g_free (priv->server);
+  g_free (priv->username);
+  g_free (priv->password);
   g_free (priv->digest_md5_rspauth);
-
 
   G_OBJECT_CLASS (wocky_sasl_auth_parent_class)->finalize (object);
 }
@@ -227,9 +299,17 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
 
 
 WockySaslAuth *
-wocky_sasl_auth_new (void)
+wocky_sasl_auth_new (const gchar *server,
+    const gchar *username,
+    const gchar *password,
+    WockyXmppConnection *connection)
 {
-  return g_object_new (WOCKY_TYPE_SASL_AUTH, NULL);
+  return g_object_new (WOCKY_TYPE_SASL_AUTH,
+      "server", server,
+      "username", username,
+      "password", password,
+      "connection", connection,
+      NULL);
 }
 
 static gboolean
@@ -391,16 +471,11 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
   const gchar *realm, *nonce;
   gchar *a1, *a1h, *a2, *a2h, *kd, *kdh;
   gchar *cnonce = NULL;
-  gchar *username = NULL;
-  gchar *password = NULL;
   gchar *tmp;
   guint8 *digest_md5;
   gsize len;
 
-  g_signal_emit (sasl, signals[USERNAME_REQUESTED], 0, &username);
-  g_signal_emit (sasl, signals[PASSWORD_REQUESTED], 0, &password);
-
-  if (username == NULL || password == NULL)
+  if (priv->username == NULL || priv->password == NULL)
     {
       g_simple_async_result_set_error (priv->result, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
@@ -433,7 +508,7 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
     }
 
   /* FIXME properly escape values */
-  g_string_append_printf (response, "username=\"%s\"", username);
+  g_string_append_printf (response, "username=\"%s\"", priv->username);
   g_string_append_printf (response, ",realm=\"%s\"", realm);
   g_string_append_printf (response, ",digest-uri=\"xmpp/%s\"", realm);
   g_string_append_printf (response, ",nonce=\"%s\",nc=00000001", nonce);
@@ -441,7 +516,7 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
   /* FIXME should check if auth is in the cop challenge val */
   g_string_append_printf (response, ",qop=auth,charset=utf-8");
 
-  tmp = g_strdup_printf ("%s:%s:%s", username, realm, password);
+  tmp = g_strdup_printf ("%s:%s:%s", priv->username, realm, priv->password);
   digest_md5 = md5_hash (tmp);
   g_free (tmp);
 
@@ -481,8 +556,6 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
 
 out:
   g_free (cnonce);
-  g_free (username);
-  g_free (password);
 
   return response != NULL ? g_string_free (response, FALSE) : NULL;
 
@@ -747,13 +820,9 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     case WOCKY_SASL_AUTH_PLAIN:
       {
         GString *str = g_string_new ("");
-        gchar *username = NULL, *password = NULL;
         gchar *cstr;
 
-        g_signal_emit (sasl, signals[USERNAME_REQUESTED], 0, &username);
-        g_signal_emit (sasl, signals[PASSWORD_REQUESTED], 0, &password);
-
-        if (username == NULL || password == NULL)
+        if (priv->username == NULL || priv->password == NULL)
           {
             auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
                       "No username or password provided");
@@ -762,9 +831,9 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
         DEBUG ("Got username and password");
         g_string_append_c (str, '\0');
-        g_string_append (str, username);
+        g_string_append (str, priv->username);
         g_string_append_c (str, '\0');
-        g_string_append (str, password);
+        g_string_append (str, priv->password);
         cstr = g_base64_encode ((guchar *) str->str, str->len);
 
         wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "PLAIN");
@@ -772,8 +841,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
         g_string_free (str, TRUE);
         g_free (cstr);
-        g_free (username);
-        g_free (password);
 
         priv->state = WOCKY_SASL_AUTH_STATE_PLAIN_STARTED;
         break;
@@ -820,7 +887,6 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
  * receiver from the server */
 void
 wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
-    const gchar *server, WockyXmppConnection *connection,
     WockyXmppStanza *features, gboolean allow_plain,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -831,8 +897,6 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
   GSList *mechanisms, *t;
 
   g_assert (sasl != NULL);
-  g_assert (server != NULL);
-  g_assert (connection != NULL);
   g_assert (features != NULL);
 
   mech_node = wocky_xmpp_node_get_child_ns (features->node, "mechanisms",
@@ -849,8 +913,6 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
       goto out;
     }
 
-  priv->connection = g_object_ref (connection);
-  priv->server = g_strdup (server);
   priv->result = g_simple_async_result_new (G_OBJECT (sasl),
     callback, user_data, wocky_sasl_auth_authenticate_finish);
 
