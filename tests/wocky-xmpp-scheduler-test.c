@@ -179,7 +179,7 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
       NULL, NULL, NULL, NULL, NULL))
     g_assert_not_reached ();
 
-  /* Send two stanzas */
+  /* Send a stanza */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
@@ -188,12 +188,21 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
       user_data);
   g_queue_push_tail (d->expected_stanzas, s);
 
+  /* Send a stanza */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     WOCKY_STANZA_END);
 
   wocky_xmpp_scheduler_send_full (d->sched_in, s, NULL, send_stanza_cb,
       user_data);
+  g_queue_push_tail (d->expected_stanzas, s);
+
+  /* ... and a second (using the simple send method) */
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "nurse@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send (d->sched_in, s);
   g_queue_push_tail (d->expected_stanzas, s);
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
