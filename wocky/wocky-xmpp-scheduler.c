@@ -319,3 +319,10 @@ wocky_xmpp_scheduler_send_full_finish (WockyXmppScheduler *self,
 
   return TRUE;
 }
+
+void
+wocky_xmpp_scheduler_send (WockyXmppScheduler *self,
+    WockyXmppStanza *stanza)
+{
+  wocky_xmpp_scheduler_send_full (self, stanza, NULL, NULL, NULL);
+}

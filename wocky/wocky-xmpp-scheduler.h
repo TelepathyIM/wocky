@@ -71,6 +71,9 @@ gboolean wocky_xmpp_scheduler_send_full_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_xmpp_scheduler_send (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_SCHEDULER_H__*/
