@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include "wocky-xmpp-connection.h"
+#include "wocky-xmpp-stanza.h"
 
 G_BEGIN_DECLS
 
@@ -58,6 +59,17 @@ GType wocky_xmpp_scheduler_get_type (void);
    WockyXmppSchedulerClass))
 
 WockyXmppScheduler * wocky_xmpp_scheduler_new (WockyXmppConnection *connection);
+
+void wocky_xmpp_scheduler_send_full (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_xmpp_scheduler_send_full_finish (
+    WockyXmppScheduler *scheduler,
+    GAsyncResult *result,
+    GError **error);
 
 G_END_DECLS
 

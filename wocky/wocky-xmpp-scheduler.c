@@ -54,6 +54,10 @@ struct _WockyXmppSchedulerPrivate
 {
   gboolean dispose_has_run;
 
+  /* Queue of (sending_queue_elt *) */
+  GQueue *sending_queue;
+  gboolean sending;
+
   WockyXmppConnection *connection;
 };
 
@@ -61,9 +65,54 @@ struct _WockyXmppSchedulerPrivate
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_SCHEDULER, \
     WockyXmppSchedulerPrivate))
 
+typedef struct
+{
+  WockyXmppStanza *stanza;
+  GCancellable *cancellable;
+  GSimpleAsyncResult *result;
+} sending_queue_elt;
+
+static sending_queue_elt *
+sending_queue_elt_new (WockyXmppScheduler *self,
+  WockyXmppStanza *stanza,
+  GCancellable *cancellable,
+  GAsyncReadyCallback callback,
+  gpointer user_data)
+{
+  sending_queue_elt *elt = g_slice_new0 (sending_queue_elt);
+
+  elt->stanza = g_object_ref (stanza);
+  if (cancellable != NULL)
+    elt->cancellable = g_object_ref (cancellable);
+
+  elt->result = g_simple_async_result_new (G_OBJECT (self),
+    callback, user_data, wocky_xmpp_scheduler_send_full_finish);
+
+  return elt;
+}
+
+static void
+sending_queue_elt_free (sending_queue_elt *elt)
+{
+  g_object_unref (elt->stanza);
+  if (elt->cancellable != NULL)
+    g_object_unref (elt->cancellable);
+  g_object_unref (elt->result);
+
+  g_slice_free (sending_queue_elt, elt);
+}
+
+static void send_stanza_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data);
+
 static void
 wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
 {
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (obj);
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  priv->sending_queue = g_queue_new ();
 }
 
 static void wocky_xmpp_scheduler_dispose (GObject *object);
@@ -162,6 +211,21 @@ wocky_xmpp_scheduler_dispose (GObject *object)
 void
 wocky_xmpp_scheduler_finalize (GObject *object)
 {
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
+  WockyXmppSchedulerPrivate *priv =
+      WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  sending_queue_elt *elt;
+
+  elt = g_queue_pop_head (priv->sending_queue);
+  while (elt != NULL)
+    {
+      /* FIXME: call cb? */
+      sending_queue_elt_free (elt);
+      elt = g_queue_pop_head (priv->sending_queue);
+    }
+
+  g_queue_free (priv->sending_queue);
+
   G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->finalize (object);
 }
 
@@ -184,4 +248,74 @@ wocky_xmpp_scheduler_new (WockyXmppConnection *connection)
     NULL);
 
   return result;
+}
+
+static void
+send_head_stanza (WockyXmppScheduler *self)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  sending_queue_elt *elt;
+
+  elt = g_queue_peek_head (priv->sending_queue);
+  if (elt == NULL)
+    /* Nothing to send */
+    return;
+
+  /* FIXME: remove from the queue as soon we are cancelled */
+  wocky_xmpp_connection_send_stanza_async (priv->connection,
+      elt->stanza, elt->cancellable, send_stanza_cb, self);
+}
+
+static void
+send_stanza_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  sending_queue_elt *elt;
+
+  elt = g_queue_pop_head (priv->sending_queue);
+  g_assert (elt != NULL);
+
+  g_simple_async_result_complete (elt->result);
+
+  sending_queue_elt_free (elt);
+
+  if (g_queue_get_length (priv->sending_queue) > 0)
+    {
+      /* Send next stanza */
+      send_head_stanza (self);
+    }
+}
+
+void
+wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
+    WockyXmppStanza *stanza,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  sending_queue_elt *elt;
+
+  elt = sending_queue_elt_new (self, stanza, cancellable, callback, user_data);
+  g_queue_push_tail (priv->sending_queue, elt);
+
+  if (g_queue_get_length (priv->sending_queue) == 1)
+    {
+      send_head_stanza (self);
+    }
+}
+
+gboolean
+wocky_xmpp_scheduler_send_full_finish (WockyXmppScheduler *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
+  return TRUE;
 }
