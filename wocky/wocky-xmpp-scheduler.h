@@ -74,6 +74,23 @@ gboolean wocky_xmpp_scheduler_send_full_finish (
 void wocky_xmpp_scheduler_send (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza);
 
+void wocky_xmpp_scheduler_start (WockyXmppScheduler *scheduler);
+
+typedef gboolean (* WockyXmppSchedulerStanzaFilterFunc) (
+    WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data);
+
+typedef void (* WockyXmppSchedulerStanzaCallbackFunc) (
+    WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data);
+
+void wocky_xmpp_scheduler_add_stanza_filter (WockyXmppScheduler *scheduler,
+    WockyXmppSchedulerStanzaFilterFunc filter,
+    WockyXmppSchedulerStanzaCallbackFunc callback,
+    gpointer user_data);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_SCHEDULER_H__*/

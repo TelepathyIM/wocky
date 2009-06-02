@@ -57,6 +57,9 @@ struct _WockyXmppSchedulerPrivate
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
   gboolean sending;
+  GCancellable *receive_cancellable;
+  /* List of (StanzaFilter *) */
+  GSList *stanza_filters;
 
   WockyXmppConnection *connection;
 };
@@ -108,6 +111,32 @@ sending_queue_elem_free (sending_queue_elem *elem)
   g_slice_free (sending_queue_elem, elem);
 }
 
+typedef struct
+{
+  WockyXmppSchedulerStanzaFilterFunc filter_func;
+  WockyXmppSchedulerStanzaCallbackFunc callback;
+  gpointer user_data;
+} StanzaFilter;
+
+static StanzaFilter *
+stanza_filter_new (WockyXmppSchedulerStanzaFilterFunc filter_func,
+  WockyXmppSchedulerStanzaCallbackFunc callback,
+  gpointer user_data)
+{
+  StanzaFilter *result = g_slice_new0 (StanzaFilter);
+
+  result->filter_func = filter_func;
+  result->callback = callback;
+  result->user_data = user_data;
+  return result;
+}
+
+static void
+stanza_filter_free (StanzaFilter *filter)
+{
+  g_slice_free (StanzaFilter, filter);
+}
+
 static void send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data);
@@ -119,6 +148,7 @@ wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
   priv->sending_queue = g_queue_new ();
+  priv->receive_cancellable = g_cancellable_new ();
 }
 
 static void wocky_xmpp_scheduler_dispose (GObject *object);
@@ -169,6 +199,15 @@ wocky_xmpp_scheduler_get_property (GObject *object,
 }
 
 static void
+wocky_xmpp_scheduler_constructed (GObject *object)
+{
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  g_assert (priv->connection != NULL);
+}
+
+static void
 wocky_xmpp_scheduler_class_init (
     WockyXmppSchedulerClass *wocky_xmpp_scheduler_class)
 {
@@ -178,6 +217,7 @@ wocky_xmpp_scheduler_class_init (
   g_type_class_add_private (wocky_xmpp_scheduler_class,
       sizeof (WockyXmppSchedulerPrivate));
 
+  object_class->constructed = wocky_xmpp_scheduler_constructed;
   object_class->set_property = wocky_xmpp_scheduler_set_property;
   object_class->get_property = wocky_xmpp_scheduler_get_property;
   object_class->dispose = wocky_xmpp_scheduler_dispose;
@@ -210,6 +250,13 @@ wocky_xmpp_scheduler_dispose (GObject *object)
       priv->connection = NULL;
     }
 
+  if (priv->receive_cancellable != NULL)
+    {
+      g_cancellable_cancel (priv->receive_cancellable);
+      g_object_unref (priv->receive_cancellable);
+      priv->receive_cancellable = NULL;
+    }
+
   if (G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->dispose (object);
 }
@@ -221,6 +268,7 @@ wocky_xmpp_scheduler_finalize (GObject *object)
   WockyXmppSchedulerPrivate *priv =
       WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   sending_queue_elem *elem;
+  GSList *l;
 
   elem = g_queue_pop_head (priv->sending_queue);
   while (elem != NULL)
@@ -231,6 +279,13 @@ wocky_xmpp_scheduler_finalize (GObject *object)
     }
 
   g_queue_free (priv->sending_queue);
+
+  for (l = priv->stanza_filters; l != NULL; l = g_slist_next (l))
+    {
+      stanza_filter_free ((StanzaFilter *) l->data);
+    }
+  g_slist_free (priv->stanza_filters);
+  priv->stanza_filters = NULL;
 
   G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->finalize (object);
 }
@@ -364,4 +419,86 @@ wocky_xmpp_scheduler_send (WockyXmppScheduler *self,
     WockyXmppStanza *stanza)
 {
   wocky_xmpp_scheduler_send_full (self, stanza, NULL, NULL, NULL);
+}
+
+static void receive_stanza (WockyXmppScheduler *self);
+
+static void
+apply_filter (WockyXmppScheduler *self,
+    StanzaFilter *filter,
+    WockyXmppStanza *stanza)
+{
+  if (filter->filter_func == NULL)
+    /* No filter function, match every stanza */
+    goto call_cb;
+
+  if (!filter->filter_func (self, stanza, filter->user_data))
+    return;
+
+call_cb:
+  filter->callback (self, stanza, filter->user_data);
+}
+
+static void
+stanza_received_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  GError *error = NULL;
+  GSList *l;
+
+  stanza = wocky_xmpp_connection_recv_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), res, &error);
+  if (stanza == NULL)
+    {
+      /* TODO */
+      g_error_free (error);
+      return;
+    }
+
+  for (l = priv->stanza_filters; l != NULL; l = g_slist_next (l))
+    {
+      StanzaFilter *filter = (StanzaFilter *) l->data;
+
+      apply_filter (self, filter, stanza);
+    }
+  g_object_unref (stanza);
+
+  /* wait for next stanza */
+  receive_stanza (self);
+}
+
+static void
+receive_stanza (WockyXmppScheduler *self)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  wocky_xmpp_connection_recv_stanza_async (priv->connection,
+      priv->receive_cancellable, stanza_received_cb, self);
+}
+
+void
+wocky_xmpp_scheduler_start (WockyXmppScheduler *self)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  g_cancellable_reset (priv->receive_cancellable);
+  receive_stanza (self);
+}
+
+void
+wocky_xmpp_scheduler_add_stanza_filter (WockyXmppScheduler *self,
+    WockyXmppSchedulerStanzaFilterFunc filter_func,
+    WockyXmppSchedulerStanzaCallbackFunc callback,
+    gpointer user_data)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  StanzaFilter *filter;
+
+  filter = stanza_filter_new (filter_func, callback, user_data);
+
+  priv->stanza_filters = g_slist_append (priv->stanza_filters, filter);
 }
