@@ -54,7 +54,7 @@ struct _WockyXmppSchedulerPrivate
 {
   gboolean dispose_has_run;
 
-  /* Queue of (sending_queue_elt *) */
+  /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
   gboolean sending;
 
@@ -71,39 +71,39 @@ typedef struct
   GCancellable *cancellable;
   GSimpleAsyncResult *result;
   gulong cancelled_sig_id;
-} sending_queue_elt;
+} sending_queue_elem;
 
-static sending_queue_elt *
-sending_queue_elt_new (WockyXmppScheduler *self,
+static sending_queue_elem *
+sending_queue_elem_new (WockyXmppScheduler *self,
   WockyXmppStanza *stanza,
   GCancellable *cancellable,
   GAsyncReadyCallback callback,
   gpointer user_data)
 {
-  sending_queue_elt *elt = g_slice_new0 (sending_queue_elt);
+  sending_queue_elem *elem = g_slice_new0 (sending_queue_elem);
 
-  elt->stanza = g_object_ref (stanza);
+  elem->stanza = g_object_ref (stanza);
   if (cancellable != NULL)
-    elt->cancellable = g_object_ref (cancellable);
+    elem->cancellable = g_object_ref (cancellable);
 
-  elt->result = g_simple_async_result_new (G_OBJECT (self),
+  elem->result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_send_full_finish);
 
-  return elt;
+  return elem;
 }
 
 static void
-sending_queue_elt_free (sending_queue_elt *elt)
+sending_queue_elem_free (sending_queue_elem *elem)
 {
-  g_object_unref (elt->stanza);
-  if (elt->cancellable != NULL)
+  g_object_unref (elem->stanza);
+  if (elem->cancellable != NULL)
     {
-      g_object_unref (elt->cancellable);
-      g_signal_handler_disconnect (elt->cancellable, elt->cancelled_sig_id);
+      g_object_unref (elem->cancellable);
+      g_signal_handler_disconnect (elem->cancellable, elem->cancelled_sig_id);
     }
-  g_object_unref (elt->result);
+  g_object_unref (elem->result);
 
-  g_slice_free (sending_queue_elt, elt);
+  g_slice_free (sending_queue_elem, elem);
 }
 
 static void send_stanza_cb (GObject *source,
@@ -218,14 +218,14 @@ wocky_xmpp_scheduler_finalize (GObject *object)
   WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
   WockyXmppSchedulerPrivate *priv =
       WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  sending_queue_elt *elt;
+  sending_queue_elem *elem;
 
-  elt = g_queue_pop_head (priv->sending_queue);
-  while (elt != NULL)
+  elem = g_queue_pop_head (priv->sending_queue);
+  while (elem != NULL)
     {
       /* FIXME: call cb? */
-      sending_queue_elt_free (elt);
-      elt = g_queue_pop_head (priv->sending_queue);
+      sending_queue_elem_free (elem);
+      elem = g_queue_pop_head (priv->sending_queue);
     }
 
   g_queue_free (priv->sending_queue);
@@ -258,15 +258,15 @@ static void
 send_head_stanza (WockyXmppScheduler *self)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  sending_queue_elt *elt;
+  sending_queue_elem *elem;
 
-  elt = g_queue_peek_head (priv->sending_queue);
-  if (elt == NULL)
+  elem = g_queue_peek_head (priv->sending_queue);
+  if (elem == NULL)
     /* Nothing to send */
     return;
 
   wocky_xmpp_connection_send_stanza_async (priv->connection,
-      elt->stanza, elt->cancellable, send_stanza_cb, self);
+      elem->stanza, elem->cancellable, send_stanza_cb, self);
 }
 
 static void
@@ -276,22 +276,22 @@ send_stanza_cb (GObject *source,
 {
   WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  sending_queue_elt *elt;
+  sending_queue_elem *elem;
   GError *error = NULL;
 
-  elt = g_queue_pop_head (priv->sending_queue);
-  g_assert (elt != NULL);
+  elem = g_queue_pop_head (priv->sending_queue);
+  g_assert (elem != NULL);
 
   if (!wocky_xmpp_connection_send_stanza_finish (
         WOCKY_XMPP_CONNECTION (source), res, &error))
     {
-      g_simple_async_result_set_from_error (elt->result, error);
+      g_simple_async_result_set_from_error (elem->result, error);
       g_error_free (error);
     }
 
-  g_simple_async_result_complete (elt->result);
+  g_simple_async_result_complete (elem->result);
 
-  sending_queue_elt_free (elt);
+  sending_queue_elem_free (elem);
 
   if (g_queue_get_length (priv->sending_queue) > 0)
     {
@@ -303,16 +303,16 @@ send_stanza_cb (GObject *source,
 typedef struct
 {
   WockyXmppScheduler *self;
-  sending_queue_elt *elt;
+  sending_queue_elem *elem;
 } send_cancelled_cb_data;
 
 static send_cancelled_cb_data *
 send_cancelled_cb_data_new (WockyXmppScheduler *self,
-    sending_queue_elt *elt)
+    sending_queue_elem *elem)
 {
   send_cancelled_cb_data *data = g_slice_new0 (send_cancelled_cb_data);
   data->self = self;
-  data->elt = elt;
+  data->elem = elem;
 
   return data;
 }
@@ -332,11 +332,11 @@ send_cancelled_cb (GCancellable *cancellable,
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (d->self);
   GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED, "Sending was cancelled" };
 
-  g_simple_async_result_set_from_error (d->elt->result, &error);
-  g_simple_async_result_complete (d->elt->result);
+  g_simple_async_result_set_from_error (d->elem->result, &error);
+  g_simple_async_result_complete (d->elem->result);
 
-  g_queue_remove_all (priv->sending_queue, d->elt);
-  sending_queue_elt_free (d->elt);
+  g_queue_remove_all (priv->sending_queue, d->elem);
+  sending_queue_elem_free (d->elem);
 }
 
 void
@@ -347,10 +347,11 @@ wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
     gpointer user_data)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  sending_queue_elt *elt;
+  sending_queue_elem *elem;
 
-  elt = sending_queue_elt_new (self, stanza, cancellable, callback, user_data);
-  g_queue_push_tail (priv->sending_queue, elt);
+  elem = sending_queue_elem_new (self, stanza, cancellable, callback,
+      user_data);
+  g_queue_push_tail (priv->sending_queue, elem);
 
   if (g_queue_get_length (priv->sending_queue) == 1)
     {
@@ -359,9 +360,9 @@ wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
 
   if (cancellable != NULL)
     {
-      send_cancelled_cb_data *data = send_cancelled_cb_data_new (self, elt);
+      send_cancelled_cb_data *data = send_cancelled_cb_data_new (self, elem);
 
-      elt->cancelled_sig_id = g_signal_connect_data (cancellable, "cancelled",
+      elem->cancelled_sig_id = g_signal_connect_data (cancellable, "cancelled",
           G_CALLBACK (send_cancelled_cb), data, send_cancelled_cb_data_free, 0);
     }
 }
