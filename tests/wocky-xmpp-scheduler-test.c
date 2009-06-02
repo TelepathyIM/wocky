@@ -199,9 +199,8 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
   WockyXmppStanza *s;
   GCancellable *cancellable;
 
-  if (!wocky_xmpp_connection_recv_open_finish (conn, res,
-      NULL, NULL, NULL, NULL, NULL))
-    g_assert_not_reached ();
+  g_assert (wocky_xmpp_connection_recv_open_finish (conn, res,
+      NULL, NULL, NULL, NULL, NULL));
 
   /* Send a stanza */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
