@@ -67,6 +67,7 @@ struct _WockyXmppSchedulerPrivate
 
 typedef struct
 {
+  WockyXmppScheduler *self;
   WockyXmppStanza *stanza;
   GCancellable *cancellable;
   GSimpleAsyncResult *result;
@@ -82,6 +83,7 @@ sending_queue_elem_new (WockyXmppScheduler *self,
 {
   sending_queue_elem *elem = g_slice_new0 (sending_queue_elem);
 
+  elem->self = self;
   elem->stanza = g_object_ref (stanza);
   if (cancellable != NULL)
     elem->cancellable = g_object_ref (cancellable);
@@ -300,43 +302,20 @@ send_stanza_cb (GObject *source,
     }
 }
 
-typedef struct
-{
-  WockyXmppScheduler *self;
-  sending_queue_elem *elem;
-} send_cancelled_cb_data;
-
-static send_cancelled_cb_data *
-send_cancelled_cb_data_new (WockyXmppScheduler *self,
-    sending_queue_elem *elem)
-{
-  send_cancelled_cb_data *data = g_slice_new0 (send_cancelled_cb_data);
-  data->self = self;
-  data->elem = elem;
-
-  return data;
-}
-
-static void
-send_cancelled_cb_data_free (gpointer user_data,
-    GClosure *closure)
-{
-  g_slice_free (send_cancelled_cb_data, user_data);
-}
-
 static void
 send_cancelled_cb (GCancellable *cancellable,
     gpointer user_data)
 {
-  send_cancelled_cb_data *d = (send_cancelled_cb_data *) user_data;
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (d->self);
+  sending_queue_elem *elem = (sending_queue_elem *) user_data;
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (
+      elem->self);
   GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED, "Sending was cancelled" };
 
-  g_simple_async_result_set_from_error (d->elem->result, &error);
-  g_simple_async_result_complete (d->elem->result);
+  g_simple_async_result_set_from_error (elem->result, &error);
+  g_simple_async_result_complete (elem->result);
 
-  g_queue_remove (priv->sending_queue, d->elem);
-  sending_queue_elem_free (d->elem);
+  g_queue_remove (priv->sending_queue, elem);
+  sending_queue_elem_free (elem);
 }
 
 void
@@ -360,10 +339,8 @@ wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
 
   if (cancellable != NULL)
     {
-      send_cancelled_cb_data *data = send_cancelled_cb_data_new (self, elem);
-
-      elem->cancelled_sig_id = g_signal_connect_data (cancellable, "cancelled",
-          G_CALLBACK (send_cancelled_cb), data, send_cancelled_cb_data_free, 0);
+      elem->cancelled_sig_id = g_signal_connect (cancellable, "cancelled",
+          G_CALLBACK (send_cancelled_cb), elem);
     }
 }
 
