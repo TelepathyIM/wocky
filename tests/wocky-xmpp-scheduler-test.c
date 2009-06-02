@@ -126,12 +126,12 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
 
       if (g_queue_get_length (data->expected_stanzas) == 0)
         {
-          /* Close the connection */
           wocky_xmpp_connection_recv_stanza_async (
               WOCKY_XMPP_CONNECTION (source), NULL, send_stanza_received_cb,
               data);
           data->outstanding++;
 
+          /* Close the connection */
           wocky_xmpp_connection_send_close_async (
             WOCKY_XMPP_CONNECTION (data->in),
             NULL, send_stanza_close_cb, data);
