@@ -440,7 +440,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       (unsigned) response_len, &challenge, &challenge_len);
 
   if (!check_sasl_return (self, ret))
-    return;
+    goto out;
 
   if (challenge_len > 0)
     {
@@ -472,6 +472,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       g_assert_not_reached ();
     }
 
+out:
   g_free (response);
 }
 
@@ -504,7 +505,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       (unsigned) response_len, &challenge, &challenge_len);
 
   if (!check_sasl_return (self, ret))
-    return;
+    goto out;
 
   if (challenge_len > 0)
     {
@@ -536,6 +537,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       g_assert_not_reached ();
     }
 
+out:
   g_free (response);
 }
 
