@@ -27,9 +27,11 @@ MT
 *.prof
 .DS_Store
 *.pyc
-
 *.pyo
 *#
+*.gcno
+*.gcda
+
 .cvsignore
 Thumbs.db
 autom4te.cache
@@ -74,3 +76,5 @@ tests/wocky-xmpp-reader-test
 tests/wocky-xmpp-readwrite-test
 
 examples/wocky-connect
+
+coverage/
