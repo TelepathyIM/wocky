@@ -58,6 +58,9 @@ teardown_test (test_data_t *data)
   g_object_unref (data->out);
   g_object_unref (data->sched_in);
   g_object_unref (data->sched_out);
+
+  /* All the stanzas should have been received */
+  g_assert (g_queue_get_length (data->expected_stanzas) == 0);
   g_queue_free (data->expected_stanzas);
 
   g_free (data);
