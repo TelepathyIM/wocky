@@ -70,6 +70,7 @@ typedef struct
   WockyXmppStanza *stanza;
   GCancellable *cancellable;
   GSimpleAsyncResult *result;
+  gulong cancelled_sig_id;
 } sending_queue_elt;
 
 static sending_queue_elt *
@@ -96,7 +97,10 @@ sending_queue_elt_free (sending_queue_elt *elt)
 {
   g_object_unref (elt->stanza);
   if (elt->cancellable != NULL)
-    g_object_unref (elt->cancellable);
+    {
+      g_object_unref (elt->cancellable);
+      g_signal_handler_disconnect (elt->cancellable, elt->cancelled_sig_id);
+    }
   g_object_unref (elt->result);
 
   g_slice_free (sending_queue_elt, elt);
@@ -261,7 +265,6 @@ send_head_stanza (WockyXmppScheduler *self)
     /* Nothing to send */
     return;
 
-  /* FIXME: remove from the queue as soon we are cancelled */
   wocky_xmpp_connection_send_stanza_async (priv->connection,
       elt->stanza, elt->cancellable, send_stanza_cb, self);
 }
@@ -289,6 +292,45 @@ send_stanza_cb (GObject *source,
     }
 }
 
+typedef struct
+{
+  WockyXmppScheduler *self;
+  sending_queue_elt *elt;
+} send_cancelled_cb_data;
+
+static send_cancelled_cb_data *
+send_cancelled_cb_data_new (WockyXmppScheduler *self,
+    sending_queue_elt *elt)
+{
+  send_cancelled_cb_data *data = g_slice_new0 (send_cancelled_cb_data);
+  data->self = self;
+  data->elt = elt;
+
+  return data;
+}
+
+static void
+send_cancelled_cb_data_free (gpointer user_data,
+    GClosure *closure)
+{
+  g_slice_free (send_cancelled_cb_data, user_data);
+}
+
+static void
+send_cancelled_cb (GCancellable *cancellable,
+    gpointer user_data)
+{
+  send_cancelled_cb_data *d = (send_cancelled_cb_data *) user_data;
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (d->self);
+  GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED, "Sending was cancelled" };
+
+  g_simple_async_result_set_from_error (d->elt->result, &error);
+  g_simple_async_result_complete (d->elt->result);
+
+  g_queue_remove_all (priv->sending_queue, d->elt);
+  sending_queue_elt_free (d->elt);
+}
+
 void
 wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
     WockyXmppStanza *stanza,
@@ -305,6 +347,14 @@ wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
   if (g_queue_get_length (priv->sending_queue) == 1)
     {
       send_head_stanza (self);
+    }
+
+  if (cancellable != NULL)
+    {
+      send_cancelled_cb_data *data = send_cancelled_cb_data_new (self, elt);
+
+      elt->cancelled_sig_id = g_signal_connect_data (cancellable, "cancelled",
+          G_CALLBACK (send_cancelled_cb), data, send_cancelled_cb_data_free, 0);
     }
 }
 
