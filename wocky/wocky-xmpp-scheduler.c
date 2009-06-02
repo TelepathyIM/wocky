@@ -335,7 +335,7 @@ send_cancelled_cb (GCancellable *cancellable,
   g_simple_async_result_set_from_error (d->elem->result, &error);
   g_simple_async_result_complete (d->elem->result);
 
-  g_queue_remove_all (priv->sending_queue, d->elem);
+  g_queue_remove (priv->sending_queue, d->elem);
   sending_queue_elem_free (d->elem);
 }
 
