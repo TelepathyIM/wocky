@@ -128,9 +128,29 @@ open_connection (test_data_t *test)
   test_wait_pending (test);
 }
 
-/* send testing */
 static void
-send_stanza_close_cb (GObject *source, GAsyncResult *res,
+wait_close_cb (GObject *source, GAsyncResult *res,
+  gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+  WockyXmppStanza *s;
+  GError *error = NULL;
+
+  s = wocky_xmpp_connection_recv_stanza_finish (WOCKY_XMPP_CONNECTION (source),
+      res, &error);
+
+  g_assert (s == NULL);
+  /* connection has been disconnected */
+  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+        WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+  g_error_free (error);
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
+}
+
+static void
+close_sent_cb (GObject *source, GAsyncResult *res,
   gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
@@ -141,6 +161,25 @@ send_stanza_close_cb (GObject *source, GAsyncResult *res,
   data->outstanding--;
   g_main_loop_quit (data->loop);
 }
+
+/* Close XMPP connections on both sides */
+static void
+close_connection (test_data_t *test)
+{
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL, wait_close_cb,
+      test);
+  test->outstanding++;
+
+  /* Close the connection */
+  wocky_xmpp_connection_send_close_async (
+    WOCKY_XMPP_CONNECTION (test->in),
+    NULL, close_sent_cb, test);
+  test->outstanding++;
+
+  test_wait_pending (test);
+}
+
+/* send testing */
 
 static void
 send_stanza_received_cb (GObject *source, GAsyncResult *res,
@@ -153,48 +192,25 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   WockyXmppStanza *expected;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
+  g_assert (s != NULL);
 
   expected = g_queue_pop_head (data->expected_stanzas);
-  if (expected != NULL)
+  g_assert (expected != NULL);
+
+  g_assert (wocky_xmpp_node_equal (s->node, expected->node));
+
+  if (g_queue_get_length (data->expected_stanzas) > 0)
     {
-      g_assert (s != NULL);
+      /* We need to receive more stanzas */
+      wocky_xmpp_connection_recv_stanza_async (
+          WOCKY_XMPP_CONNECTION (source), NULL, send_stanza_received_cb,
+          user_data);
 
-      g_assert (wocky_xmpp_node_equal (s->node, expected->node));
-
-      if (g_queue_get_length (data->expected_stanzas) == 0)
-        {
-          wocky_xmpp_connection_recv_stanza_async (
-              WOCKY_XMPP_CONNECTION (source), NULL, send_stanza_received_cb,
-              data);
-          data->outstanding++;
-
-          /* Close the connection */
-          wocky_xmpp_connection_send_close_async (
-            WOCKY_XMPP_CONNECTION (data->in),
-            NULL, send_stanza_close_cb, data);
-          data->outstanding++;
-        }
-      else
-        {
-          /* We need to receive more stanzas */
-          wocky_xmpp_connection_recv_stanza_async (
-              WOCKY_XMPP_CONNECTION (source), NULL, send_stanza_received_cb,
-              user_data);
-
-          data->outstanding++;
-        }
-
-      g_object_unref (s);
-      g_object_unref (expected);
+      data->outstanding++;
     }
-  else
-   {
-      g_assert (s == NULL);
-      /* connection has been disconnected */
-      g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
-            WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
-      g_error_free (error);
-   }
+
+  g_object_unref (s);
+  g_object_unref (expected);
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
@@ -296,6 +312,8 @@ test_send (void)
   g_object_unref (cancellable);
 
   test_wait_pending (test);
+
+  close_connection (test);
   teardown_test (test);
 }
 
