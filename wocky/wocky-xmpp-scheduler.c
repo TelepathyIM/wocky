@@ -277,9 +277,17 @@ send_stanza_cb (GObject *source,
   WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   sending_queue_elt *elt;
+  GError *error = NULL;
 
   elt = g_queue_pop_head (priv->sending_queue);
   g_assert (elt != NULL);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (
+        WOCKY_XMPP_CONNECTION (source), res, &error))
+    {
+      g_simple_async_result_set_from_error (elt->result, error);
+      g_error_free (error);
+    }
 
   g_simple_async_result_complete (elt->result);
 
