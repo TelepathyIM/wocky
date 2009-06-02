@@ -389,7 +389,7 @@ not_authorized (TestSaslAuthServer *self)
 }
 
 /* check if the return of the sasl function  was as expected, if not FALSE is
- * returend and the call function should stop processing */
+ * returned and the call function should stop processing */
 static gboolean
 check_sasl_return (TestSaslAuthServer *self, int ret)
 {
