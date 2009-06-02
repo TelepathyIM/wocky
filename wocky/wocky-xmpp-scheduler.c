@@ -376,6 +376,9 @@ wocky_xmpp_scheduler_send_full_finish (WockyXmppScheduler *self,
       error))
     return FALSE;
 
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_xmpp_scheduler_send_full_finish), FALSE);
+
   return TRUE;
 }
 
