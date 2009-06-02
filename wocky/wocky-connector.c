@@ -93,6 +93,9 @@ typedef enum
   WCON_XMPP_TLS_STARTED
 } connstate;
 
+GQuark wocky_connector_error_quark (void);
+#define WOCKY_CONNECTOR_ERROR (wocky_connector_error_quark ())
+
 typedef struct _WockyConnectorPrivate WockyConnectorPrivate;
 
 typdef void (*WockyConnectorCallback) (WockyConnector *conn, char *error);
