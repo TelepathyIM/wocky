@@ -177,6 +177,55 @@ test_send (void)
   teardown_test (test);
 }
 
+/* receive testing */
+static void
+test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *expected;
+
+  expected = g_queue_pop_head (test->expected_stanzas);
+  g_assert (expected != NULL);
+  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_receive (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *s;
+
+  test_open_connection (test);
+
+  /* Send a stanza */
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL,
+      send_stanza_cb, test);
+  g_queue_push_tail (test->expected_stanzas, s);
+  /* We are waiting for the stanza to be sent and received on the other
+   * side */
+  test->outstanding += 2;
+
+  wocky_xmpp_scheduler_add_stanza_filter (test->sched_out, NULL,
+      test_receive_stanza_received_cb, test);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  test_wait_pending (test);
+  g_object_unref (s);
+
+  /* TODO: close connection */
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -187,5 +236,6 @@ main (int argc, char **argv)
 
   g_test_add_func ("/xmpp-scheduler/initiation", test_instantiation);
   g_test_add_func ("/xmpp-scheduler/send", test_send);
+  g_test_add_func ("/xmpp-scheduler/receive", test_receive);
   return g_test_run ();
 }
