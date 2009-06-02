@@ -91,6 +91,43 @@ test_instantiation (void)
   g_object_unref (stream);
 }
 
+static void
+send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  test_data_t *d = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_recv_open_finish (conn, res,
+      NULL, NULL, NULL, NULL, NULL));
+
+  d->outstanding--;
+  g_main_loop_quit (d->loop);
+}
+
+static void
+send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_open_finish (
+      WOCKY_XMPP_CONNECTION (source), res, NULL));
+
+  wocky_xmpp_connection_recv_open_async (data->out,
+      NULL, send_received_open_cb, user_data);
+}
+
+/* Open XMPP connections on both sides */
+static void
+open_connection (test_data_t *test)
+{
+  wocky_xmpp_connection_send_open_async (test->in,
+      NULL, NULL, NULL, NULL,
+      NULL, send_open_cb, test);
+  test->outstanding++;
+
+  test_wait_pending (test);
+}
+
 /* send testing */
 static void
 send_stanza_close_cb (GObject *source, GAsyncResult *res,
@@ -192,33 +229,33 @@ send_stanza_cancelled_cb (GObject *source, GAsyncResult *res,
 }
 
 static void
-send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+test_send (void)
 {
-  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
-  test_data_t *d = (test_data_t *) user_data;
+  test_data_t *test = setup_test ();
   WockyXmppStanza *s;
   GCancellable *cancellable;
 
-  g_assert (wocky_xmpp_connection_recv_open_finish (conn, res,
-      NULL, NULL, NULL, NULL, NULL));
+  open_connection (test);
 
   /* Send a stanza */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (d->sched_in, s, NULL, send_stanza_cb,
-      user_data);
-  g_queue_push_tail (d->expected_stanzas, s);
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, send_stanza_cb,
+      test);
+  g_queue_push_tail (test->expected_stanzas, s);
+  test->outstanding++;
 
   /* Send a stanza */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (d->sched_in, s, NULL, send_stanza_cb,
-      user_data);
-  g_queue_push_tail (d->expected_stanzas, s);
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, send_stanza_cb,
+      test);
+  g_queue_push_tail (test->expected_stanzas, s);
+  test->outstanding++;
 
   /* Send two stanzas and cancel them immediately */
   cancellable = g_cancellable_new ();
@@ -227,17 +264,19 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "peter@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (d->sched_in, s, cancellable,
-      send_stanza_cancelled_cb, user_data);
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, cancellable,
+      send_stanza_cancelled_cb, test);
   g_object_unref (s);
+  test->outstanding++;
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "samson@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (d->sched_in, s, cancellable,
-      send_stanza_cancelled_cb, user_data);
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, cancellable,
+      send_stanza_cancelled_cb, test);
   g_object_unref (s);
+  test->outstanding++;
 
   /* the stanza are not added to expected_stanzas as it was cancelled */
   g_cancellable_cancel (cancellable);
@@ -247,42 +286,16 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "nurse@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (d->sched_in, s);
-  g_queue_push_tail (d->expected_stanzas, s);
-
-  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
-    NULL, send_stanza_received_cb, user_data);
-
-  /* We're not outstanding anymore, but five new callbacks are */
-  d->outstanding += 4;
-
-  g_object_unref (cancellable);
-}
-
-static void
-send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
-{
-  test_data_t *data = (test_data_t *) user_data;
-
-  g_assert (wocky_xmpp_connection_send_open_finish (
-      WOCKY_XMPP_CONNECTION (source), res, NULL));
-
-  wocky_xmpp_connection_recv_open_async (data->out,
-      NULL, send_received_open_cb, user_data);
-}
-
-static void
-test_send (void)
-{
-  test_data_t *test = setup_test ();
-
-  wocky_xmpp_connection_send_open_async (test->in,
-      NULL, NULL, NULL, NULL,
-      NULL, send_open_cb, test);
+  wocky_xmpp_scheduler_send (test->sched_in, s);
+  g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
 
-  test_wait_pending (test);
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+      send_stanza_received_cb, test);
 
+  g_object_unref (cancellable);
+
+  test_wait_pending (test);
   teardown_test (test);
 }
 
