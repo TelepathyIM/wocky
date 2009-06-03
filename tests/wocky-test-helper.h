@@ -27,6 +27,10 @@ void test_wait_pending (test_data_t *test);
 
 gboolean test_timeout_cb (gpointer data);
 
+void test_open_connection (test_data_t *test);
+
+void test_close_connection (test_data_t *test);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_HELPER_H__*/
