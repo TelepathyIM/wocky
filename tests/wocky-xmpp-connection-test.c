@@ -7,6 +7,7 @@
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-xmpp-stanza.h>
 #include "wocky-test-stream.h"
+#include "wocky-test-helper.h"
 
 #define SIMPLE_MESSAGE \
 "<?xml version='1.0' encoding='UTF-8'?>                                    " \
@@ -17,59 +18,6 @@
 "    <body>Art thou not Romeo, and a Montague?</body>                      " \
 "  </message>                                                              " \
 "</stream:stream>"
-
-typedef struct {
-  GMainLoop *loop;
-  gboolean parsed_stanza;
-  WockyXmppConnection *in;
-  WockyXmppConnection *out;
-  WockyTestStream *stream;
-  guint outstanding;
-} test_data_t;
-
-static gboolean
-timeout_cb (gpointer data)
-{
-  g_test_message ("Timeout reached :(");
-  g_assert_not_reached ();
-
-  return FALSE;
-}
-
-static test_data_t *
-setup_test (void)
-{
-  test_data_t *data;
-
-  data = g_new0 (test_data_t, 1);
-  data->loop = g_main_loop_new (NULL, FALSE);
-
-  data->stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
-  data->in = wocky_xmpp_connection_new (data->stream->stream0);
-  data->out = wocky_xmpp_connection_new (data->stream->stream1);
-
-  g_timeout_add (1000, timeout_cb, NULL);
-
-  return data;
-}
-
-static void
-teardown_test (test_data_t *data)
-{
-  g_main_loop_unref (data->loop);
-  g_object_unref (data->stream);
-  g_object_unref (data->in);
-  g_object_unref (data->out);
-
-  g_free (data);
-}
-
-static void
-test_wait_pending (test_data_t *test)
-{
-  while (test->outstanding > 0)
-    g_main_loop_run (test->loop);
-}
 
 static void
 test_instantiation (void)
@@ -147,7 +95,7 @@ test_recv_simple_message (void)
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
 
-  g_timeout_add (1000, timeout_cb, NULL);
+  g_timeout_add (1000, test_timeout_cb, NULL);
 
   data.loop = loop;
   wocky_xmpp_connection_recv_open_async (connection,
