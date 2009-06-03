@@ -122,19 +122,6 @@ test_recv_simple_message (void)
 
 /* simple send message testing */
 static void
-send_stanza_close_cb (GObject *source, GAsyncResult *res,
-  gpointer user_data)
-{
-  test_data_t *data = (test_data_t *) user_data;
-
-  g_assert (wocky_xmpp_connection_send_close_finish (
-    WOCKY_XMPP_CONNECTION (source), res, NULL));
-
-  data->outstanding--;
-  g_main_loop_quit (data->loop);
-}
-
-static void
 send_stanza_received_cb (GObject *source, GAsyncResult *res,
   gpointer user_data)
 {
@@ -144,28 +131,12 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
+  g_assert (s != NULL);
 
-  if (!data->parsed_stanza)
-    {
-      g_assert (s != NULL);
-      data->parsed_stanza = TRUE;
-      wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
-        NULL, send_stanza_received_cb, data);
-      data->outstanding++;
+  g_assert (!data->parsed_stanza);
+  data->parsed_stanza = TRUE;
 
-      wocky_xmpp_connection_send_close_async (
-        WOCKY_XMPP_CONNECTION (data->in),
-        NULL, send_stanza_close_cb, data);
-      data->outstanding++;
-
-      g_object_unref (s);
-    }
-  else
-   {
-      g_assert (s == NULL);
-      g_error_free (error);
-   }
-
+  g_object_unref (s);
   data->outstanding--;
   g_main_loop_quit (data->loop);
 }
@@ -182,15 +153,12 @@ send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 }
 
 static void
-send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+test_send_simple_message (void)
 {
-  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
-  test_data_t *d = (test_data_t *) user_data;
   WockyXmppStanza *s;
+  test_data_t *test = setup_test ();
 
-  if (!wocky_xmpp_connection_recv_open_finish (conn, res,
-      NULL, NULL, NULL, NULL, NULL))
-    g_assert_not_reached ();
+  test_open_connection (test);
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
@@ -201,42 +169,17 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
       WOCKY_NODE_END,
     WOCKY_STANZA_END);
 
-  wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (d->in),
-    s, NULL, send_stanza_cb, user_data);
+  wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (test->in),
+    s, NULL, send_stanza_cb, test);
 
-  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
-    NULL, send_stanza_received_cb, user_data);
+  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (test->out),
+    NULL, send_stanza_received_cb, test);
 
-  /* We're not outstanding anymore, but two new callbacks are */
-  d->outstanding++;
-
-  g_object_unref (s);
-}
-
-static void
-send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
-{
-  test_data_t *data = (test_data_t *) user_data;
-
-  g_assert (wocky_xmpp_connection_send_open_finish (
-      WOCKY_XMPP_CONNECTION (source), res, NULL));
-
-  wocky_xmpp_connection_recv_open_async (data->out,
-      NULL, send_received_open_cb, user_data);
-}
-
-static void
-test_send_simple_message (void)
-{
-  test_data_t *test = setup_test ();
-
-  wocky_xmpp_connection_send_open_async (test->in,
-      NULL, NULL, NULL, NULL,
-      NULL, send_open_cb, test);
-  test->outstanding++;
-
+  test->outstanding += 2;
   test_wait_pending (test);
 
+  test_close_connection (test);
+  g_object_unref (s);
   teardown_test (test);
 }
 
