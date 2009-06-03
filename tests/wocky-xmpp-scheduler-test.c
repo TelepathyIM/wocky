@@ -153,6 +153,19 @@ test_send (void)
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
 
+  /* Send a last stanza using the full method so we are sure that all async
+   * sending operation have been finished. This is important because
+   * test_close_connection() will have to use this function to close the
+   * connection. If there is still a pending sending operation, it will fail. */
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, send_stanza_cb,
+      test);
+  g_queue_push_tail (test->expected_stanzas, s);
+  test->outstanding++;
+
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       send_stanza_received_cb, test);
 
