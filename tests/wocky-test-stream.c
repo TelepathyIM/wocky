@@ -301,6 +301,14 @@ wocky_test_input_stream_class_init (
 }
 
 /* Output stream */
+enum
+{
+    OUTPUT_DATA_WRITTEN,
+    LAST_SIGNAL
+};
+
+static guint output_signals[LAST_SIGNAL] = {0};
+
 static gssize
 wocky_test_output_stream_write (GOutputStream *stream, const void *buffer,
   gsize count, GCancellable *cancellable, GError **error)
@@ -311,6 +319,7 @@ wocky_test_output_stream_write (GOutputStream *stream, const void *buffer,
   g_array_insert_vals (data, 0, buffer, count);
 
   g_async_queue_push (self->queue, data);
+  g_signal_emit (self, output_signals[OUTPUT_DATA_WRITTEN], 0);
 
   return count;
 }
@@ -357,5 +366,12 @@ wocky_test_output_stream_class_init (
   obj_class->dispose = wocky_test_output_stream_dispose;
 
   stream_class->write_fn = wocky_test_output_stream_write;
-}
 
+  output_signals[OUTPUT_DATA_WRITTEN] = g_signal_new ("data-written",
+      G_OBJECT_CLASS_TYPE(wocky_test_output_stream_class),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+}
