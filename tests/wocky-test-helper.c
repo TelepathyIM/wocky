@@ -107,8 +107,8 @@ wait_close_cb (GObject *source, GAsyncResult *res,
 
   g_assert (s == NULL);
   /* connection has been disconnected */
-  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
-        WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+  g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
   g_error_free (error);
 
   data->outstanding--;
