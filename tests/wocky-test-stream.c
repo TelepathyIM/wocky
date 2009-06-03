@@ -260,6 +260,100 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
   return len;
 }
 
+static gboolean
+check_data_to_read (WockyTestInputStream *self)
+{
+  if (self->out_array != NULL)
+    return TRUE;
+
+  self->out_array = g_async_queue_try_pop (self->queue);
+  if (self->out_array != NULL)
+    return TRUE;
+
+  return FALSE;
+}
+
+static gssize
+wocky_test_input_stream_read_finish (GInputStream *stream,
+    GAsyncResult *result,
+    GError **error)
+{
+  WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
+  gssize len = -1;
+
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    goto out;
+
+  if (g_cancellable_set_error_if_cancelled (self->read_cancellable, error))
+    goto out;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_test_input_stream_read_finish), -1);
+
+  len = wocky_test_input_stream_read (stream, self->buffer, self->count, NULL,
+      error);
+
+out:
+  self->buffer = NULL;
+
+  return len;
+}
+
+static void
+read_async_complete (WockyTestInputStream *self)
+{
+  GSimpleAsyncResult *r = self->read_result;
+
+  self->read_cancellable = NULL;
+  self->read_result = NULL;
+
+  g_simple_async_result_complete_in_idle (r);
+  g_object_unref (r);
+}
+
+static void
+wocky_test_input_stream_read_async (GInputStream *stream,
+    void *buffer,
+    gsize count,
+    int io_priority,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
+
+  g_assert (self->buffer == NULL);
+  g_assert (self->read_result == NULL);
+  g_assert (self->read_cancellable == NULL);
+
+  self->buffer = buffer;
+  self->count = count;
+
+  self->read_result = g_simple_async_result_new (G_OBJECT (stream),
+      callback, user_data, wocky_test_input_stream_read_finish);
+
+  if (cancellable != NULL)
+    {
+      self->read_cancellable = cancellable;
+    }
+
+  if (check_data_to_read (self))
+    read_async_complete (self);
+}
+
+/* Method called by TestStream to inform us that there is data to read */
+static void
+wocky_test_input_stream_data_available (WockyTestInputStream *self)
+{
+  if (self->read_result == NULL)
+    /* No pending read operation */
+    return;
+
+  g_assert (check_data_to_read (self));
+  read_async_complete (self);
+}
+
 static void
 wocky_test_input_stream_init (WockyTestInputStream *self)
 {
@@ -298,6 +392,8 @@ wocky_test_input_stream_class_init (
 
   obj_class->dispose = wocky_test_input_stream_dispose;
   stream_class->read_fn = wocky_test_input_stream_read;
+  stream_class->read_async = wocky_test_input_stream_read_async;
+  stream_class->read_finish = wocky_test_input_stream_read_finish;
 }
 
 /* Output stream */
