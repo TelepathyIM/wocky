@@ -26,94 +26,6 @@ test_instantiation (void)
   g_object_unref (stream);
 }
 
-static void
-send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
-{
-  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
-  test_data_t *d = (test_data_t *) user_data;
-
-  g_assert (wocky_xmpp_connection_recv_open_finish (conn, res,
-      NULL, NULL, NULL, NULL, NULL));
-
-  d->outstanding--;
-  g_main_loop_quit (d->loop);
-}
-
-static void
-send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
-{
-  test_data_t *data = (test_data_t *) user_data;
-
-  g_assert (wocky_xmpp_connection_send_open_finish (
-      WOCKY_XMPP_CONNECTION (source), res, NULL));
-
-  wocky_xmpp_connection_recv_open_async (data->out,
-      NULL, send_received_open_cb, user_data);
-}
-
-/* Open XMPP connections on both sides */
-static void
-open_connection (test_data_t *test)
-{
-  wocky_xmpp_connection_send_open_async (test->in,
-      NULL, NULL, NULL, NULL,
-      NULL, send_open_cb, test);
-  test->outstanding++;
-
-  test_wait_pending (test);
-}
-
-static void
-wait_close_cb (GObject *source, GAsyncResult *res,
-  gpointer user_data)
-{
-  test_data_t *data = (test_data_t *) user_data;
-  WockyXmppStanza *s;
-  GError *error = NULL;
-
-  s = wocky_xmpp_connection_recv_stanza_finish (WOCKY_XMPP_CONNECTION (source),
-      res, &error);
-
-  g_assert (s == NULL);
-  /* connection has been disconnected */
-  g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
-        WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
-  g_error_free (error);
-
-  data->outstanding--;
-  g_main_loop_quit (data->loop);
-}
-
-static void
-close_sent_cb (GObject *source, GAsyncResult *res,
-  gpointer user_data)
-{
-  test_data_t *data = (test_data_t *) user_data;
-
-  g_assert (wocky_xmpp_connection_send_close_finish (
-    WOCKY_XMPP_CONNECTION (source), res, NULL));
-
-  data->outstanding--;
-  g_main_loop_quit (data->loop);
-}
-
-/* Close XMPP connections on both sides */
-static void
-close_connection (test_data_t *test)
-{
-  wocky_xmpp_connection_recv_stanza_async (test->out, NULL, wait_close_cb,
-      test);
-  test->outstanding++;
-
-  /* Close the connection */
-  wocky_xmpp_connection_send_close_async (
-    WOCKY_XMPP_CONNECTION (test->in),
-    NULL, close_sent_cb, test);
-  test->outstanding++;
-
-  test_wait_pending (test);
-}
-
 /* send testing */
 
 static void
@@ -186,7 +98,7 @@ test_send (void)
   WockyXmppStanza *s;
   GCancellable *cancellable;
 
-  open_connection (test);
+  test_open_connection (test);
 
   /* Send a stanza */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
@@ -248,7 +160,7 @@ test_send (void)
 
   test_wait_pending (test);
 
-  close_connection (test);
+  test_close_connection (test);
   teardown_test (test);
 }
 
