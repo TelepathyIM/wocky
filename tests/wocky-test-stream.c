@@ -64,6 +64,10 @@ typedef struct {
   GAsyncQueue *queue;
   guint offset;
   GArray *out_array;
+  GSimpleAsyncResult *read_result;
+  GCancellable *read_cancellable;
+  void *buffer;
+  gsize count;
   gboolean dispose_has_run;
 } WockyTestInputStream;
 
@@ -94,6 +98,26 @@ G_DEFINE_TYPE (WockyTestOutputStream, wocky_test_output_stream,
   WOCKY_TYPE_TEST_OUTPUT_STREAM,                                             \
   WockyTestOutputStream))
 
+static void wocky_test_input_stream_data_available (WockyTestInputStream *self);
+
+static void
+output_data_written_cb (GOutputStream *output,
+    WockyTestStream *self)
+{
+  if (output == self->stream0_output)
+    {
+      wocky_test_input_stream_data_available (
+          WOCKY_TEST_INPUT_STREAM (self->stream1_input));
+    }
+  else if (output == self->stream1_output)
+    {
+      wocky_test_input_stream_data_available (
+          WOCKY_TEST_INPUT_STREAM (self->stream0_input));
+    }
+  else
+    g_assert_not_reached ();
+}
+
 static void
 wocky_test_stream_init (WockyTestStream *self)
 {
@@ -101,9 +125,13 @@ wocky_test_stream_init (WockyTestStream *self)
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_TEST_STREAM,
     WockyTestStreamPrivate);
 
-
   self->stream0_output = g_object_new (WOCKY_TYPE_TEST_OUTPUT_STREAM, NULL);
+  g_signal_connect (self->stream0_output, "data-written",
+      G_CALLBACK (output_data_written_cb), self);
+
   self->stream1_output = g_object_new (WOCKY_TYPE_TEST_OUTPUT_STREAM, NULL);
+  g_signal_connect (self->stream1_output, "data-written",
+      G_CALLBACK (output_data_written_cb), self);
 
   self->stream0_input = g_object_new (WOCKY_TYPE_TEST_INPUT_STREAM, NULL);
   WOCKY_TEST_INPUT_STREAM (self->stream0_input)->queue =
