@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include <gio/gnio.h>
+#include <wocky/wocky-connector.h>
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-sasl-auth.h>
@@ -332,28 +333,62 @@ tcp_srv_connected (GObject *source,
     }
 }
 
+static void
+connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  GError *error = NULL;
+  WockyXmppConnection *connection = 
+    wocky_connector_connect_finish (source, res, &error);
+
+  if( connection != NULL )
+    printf( "connected!\n" );
+  else
+    {
+      if( error )
+        fprintf (stderr, "%s: %d: %s\n", 
+            g_quark_to_string(error->domain), error->code, error->message );
+      g_main_loop_quit (mainloop);
+    }
+    
+}
+
 int
 main (int argc,
     char **argv)
 {
   gchar *jid;
   char *c;
+  const char *type = "raw";
 
   g_type_init ();
 
-  if (argc != 3)
+  if ((argc < 3) || (argc > 4))
     {
-      printf ("Usage: %s <jid> <password>\n", argv[0]);
+      printf ("Usage: %s <jid> <password> [connection-type]\n", argv[0]);
+      printf ("    connection-type is 'raw' or 'connector' (default raw)\n");
       return -1;
     }
 
-  mainloop = g_main_loop_new (NULL, FALSE);
+  if (argc == 4)
+    type = argv[3];
 
-  client =  g_socket_client_new ();
+  mainloop = g_main_loop_new (NULL, FALSE);
+  
+  if (strcmp ("connector",type))
+    {
+      WockyConnector *wcon = wocky_connector_new (argv[1], "password", argv[2]);
+      if (wocky_connector_connect_async (G_OBJECT (wcon), 
+              connector_callback, NULL))
+        {
+          printf ("Instantiated connector and made successful connect call\n");
+        }
+      g_main_loop_run (mainloop);
+      
+      return 0;
+    }
 
   jid = g_strdup (argv[1]);
   password = argv[2];
-
   c = rindex (jid, '@');
   if (c == NULL)
     {
@@ -361,17 +396,17 @@ main (int argc,
       return -1;
     }
   *c = '\0';
-
   server = c + 1;
   username = jid;
+
+  client = g_socket_client_new ();
 
   printf ("Connecting to %s\n", server);
 
   g_socket_client_connect_to_service_async (client, server,
-    "xmpp-client", NULL, tcp_srv_connected, NULL);
+      "xmpp-client", NULL, tcp_srv_connected, NULL);
 
   g_main_loop_run (mainloop);
-
   g_free (jid);
   return 0;
 }
