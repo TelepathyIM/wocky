@@ -98,13 +98,13 @@ G_DEFINE_TYPE (WockyTestOutputStream, wocky_test_output_stream,
   WOCKY_TYPE_TEST_OUTPUT_STREAM,                                             \
   WockyTestOutputStream))
 
-static void wocky_test_input_stream_data_available (WockyTestInputStream *self);
+static gboolean wocky_test_input_stream_try_read (WockyTestInputStream *self);
 
 static void
 output_data_written_cb (GOutputStream *output,
     WockyTestInputStream *input_stream)
 {
-  wocky_test_input_stream_data_available (input_stream);
+  wocky_test_input_stream_try_read (input_stream);
 }
 
 static void
@@ -356,20 +356,28 @@ wocky_test_input_stream_read_async (GInputStream *stream,
       self->read_cancellable = cancellable;
     }
 
-  if (check_data_to_read (self))
-    read_async_complete (self);
+  wocky_test_input_stream_try_read (self);
 }
 
-/* Method called by TestStream to inform us that there is data to read */
-static void
-wocky_test_input_stream_data_available (WockyTestInputStream *self)
+static gboolean
+wocky_test_input_stream_try_read (WockyTestInputStream *self)
 {
   if (self->read_result == NULL)
     /* No pending read operation */
-    return;
+    return FALSE;
 
-  g_assert (check_data_to_read (self));
+  if (!check_data_to_read (self))
+    return FALSE;
+
+  if (self->out_array == NULL)
+    {
+      self->out_array = g_async_queue_try_pop (self->queue);
+      if (self->out_array == NULL)
+        return FALSE;
+    }
+
   read_async_complete (self);
+  return TRUE;
 }
 
 static void
