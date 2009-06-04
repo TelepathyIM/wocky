@@ -94,7 +94,8 @@ GType wocky_connector_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONNECTOR, WockyConnectorClass))
 
 #define wocky_connector_new(jid,...) \
-  ((WockyConnector *) g_object_new (WOCKY_TYPE_CONNECTOR,"jid",jid,__VA_ARGS__))
+  ((WockyConnector *) g_object_new (WOCKY_TYPE_CONNECTOR,\
+      "jid", jid , __VA_ARGS__ , NULL))
 
 void wocky_connector_dispose (GObject *object);
 

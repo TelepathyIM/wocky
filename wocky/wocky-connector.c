@@ -352,7 +352,7 @@ wocky_connector_class_init ( WockyConnectorClass *klass )
   g_object_class_install_property (oclass, PROP_JID, spec);
 
   spec = g_param_spec_string ("password", "pass", "Password", NULL, PATTR);
-  g_object_class_install_property (oclass, PROP_JID, spec);
+  g_object_class_install_property (oclass, PROP_PASS, spec);
 
   spec = g_param_spec_string ("resource", "resource",
       "XMPP resource to append to the jid", g_strdup("wocky"), INIT_PATTR);
@@ -367,7 +367,7 @@ wocky_connector_class_init ( WockyConnectorClass *klass )
   g_object_class_install_property (oclass, PROP_XMPP_HOST, spec);
 
   spec = g_param_spec_uint ("xmpp-port", "port",
-      "XMPP port", 0, 65535, 5222, PATTR);
+      "XMPP port", 0, 65535, 5222, INIT_PATTR);
   g_object_class_install_property (oclass, PROP_XMPP_PORT, spec);
 
   spec = g_param_spec_pointer ("connection", "connection",
@@ -558,6 +558,7 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
   WockyXmppStanza *stanza;
   WockyXmppNode   *tls;
   WockyXmppStanza *starttls;
+  gboolean         can_encrypt = FALSE;
 
   stanza =
     wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &priv->error);
@@ -583,27 +584,41 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
 
   tls =
     wocky_xmpp_node_get_child_ns (stanza->node, "starttls", WOCKY_XMPP_NS_TLS);
+  can_encrypt = (tls != NULL);
 
-  if ((tls == NULL) && priv->tls_required)
+  /* conditions:
+   * not encrypted, not encryptable, require encryption → ABORT
+   * encryptable                                        → STARTTLS
+   * encrypted || not encryptable                       → AUTH
+   */
+
+  if (!priv->encrypted && !can_encrypt && priv->tls_required)
     {
       abort_connect (data, NULL, WOCKY_CONNECTOR_ERR_NOT_SUPPORTED,
           "TLS requested but lack server support");
+      g_object_unref (stanza);
       return;
     }
-  else if (priv->encrypted || (tls == NULL))
-    {
-      request_auth (G_OBJECT (self), stanza);
-    }
-  else
+
+  if (!priv->encrypted && can_encrypt)
     {
       starttls = wocky_xmpp_stanza_new ("starttls");
       wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
       wocky_xmpp_connection_send_stanza_async (priv->conn, starttls,
           NULL, starttls_sent_cb, data);
       g_object_unref (starttls);
+      g_object_unref (stanza );
+      return;
     }
 
-  g_object_unref (stanza);
+  if (priv->encrypted || !can_encrypt)
+    {
+      request_auth (G_OBJECT (self), stanza);
+      g_object_unref (stanza);
+      return;
+    }
+
+  g_warning ("broken logic in wocky-connector: xmpp_features_cb\n");
 }
 
 static void
@@ -746,6 +761,11 @@ wocky_connector_connect_async (GObject *connector,
 
   const gchar *host = priv->jid ? rindex (priv->jid, '@') : NULL;
 
+  priv->result = g_simple_async_result_new (connector,
+      cb ,
+      user_data ,
+      wocky_connector_connect_finish);
+
   if (priv->state != WCON_DISCONNECTED)
     {
       abort_connect (self, NULL, WOCKY_CONNECTOR_ERR_IS_CONNECTED,
@@ -767,10 +787,6 @@ wocky_connector_connect_async (GObject *connector,
   priv->domain = g_strdup (host);
   priv->client = g_socket_client_new ();
   priv->state  = WCON_TCP_CONNECTING;
-  priv->result = g_simple_async_result_new (connector,
-      cb ,
-      user_data ,
-      wocky_connector_connect_finish);
 
   if (priv->xmpp_host)
     {
