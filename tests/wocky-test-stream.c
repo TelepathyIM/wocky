@@ -66,6 +66,7 @@ typedef struct {
   GArray *out_array;
   GSimpleAsyncResult *read_result;
   GCancellable *read_cancellable;
+  gulong read_cancellable_sig_id;
   void *buffer;
   gsize count;
   gboolean dispose_has_run;
@@ -303,9 +304,6 @@ wocky_test_input_stream_read_finish (GInputStream *stream,
       error))
     goto out;
 
-  if (g_cancellable_set_error_if_cancelled (self->read_cancellable, error))
-    goto out;
-
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (self), wocky_test_input_stream_read_finish), -1);
 
@@ -323,11 +321,28 @@ read_async_complete (WockyTestInputStream *self)
 {
   GSimpleAsyncResult *r = self->read_result;
 
+  if (self->read_cancellable != NULL)
+    {
+      g_signal_handler_disconnect (self->read_cancellable,
+          self->read_cancellable_sig_id);
+    }
+
   self->read_cancellable = NULL;
   self->read_result = NULL;
 
   g_simple_async_result_complete_in_idle (r);
   g_object_unref (r);
+}
+
+static void
+read_cancelled_cb (GCancellable *cancellable,
+    WockyTestInputStream *self)
+{
+  g_simple_async_result_set_error (self->read_result,
+      G_IO_ERROR, G_IO_ERROR_CANCELLED, "Reading cancelled");
+
+  self->buffer = NULL;
+  read_async_complete (self);
 }
 
 static void
@@ -354,6 +369,8 @@ wocky_test_input_stream_read_async (GInputStream *stream,
   if (cancellable != NULL)
     {
       self->read_cancellable = cancellable;
+      self->read_cancellable_sig_id = g_signal_connect (cancellable,
+          "cancelled", G_CALLBACK (read_cancelled_cb), self);
     }
 
   wocky_test_input_stream_try_read (self);
