@@ -783,6 +783,51 @@ test_error_is_open_or_closed (void)
   g_object_unref (stanza);
 }
 
+/* Send cancelled */
+static void
+recv_cancelled_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), res, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
+  g_error_free (error);
+}
+
+static void
+test_recv_cancel (void)
+{
+  WockyXmppStanza *stanza;
+  test_data_t *test = setup_test ();
+  GCancellable *cancellable;
+
+  test_open_connection (test);
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+
+  cancellable = g_cancellable_new ();
+
+  wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (test->out),
+    cancellable, recv_cancelled_cb, test);
+
+  g_cancellable_cancel (cancellable);
+
+  test->outstanding++;
+  test_wait_pending (test);
+
+  g_object_unref (stanza);
+  g_object_unref (cancellable);
+
+  test_close_connection (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -800,5 +845,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-connection/error-not-open", test_error_not_open);
   g_test_add_func ("/xmpp-connection/error-is-open-or-closed",
     test_error_is_open_or_closed);
+  g_test_add_func ("/xmpp-connection/recv-cancel", test_recv_cancel);
   return g_test_run ();
 }
