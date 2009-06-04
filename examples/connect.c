@@ -320,7 +320,7 @@ tcp_srv_connected (GObject *source,
     {
       g_message ("SRV connect failed: %s: %d, %s",
         g_quark_to_string (error->domain),
-        error->code, error->message);
+          error->code, error->message);
 
       g_message ("Falling back to direct connection");
       g_error_free (error);
@@ -337,19 +337,20 @@ static void
 connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
-  WockyXmppConnection *connection = 
+  WockyXmppConnection *connection =
     wocky_connector_connect_finish (source, res, &error);
 
-  if( connection != NULL )
-    printf( "connected!\n" );
+  if (connection != NULL)
+    {
+      printf ("connected!\n");
+    }
   else
     {
-      if( error )
-        fprintf (stderr, "%s: %d: %s\n", 
-            g_quark_to_string(error->domain), error->code, error->message );
+      if (error)
+        fprintf (stderr, "%s: %d: %s\n",
+            g_quark_to_string (error->domain), error->code, error->message);
       g_main_loop_quit (mainloop);
     }
-    
 }
 
 int
@@ -373,17 +374,20 @@ main (int argc,
     type = argv[3];
 
   mainloop = g_main_loop_new (NULL, FALSE);
-  
-  if (strcmp ("connector",type))
+
+  if (!strcmp ("connector",type))
     {
-      WockyConnector *wcon = wocky_connector_new (argv[1], "password", argv[2]);
-      if (wocky_connector_connect_async (G_OBJECT (wcon), 
+      WockyConnector *wcon = NULL;
+
+      wcon = wocky_connector_new (argv[1], "password", argv[2]);
+
+      if (wocky_connector_connect_async (G_OBJECT (wcon),
               connector_callback, NULL))
         {
           printf ("Instantiated connector and made successful connect call\n");
+          g_main_loop_run (mainloop);
         }
-      g_main_loop_run (mainloop);
-      
+
       return 0;
     }
 
