@@ -102,20 +102,9 @@ static void wocky_test_input_stream_data_available (WockyTestInputStream *self);
 
 static void
 output_data_written_cb (GOutputStream *output,
-    WockyTestStream *self)
+    WockyTestInputStream *input_stream)
 {
-  if (output == self->stream0_output)
-    {
-      wocky_test_input_stream_data_available (
-          WOCKY_TEST_INPUT_STREAM (self->stream1_input));
-    }
-  else if (output == self->stream1_output)
-    {
-      wocky_test_input_stream_data_available (
-          WOCKY_TEST_INPUT_STREAM (self->stream0_input));
-    }
-  else
-    g_assert_not_reached ();
+  wocky_test_input_stream_data_available (input_stream);
 }
 
 static void
@@ -126,12 +115,8 @@ wocky_test_stream_init (WockyTestStream *self)
     WockyTestStreamPrivate);
 
   self->stream0_output = g_object_new (WOCKY_TYPE_TEST_OUTPUT_STREAM, NULL);
-  g_signal_connect (self->stream0_output, "data-written",
-      G_CALLBACK (output_data_written_cb), self);
 
   self->stream1_output = g_object_new (WOCKY_TYPE_TEST_OUTPUT_STREAM, NULL);
-  g_signal_connect (self->stream1_output, "data-written",
-      G_CALLBACK (output_data_written_cb), self);
 
   self->stream0_input = g_object_new (WOCKY_TYPE_TEST_INPUT_STREAM, NULL);
   WOCKY_TEST_INPUT_STREAM (self->stream0_input)->queue =
@@ -150,6 +135,11 @@ wocky_test_stream_init (WockyTestStream *self)
   self->stream1 = g_object_new (WOCKY_TYPE_TEST_IO_STREAM, NULL);
   WOCKY_TEST_IO_STREAM (self->stream1)->input = self->stream1_input;
   WOCKY_TEST_IO_STREAM (self->stream1)->output = self->stream1_output;
+
+  g_signal_connect (self->stream0_output, "data-written",
+      G_CALLBACK (output_data_written_cb), self->stream1_input);
+  g_signal_connect (self->stream1_output, "data-written",
+      G_CALLBACK (output_data_written_cb), self->stream0_input);
 }
 
 static void wocky_test_stream_dispose (GObject *object);
