@@ -391,6 +391,92 @@ test_filter (void)
   teardown_test (test);
 }
 
+/* test if the send queue is flushed before closing the connection */
+static void
+test_close_stanza_received_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyXmppStanza *s;
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
+  if (g_queue_get_length (test->expected_stanzas) > 0)
+    {
+      WockyXmppStanza *expected;
+      g_assert (s != NULL);
+
+      expected = g_queue_pop_head (test->expected_stanzas);
+      g_assert (expected != NULL);
+
+      g_assert (wocky_xmpp_node_equal (s->node, expected->node));
+
+      wocky_xmpp_connection_recv_stanza_async (connection, NULL,
+          test_close_stanza_received_cb, user_data);
+      test->outstanding++;
+
+      g_object_unref (s);
+      g_object_unref (expected);
+    }
+  else
+    {
+      g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+          WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
+      g_error_free (error);
+
+      /* close on our side */
+      wocky_xmpp_connection_send_close_async (connection, NULL,
+          close_sent_cb, test);
+    }
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_sched_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  g_assert (wocky_xmpp_scheduler_close_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_flush (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *s;
+
+  test_open_both_connections (test);
+
+  wocky_xmpp_scheduler_start (test->sched_in);
+
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+  wocky_xmpp_scheduler_send (test->sched_in, s);
+  g_queue_push_tail (test->expected_stanzas, s);
+  test->outstanding++;
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+      test_close_stanza_received_cb, test);
+
+  wocky_xmpp_scheduler_close (test->sched_in, NULL, test_close_sched_close_cb,
+      test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -403,5 +489,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/send", test_send);
   g_test_add_func ("/xmpp-scheduler/receive", test_receive);
   g_test_add_func ("/xmpp-scheduler/filter", test_filter);
+  g_test_add_func ("/xmpp-scheduler/close-flush", test_close_flush);
   return g_test_run ();
 }
