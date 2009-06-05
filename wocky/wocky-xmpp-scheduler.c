@@ -39,6 +39,9 @@
 #include "wocky-xmpp-scheduler.h"
 #include "wocky-signals-marshal.h"
 
+#define DEBUG_FLAG DEBUG_XMPP_SCHEDULER
+#include "wocky-debug.h"
+
 G_DEFINE_TYPE(WockyXmppScheduler, wocky_xmpp_scheduler, G_TYPE_OBJECT)
 
 /* properties */
