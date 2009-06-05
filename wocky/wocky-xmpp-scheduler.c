@@ -585,7 +585,15 @@ wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
-  /* TODO: check if started */
+  if (priv->receive_cancellable == NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
+          WOCKY_XMPP_SCHEDULER_ERROR_NOT_STARTED,
+          "Scheduler has not been started");
+      return;
+    }
+
   /* TODO: raise error instead of asserting */
   /* TODO: check state */
 
