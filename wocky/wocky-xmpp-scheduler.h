@@ -91,6 +91,16 @@ void wocky_xmpp_scheduler_add_stanza_filter (WockyXmppScheduler *scheduler,
     WockyXmppSchedulerStanzaCallbackFunc callback,
     gpointer user_data);
 
+void wocky_xmpp_scheduler_close (WockyXmppScheduler *scheduler,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_xmpp_scheduler_close_finish (
+    WockyXmppScheduler *scheduler,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_SCHEDULER_H__*/

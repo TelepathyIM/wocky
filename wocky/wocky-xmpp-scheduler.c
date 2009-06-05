@@ -61,6 +61,8 @@ struct _WockyXmppSchedulerPrivate
   /* List of (StanzaFilter *) */
   GSList *stanza_filters;
 
+  GSimpleAsyncResult *close_result;
+
   WockyXmppConnection *connection;
 };
 
@@ -255,6 +257,12 @@ wocky_xmpp_scheduler_dispose (GObject *object)
       g_cancellable_cancel (priv->receive_cancellable);
       g_object_unref (priv->receive_cancellable);
       priv->receive_cancellable = NULL;
+    }
+
+  if (priv->close_result != NULL)
+    {
+      g_object_unref (priv->close_result);
+      priv->close_result = NULL;
     }
 
   if (G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->dispose)
@@ -454,7 +462,19 @@ stanza_received_cb (GObject *source,
       WOCKY_XMPP_CONNECTION (source), res, &error);
   if (stanza == NULL)
     {
-      /* TODO */
+      if (priv->close_result != NULL && g_error_matches (error,
+            WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
+        {
+          /* Close completed */
+          GSimpleAsyncResult *r = priv->close_result;
+
+          priv->close_result = NULL;
+          g_simple_async_result_complete_in_idle (r);
+          g_object_unref (r);
+        }
+
+      /* TODO: manage other cases */
+
       g_error_free (error);
       return;
     }
@@ -501,4 +521,58 @@ wocky_xmpp_scheduler_add_stanza_filter (WockyXmppScheduler *self,
   filter = stanza_filter_new (filter_func, callback, user_data);
 
   priv->stanza_filters = g_slist_append (priv->stanza_filters, filter);
+}
+
+static void
+close_sent_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GError *error = NULL;
+
+  if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
+        res, &error))
+    {
+      /* TODO */
+      g_error_free (error);
+      g_assert_not_reached ();
+    }
+}
+
+void
+wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  /* TODO: raise error instead of asserting */
+  g_assert (priv->close_result == NULL);
+  /* TODO: check state */
+
+  priv->close_result = g_simple_async_result_new (G_OBJECT (self),
+    callback, user_data, wocky_xmpp_scheduler_close_finish);
+
+  /* TODO: flush stanzas queues */
+  /* TODO: support cancellable */
+
+  wocky_xmpp_connection_send_close_async (priv->connection, NULL,
+      close_sent_cb, self);
+}
+
+gboolean
+wocky_xmpp_scheduler_close_finish (
+    WockyXmppScheduler *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_xmpp_scheduler_close_finish), FALSE);
+
+  return TRUE;
 }
