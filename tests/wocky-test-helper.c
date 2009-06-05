@@ -74,24 +74,47 @@ static void
 send_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
+  WockyXmppConnection *conn;
 
   g_assert (wocky_xmpp_connection_send_open_finish (
       WOCKY_XMPP_CONNECTION (source), res, NULL));
 
-  wocky_xmpp_connection_recv_open_async (data->out,
+  /* The other connection has to receive the opening */
+  if (WOCKY_XMPP_CONNECTION (source) == data->in)
+    conn = data->out;
+  else
+    conn = data->in;
+
+  wocky_xmpp_connection_recv_open_async (conn,
       NULL, send_received_open_cb, user_data);
 }
 
-/* Open XMPP connections on both sides */
-void
-test_open_connection (test_data_t *test)
+static void
+open_connection (test_data_t *test,
+    WockyXmppConnection *connection)
 {
-  wocky_xmpp_connection_send_open_async (test->in,
+  wocky_xmpp_connection_send_open_async (connection,
       NULL, NULL, NULL, NULL,
       NULL, send_open_cb, test);
+
   test->outstanding++;
 
   test_wait_pending (test);
+}
+
+/* Open XMPP the 'in' connection */
+void
+test_open_connection (test_data_t *test)
+{
+  open_connection (test, test->in);
+}
+
+/* Open both XMPP connections */
+void
+test_open_both_connections (test_data_t *test)
+{
+  open_connection (test, test->in);
+  open_connection (test, test->out);
 }
 
 static void
