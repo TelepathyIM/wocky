@@ -145,6 +145,7 @@ stanza_filter_free (StanzaFilter *filter)
 static void send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data);
+static void send_close (WockyXmppScheduler *self);
 
 static void
 wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
@@ -366,6 +367,12 @@ send_stanza_cb (GObject *source,
       /* Send next stanza */
       send_head_stanza (self);
     }
+  else if (priv->close_result != NULL)
+    {
+      /* Queue is empty and we are waiting to close the connection. */
+      DEBUG ("Queue has been flushed. Closing the connection.");
+      send_close (self);
+    }
 }
 
 static void
@@ -540,6 +547,16 @@ close_sent_cb (GObject *source,
     }
 }
 
+static void
+send_close (WockyXmppScheduler *self)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  /* TODO: support cancellable */
+  wocky_xmpp_connection_send_close_async (priv->connection, NULL,
+      close_sent_cb, self);
+}
+
 void
 wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
     GCancellable *cancellable,
@@ -548,18 +565,23 @@ wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
+  /* TODO: check if started */
   /* TODO: raise error instead of asserting */
-  g_assert (priv->close_result == NULL);
   /* TODO: check state */
+
+  g_assert (priv->close_result == NULL);
 
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_close_finish);
 
-  /* TODO: flush stanzas queues */
-  /* TODO: support cancellable */
+  if (g_queue_get_length (priv->sending_queue) > 0)
+    {
+      DEBUG ("Sending queue is not empty. Flushing it before "
+          "closing the connection.");
+      return;
+    }
 
-  wocky_xmpp_connection_send_close_async (priv->connection, NULL,
-      close_sent_cb, self);
+  send_close (self);
 }
 
 gboolean
