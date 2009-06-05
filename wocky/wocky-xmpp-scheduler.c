@@ -594,10 +594,16 @@ wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
       return;
     }
 
-  /* TODO: raise error instead of asserting */
-  /* TODO: check state */
+  if (priv->close_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
+          WOCKY_XMPP_SCHEDULER_ERROR_PENDING,
+          "Another close operation is pending");
+      return;
+    }
 
-  g_assert (priv->close_result == NULL);
+  /* TODO: check state */
 
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_close_finish);
