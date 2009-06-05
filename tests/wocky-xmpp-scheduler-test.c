@@ -289,6 +289,108 @@ test_receive (void)
   teardown_test (test);
 }
 
+/* filter testing */
+static gboolean
+test_filter_iq_filter (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  WockyStanzaType type;
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+  return type == WOCKY_STANZA_TYPE_IQ;
+}
+
+static void
+test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *expected;
+
+  expected = g_queue_pop_head (test->expected_stanzas);
+  g_assert (expected != NULL);
+  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static gboolean
+test_filter_presence_filter (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  WockyStanzaType type;
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+  return type == WOCKY_STANZA_TYPE_PRESENCE;
+}
+
+static void
+test_filter_presence_received_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  /* We didn't send any presence stanza so this callback shouldn't be
+   * called */
+  g_assert_not_reached ();
+}
+
+static void
+test_filter (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *msg, *iq;
+
+  test_open_both_connections (test);
+
+  /* register an IQ filter */
+  wocky_xmpp_scheduler_add_stanza_filter (test->sched_out,
+      test_filter_iq_filter, test_filter_iq_received_cb, test);
+
+  /* register a presence filter */
+  wocky_xmpp_scheduler_add_stanza_filter (test->sched_out,
+      test_filter_presence_filter, test_filter_presence_received_cb, test);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  /* Send a message */
+  msg = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send (test->sched_in, msg);
+  /* We don't expect this stanza as we didn't register any message filter */
+
+  /* Send an IQ */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send (test->sched_in, iq);
+  /* We expect to receive this stanza */
+  g_queue_push_tail (test->expected_stanzas, iq);
+  test->outstanding++;
+
+  test_wait_pending (test);
+  g_object_unref (msg);
+  g_object_unref (iq);
+
+  /* close connections */
+  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
+      wait_close_cb, test);
+
+  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+      test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -300,5 +402,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/initiation", test_instantiation);
   g_test_add_func ("/xmpp-scheduler/send", test_send);
   g_test_add_func ("/xmpp-scheduler/receive", test_receive);
+  g_test_add_func ("/xmpp-scheduler/filter", test_filter);
   return g_test_run ();
 }
