@@ -69,6 +69,24 @@ struct _WockyXmppSchedulerPrivate
   WockyXmppConnection *connection;
 };
 
+/**
+ * wocky_xmpp_scheduler_error_quark
+ *
+ * Get the error quark used by the scheduler.
+ *
+ * Returns: the quark for scheduler errors.
+ */
+GQuark
+wocky_xmpp_scheduler_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string ("wocky-xmpp-scheduler-error");
+
+  return quark;
+}
+
 #define WOCKY_XMPP_SCHEDULER_GET_PRIVATE(o)  \
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_SCHEDULER, \
     WockyXmppSchedulerPrivate))

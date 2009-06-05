@@ -31,6 +31,20 @@ G_BEGIN_DECLS
 typedef struct _WockyXmppScheduler WockyXmppScheduler;
 typedef struct _WockyXmppSchedulerClass WockyXmppSchedulerClass;
 
+typedef enum {
+  WOCKY_XMPP_SCHEDULER_ERROR_NOT_STARTED,
+} WockyXmppSchedulerError;
+
+GQuark wocky_xmpp_scheduler_error_quark (void);
+
+/**
+ * WOCKY_XMPP_SCHEDULER_ERROR:
+ *
+ * Get access to the error quark of the xmpp scheduler.
+ */
+#define WOCKY_XMPP_SCHEDULER_ERROR (wocky_xmpp_scheduler_error_quark ())
+
+
 struct _WockyXmppSchedulerClass {
     GObjectClass parent_class;
 };
