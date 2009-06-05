@@ -154,7 +154,6 @@ wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
   priv->sending_queue = g_queue_new ();
-  priv->receive_cancellable = g_cancellable_new ();
 }
 
 static void wocky_xmpp_scheduler_dispose (GObject *object);
@@ -513,7 +512,10 @@ wocky_xmpp_scheduler_start (WockyXmppScheduler *self)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
-  g_cancellable_reset (priv->receive_cancellable);
+  /* TODO: raise an error */
+  g_assert (priv->receive_cancellable == NULL);
+  priv->receive_cancellable = g_cancellable_new ();
+
   receive_stanza (self);
 }
 
