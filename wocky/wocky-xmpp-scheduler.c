@@ -77,6 +77,7 @@ struct _WockyXmppSchedulerPrivate
   GSimpleAsyncResult *close_result;
   gboolean remote_closed;
   gboolean local_closed;
+  GCancellable *close_cancellable;
 
   WockyXmppConnection *connection;
 };
@@ -638,6 +639,8 @@ close_sent_cb (GObject *source,
       g_simple_async_result_complete_in_idle (r);
       g_object_unref (r);
     }
+
+  priv->close_cancellable = NULL;
 }
 
 static void
@@ -645,9 +648,8 @@ send_close (WockyXmppScheduler *self)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
-  /* TODO: support cancellable */
-  wocky_xmpp_connection_send_close_async (priv->connection, NULL,
-      close_sent_cb, self);
+  wocky_xmpp_connection_send_close_async (priv->connection,
+      priv->close_cancellable, close_sent_cb, self);
 }
 
 void
@@ -687,6 +689,8 @@ wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
 
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_close_finish);
+
+  priv->close_cancellable = cancellable;
 
   if (g_queue_get_length (priv->sending_queue) > 0)
     {
