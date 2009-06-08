@@ -687,6 +687,49 @@ test_close_cancel (void)
   g_object_unref (cancellable);
 }
 
+/* Test if the remote-error signal is fired when scheduler got a read error */
+static void
+remote_error_cb (WockyXmppScheduler *scheduler,
+    GQuark domain,
+    guint code,
+    const gchar *message,
+    test_data_t *test)
+{
+  GError *err = g_error_new_literal (domain, code, message);
+
+  g_assert_error (err, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_error_free (err);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_reading_error (void)
+{
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+
+  g_signal_connect (test->sched_out, "remote-error",
+      G_CALLBACK (remote_error_cb), test);
+  test->outstanding++;
+
+  wocky_test_stream_read_error (test->stream);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+  test_wait_pending (test);
+
+  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
+      wait_close_cb, test);
+  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+      test);
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -704,5 +747,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/close-twice", test_close_twice);
   g_test_add_func ("/xmpp-scheduler/remote-close", test_remote_close);
   g_test_add_func ("/xmpp-scheduler/close-cancel", test_close_cancel);
+  g_test_add_func ("/xmpp-scheduler/reading-error", test_reading_error);
   return g_test_run ();
 }
