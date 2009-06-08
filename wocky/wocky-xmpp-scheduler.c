@@ -547,8 +547,10 @@ wocky_xmpp_scheduler_start (WockyXmppScheduler *self)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
-  /* TODO: raise an error */
-  g_assert (priv->receive_cancellable == NULL);
+  if (priv->receive_cancellable != NULL)
+    /* Scheduler has already been started */
+    return;
+
   priv->receive_cancellable = g_cancellable_new ();
 
   receive_stanza (self);
