@@ -609,6 +609,8 @@ close_sent_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   GError *error = NULL;
 
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
@@ -617,6 +619,16 @@ close_sent_cb (GObject *source,
       /* TODO */
       g_error_free (error);
       g_assert_not_reached ();
+    }
+
+  if (priv->close_result != NULL && priv->remote_closed)
+    {
+      /* Remote connection is already closed. Finish the close operation */
+      GSimpleAsyncResult *r = priv->close_result;
+
+      priv->close_result = NULL;
+      g_simple_async_result_complete_in_idle (r);
+      g_object_unref (r);
     }
 }
 
@@ -638,7 +650,7 @@ wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
-  if (priv->receive_cancellable == NULL)
+  if (priv->receive_cancellable == NULL && !priv->remote_closed)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_XMPP_SCHEDULER_ERROR,
