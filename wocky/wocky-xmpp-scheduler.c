@@ -75,6 +75,7 @@ struct _WockyXmppSchedulerPrivate
   GSList *stanza_filters;
 
   GSimpleAsyncResult *close_result;
+  gboolean remote_closed;
 
   WockyXmppConnection *connection;
 };
@@ -549,6 +550,7 @@ stanza_received_cb (GObject *source,
           priv->receive_cancellable = NULL;
         }
 
+      priv->remote_closed = TRUE;
       g_error_free (error);
       return;
     }
