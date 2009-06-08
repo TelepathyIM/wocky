@@ -367,20 +367,35 @@ send_stanza_cb (GObject *source,
   if (!wocky_xmpp_connection_send_stanza_finish (
         WOCKY_XMPP_CONNECTION (source), res, &error))
     {
-      g_simple_async_result_set_from_error (elem->result, error);
+      /* Sending failed. Cancel this sending operation and all the others
+       * pending ones as we won't be able to send any more stanza. */
+
+      while (elem != NULL)
+        {
+          g_simple_async_result_set_from_error (elem->result, error);
+          g_simple_async_result_complete (elem->result);
+          sending_queue_elem_free (elem);
+          elem = g_queue_pop_head (priv->sending_queue);
+        }
+
       g_error_free (error);
     }
-
-  g_simple_async_result_complete (elem->result);
-
-  sending_queue_elem_free (elem);
-
-  if (g_queue_get_length (priv->sending_queue) > 0)
+  else
     {
-      /* Send next stanza */
-      send_head_stanza (self);
+
+      g_simple_async_result_complete (elem->result);
+
+      sending_queue_elem_free (elem);
+
+      if (g_queue_get_length (priv->sending_queue) > 0)
+        {
+          /* Send next stanza */
+          send_head_stanza (self);
+        }
     }
-  else if (priv->close_result != NULL)
+
+  if (priv->close_result != NULL &&
+      g_queue_get_length (priv->sending_queue) == 0)
     {
       /* Queue is empty and we are waiting to close the connection. */
       DEBUG ("Queue has been flushed. Closing the connection.");
