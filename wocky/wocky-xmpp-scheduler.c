@@ -50,6 +50,15 @@ enum
   PROP_CONNECTION = 1,
 };
 
+/* signal enum */
+enum
+{
+    REMOTE_CLOSED,
+    LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = {0};
+
 /* private structure */
 typedef struct _WockyXmppSchedulerPrivate WockyXmppSchedulerPrivate;
 
@@ -245,6 +254,12 @@ wocky_xmpp_scheduler_class_init (
   object_class->get_property = wocky_xmpp_scheduler_get_property;
   object_class->dispose = wocky_xmpp_scheduler_dispose;
   object_class->finalize = wocky_xmpp_scheduler_finalize;
+
+  signals[REMOTE_CLOSED] = g_signal_new ("remote-closed",
+      G_OBJECT_CLASS_TYPE (wocky_xmpp_scheduler_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 
   spec = g_param_spec_object ("connection", "XMPP connection",
     "the XMPP connection used by this scheduler",
@@ -500,13 +515,18 @@ stanza_received_cb (GObject *source,
       WOCKY_XMPP_CONNECTION (source), res, &error);
   if (stanza == NULL)
     {
-      if (priv->close_result != NULL && g_error_matches (error,
-            WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
+      if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+            WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
         {
-          /* Close completed */
-          g_simple_async_result_complete_in_idle (priv->close_result);
-          g_object_unref (priv->close_result);
-          priv->close_result = NULL;
+          if (priv->close_result != NULL)
+            {
+              /* Close completed */
+              g_simple_async_result_complete_in_idle (priv->close_result);
+              g_object_unref (priv->close_result);
+              priv->close_result = NULL;
+            }
+
+          g_signal_emit (self, signals[REMOTE_CLOSED], 0);
         }
 
       /* TODO: manage other cases */
