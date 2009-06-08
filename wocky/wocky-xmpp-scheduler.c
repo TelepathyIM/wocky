@@ -500,6 +500,12 @@ stanza_received_cb (GObject *source,
 
       /* TODO: manage other cases */
 
+      if (priv->receive_cancellable != NULL)
+        {
+          g_object_unref (priv->receive_cancellable);
+          priv->receive_cancellable = NULL;
+        }
+
       g_error_free (error);
       return;
     }
