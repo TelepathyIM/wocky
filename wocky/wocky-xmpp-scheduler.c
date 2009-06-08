@@ -615,7 +615,8 @@ close_sent_cb (GObject *source,
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   GError *error = NULL;
 
-  priv->local_closed = TRUE;
+  if (!g_cancellable_is_cancelled (priv->close_cancellable))
+    priv->local_closed = TRUE;
 
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
