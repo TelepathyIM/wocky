@@ -297,17 +297,12 @@ wocky_xmpp_scheduler_finalize (GObject *object)
   WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
   WockyXmppSchedulerPrivate *priv =
       WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  sending_queue_elem *elem;
   GSList *l;
 
-  elem = g_queue_pop_head (priv->sending_queue);
-  while (elem != NULL)
-    {
-      /* FIXME: call cb? */
-      sending_queue_elem_free (elem);
-      elem = g_queue_pop_head (priv->sending_queue);
-    }
-
+  /* sending_queue_elem keeps a ref on the Scheduler (through the
+   * GSimpleAsyncResult) so it shouldn't be destroyed while there are
+   * elements in the queue. */
+  g_assert_cmpuint (g_queue_get_length (priv->sending_queue), ==, 0);
   g_queue_free (priv->sending_queue);
 
   for (l = priv->stanza_filters; l != NULL; l = g_slist_next (l))
