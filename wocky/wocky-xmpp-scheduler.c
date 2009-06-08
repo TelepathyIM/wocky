@@ -626,6 +626,7 @@ close_sent_cb (GObject *source,
       g_simple_async_result_complete_in_idle (r);
 
       g_error_free (error);
+      g_object_unref (r);
     }
 
   if (priv->close_result != NULL && priv->remote_closed)
