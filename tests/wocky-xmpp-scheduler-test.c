@@ -643,6 +643,56 @@ test_remote_close (void)
   teardown_test (test);
 }
 
+/* Test cancelling a close operation */
+static void
+sched_close_cancelled_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_scheduler_close_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, &error));
+
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_cancel (void)
+{
+  test_data_t *test = setup_test ();
+  GCancellable *cancellable;
+
+  test_open_both_connections (test);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  cancellable = g_cancellable_new ();
+
+  wocky_xmpp_scheduler_close (test->sched_out, cancellable,
+      sched_close_cancelled_cb, test);
+
+  g_cancellable_cancel (cancellable);
+
+  test->outstanding++;
+  test_wait_pending (test);
+
+  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
+      wait_close_cb, test);
+  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+      test);
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+  g_object_unref (cancellable);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -659,5 +709,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/close-not-started", test_close_not_started);
   g_test_add_func ("/xmpp-scheduler/close-twice", test_close_twice);
   g_test_add_func ("/xmpp-scheduler/remote-close", test_remote_close);
+  g_test_add_func ("/xmpp-scheduler/close-cancel", test_close_cancel);
   return g_test_run ();
 }
