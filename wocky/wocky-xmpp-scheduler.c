@@ -54,6 +54,7 @@ enum
 enum
 {
     REMOTE_CLOSED,
+    REMOTE_ERROR,
     LAST_SIGNAL
 };
 
@@ -260,6 +261,12 @@ wocky_xmpp_scheduler_class_init (
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
+
+  signals[REMOTE_ERROR] = g_signal_new ("remote-error",
+      G_OBJECT_CLASS_TYPE (wocky_xmpp_scheduler_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__UINT_INT_STRING,
+      G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
 
   spec = g_param_spec_object ("connection", "XMPP connection",
     "the XMPP connection used by this scheduler",
@@ -526,10 +533,15 @@ stanza_received_cb (GObject *source,
               priv->close_result = NULL;
             }
 
+          DEBUG ("Remote connection has been closed");
           g_signal_emit (self, signals[REMOTE_CLOSED], 0);
         }
-
-      /* TODO: manage other cases */
+      else
+        {
+          DEBUG ("Error receiving stanza: %s\n", error->message);
+          g_signal_emit (self, signals[REMOTE_ERROR], 0, error->domain,
+              error->code, error->message);
+        }
 
       if (priv->receive_cancellable != NULL)
         {
