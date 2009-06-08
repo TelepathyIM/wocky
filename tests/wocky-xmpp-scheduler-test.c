@@ -567,6 +567,53 @@ test_close_twice (void)
   teardown_test (test);
 }
 
+/* Test if the remote-closed signal is emitted when the other side closes his
+ * XMPP connection */
+static void
+remote_closed_cb (WockyXmppScheduler *scheduler,
+    test_data_t *test)
+{
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_remote_close_in_close_send_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_send_close_finish (
+    WOCKY_XMPP_CONNECTION (source), res, NULL));
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
+}
+
+static void
+test_remote_close (void)
+{
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  g_signal_connect (test->sched_out, "remote-closed",
+      G_CALLBACK (remote_closed_cb), test);
+  test->outstanding++;
+
+  wocky_xmpp_connection_send_close_async (
+    WOCKY_XMPP_CONNECTION (test->in),
+    NULL, test_remote_close_in_close_send_cb, test);
+  test->outstanding++;
+
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -582,5 +629,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/close-flush", test_close_flush);
   g_test_add_func ("/xmpp-scheduler/close-not-started", test_close_not_started);
   g_test_add_func ("/xmpp-scheduler/close-twice", test_close_twice);
+  g_test_add_func ("/xmpp-scheduler/remote-close", test_remote_close);
   return g_test_run ();
 }
