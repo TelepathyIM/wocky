@@ -611,6 +611,11 @@ test_remote_close (void)
 
   test_wait_pending (test);
 
+  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+      test);
+  test->outstanding++;
+  test_wait_pending (test);
+
   teardown_test (test);
 }
 
