@@ -275,6 +275,7 @@ wocky_xmpp_scheduler_dispose (GObject *object)
 
   if (priv->receive_cancellable != NULL)
     {
+      g_warning ("Disposing a not closed XMPP scheduler");
       g_cancellable_cancel (priv->receive_cancellable);
       g_object_unref (priv->receive_cancellable);
       priv->receive_cancellable = NULL;
