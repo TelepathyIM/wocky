@@ -619,9 +619,13 @@ close_sent_cb (GObject *source,
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
     {
-      /* TODO */
+      GSimpleAsyncResult *r = priv->close_result;
+
+      priv->close_result = NULL;
+      g_simple_async_result_set_from_error (r, error);
+      g_simple_async_result_complete_in_idle (r);
+
       g_error_free (error);
-      g_assert_not_reached ();
     }
 
   if (priv->close_result != NULL && priv->remote_closed)
