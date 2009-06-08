@@ -545,6 +545,24 @@ test_close_twice_cb (GObject *source,
 }
 
 static void
+test_close_twice_cb2 (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_scheduler_close_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
+      WOCKY_XMPP_SCHEDULER_ERROR_CLOSED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
 test_close_twice (void)
 {
   test_data_t *test = setup_test ();
@@ -562,6 +580,12 @@ test_close_twice (void)
       test);
 
   test->outstanding += 3;
+  test_wait_pending (test);
+
+  /* Retry now that the scheduler has been closed */
+  wocky_xmpp_scheduler_close (test->sched_in, NULL, test_close_twice_cb2,
+      test);
+  test->outstanding++;
   test_wait_pending (test);
 
   teardown_test (test);
