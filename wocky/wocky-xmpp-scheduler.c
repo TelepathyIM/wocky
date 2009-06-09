@@ -615,8 +615,17 @@ close_sent_cb (GObject *source,
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   GError *error = NULL;
 
-  if (!g_cancellable_is_cancelled (priv->close_cancellable))
-    priv->local_closed = TRUE;
+  priv->local_closed = TRUE;
+
+  if (g_cancellable_is_cancelled (priv->close_cancellable))
+    {
+      g_simple_async_result_set_error (priv->close_result, G_IO_ERROR,
+          G_IO_ERROR_CANCELLED, "closing operation was cancelled");
+      g_simple_async_result_complete_in_idle (priv->close_result);
+
+      g_object_unref (priv->close_result);
+      priv->close_result = NULL;
+    }
 
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
@@ -647,7 +656,7 @@ send_close (WockyXmppScheduler *self)
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
   wocky_xmpp_connection_send_close_async (priv->connection,
-      priv->close_cancellable, close_sent_cb, self);
+      NULL, close_sent_cb, self);
 }
 
 void

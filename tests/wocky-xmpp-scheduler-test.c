@@ -673,18 +673,13 @@ test_close_cancel (void)
 
   cancellable = g_cancellable_new ();
 
+  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
+      wait_close_cb, test);
   wocky_xmpp_scheduler_close (test->sched_out, cancellable,
       sched_close_cancelled_cb, test);
 
   g_cancellable_cancel (cancellable);
 
-  test->outstanding++;
-  test_wait_pending (test);
-
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
-      test);
   test->outstanding += 2;
   test_wait_pending (test);
 
