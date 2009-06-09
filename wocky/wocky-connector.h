@@ -46,13 +46,13 @@ typedef struct _WockyConnectorClass WockyConnectorClass;
  * The #WockyConnector specific errors that can occur while connecting.
  */
 typedef enum {
-  WOCKY_CONNECTOR_ERR_UNKNOWN         ,
-  WOCKY_CONNECTOR_ERR_IS_CONNECTED    ,
-  WOCKY_CONNECTOR_ERR_BAD_JID         ,
-  WOCKY_CONNECTOR_ERR_DISCONNECTED    ,
-  WOCKY_CONNECTOR_ERR_MALFORMED_XMPP  ,
-  WOCKY_CONNECTOR_ERR_NOT_SUPPORTED   ,
-  WOCKY_CONNECTOR_ERR_REFUSED         ,
+  WOCKY_CONNECTOR_ERR_UNKNOWN,
+  WOCKY_CONNECTOR_ERR_IS_CONNECTED,
+  WOCKY_CONNECTOR_ERR_BAD_JID,
+  WOCKY_CONNECTOR_ERR_DISCONNECTED,
+  WOCKY_CONNECTOR_ERR_MALFORMED_XMPP,
+  WOCKY_CONNECTOR_ERR_NOT_SUPPORTED,
+  WOCKY_CONNECTOR_ERR_REFUSED,
   WOCKY_CONNECTOR_ERR_AUTH_FAILED
 } WockyConnectorError;
 
@@ -93,22 +93,14 @@ GType wocky_connector_get_type (void);
 #define WOCKY_CONNECTOR_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONNECTOR, WockyConnectorClass))
 
-#define wocky_connector_new(jid,...) \
-  ((WockyConnector *) g_object_new (WOCKY_TYPE_CONNECTOR,\
-      "jid", jid , __VA_ARGS__ , NULL))
-
-void wocky_connector_dispose (GObject *object);
-
-void wocky_connector_finalise (GObject *object);
-
 WockyXmppConnection *
 wocky_connector_connect_finish (GObject *connector,
-                                GAsyncResult *res,
-                                GError **error);
+    GAsyncResult *res,
+    GError **error);
 
 gboolean wocky_connector_connect_async (GObject *connector,
-                                        GAsyncReadyCallback cb,
-                                        gpointer user_data);
+    GAsyncReadyCallback cb,
+    gpointer user_data);
 
 G_END_DECLS
 
