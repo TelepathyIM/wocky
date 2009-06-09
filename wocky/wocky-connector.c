@@ -84,30 +84,29 @@ static void starttls_recv_cb (GObject *source, GAsyncResult *result,
 static void request_auth (GObject *object, WockyXmppStanza *stanza);
 static void auth_done (GObject *source, GAsyncResult *result,  gpointer data);
 
-
 enum
 {
-  PROP_JID            =1,
-  PROP_PASS             ,
-  PROP_AUTH_INSECURE_OK ,
-  PROP_TLS_INSECURE_OK  ,
+  PROP_JID =1,
+  PROP_PASS,
+  PROP_AUTH_INSECURE_OK,
+  PROP_TLS_INSECURE_OK,
   PROP_ENC_PLAIN_AUTH_OK,
-  PROP_RESOURCE         ,
-  PROP_TLS_REQUIRED     ,
-  PROP_XMPP_PORT        ,
-  PROP_XMPP_HOST        ,
-  PROP_IDENTITY         ,
+  PROP_RESOURCE,
+  PROP_TLS_REQUIRED,
+  PROP_XMPP_PORT,
+  PROP_XMPP_HOST,
+  PROP_IDENTITY,
   PROP_CONNECTION
 };
 
 typedef enum
 {
-  WCON_DISCONNECTED    ,
-  WCON_TCP_CONNECTING  ,
-  WCON_TCP_CONNECTED   ,
+  WCON_DISCONNECTED,
+  WCON_TCP_CONNECTING,
+  WCON_TCP_CONNECTED,
   WCON_XMPP_INITIALISED,
   WCON_XMPP_TLS_STARTED
-} connstate;
+} connector_state;
 
 
 typedef struct _WockyConnectorPrivate WockyConnectorPrivate;
@@ -116,9 +115,13 @@ struct _WockyConnectorPrivate
 {
   /* properties: */
   GIOStream *stream;
-  gboolean   auth_insecure_ok; /* can we auth over non-ssl */
-  gboolean   cert_insecure_ok; /* care about bad certs etc? not handled yet */
-  gboolean   encrypted_plain_auth_ok; /* plaintext auth over secure channel */
+
+  /* caller's choices about what to allow/disallow */
+  gboolean auth_insecure_ok; /* can we auth over non-ssl */
+  gboolean cert_insecure_ok; /* care about bad certs etc? not handled yet */
+  gboolean encrypted_plain_auth_ok; /* plaintext auth over secure channel */
+
+  /* xmpp account related properties */
   gchar     *jid;
   gchar     *resource;
   gboolean   tls_required;
@@ -131,27 +134,27 @@ struct _WockyConnectorPrivate
   gchar     *domain;   /* the post @ part of the initial JID */
 
   /* misc internal state: */
-  GError    *error /* no this is not an uninitialisd gerror. really */;
-  connstate  state;
-  gboolean   defunct;
-  gboolean   authed;
-  gboolean   encrypted;
+  GError *error /* no this is not an uninitialisd gerror. really */;
+  connector_state state;
+  gboolean defunct;
+  gboolean authed;
+  gboolean encrypted;
   GSimpleAsyncResult *result;
 
   /* socket/tls/etc structures */
-  GSocketClient       *client;
-  GSocketConnection   *sock;
-  GTLSSession         *tls_sess;
-  GTLSConnection      *tls;
+  GSocketClient *client;
+  GSocketConnection *sock;
+  GTLSSession *tls_sess;
+  GTLSConnection *tls;
   WockyXmppConnection *conn;
 };
 
 #define WOCKY_CONNECTOR_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_CONNECTOR,WockyConnectorPrivate))
 
-/* during XMPP setup, we have to loop through very similar states 
-   (handling the same stanza types) about 3 times: the handling is 
-   almost identical, with the few differences depending on which 
+/* during XMPP setup, we have to loop through very similar states
+   (handling the same stanza types) about 3 times: the handling is
+   almost identical, with the few differences depending on which
    of these states we are in: AUTHENTICATED, ENCRYPTED or INITIAL
    This macro wraps up the logic of inspecting our internal state
    and deciding which condition applies: */
@@ -171,10 +174,10 @@ copy_error (WockyConnector *connector, GError *error)
 
 static void
 abort_connect (WockyConnector *connector,
-               GError *error,
-               int code,
-               const char *fmt,
-               ...)
+    GError *error,
+    int code,
+    const char *fmt,
+    ...)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
 
@@ -215,7 +218,7 @@ wocky_connector_error_quark (void)
 }
 
 static void
-wocky_connector_init ( WockyConnector *obj )
+wocky_connector_init (WockyConnector *obj)
 {
   /* WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (obj); */
   return;
@@ -223,9 +226,9 @@ wocky_connector_init ( WockyConnector *obj )
 
 static void
 wocky_connector_set_property (GObject *object,
-                              guint property_id,
-                              const GValue *value,
-                              GParamSpec *pspec)
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
 {
   WockyConnector *connector = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
@@ -274,9 +277,9 @@ wocky_connector_set_property (GObject *object,
 
 static void
 wocky_connector_get_property (GObject *object,
-                              guint property_id,
-                              GValue *value,
-                              GParamSpec *pspec)
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
 {
   WockyConnector *connector = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
@@ -326,7 +329,7 @@ wocky_connector_get_property (GObject *object,
 #define INIT_PATTR ( PATTR | G_PARAM_CONSTRUCT )
 
 static void
-wocky_connector_class_init ( WockyConnectorClass *klass )
+wocky_connector_class_init (WockyConnectorClass *klass)
 {
   GObjectClass *oclass = G_OBJECT_CLASS (klass);
   GParamSpec *spec;
@@ -419,8 +422,8 @@ wocky_connector_finalise (GObject *object)
 
 static void
 tcp_srv_connected (GObject *source,
-                   GAsyncResult *result,
-                   gpointer connector)
+    GAsyncResult *result,
+    gpointer connector)
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (connector);
@@ -450,8 +453,8 @@ tcp_srv_connected (GObject *source,
 
 static void
 tcp_host_connected (GObject *source,
-                    GAsyncResult *result,
-                    gpointer connector)
+    GAsyncResult *result,
+    gpointer connector)
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (connector);
@@ -737,8 +740,8 @@ auth_done (GObject *source, GAsyncResult *result,  gpointer data)
  * ************************************************************************* */
 WockyXmppConnection *
 wocky_connector_connect_finish (GObject *connector,
-                                GAsyncResult *res,
-                                GError **error)
+    GAsyncResult *res,
+    GError **error)
 {
   WockyConnector        *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -759,8 +762,8 @@ wocky_connector_connect_finish (GObject *connector,
 
 gboolean
 wocky_connector_connect_async (GObject *connector,
-                               GAsyncReadyCallback cb,
-                               gpointer user_data)
+    GAsyncReadyCallback cb,
+    gpointer user_data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
