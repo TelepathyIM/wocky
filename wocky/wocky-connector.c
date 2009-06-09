@@ -149,8 +149,14 @@ struct _WockyConnectorPrivate
 #define WOCKY_CONNECTOR_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_CONNECTOR,WockyConnectorPrivate))
 
-#define WOCKY_CONNECTOR_CHOOSE_BY_STATE( p, a, b, c ) \
-  (p->authed) ? a : (p->encrypted) ? b : c
+/* during XMPP setup, we have to loop through very similar states 
+   (handling the same stanza types) about 3 times: the handling is 
+   almost identical, with the few differences depending on which 
+   of these states we are in: AUTHENTICATED, ENCRYPTED or INITIAL
+   This macro wraps up the logic of inspecting our internal state
+   and deciding which condition applies: */
+#define WOCKY_CONNECTOR_CHOOSE_BY_STATE(p, authenticated, encrypted, initial)\
+  (p->authed) ? authenticated : (p->encrypted) ? encrypted : initial
 
 /* if (p->authed) v = a; else if (p->encrypted) v = b; else v = c; */
 
