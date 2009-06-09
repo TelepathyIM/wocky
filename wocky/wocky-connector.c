@@ -467,7 +467,7 @@ tcp_host_connected (GObject *source,
     g_socket_client_connect_to_host_finish (G_SOCKET_CLIENT (source),
         result, &error);
 
-  if (!priv->sock)
+  if (priv->sock == NULL)
     {
       DEBUG ("HOST connect failed: %s\n", error->message);
       abort_connect (connector, error, WOCKY_CONNECTOR_ERR_DISCONNECTED,
