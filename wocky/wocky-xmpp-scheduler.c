@@ -466,11 +466,9 @@ stanza_received_cb (GObject *source,
             WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
         {
           /* Close completed */
-          GSimpleAsyncResult *r = priv->close_result;
-
+          g_simple_async_result_complete_in_idle (priv->close_result);
+          g_object_unref (priv->close_result);
           priv->close_result = NULL;
-          g_simple_async_result_complete_in_idle (r);
-          g_object_unref (r);
         }
 
       /* TODO: manage other cases */
