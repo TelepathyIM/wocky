@@ -379,7 +379,7 @@ wocky_connector_class_init ( WockyConnectorClass *klass )
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
 #define GFREE_AND_FORGET(x) g_free (x); x = NULL;
 
-void
+static void
 wocky_connector_dispose (GObject *object)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
@@ -405,7 +405,7 @@ wocky_connector_dispose (GObject *object)
     G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
 }
 
-void
+static void
 wocky_connector_finalise (GObject *object)
 {
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
