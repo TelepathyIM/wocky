@@ -556,7 +556,7 @@ xmpp_init_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
         xmpp_features_cb, data);
 
   g_free (version);
-  g_free (from   );
+  g_free (from);
 }
 
 static void
