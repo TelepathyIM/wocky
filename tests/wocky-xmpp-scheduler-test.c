@@ -733,6 +733,24 @@ test_reading_error (void)
 /* Test if the right error is raised when trying to send a stanza through a
  * closed scheduler */
 static void
+test_send_closing_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
+      WOCKY_XMPP_SCHEDULER_ERROR_CLOSING);
+
+  g_error_free (error);
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
+}
+
+static void
 test_send_closed_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
@@ -764,14 +782,18 @@ test_send_closed (void)
       wait_close_cb, test);
   wocky_xmpp_scheduler_close (test->sched_in, NULL, sched_close_cb,
       test);
-  test->outstanding += 2;
-  test_wait_pending (test);
 
-  /* try to send a stanza after the closing */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
+  /* try to send a stanza while closing */
+  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, test_send_closing_cb,
+      test);
+  test->outstanding += 3;
+  test_wait_pending (test);
+
+  /* try to send a stanza after the closing */
   wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, test_send_closed_cb,
       test);
   g_object_unref (s);
