@@ -440,9 +440,9 @@ tcp_srv_connected (GObject *source,
   if (priv->sock == NULL)
     {
       const gchar *host = rindex (priv->jid, '@') + 1;
-      g_message ("SRV connect failed: %s: %d, %s",
+      DEBUG ("SRV connect failed: %s: %d, %s",
           g_quark_to_string (error->domain), error->code, error->message);
-      g_message ("Falling back to direct connection");
+      DEBUG ("Falling back to direct connection");
       g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
       g_socket_client_connect_to_host_async (priv->client,
@@ -470,7 +470,7 @@ tcp_host_connected (GObject *source,
 
   if (!priv->sock)
     {
-      g_message ("HOST connect failed: %s: %d, %s\n",
+      DEBUG ("HOST connect failed: %s: %d, %s\n",
           g_quark_to_string (error->domain),
           error->code, error->message);
 
