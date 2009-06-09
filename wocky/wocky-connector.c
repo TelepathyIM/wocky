@@ -630,7 +630,7 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
       return;
     }
 
-  g_warning ("broken logic in wocky-connector: xmpp_features_cb\n");
+  DEBUG ("broken logic in wocky-connector: xmpp_features_cb\n");
 }
 
 static void
