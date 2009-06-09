@@ -454,6 +454,15 @@ wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   sending_queue_elem *elem;
 
+  if (priv->close_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
+          WOCKY_XMPP_SCHEDULER_ERROR_CLOSING,
+          "Scheduler is closing");
+      return;
+    }
+
   elem = sending_queue_elem_new (self, stanza, cancellable, callback,
       user_data);
   g_queue_push_tail (priv->sending_queue, elem);
