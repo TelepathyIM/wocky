@@ -544,7 +544,7 @@ xmpp_init_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
       return;
     }
 
-  if ((version == NULL) || strcmp (version, "1.0"))
+  if (wocky_strdiff (version, "1.0"))
     {
       abort_connect (self, NULL, WOCKY_CONNECTOR_ERR_MALFORMED_XMPP,
           "Server not XMPP Compliant");
@@ -566,6 +566,7 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   WockyXmppNode   *tls;
+  WockyXmppNode   *node;
   WockyXmppStanza *starttls;
   gboolean         can_encrypt = FALSE;
 
@@ -579,8 +580,10 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
       return;
     }
 
-  if (strcmp (stanza->node->name, "features") ||
-      strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM))
+  node = stanza->node;
+
+  if (wocky_strdiff (node->name, "features") ||
+      wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
     {
       const char *msg =
         WOCKY_CONNECTOR_CHOOSE_BY_STATE (priv,
@@ -592,7 +595,7 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
     }
 
   tls =
-    wocky_xmpp_node_get_child_ns (stanza->node, "starttls", WOCKY_XMPP_NS_TLS);
+    wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS);
   can_encrypt = (tls != NULL);
 
   /* conditions:
@@ -655,6 +658,7 @@ starttls_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppNode *node;
 
   stanza =
     wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &priv->error);
@@ -666,8 +670,10 @@ starttls_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
       return;
     }
 
-  if (strcmp (stanza->node->name, "proceed") ||
-      strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_TLS))
+  node = stanza->node;
+
+  if (wocky_strdiff (node->name, "proceed") ||
+      wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_TLS))
     {
       if (priv->tls_required)
         {
