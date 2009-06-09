@@ -203,7 +203,7 @@ abort_connect (WockyConnector *connector,
     }
 
   g_simple_async_result_set_from_error (priv->result, priv->error);
-  g_simple_async_result_complete ( priv->result );
+  g_simple_async_result_complete_in_idle ( priv->result );
 }
 
 GQuark
