@@ -772,6 +772,13 @@ wocky_connector_connect_async (GObject *connector,
   WockyConnector *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
+  /* 'host' is (by default) the part of the jid after the @
+   *  it must be non-empty (although this test may need to be changed
+   *  for serverless XMPP (eg 'Bonjour')): if the xmpp_host property
+   *  is set, it takes precedence for the purposes of finding a
+   *  an XMPP server: Otherwise we look for a SRV record for 'host',
+   *  falling back to a direct connection to 'host' if that fails.
+   */
   const gchar *host = priv->jid ? rindex (priv->jid, '@') : NULL;
 
   priv->result = g_simple_async_result_new (connector,
