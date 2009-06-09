@@ -134,7 +134,7 @@ struct _WockyConnectorPrivate
   gchar     *domain;   /* the post @ part of the initial JID */
 
   /* misc internal state: */
-  GError *error /* no this is not an uninitialisd gerror. really */;
+  GError *error /* no this is not an uninitialisd GError. really */;
   connector_state state;
   gboolean defunct;
   gboolean authed;
@@ -403,12 +403,6 @@ wocky_connector_dispose (GObject *object)
   UNREF_AND_FORGET (priv->sock);
   UNREF_AND_FORGET (priv->tls_sess);
   UNREF_AND_FORGET (priv->tls);
-  GFREE_AND_FORGET (priv->jid);
-  GFREE_AND_FORGET (priv->user);
-  GFREE_AND_FORGET (priv->domain);
-  GFREE_AND_FORGET (priv->resource);
-  GFREE_AND_FORGET (priv->identity);
-  GFREE_AND_FORGET (priv->xmpp_host);
 
   if (G_OBJECT_CLASS (wocky_connector_parent_class )->dispose)
     G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
@@ -417,6 +411,16 @@ wocky_connector_dispose (GObject *object)
 static void
 wocky_connector_finalise (GObject *object)
 {
+  WockyConnector *self = WOCKY_CONNECTOR (object);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  GFREE_AND_FORGET (priv->jid);
+  GFREE_AND_FORGET (priv->user);
+  GFREE_AND_FORGET (priv->domain);
+  GFREE_AND_FORGET (priv->resource);
+  GFREE_AND_FORGET (priv->identity);
+  GFREE_AND_FORGET (priv->xmpp_host);
+
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
 
