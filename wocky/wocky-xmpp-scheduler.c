@@ -679,8 +679,8 @@ wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
   if (priv->close_result != NULL)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
-          WOCKY_XMPP_SCHEDULER_ERROR_PENDING,
+          user_data, G_IO_ERROR,
+          G_IO_ERROR_PENDING,
           "Another close operation is pending");
       return;
     }

@@ -536,8 +536,7 @@ test_close_twice_cb (GObject *source,
 
   g_assert (!wocky_xmpp_scheduler_close_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
-  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
-      WOCKY_XMPP_SCHEDULER_ERROR_PENDING);
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PENDING);
   g_error_free (error);
 
   test->outstanding--;

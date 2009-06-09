@@ -33,7 +33,6 @@ typedef struct _WockyXmppSchedulerClass WockyXmppSchedulerClass;
 
 typedef enum {
   WOCKY_XMPP_SCHEDULER_ERROR_NOT_STARTED,
-  WOCKY_XMPP_SCHEDULER_ERROR_PENDING,
   WOCKY_XMPP_SCHEDULER_ERROR_CLOSED,
 } WockyXmppSchedulerError;
 
