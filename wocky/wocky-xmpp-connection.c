@@ -380,8 +380,7 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
 pending:
   g_simple_async_report_error_in_idle (G_OBJECT (connection),
     callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-    "Another send operation is pending");
+    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
   return;
 
 is_open:
@@ -563,8 +562,7 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
 pending:
   g_simple_async_report_error_in_idle (G_OBJECT (connection),
     callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-    "Another receive operation is pending");
+    G_IO_ERROR, G_IO_ERROR_PENDING, "Another receive operation is pending");
   return;
 
 is_closed:
@@ -692,8 +690,7 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
 pending:
   g_simple_async_report_error_in_idle (G_OBJECT (connection),
     callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-    "Another send operation is pending");
+    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
   return;
 
 not_open:
@@ -784,8 +781,7 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
 pending:
   g_simple_async_report_error_in_idle (G_OBJECT (connection),
     callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-    "Another receive operation is pending");
+    G_IO_ERROR, G_IO_ERROR_PENDING, "Another receive operation is pending");
   return;
 
 not_open:
@@ -916,8 +912,7 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
 pending:
   g_simple_async_report_error_in_idle (G_OBJECT (connection),
     callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_PENDING,
-    "Another send operation is pending");
+    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
   return;
 
 not_open:

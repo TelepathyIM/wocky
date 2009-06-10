@@ -36,8 +36,6 @@ typedef struct _WockyXmppConnectionClass WockyXmppConnectionClass;
  * @WOCKY_XMPP_CONNECTION_ERROR_EOS : Connection got closed before receiving
  *                                    an XMPP stream close.
  * @WOCKY_XMPP_CONNECTION_ERROR_CLOSED : Other side closed the xmpp stream.
- * @WOCKY_XMPP_CONNECTION_ERROR_PENDING : Another operation send or receive
- * operation is still pending.
  * @WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN : Trying to send or receive while the
  * connection isn't open.
  * @WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED : Trying to send or receive
@@ -51,7 +49,6 @@ typedef struct _WockyXmppConnectionClass WockyXmppConnectionClass;
 typedef enum {
   WOCKY_XMPP_CONNECTION_ERROR_EOS,
   WOCKY_XMPP_CONNECTION_ERROR_CLOSED,
-  WOCKY_XMPP_CONNECTION_ERROR_PENDING,
   WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
   WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
   WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
