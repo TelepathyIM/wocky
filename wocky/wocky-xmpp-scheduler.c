@@ -621,7 +621,7 @@ close_sent_cb (GObject *source,
     {
       g_simple_async_result_set_error (priv->close_result, G_IO_ERROR,
           G_IO_ERROR_CANCELLED, "closing operation was cancelled");
-      g_simple_async_result_complete_in_idle (priv->close_result);
+      g_simple_async_result_complete (priv->close_result);
 
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
@@ -631,7 +631,7 @@ close_sent_cb (GObject *source,
         res, &error))
     {
       g_simple_async_result_set_from_error (priv->close_result, error);
-      g_simple_async_result_complete_in_idle (priv->close_result);
+      g_simple_async_result_complete (priv->close_result);
 
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
@@ -641,7 +641,7 @@ close_sent_cb (GObject *source,
   if (priv->close_result != NULL && priv->remote_closed)
     {
       /* Remote connection is already closed. Finish the close operation */
-      g_simple_async_result_complete_in_idle (priv->close_result);
+      g_simple_async_result_complete (priv->close_result);
 
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
