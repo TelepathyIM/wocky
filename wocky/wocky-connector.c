@@ -57,11 +57,16 @@
 
 #include <gio/gio.h>
 
+#define DEBUG_FLAG DEBUG_CONNECTOR
+#include "wocky-debug.h"
+
 #include "wocky-sasl-auth.h"
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-connector.h"
 #include "wocky-signals-marshal.h"
+#include "wocky-utils.h"
+
 
 G_DEFINE_TYPE( WockyConnector, wocky_connector, G_TYPE_OBJECT );
 
@@ -83,6 +88,9 @@ static void starttls_recv_cb (GObject *source, GAsyncResult *result,
     gpointer data);
 static void request_auth (GObject *object, WockyXmppStanza *stanza);
 static void auth_done (GObject *source, GAsyncResult *result,  gpointer data);
+
+static void wocky_connector_dispose (GObject *object);
+static void wocky_connector_finalise (GObject *object);
 
 enum
 {
@@ -158,8 +166,8 @@ struct _WockyConnectorPrivate
    of these states we are in: AUTHENTICATED, ENCRYPTED or INITIAL
    This macro wraps up the logic of inspecting our internal state
    and deciding which condition applies: */
-#define WOCKY_CONNECTOR_CHOOSE_BY_STATE(p, authenticated, encrypted, initial)\
-  (p->authed) ? authenticated : (p->encrypted) ? encrypted : initial
+#define WOCKY_CONNECTOR_CHOOSE_BY_STATE(p, authenticated, _encrypted, initial) \
+  (p->authed) ? authenticated : (p->encrypted) ? _encrypted : initial
 
 /* if (p->authed) v = a; else if (p->encrypted) v = b; else v = c; */
 

@@ -26,6 +26,7 @@ typedef enum
   DEBUG_BYTESTREAM        = 1 << 9,
   DEBUG_FILE_TRANSFER     = 1 << 10,
   DEBUG_PORTER            = 1 << 11,
+  DEBUG_CONNECTOR         = 1 << 12,
 } DebugFlags;
 
 #define DEBUG_XMPP (DEBUG_XMPP_READER | DEBUG_XMPP_WRITER)
