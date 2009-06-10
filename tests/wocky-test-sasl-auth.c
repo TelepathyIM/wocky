@@ -53,8 +53,8 @@ post_auth_recv_stanza (GObject *source,
     }
   else
     {
-      g_assert (g_error_matches (e, WOCKY_XMPP_CONNECTION_ERROR,
-          WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+      g_assert_error (e, WOCKY_XMPP_CONNECTION_ERROR,
+          WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
 
       g_error_free (e);
 
@@ -224,7 +224,7 @@ run_test (gconstpointer user_data)
   if (test->domain == 0)
     g_assert (error == NULL);
   else
-    g_assert (g_error_matches (error, test->domain, test->code));
+    g_assert_error (error, test->domain, test->code);
 
   if (error != NULL)
     g_error_free (error);
