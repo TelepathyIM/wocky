@@ -275,8 +275,8 @@ post_auth_recv_stanza (GObject *source,
     }
   else
     {
-      g_assert (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
-          WOCKY_XMPP_CONNECTION_ERROR_CLOSED));
+      g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+          WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
       wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (source),
           NULL, post_auth_close_sent, user_data);
       g_error_free (error);
