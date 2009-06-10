@@ -24,6 +24,8 @@ wocky_test_sasl_auth_SOURCES = \
    wocky-test-sasl-auth.c \
    wocky-test-sasl-auth-server.c \
    wocky-test-sasl-auth-server.h \
+   wocky-test-connector-server.c \
+   wocky-test-connector-server.h \
    wocky-test-stream.c \
    wocky-test-stream.h
 
