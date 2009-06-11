@@ -638,15 +638,12 @@ close_sent_cb (GObject *source,
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
     {
-      if (priv->close_result != NULL)
-        {
-          g_simple_async_result_set_from_error (priv->close_result, error);
-          complete_close (self);
-        }
+      g_simple_async_result_set_from_error (priv->close_result, error);
+      complete_close (self);
       g_error_free (error);
     }
 
-  if (priv->close_result != NULL && priv->remote_closed)
+  if (priv->remote_closed)
     {
       /* Remote connection is already closed. Finish the close operation */
       complete_close (self);
