@@ -564,8 +564,12 @@ xmpp_init_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
     }
 
   if (!priv->authed)
-    wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
-        xmpp_features_cb, data);
+    {
+      wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+          xmpp_features_cb, data);
+    }
+  else /* xmpp_init_sent_cb should never call this func if we are authed */
+    g_assert_not_reached ();
 
   g_free (version);
   g_free (from);
@@ -801,7 +805,7 @@ wocky_connector_connect_async (GObject *connector,
           "Invalid state: Cannot connect");
       return FALSE;
     }
-  if ( host == NULL )
+  if (host == NULL)
     {
       abort_connect (self, NULL, WOCKY_CONNECTOR_ERR_BAD_JID, "Missing JID");
       return FALSE;
