@@ -90,7 +90,7 @@ static void request_auth (GObject *object, WockyXmppStanza *stanza);
 static void auth_done (GObject *source, GAsyncResult *result,  gpointer data);
 
 static void wocky_connector_dispose (GObject *object);
-static void wocky_connector_finalise (GObject *object);
+static void wocky_connector_finalize (GObject *object);
 
 enum
 {
@@ -347,7 +347,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   oclass->set_property = wocky_connector_set_property;
   oclass->get_property = wocky_connector_get_property;
   oclass->dispose      = wocky_connector_dispose;
-  oclass->finalize     = wocky_connector_finalise;
+  oclass->finalize     = wocky_connector_finalize;
 
   spec = g_param_spec_boolean ("insecure-tls-ok", "insecure-tls-ok" ,
       "Whether recoverable TLS errors should be ignored", TRUE, INIT_PATTR);
@@ -417,7 +417,7 @@ wocky_connector_dispose (GObject *object)
 }
 
 static void
-wocky_connector_finalise (GObject *object)
+wocky_connector_finalize (GObject *object)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
