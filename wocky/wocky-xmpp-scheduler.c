@@ -648,6 +648,8 @@ close_sent_cb (GObject *source,
       /* Remote connection is already closed. Finish the close operation */
       complete_close (self);
     }
+  /* else, we'll complete the close operation once the remote side closes his
+   * connection */
 }
 
 static void
