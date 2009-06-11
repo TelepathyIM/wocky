@@ -26,6 +26,7 @@
 #include <gio/gnio.h>
 
 #include <wocky/wocky-xmpp-stanza.h>
+#include <wocky/wocky-xmpp-connection.h>
 
 G_BEGIN_DECLS
 
@@ -68,11 +69,12 @@ GType test_sasl_auth_server_get_type (void);
    TestSaslAuthServerClass))
 
 
-void test_sasl_auth_server_start (GObject *obj);
+void test_sasl_auth_server_take_over (GObject *obj, WockyXmppConnection *conn,
+    WockyXmppStanza *auth);
 
-TestSaslAuthServer * test_sasl_auth_server_new (GObject *stream_or_wconn,
+TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *password,
-    ServerProblem problem);
+    ServerProblem problem, gboolean start);
 
 gint test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat);
 

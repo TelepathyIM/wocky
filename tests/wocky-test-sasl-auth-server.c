@@ -601,8 +601,9 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
 }
 
 TestSaslAuthServer *
-test_sasl_auth_server_new (GObject *stream_or_wconn, gchar *mech,
-    const gchar *user, const gchar *password, ServerProblem problem)
+test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
+    const gchar *user, const gchar *password, ServerProblem problem,
+    gboolean start)
 {
   TestSaslAuthServer *server;
   TestSaslAuthServerPrivate *priv;
@@ -624,7 +625,6 @@ test_sasl_auth_server_new (GObject *stream_or_wconn, gchar *mech,
   priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (server);
 
   priv->state = AUTH_STATE_STARTED;
-  priv->stream = g_object_ref (stream_or_wconn);
 
   ret = sasl_server_new ("xmpp", NULL, NULL, NULL, NULL, callbacks,
       SASL_SUCCESS_DATA, &(priv->sasl_conn));
@@ -640,28 +640,35 @@ test_sasl_auth_server_new (GObject *stream_or_wconn, gchar *mech,
   priv->mech = g_strdup (mech);
   priv->problem = problem;
 
-  /* this is a temporary hack to allow the old tests to build
-     and run while I rewrite them to use the new connector
-     test server: it will go away soon. */
-  if (WOCKY_IS_XMPP_CONNECTION (stream_or_wconn))
-    priv->conn = WOCKY_XMPP_CONNECTION (stream_or_wconn);
-  else if (G_IS_IO_STREAM (stream_or_wconn))
+  if (start)
     {
-      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (stream_or_wconn));
+      priv->stream = stream;
+      priv->conn = wocky_xmpp_connection_new (stream);
       wocky_xmpp_connection_recv_open_async (priv->conn,
           NULL, stream_open_received, server);
     }
+
   return server;
 }
 
 void
-test_sasl_auth_server_start (GObject *obj)
+test_sasl_auth_server_take_over (GObject *obj, WockyXmppConnection *conn,
+    WockyXmppStanza *auth)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
 
-  wocky_xmpp_connection_recv_open_async (priv->conn, NULL,
-      stream_open_received, self);
+  g_object_unref (priv->conn);
+  priv->state = AUTH_STATE_STARTED;
+  priv->conn = conn;
+
+  handle_auth (self, auth);
+  if (priv->state < AUTH_STATE_AUTHENTICATED)
+    {
+      wocky_xmpp_connection_recv_stanza_async (priv->conn,
+          NULL, received_stanza, self);
+    }
+  g_object_unref (auth);
 }
 
 gint
