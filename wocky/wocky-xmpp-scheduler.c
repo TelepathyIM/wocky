@@ -511,6 +511,18 @@ call_cb:
 }
 
 static void
+complete_close (WockyXmppScheduler *self)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+
+  g_simple_async_result_complete (priv->close_result);
+
+  g_object_unref (priv->close_result);
+  priv->close_result = NULL;
+  priv->close_cancellable = NULL;
+}
+
+static void
 stanza_received_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
@@ -531,9 +543,7 @@ stanza_received_cb (GObject *source,
           if (priv->close_result != NULL)
             {
               /* Close completed */
-              g_simple_async_result_complete_in_idle (priv->close_result);
-              g_object_unref (priv->close_result);
-              priv->close_result = NULL;
+              complete_close (self);
             }
 
           DEBUG ("Remote connection has been closed");
@@ -621,10 +631,8 @@ close_sent_cb (GObject *source,
     {
       g_simple_async_result_set_error (priv->close_result, G_IO_ERROR,
           G_IO_ERROR_CANCELLED, "closing operation was cancelled");
-      g_simple_async_result_complete (priv->close_result);
-
-      g_object_unref (priv->close_result);
-      priv->close_result = NULL;
+      complete_close (self);
+      return;
     }
 
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
@@ -633,10 +641,7 @@ close_sent_cb (GObject *source,
       if (priv->close_result != NULL)
         {
           g_simple_async_result_set_from_error (priv->close_result, error);
-          g_simple_async_result_complete (priv->close_result);
-
-          g_object_unref (priv->close_result);
-          priv->close_result = NULL;
+          complete_close (self);
         }
       g_error_free (error);
     }
@@ -644,13 +649,8 @@ close_sent_cb (GObject *source,
   if (priv->close_result != NULL && priv->remote_closed)
     {
       /* Remote connection is already closed. Finish the close operation */
-      g_simple_async_result_complete (priv->close_result);
-
-      g_object_unref (priv->close_result);
-      priv->close_result = NULL;
+      complete_close (self);
     }
-
-  priv->close_cancellable = NULL;
 }
 
 static void
