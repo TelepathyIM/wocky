@@ -30,6 +30,9 @@ G_BEGIN_DECLS
 
 typedef enum {
   CONNECTOR_PROBLEM_NO_PROBLEM,
+  CONNECTOR_PROBLEM_BAD_XMPP,
+  CONNECTOR_PROBLEM_NO_TLS,
+  CONNECTOR_PROBLEM_TLS_REFUSED,
 } ConnectorProblem;
 
 
@@ -63,7 +66,7 @@ GType test_connector_server_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), TEST_TYPE_CONNECTOR_SERVER, \
    TestConnectorServerClass))
 
-TestConnectorServer * test_connector_server_new (GIOStream *stream, 
+TestConnectorServer * test_connector_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *pass,
     ConnectorProblem problem, ServerProblem sasl_problem);
 
