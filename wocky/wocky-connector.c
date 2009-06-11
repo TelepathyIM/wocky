@@ -631,14 +631,9 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
       return;
     }
 
-  if (priv->encrypted || !can_encrypt)
-    {
-      request_auth (G_OBJECT (self), stanza);
-      g_object_unref (stanza);
-      return;
-    }
-
-  DEBUG ("broken logic in wocky-connector: xmpp_features_cb\n");
+  request_auth (G_OBJECT (self), stanza);
+  g_object_unref (stanza);
+  return;
 }
 
 static void
