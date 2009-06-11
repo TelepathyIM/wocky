@@ -102,6 +102,17 @@ gboolean wocky_connector_connect_async (GObject *connector,
     GAsyncReadyCallback cb,
     gpointer user_data);
 
+WockyConnector *wocky_connector_new (const gchar *jid, const gchar *pass);
+
+WockyConnector *wocky_connector_new_full (const gchar *jid, const gchar *pass,
+    const gchar *resource,
+    const gchar *host,
+    guint port,
+    gboolean tls_required,
+    gboolean insecure_tls_ok,
+    gboolean insecure_auth_ok,
+    gboolean encrypted_plain_auth_ok);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONNECTOR_H__*/

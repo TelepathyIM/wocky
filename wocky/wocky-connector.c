@@ -94,7 +94,7 @@ static void wocky_connector_finalise (GObject *object);
 
 enum
 {
-  PROP_JID =1,
+  PROP_JID = 1,
   PROP_PASS,
   PROP_AUTH_INSECURE_OK,
   PROP_TLS_INSECURE_OK,
@@ -825,4 +825,35 @@ wocky_connector_connect_async (GObject *connector,
           host, "xmpp-client", NULL, tcp_srv_connected, connector);
     }
   return TRUE;
+}
+
+WockyConnector *
+wocky_connector_new (const gchar *jid, const gchar *pass)
+{
+  return g_object_new (WOCKY_TYPE_CONNECTOR, "jid", jid, "password", pass);
+}
+
+#define IFNULL(val,def) (((val) == NULL) ? (def) : (val))
+#define IFZERO(val,def) (((val) == 0) ? (def) : (val))
+
+WockyConnector *
+wocky_connector_new_full (const gchar *jid, const gchar *pass,
+    const gchar *resource,
+    const gchar *host,
+    guint port,
+    gboolean tls_required,
+    gboolean insecure_tls_ok,
+    gboolean insecure_auth_ok,
+    gboolean encrypted_plain_auth_ok)
+{
+  return g_object_new (WOCKY_TYPE_CONNECTOR,
+      "jid", jid,
+      "password", IFNULL(pass,""),
+      "resource", IFNULL(resource,"wocky"),
+      "xmpp-server", host,
+      "xmpp-port", IFZERO(port, 5222),
+      "insecure-tls-ok", insecure_tls_ok,
+      "insecure-auth-ok", insecure_auth_ok,
+      "encrypted-plain-auth-ok", encrypted_plain_auth_ok,
+      "tls-required", tls_required);
 }
