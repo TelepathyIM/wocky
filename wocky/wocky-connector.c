@@ -588,7 +588,6 @@ xmpp_features_cb (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
-  WockyXmppNode   *tls;
   WockyXmppNode   *node;
   WockyXmppStanza *starttls;
   gboolean         can_encrypt = FALSE;
@@ -617,9 +616,8 @@ xmpp_features_cb (GObject *source,
       return;
     }
 
-  tls =
-    wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS);
-  can_encrypt = (tls != NULL);
+  can_encrypt =
+    wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) == NULL;
 
   /* conditions:
    * not encrypted, not encryptable, require encryption → ABORT
