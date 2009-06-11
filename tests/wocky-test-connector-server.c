@@ -141,8 +141,10 @@ test_connector_server_class_init (TestConnectorServerClass *klass)
 
 /* ************************************************************************* */
 /* xmpp stanza handling: */
-static void handle_auth     (TestConnectorServer *self, WockyXmppStanza *xml);
-static void handle_starttls (TestConnectorServer *self, WockyXmppStanza *xml);
+static void handle_auth     (TestConnectorServer *self,
+    WockyXmppStanza *xml);
+static void handle_starttls (TestConnectorServer *self,
+    WockyXmppStanza *xml);
 
 #define HANDLER(ns,x) { WOCKY_XMPP_NS_##ns, #x, handle_##x }
 static stanza_handler handlers[] =
@@ -153,7 +155,8 @@ static stanza_handler handlers[] =
   };
 
 static void
-handle_auth (TestConnectorServer *self, WockyXmppStanza *xml)
+handle_auth (TestConnectorServer *self,
+    WockyXmppStanza *xml)
 {
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE(self);
   TestSaslAuthServer *sasl = priv->sasl;
@@ -164,7 +167,8 @@ handle_auth (TestConnectorServer *self, WockyXmppStanza *xml)
 }
 
 static void
-handle_starttls (TestConnectorServer *self, WockyXmppStanza *xml)
+handle_starttls (TestConnectorServer *self,
+    WockyXmppStanza *xml)
 {
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE(self);
   if (!priv->tls_started)
@@ -199,7 +203,9 @@ handle_starttls (TestConnectorServer *self, WockyXmppStanza *xml)
 }
 
 static void
-xmpp_handler (GObject *source, GAsyncResult *result, gpointer user_data)
+xmpp_handler (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
 {
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
@@ -264,7 +270,9 @@ feature_stanza (TestConnectorServer *self)
 }
 
 static void
-xmpp_init (GObject *source, GAsyncResult *result, gpointer user_data)
+xmpp_init (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
 {
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
