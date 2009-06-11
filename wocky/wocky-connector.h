@@ -102,9 +102,11 @@ gboolean wocky_connector_connect_async (GObject *connector,
     GAsyncReadyCallback cb,
     gpointer user_data);
 
-WockyConnector *wocky_connector_new (const gchar *jid, const gchar *pass);
+WockyConnector *wocky_connector_new (const gchar *jid,
+    const gchar *pass);
 
-WockyConnector *wocky_connector_new_full (const gchar *jid, const gchar *pass,
+WockyConnector *wocky_connector_new_full (const gchar *jid,
+    const gchar *pass,
     const gchar *resource,
     const gchar *host,
     guint port,

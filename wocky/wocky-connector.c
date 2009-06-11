@@ -172,7 +172,8 @@ struct _WockyConnectorPrivate
 /* if (p->authed) v = a; else if (p->encrypted) v = b; else v = c; */
 
 static gboolean
-copy_error (WockyConnector *connector, GError *error)
+copy_error (WockyConnector *connector,
+    GError *error)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
   g_error_free (priv->error);
@@ -506,7 +507,9 @@ xmpp_init (GObject *connector)
 }
 
 static void
-xmpp_init_sent_cb (GObject *source, GAsyncResult *result, gpointer data)
+xmpp_init_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -536,7 +539,9 @@ xmpp_init_sent_cb (GObject *source, GAsyncResult *result, gpointer data)
 }
 
 static void
-xmpp_init_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
+xmpp_init_recv_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -576,7 +581,9 @@ xmpp_init_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
 }
 
 static void
-xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
+xmpp_features_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -645,7 +652,9 @@ xmpp_features_cb (GObject *source, GAsyncResult *result, gpointer data)
 }
 
 static void
-starttls_sent_cb (GObject *source, GAsyncResult *result, gpointer data)
+starttls_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -663,7 +672,9 @@ starttls_sent_cb (GObject *source, GAsyncResult *result, gpointer data)
 }
 
 static void
-starttls_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
+starttls_recv_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
 {
   WockyXmppStanza *stanza;
   GError *error = NULL;
@@ -716,7 +727,8 @@ starttls_recv_cb (GObject *source, GAsyncResult *result, gpointer data)
 }
 
 static void
-request_auth (GObject *object, WockyXmppStanza *stanza)
+request_auth (GObject *object,
+    WockyXmppStanza *stanza)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -732,7 +744,9 @@ request_auth (GObject *object, WockyXmppStanza *stanza)
 }
 
 static void
-auth_done (GObject *source, GAsyncResult *result,  gpointer data)
+auth_done (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
@@ -847,7 +861,8 @@ wocky_connector_connect_async (GObject *connector,
 }
 
 WockyConnector *
-wocky_connector_new (const gchar *jid, const gchar *pass)
+wocky_connector_new (const gchar *jid,
+    const gchar *pass)
 {
   return g_object_new (WOCKY_TYPE_CONNECTOR, "jid", jid, "password", pass);
 }
@@ -856,7 +871,8 @@ wocky_connector_new (const gchar *jid, const gchar *pass)
 #define IFZERO(val,def) (((val) == 0) ? (def) : (val))
 
 WockyConnector *
-wocky_connector_new_full (const gchar *jid, const gchar *pass,
+wocky_connector_new_full (const gchar *jid,
+    const gchar *pass,
     const gchar *resource,
     const gchar *host,
     guint port,
