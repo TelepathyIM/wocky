@@ -445,6 +445,10 @@ tcp_srv_connected (GObject *source,
     g_socket_client_connect_to_service_finish (G_SOCKET_CLIENT (source),
         result, &error);
 
+  /* if we didn't manage to connect via SRV records based on the JID
+     (no SRV records or host unreachable/not listening) fall back to
+     treating the domain part of the JID as a real host and try to
+     talk to that */
   if (priv->sock == NULL)
     {
       const gchar *host = rindex (priv->jid, '@') + 1;
@@ -813,6 +817,9 @@ wocky_connector_connect_async (GObject *connector,
   priv->client = g_socket_client_new ();
   priv->state  = WCON_TCP_CONNECTING;
 
+  /* if the user specified a specific server to connect to, try to use that:
+     if not, try to find a SRV record for the 'host' extracted from the JID
+     above */
   if (priv->xmpp_host)
     {
       g_socket_client_connect_to_host_async (priv->client,
