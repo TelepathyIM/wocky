@@ -226,7 +226,7 @@ xmpp_handler (GObject *source, GAsyncResult *result, gpointer user_data)
 /* initial XMPP stream setup, up to sending features stanza */
 
 static void
-next_state (GObject *source, GAsyncResult *result, gpointer user_data)
+xmpp_init (GObject *source, GAsyncResult *result, gpointer user_data)
 {
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
@@ -239,28 +239,32 @@ next_state (GObject *source, GAsyncResult *result, gpointer user_data)
 
   switch( priv->state )
     {
+      /* wait for <stream:stream… from the client */
     case SERVER_STATE_START:
       priv->state = SERVER_STATE_CLIENT_OPENED;
-      wocky_xmpp_connection_recv_open_async (conn, NULL, next_state, self);
+      wocky_xmpp_connection_recv_open_async (conn, NULL, xmpp_init, self);
       break;
 
+      /* send our own <stream:stream… */
     case SERVER_STATE_CLIENT_OPENED:
       priv->state = SERVER_STATE_SERVER_OPENED;
       wocky_xmpp_connection_recv_open_finish (conn, result, 
           NULL, NULL, NULL, NULL, NULL);
       wocky_xmpp_connection_send_open_async (conn, NULL, "testserver", "1.0", 
-          NULL, NULL, next_state, self);
+          NULL, NULL, xmpp_init, self);
       break;
-
+      
+      /* send our feature set */
     case SERVER_STATE_SERVER_OPENED:
       priv->state = SERVER_STATE_FEATURES_SENT;
       wocky_xmpp_connection_send_open_finish (conn, result, NULL);
       xml = feature_stanza (self);
       wocky_xmpp_connection_send_stanza_async (conn, xml, 
-          NULL, next_state, self);
+          NULL, xmpp_init, self);
       g_object_unref (xml);
       break;
 
+      /* ok, we're done with initial stream setup */
     case SERVER_STATE_FEATURES_SENT:
       wocky_xmpp_connection_send_stanza_finish (conn, result, NULL);
       wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
@@ -304,5 +308,5 @@ test_connector_server_start (GObject *object)
   self = TEST_CONNECTOR_SERVER (object);
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   priv->state = SERVER_STATE_START;
-  next_state (NULL,NULL,self);
+  xmpp_init (NULL,NULL,self);
 }
