@@ -794,6 +794,14 @@ wocky_connector_connect_async (GObject *connector,
    */
   const gchar *host = priv->jid ? rindex (priv->jid, '@') : NULL;
 
+  if (priv->result != NULL)
+    {
+      g_simple_async_report_error_in_idle (connector, cb, user_data,
+          WOCKY_CONNECTOR_ERROR, WOCKY_CONNECTOR_ERR_IN_PROGRESS,
+          "Connection already established or in progress");
+      return FALSE;
+    }
+
   priv->result = g_simple_async_result_new (connector,
       cb ,
       user_data ,
@@ -801,7 +809,7 @@ wocky_connector_connect_async (GObject *connector,
 
   if (priv->state != WCON_DISCONNECTED)
     {
-      abort_connect (self, NULL, WOCKY_CONNECTOR_ERR_IS_CONNECTED,
+      abort_connect (self, NULL, WOCKY_CONNECTOR_ERR_IN_PROGRESS,
           "Invalid state: Cannot connect");
       return FALSE;
     }
