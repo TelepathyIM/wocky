@@ -28,7 +28,6 @@
 
 #include "wocky-test-sasl-auth-server.h"
 
-#include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-xmpp-connection.h>
 
 #include <wocky/wocky-namespaces.h>
@@ -181,7 +180,6 @@ stream_open_sent (GObject *source,
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
   TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
-  WockyXmppNode *mechnode = NULL;
 
   g_assert (wocky_xmpp_connection_send_open_finish (
     WOCKY_XMPP_CONNECTION (source), res, NULL));
@@ -190,37 +188,7 @@ stream_open_sent (GObject *source,
   stanza = wocky_xmpp_stanza_new ("features");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_STREAM);
 
-  if (priv->problem != SERVER_PROBLEM_NO_SASL)
-    {
-      mechnode = wocky_xmpp_node_add_child_ns (stanza->node,
-          "mechanisms", WOCKY_XMPP_NS_SASL_AUTH);
-      if (priv->problem == SERVER_PROBLEM_NO_MECHANISMS)
-        {
-          /* lalala */
-        }
-      else if (priv->mech != NULL)
-        {
-          wocky_xmpp_node_add_child_with_content (mechnode, "mechanism",
-              priv->mech);
-        }
-      else
-        {
-          const gchar *mechs;
-          gchar **mechlist;
-          gchar **tmp;
-          int ret;
-          ret = sasl_listmech (priv->sasl_conn, NULL, "","\n","", &mechs,
-              NULL,NULL);
-          CHECK_SASL_RETURN (ret);
-          mechlist = g_strsplit (mechs, "\n", -1);
-          for (tmp = mechlist; *tmp != NULL; tmp++)
-            {
-              wocky_xmpp_node_add_child_with_content (mechnode,
-                "mechanism", *tmp);
-            }
-          g_strfreev (mechlist);
-        }
-    }
+  test_sasl_auth_server_set_mechs (G_OBJECT (self), stanza);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, stanza,
     NULL, features_sent, user_data);
@@ -633,7 +601,7 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
 }
 
 TestSaslAuthServer *
-test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
+test_sasl_auth_server_new (GObject *stream_or_wconn, gchar *mech,
     const gchar *user, const gchar *password, ServerProblem problem)
 {
   TestSaslAuthServer *server;
@@ -656,7 +624,7 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (server);
 
   priv->state = AUTH_STATE_STARTED;
-  priv->stream = g_object_ref (stream);
+  priv->stream = g_object_ref (stream_or_wconn);
 
   ret = sasl_server_new ("xmpp", NULL, NULL, NULL, NULL, callbacks,
       SASL_SUCCESS_DATA, &(priv->sasl_conn));
@@ -672,10 +640,67 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   priv->mech = g_strdup (mech);
   priv->problem = problem;
 
-  priv->conn = wocky_xmpp_connection_new (stream);
-
-  wocky_xmpp_connection_recv_open_async (priv->conn,
-    NULL, stream_open_received, server);
-
+  /* this is a temporary hack to allow the old tests to build
+     and run while I rewrite them to use the new connector
+     test server: it will go away soon. */
+  if (WOCKY_IS_XMPP_CONNECTION (stream_or_wconn))
+    priv->conn = WOCKY_XMPP_CONNECTION (stream_or_wconn);
+  else if (G_IS_IO_STREAM (stream_or_wconn))
+    {
+      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (stream_or_wconn));
+      wocky_xmpp_connection_recv_open_async (priv->conn,
+          NULL, stream_open_received, server);
+    }
   return server;
+}
+
+void
+test_sasl_auth_server_start (GObject *obj)
+{
+  TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+
+  wocky_xmpp_connection_recv_open_async (priv->conn, NULL,
+      stream_open_received, self);
+}
+
+gint
+test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat)
+{
+  int ret = 0;
+  TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  WockyXmppNode *mechnode = NULL;
+
+  if (priv->problem != SERVER_PROBLEM_NO_SASL)
+    {
+      mechnode = wocky_xmpp_node_add_child_ns (feat->node,
+          "mechanisms", WOCKY_XMPP_NS_SASL_AUTH);
+      if (priv->problem == SERVER_PROBLEM_NO_MECHANISMS)
+        {
+          /* lalala */
+        }
+      else if (priv->mech != NULL)
+        {
+          wocky_xmpp_node_add_child_with_content (mechnode, "mechanism",
+              priv->mech);
+        }
+      else
+        {
+          const gchar *mechs;
+          gchar **mechlist;
+          gchar **tmp;
+          ret = sasl_listmech (priv->sasl_conn, NULL, "","\n","", &mechs,
+              NULL,NULL);
+          CHECK_SASL_RETURN (ret);
+          mechlist = g_strsplit (mechs, "\n", -1);
+          for (tmp = mechlist; *tmp != NULL; tmp++)
+            {
+              wocky_xmpp_node_add_child_with_content (mechnode,
+                "mechanism", *tmp);
+            }
+          g_strfreev (mechlist);
+        }
+    }
+  return ret;
 }

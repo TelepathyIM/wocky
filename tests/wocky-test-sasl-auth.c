@@ -192,8 +192,8 @@ run_test (gconstpointer user_data)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
 
-  server = test_sasl_auth_server_new (stream->stream0, test->mech, username,
-      password, test->problem);
+  server = test_sasl_auth_server_new (G_OBJECT(stream->stream0), test->mech,
+      username, password, test->problem);
 
   authenticated = FALSE;
   run_done = FALSE;

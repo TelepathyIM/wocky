@@ -25,6 +25,8 @@
 
 #include <gio/gnio.h>
 
+#include <wocky/wocky-xmpp-stanza.h>
+
 G_BEGIN_DECLS
 
 typedef enum {
@@ -66,9 +68,13 @@ GType test_sasl_auth_server_get_type (void);
    TestSaslAuthServerClass))
 
 
-TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
+void test_sasl_auth_server_start (GObject *obj);
+
+TestSaslAuthServer * test_sasl_auth_server_new (GObject *stream_or_wconn,
     gchar *mech, const gchar *user, const gchar *password,
     ServerProblem problem);
+
+gint test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat);
 
 G_END_DECLS
 
