@@ -379,7 +379,7 @@ main (int argc,
     {
       WockyConnector *wcon = NULL;
 
-      wcon = g_object_new (WOCKY_TYPE_CONNECTOR, 
+      wcon = g_object_new (WOCKY_TYPE_CONNECTOR,
           "jid", argv[1],
           "password", argv[2]);
 
