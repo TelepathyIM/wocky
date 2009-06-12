@@ -515,12 +515,19 @@ complete_close (WockyXmppScheduler *self)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
+  if (g_cancellable_is_cancelled (priv->close_cancellable))
+    {
+      g_simple_async_result_set_error (priv->close_result, G_IO_ERROR,
+          G_IO_ERROR_CANCELLED, "closing operation was cancelled");
+    }
+
   g_simple_async_result_complete (priv->close_result);
 
   g_object_unref (priv->close_result);
   priv->close_result = NULL;
   priv->close_cancellable = NULL;
 }
+
 
 static void
 stanza_received_cb (GObject *source,
@@ -627,29 +634,25 @@ close_sent_cb (GObject *source,
 
   priv->local_closed = TRUE;
 
-  if (g_cancellable_is_cancelled (priv->close_cancellable))
-    {
-      g_simple_async_result_set_error (priv->close_result, G_IO_ERROR,
-          G_IO_ERROR_CANCELLED, "closing operation was cancelled");
-      complete_close (self);
-      return;
-    }
-
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
     {
       g_simple_async_result_set_from_error (priv->close_result, error);
-      complete_close (self);
       g_error_free (error);
+
+      goto out;
     }
 
-  if (priv->remote_closed)
+  if (!g_cancellable_is_cancelled (priv->close_cancellable)
+      && !priv->remote_closed)
     {
-      /* Remote connection is already closed. Finish the close operation */
-      complete_close (self);
+      /* we'll complete the close operation once the remote side closes it's
+       * connection */
+       return;
     }
-  /* else, we'll complete the close operation once the remote side closes his
-   * connection */
+
+out:
+  complete_close (self);
 }
 
 static void
