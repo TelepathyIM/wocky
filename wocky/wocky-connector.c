@@ -862,7 +862,8 @@ WockyConnector *
 wocky_connector_new (const gchar *jid,
     const gchar *pass)
 {
-  return g_object_new (WOCKY_TYPE_CONNECTOR, "jid", jid, "password", pass);
+  return
+    g_object_new (WOCKY_TYPE_CONNECTOR, "jid", jid, "password", pass, NULL);
 }
 
 #define IFNULL(val,def) (((val) == NULL) ? (def) : (val))
@@ -888,5 +889,6 @@ wocky_connector_new_full (const gchar *jid,
       "insecure-tls-ok", insecure_tls_ok,
       "insecure-auth-ok", insecure_auth_ok,
       "encrypted-plain-auth-ok", encrypted_plain_auth_ok,
-      "tls-required", tls_required);
+      "tls-required", tls_required,
+      NULL);
 }
