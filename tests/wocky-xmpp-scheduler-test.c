@@ -291,18 +291,6 @@ test_receive (void)
 }
 
 /* filter testing */
-#if 0
-static gboolean
-test_filter_iq_filter (WockyXmppScheduler *scheduler,
-    WockyXmppStanza *stanza,
-    gpointer user_data)
-{
-  WockyStanzaType type;
-
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
-  return type == WOCKY_STANZA_TYPE_IQ;
-}
-
 static void
 test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
@@ -317,17 +305,6 @@ test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
-}
-
-static gboolean
-test_filter_presence_filter (WockyXmppScheduler *scheduler,
-    WockyXmppStanza *stanza,
-    gpointer user_data)
-{
-  WockyStanzaType type;
-
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
-  return type == WOCKY_STANZA_TYPE_PRESENCE;
 }
 
 static void
@@ -349,12 +326,14 @@ test_filter (void)
   test_open_both_connections (test);
 
   /* register an IQ filter */
-  wocky_xmpp_scheduler_add_stanza_filter (test->sched_out,
-      test_filter_iq_filter, test_filter_iq_received_cb, test);
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 0,
+      test_filter_iq_received_cb, test, WOCKY_STANZA_END);
 
   /* register a presence filter */
-  wocky_xmpp_scheduler_add_stanza_filter (test->sched_out,
-      test_filter_presence_filter, test_filter_presence_received_cb, test);
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_PRESENCE, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 0,
+      test_filter_presence_received_cb, test, WOCKY_STANZA_END);
 
   wocky_xmpp_scheduler_start (test->sched_out);
 
@@ -392,7 +371,6 @@ test_filter (void)
 
   teardown_test (test);
 }
-#endif
 
 /* test if the send queue is flushed before closing the connection */
 static void
@@ -817,7 +795,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/initiation", test_instantiation);
   g_test_add_func ("/xmpp-scheduler/send", test_send);
   g_test_add_func ("/xmpp-scheduler/receive", test_receive);
-  //g_test_add_func ("/xmpp-scheduler/filter", test_filter);
+  g_test_add_func ("/xmpp-scheduler/filter", test_filter);
   g_test_add_func ("/xmpp-scheduler/close-flush", test_close_flush);
   g_test_add_func ("/xmpp-scheduler/close-not-started", test_close_not_started);
   g_test_add_func ("/xmpp-scheduler/close-twice", test_close_twice);
