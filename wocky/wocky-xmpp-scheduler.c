@@ -76,6 +76,12 @@ struct _WockyXmppSchedulerPrivate
   gboolean local_closed;
   GCancellable *close_cancellable;
 
+  /* guint => owned (StanzaHandler *) */
+  GHashTable *handlers_by_id;
+  /* Sort listed (by decreasing priority) of borrowed (StanzaHandler *) */
+  GList *handlers;
+  guint next_handler_id;
+
   WockyXmppConnection *connection;
 };
 
@@ -144,6 +150,42 @@ sending_queue_elem_free (sending_queue_elem *elem)
   g_slice_free (sending_queue_elem, elem);
 }
 
+typedef struct
+{
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  const gchar *from;
+  guint priority;
+  WockyXmppSchedulerHandlerFunc callback;
+  gpointer user_data;
+} StanzaHandler;
+
+static StanzaHandler *
+stanza_handler_new (
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyXmppSchedulerHandlerFunc callback,
+    gpointer user_data)
+{
+  StanzaHandler *result = g_slice_new0 (StanzaHandler);
+
+  result->type = type;
+  result->sub_type = sub_type;
+  result->from = g_strdup (from);
+  result->priority = priority;
+  result->callback = callback;
+  result->user_data = user_data;
+  return result;
+}
+
+static void
+stanza_handler_free (StanzaHandler *handler)
+{
+  g_slice_free (StanzaHandler, handler);
+}
+
 static void send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data);
@@ -156,6 +198,11 @@ wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
   priv->sending_queue = g_queue_new ();
+
+  priv->handlers_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+      NULL, (GDestroyNotify) stanza_handler_free);
+  priv->next_handler_id = 0;
+  priv->handlers = NULL;
 }
 
 static void wocky_xmpp_scheduler_dispose (GObject *object);
@@ -299,6 +346,9 @@ wocky_xmpp_scheduler_finalize (GObject *object)
    * elements in the queue. */
   g_assert_cmpuint (g_queue_get_length (priv->sending_queue), ==, 0);
   g_queue_free (priv->sending_queue);
+
+  g_hash_table_destroy (priv->handlers_by_id);
+  g_list_free (priv->handlers);
 
   G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->finalize (object);
 }
@@ -484,6 +534,37 @@ complete_close (WockyXmppScheduler *self)
   priv->close_cancellable = NULL;
 }
 
+static void
+handle_stanza (WockyXmppScheduler *self,
+    WockyXmppStanza *stanza)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  GList *l;
+
+  for (l = priv->handlers; l != NULL; l = g_list_next (l))
+    {
+      StanzaHandler *handler = (StanzaHandler *) l->data;
+      WockyStanzaType type;
+      WockyStanzaSubType sub_type;
+
+      wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+
+      if (type != handler->type)
+        continue;
+
+      if (sub_type != handler->sub_type &&
+          handler->sub_type != WOCKY_STANZA_SUB_TYPE_NONE)
+        continue;
+
+      /* TODO: check from */
+      /* TODO: check extra args */
+
+      handler->callback (self, stanza, handler->user_data);
+      return;
+    }
+
+  DEBUG ("Stanza not handled");
+}
 
 static void
 stanza_received_cb (GObject *source,
@@ -529,7 +610,7 @@ stanza_received_cb (GObject *source,
       return;
     }
 
-  /* TODO: handle stanza */
+  handle_stanza (self, stanza);
 
   g_object_unref (stanza);
 
@@ -665,4 +746,43 @@ wocky_xmpp_scheduler_close_finish (
     G_OBJECT (self), wocky_xmpp_scheduler_close_finish), FALSE);
 
   return TRUE;
+}
+
+static gint
+compare_handler (StanzaHandler *a,
+    StanzaHandler *b)
+{
+  /* List is sorted by decreasing priority */
+  if (a->priority < b->priority)
+    return 1;
+  else if (a->priority > b->priority)
+    return -1;
+  else
+    return 0;
+}
+
+guint
+wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyXmppSchedulerHandlerFunc callback,
+    gpointer user_data,
+    guint spec,
+    ...)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  StanzaHandler *handler;
+
+  handler = stanza_handler_new (type, sub_type, from, priority, callback,
+      user_data);
+  /* TODO: don't ignore spec */
+
+  g_hash_table_insert (priv->handlers_by_id,
+      GUINT_TO_POINTER (priv->next_handler_id), handler);
+  priv->handlers = g_list_insert_sorted (priv->handlers, handler,
+      (GCompareFunc) compare_handler);
+
+  return priv->next_handler_id++;
 }
