@@ -940,6 +940,54 @@ test_handler_bare_jid (void)
   teardown_test (test);
 }
 
+/* test registering a handler using a full JID as filter criteria */
+static void
+test_handler_full_jid_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  test_expected_stanza_received (test, stanza);
+}
+
+static void
+test_handler_full_jid (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  /* register an IQ handler for all IQ from a bare jid */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      "juliet@example.com/Pub", 0,
+      test_handler_full_jid_cb, test, WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  /* Send a 'get' IQ from the bare jid */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+  send_stanza (test, iq, FALSE);
+
+  /* Send a 'get' IQ from another contact */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "samson@example.com/House", "romeo@example.net",
+    WOCKY_STANZA_END);
+  send_stanza (test, iq, FALSE);
+
+  /* Send a 'get' IQ from the bare jid + resource */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com/Pub", "romeo@example.net",
+    WOCKY_STANZA_END);
+  send_stanza (test, iq, TRUE);
+
+  test_close_scheduler (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -963,5 +1011,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/unregister-handler",
       test_unregister_handler);
   g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_bare_jid);
+  g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_full_jid);
   return g_test_run ();
 }
