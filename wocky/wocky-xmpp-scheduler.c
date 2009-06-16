@@ -38,6 +38,7 @@
 
 #include "wocky-xmpp-scheduler.h"
 #include "wocky-signals-marshal.h"
+#include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_XMPP_SCHEDULER
 #include "wocky-debug.h"
@@ -154,7 +155,9 @@ typedef struct
 {
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  const gchar *from;
+  gchar *username_room;
+  gchar *server_service;
+  gchar *resource_nick;
   guint priority;
   WockyXmppSchedulerHandlerFunc callback;
   gpointer user_data;
@@ -173,16 +176,25 @@ stanza_handler_new (
 
   result->type = type;
   result->sub_type = sub_type;
-  result->from = g_strdup (from);
   result->priority = priority;
   result->callback = callback;
   result->user_data = user_data;
+
+  if (from != NULL)
+    {
+      wocky_decode_jid (from, &(result->username_room),
+          &(result->server_service), &(result->resource_nick));
+    }
+
   return result;
 }
 
 static void
 stanza_handler_free (StanzaHandler *handler)
 {
+  g_free (handler->username_room);
+  g_free (handler->server_service);
+  g_free (handler->resource_nick);
   g_slice_free (StanzaHandler, handler);
 }
 
@@ -540,10 +552,21 @@ handle_stanza (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   GList *l;
+  const gchar *from;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
+  gchar *username_room, *server_service, *resource_nick;
 
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+
+  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+  if (from == NULL)
+    {
+      DEBUG ("Stanza doesn't have 'from' attribute; discard");
+      return;
+    }
+
+  wocky_decode_jid (from, &username_room, &server_service, &resource_nick);
 
   for (l = priv->handlers; l != NULL; l = g_list_next (l))
     {
@@ -556,14 +579,36 @@ handle_stanza (WockyXmppScheduler *self,
           handler->sub_type != WOCKY_STANZA_SUB_TYPE_NONE)
         continue;
 
-      /* TODO: check from */
+      if (handler->username_room != NULL)
+        {
+          g_assert (handler->server_service != NULL);
+
+          if (wocky_strdiff (username_room, handler->username_room))
+            continue;
+
+          if (wocky_strdiff (server_service, handler->server_service))
+            continue;
+
+          if (handler->resource_nick != NULL)
+            {
+              /* A ressource is defined so we want to match exactly the same
+               * JID */
+
+              if (wocky_strdiff (resource_nick, handler->resource_nick))
+                continue;
+            }
+        }
       /* TODO: check extra args */
 
       handler->callback (self, stanza, handler->user_data);
-      return;
+      goto out;
     }
 
   DEBUG ("Stanza not handled");
+out:
+  g_free (username_room);
+  g_free (server_service);
+  g_free (resource_nick);
 }
 
 static void
