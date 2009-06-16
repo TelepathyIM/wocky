@@ -786,3 +786,19 @@ wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *self,
 
   return priv->next_handler_id++;
 }
+
+gboolean
+wocky_xmpp_scheduler_unregister_handler (WockyXmppScheduler *self,
+    guint id)
+{
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  StanzaHandler *handler;
+
+  handler = g_hash_table_lookup (priv->handlers_by_id, GUINT_TO_POINTER (id));
+  if (handler == NULL)
+    return FALSE;
+
+  priv->handlers = g_list_remove (priv->handlers, handler);
+  g_hash_table_remove (priv->handlers_by_id, GUINT_TO_POINTER (id));
+  return TRUE;
+}
