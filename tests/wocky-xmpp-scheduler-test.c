@@ -178,7 +178,6 @@ test_send (void)
 }
 
 /* receive testing */
-#if 0
 static void
 test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
@@ -194,7 +193,6 @@ test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
   test->outstanding--;
   g_main_loop_quit (test->loop);
 }
-#endif
 
 static void
 sched_close_cb (GObject *source,
@@ -250,7 +248,6 @@ wait_close_cb (GObject *source,
   g_main_loop_quit (test->loop);
 }
 
-#if 0
 static void
 test_receive (void)
 {
@@ -271,8 +268,9 @@ test_receive (void)
    * side */
   test->outstanding += 2;
 
-  wocky_xmpp_scheduler_add_stanza_filter (test->sched_out, NULL,
-      test_receive_stanza_received_cb, test);
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 0,
+      test_receive_stanza_received_cb, test, WOCKY_STANZA_END);
 
   wocky_xmpp_scheduler_start (test->sched_out);
 
@@ -291,7 +289,6 @@ test_receive (void)
 
   teardown_test (test);
 }
-#endif
 
 /* filter testing */
 #if 0
@@ -819,7 +816,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/xmpp-scheduler/initiation", test_instantiation);
   g_test_add_func ("/xmpp-scheduler/send", test_send);
-  //g_test_add_func ("/xmpp-scheduler/receive", test_receive);
+  g_test_add_func ("/xmpp-scheduler/receive", test_receive);
   //g_test_add_func ("/xmpp-scheduler/filter", test_filter);
   g_test_add_func ("/xmpp-scheduler/close-flush", test_close_flush);
   g_test_add_func ("/xmpp-scheduler/close-not-started", test_close_not_started);
