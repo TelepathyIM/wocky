@@ -167,3 +167,57 @@ test_close_connection (test_data_t *test)
 
   test_wait_pending (test);
 }
+
+static void
+sched_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  g_assert (wocky_xmpp_scheduler_close_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+wait_sched_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyXmppStanza *s;
+  GError *error = NULL;
+
+  s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
+
+  g_assert (s == NULL);
+  /* connection has been disconnected */
+  g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
+  g_error_free (error);
+
+  /* close on our side */
+  wocky_xmpp_connection_send_close_async (connection, NULL,
+      close_sent_cb, test);
+
+  /* Don't decrement test->outstanding as we are waiting for another
+   * callback */
+  g_main_loop_quit (test->loop);
+}
+
+void
+test_close_scheduler (test_data_t *test)
+{
+  /* close connections */
+  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
+      wait_sched_close_cb, test);
+
+  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
+      test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+}

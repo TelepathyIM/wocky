@@ -33,6 +33,8 @@ void test_close_connection (test_data_t *test);
 
 void test_open_both_connections (test_data_t *test);
 
+void test_close_scheduler (test_data_t *test);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_HELPER_H__*/
