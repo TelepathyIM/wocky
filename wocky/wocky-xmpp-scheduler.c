@@ -69,7 +69,6 @@ struct _WockyXmppSchedulerPrivate
 
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
-  gboolean sending;
   GCancellable *receive_cancellable;
 
   GSimpleAsyncResult *close_result;
