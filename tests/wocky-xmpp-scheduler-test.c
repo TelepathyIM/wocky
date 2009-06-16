@@ -762,6 +762,18 @@ test_send_closed (void)
 
 /* test if the handler with the higher priority is called */
 static void
+send_stanza (test_data_t *test,
+    WockyXmppStanza *stanza)
+{
+  wocky_xmpp_scheduler_send (test->sched_in, stanza);
+  g_queue_push_tail (test->expected_stanzas, stanza);
+  test->outstanding++;
+
+  test_wait_pending (test);
+  g_object_unref (stanza);
+}
+
+static void
 test_handler_priority_5 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -835,12 +847,7 @@ test_handler_priority (void)
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, iq);
-  g_queue_push_tail (test->expected_stanzas, iq);
-  test->outstanding++;
-
-  test_wait_pending (test);
-  g_object_unref (iq);
+  send_stanza (test, iq);
 
   /* register an IQ handler with a priority of 15 */
   wocky_xmpp_scheduler_register_handler (test->sched_out,
@@ -852,12 +859,7 @@ test_handler_priority (void)
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, iq);
-  g_queue_push_tail (test->expected_stanzas, iq);
-  test->outstanding++;
-
-  test_wait_pending (test);
-  g_object_unref (iq);
+  send_stanza (test, iq);
 
   test_close_scheduler (test);
   teardown_test (test);
