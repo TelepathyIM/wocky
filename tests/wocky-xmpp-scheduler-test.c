@@ -277,16 +277,7 @@ test_receive (void)
   test_wait_pending (test);
   g_object_unref (s);
 
-  /* close connections */
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
@@ -359,16 +350,7 @@ test_filter (void)
   g_object_unref (msg);
   g_object_unref (iq);
 
-  /* close connections */
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
@@ -701,13 +683,7 @@ test_reading_error (void)
   wocky_xmpp_scheduler_start (test->sched_out);
   test_wait_pending (test);
 
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
@@ -883,16 +859,7 @@ test_handler_priority (void)
   test_wait_pending (test);
   g_object_unref (iq);
 
-  /* close connections */
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
