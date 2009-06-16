@@ -347,7 +347,7 @@ connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
   else
     {
       if (error)
-        fprintf (stderr, "%s: %d: %s\n",
+        g_warning ("%s: %d: %s\n",
             g_quark_to_string (error->domain), error->code, error->message);
       g_main_loop_quit (mainloop);
     }
@@ -378,15 +378,12 @@ main (int argc,
   if (!strcmp ("connector",type))
     {
       WockyConnector *wcon = NULL;
-
-      wcon = g_object_new (WOCKY_TYPE_CONNECTOR,
-          "jid", argv[1],
-          "password", argv[2]);
+      wcon = wocky_connector_new (argv[1], argv[2]);
 
       if (wocky_connector_connect_async (G_OBJECT (wcon),
               connector_callback, NULL))
         {
-          printf ("Instantiated connector and made successful connect call\n");
+          printf ("Instantiated connector and made async connect call\n");
           g_main_loop_run (mainloop);
         }
 
