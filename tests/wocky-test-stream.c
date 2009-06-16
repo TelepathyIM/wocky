@@ -69,6 +69,7 @@ typedef struct {
   gulong read_cancellable_sig_id;
   void *buffer;
   gsize count;
+  GError *read_error /* no, this is not a coding style violation */;
   gboolean dispose_has_run;
 } WockyTestInputStream;
 
@@ -366,6 +367,16 @@ wocky_test_input_stream_read_async (GInputStream *stream,
   self->read_result = g_simple_async_result_new (G_OBJECT (stream),
       callback, user_data, wocky_test_input_stream_read_finish);
 
+  if (self->read_error != NULL)
+    {
+      g_simple_async_result_set_from_error (self->read_result,
+          self->read_error);
+
+      g_error_free (self->read_error);
+      self->read_error = NULL;
+      read_async_complete (self);
+    }
+
   if (cancellable != NULL)
     {
       self->read_cancellable = cancellable;
@@ -513,4 +524,11 @@ wocky_test_output_stream_class_init (
       NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
+}
+
+void
+wocky_test_stream_read_error (WockyTestStream *self)
+{
+  WOCKY_TEST_INPUT_STREAM (self->stream1_input)->read_error = \
+      g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED, "read error");
 }
