@@ -221,3 +221,17 @@ test_close_scheduler (test_data_t *test)
   test->outstanding += 2;
   test_wait_pending (test);
 }
+
+void
+test_expected_stanza_received (test_data_t *test,
+    WockyXmppStanza *stanza)
+{
+  WockyXmppStanza *expected;
+
+  expected = g_queue_pop_head (test->expected_stanzas);
+  g_assert (expected != NULL);
+  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
