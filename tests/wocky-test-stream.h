@@ -64,7 +64,7 @@ GType wocky_test_stream_get_type (void);
 #define WOCKY_TEST_STREAM_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_TEST_STREAM, WockyTestStreamClass))
 
-void wocky_test_stream_read_error (WockyTestStream *self);
+void wocky_test_input_stream_set_read_error (GInputStream *stream);
 
 G_END_DECLS
 

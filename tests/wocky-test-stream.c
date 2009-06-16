@@ -527,8 +527,10 @@ wocky_test_output_stream_class_init (
 }
 
 void
-wocky_test_stream_read_error (WockyTestStream *self)
+wocky_test_input_stream_set_read_error (GInputStream *stream)
 {
-  WOCKY_TEST_INPUT_STREAM (self->stream1_input)->read_error = \
-      g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED, "read error");
+  WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
+
+   self->read_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+       "read error");
 }

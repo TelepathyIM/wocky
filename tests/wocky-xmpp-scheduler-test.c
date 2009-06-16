@@ -715,7 +715,7 @@ test_reading_error (void)
       G_CALLBACK (remote_error_cb), test);
   test->outstanding++;
 
-  wocky_test_stream_read_error (test->stream);
+  wocky_test_input_stream_set_read_error (test->stream->stream1_input);
 
   wocky_xmpp_scheduler_start (test->sched_out);
   test_wait_pending (test);
