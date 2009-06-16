@@ -184,14 +184,7 @@ test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
-
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  test_expected_stanza_received (test, stanza);
 }
 
 static void
@@ -288,14 +281,7 @@ test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
-
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  test_expected_stanza_received (test, stanza);
 }
 
 static void
@@ -788,19 +774,13 @@ test_handler_priority_10 (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
   WockyStanzaSubType sub_type;
 
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
+  test_expected_stanza_received (test, stanza);
 
   wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
   /* This handler is supposed to only handle the get stanza */
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
 }
 
 static void
@@ -809,17 +789,7 @@ test_handler_priority_15 (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
-  WockyStanzaSubType sub_type;
-
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
-
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  test_expected_stanza_received (test, stanza);
 }
 
 static void
