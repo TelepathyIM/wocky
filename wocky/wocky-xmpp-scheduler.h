@@ -92,19 +92,9 @@ void wocky_xmpp_scheduler_send (WockyXmppScheduler *scheduler,
 
 void wocky_xmpp_scheduler_start (WockyXmppScheduler *scheduler);
 
-typedef gboolean (* WockyXmppSchedulerStanzaFilterFunc) (
-    WockyXmppScheduler *scheduler,
-    WockyXmppStanza *stanza,
-    gpointer user_data);
-
 typedef void (* WockyXmppSchedulerStanzaCallbackFunc) (
     WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
-    gpointer user_data);
-
-void wocky_xmpp_scheduler_add_stanza_filter (WockyXmppScheduler *scheduler,
-    WockyXmppSchedulerStanzaFilterFunc filter,
-    WockyXmppSchedulerStanzaCallbackFunc callback,
     gpointer user_data);
 
 void wocky_xmpp_scheduler_close_async (WockyXmppScheduler *scheduler,

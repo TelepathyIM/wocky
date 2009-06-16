@@ -71,8 +71,6 @@ struct _WockyXmppSchedulerPrivate
   GQueue *sending_queue;
   gboolean sending;
   GCancellable *receive_cancellable;
-  /* List of (StanzaFilter *) */
-  GSList *stanza_filters;
 
   GSimpleAsyncResult *close_result;
   gboolean remote_closed;
@@ -145,32 +143,6 @@ sending_queue_elem_free (sending_queue_elem *elem)
   g_object_unref (elem->result);
 
   g_slice_free (sending_queue_elem, elem);
-}
-
-typedef struct
-{
-  WockyXmppSchedulerStanzaFilterFunc filter_func;
-  WockyXmppSchedulerStanzaCallbackFunc callback;
-  gpointer user_data;
-} StanzaFilter;
-
-static StanzaFilter *
-stanza_filter_new (WockyXmppSchedulerStanzaFilterFunc filter_func,
-  WockyXmppSchedulerStanzaCallbackFunc callback,
-  gpointer user_data)
-{
-  StanzaFilter *result = g_slice_new0 (StanzaFilter);
-
-  result->filter_func = filter_func;
-  result->callback = callback;
-  result->user_data = user_data;
-  return result;
-}
-
-static void
-stanza_filter_free (StanzaFilter *filter)
-{
-  g_slice_free (StanzaFilter, filter);
 }
 
 static void send_stanza_cb (GObject *source,
@@ -322,20 +294,12 @@ wocky_xmpp_scheduler_finalize (GObject *object)
   WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
   WockyXmppSchedulerPrivate *priv =
       WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  GSList *l;
 
   /* sending_queue_elem keeps a ref on the Scheduler (through the
    * GSimpleAsyncResult) so it shouldn't be destroyed while there are
    * elements in the queue. */
   g_assert_cmpuint (g_queue_get_length (priv->sending_queue), ==, 0);
   g_queue_free (priv->sending_queue);
-
-  for (l = priv->stanza_filters; l != NULL; l = g_slist_next (l))
-    {
-      stanza_filter_free ((StanzaFilter *) l->data);
-    }
-  g_slist_free (priv->stanza_filters);
-  priv->stanza_filters = NULL;
 
   G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->finalize (object);
 }
@@ -504,22 +468,6 @@ wocky_xmpp_scheduler_send (WockyXmppScheduler *self,
 static void receive_stanza (WockyXmppScheduler *self);
 
 static void
-apply_filter (WockyXmppScheduler *self,
-    StanzaFilter *filter,
-    WockyXmppStanza *stanza)
-{
-  if (filter->filter_func == NULL)
-    /* No filter function, match every stanza */
-    goto call_cb;
-
-  if (!filter->filter_func (self, stanza, filter->user_data))
-    return;
-
-call_cb:
-  filter->callback (self, stanza, filter->user_data);
-}
-
-static void
 complete_close (WockyXmppScheduler *self)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
@@ -547,7 +495,6 @@ stanza_received_cb (GObject *source,
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GError *error = NULL;
-  GSList *l;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), res, &error);
@@ -583,12 +530,8 @@ stanza_received_cb (GObject *source,
       return;
     }
 
-  for (l = priv->stanza_filters; l != NULL; l = g_slist_next (l))
-    {
-      StanzaFilter *filter = (StanzaFilter *) l->data;
+  /* TODO: handle stanza */
 
-      apply_filter (self, filter, stanza);
-    }
   g_object_unref (stanza);
 
   /* wait for next stanza */
@@ -616,20 +559,6 @@ wocky_xmpp_scheduler_start (WockyXmppScheduler *self)
   priv->receive_cancellable = g_cancellable_new ();
 
   receive_stanza (self);
-}
-
-void
-wocky_xmpp_scheduler_add_stanza_filter (WockyXmppScheduler *self,
-    WockyXmppSchedulerStanzaFilterFunc filter_func,
-    WockyXmppSchedulerStanzaCallbackFunc callback,
-    gpointer user_data)
-{
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  StanzaFilter *filter;
-
-  filter = stanza_filter_new (filter_func, callback, user_data);
-
-  priv->stanza_filters = g_slist_append (priv->stanza_filters, filter);
 }
 
 static void
