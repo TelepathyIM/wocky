@@ -617,7 +617,7 @@ xmpp_features_cb (GObject *source,
     }
 
   can_encrypt =
-    wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) == NULL;
+    wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) != NULL;
 
   /* conditions:
    * not encrypted, not encryptable, require encryption → ABORT
@@ -846,6 +846,7 @@ wocky_connector_connect_async (GObject *connector,
      above */
   if (priv->xmpp_host)
     {
+      DEBUG ("host: %s; port: %d\n", priv->xmpp_host, priv->xmpp_port);
       g_socket_client_connect_to_host_async (priv->client,
           priv->xmpp_host, priv->xmpp_port, NULL,
           tcp_host_connected, connector);
