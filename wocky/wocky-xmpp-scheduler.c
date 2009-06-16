@@ -445,7 +445,7 @@ send_cancelled_cb (GCancellable *cancellable,
 }
 
 void
-wocky_xmpp_scheduler_send_full (WockyXmppScheduler *self,
+wocky_xmpp_scheduler_send_async (WockyXmppScheduler *self,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -498,7 +498,7 @@ void
 wocky_xmpp_scheduler_send (WockyXmppScheduler *self,
     WockyXmppStanza *stanza)
 {
-  wocky_xmpp_scheduler_send_full (self, stanza, NULL, NULL, NULL);
+  wocky_xmpp_scheduler_send_async (self, stanza, NULL, NULL, NULL);
 }
 
 static void receive_stanza (WockyXmppScheduler *self);

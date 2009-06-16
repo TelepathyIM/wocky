@@ -105,7 +105,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, send_stanza_cb,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL, send_stanza_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
@@ -115,7 +115,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, send_stanza_cb,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL, send_stanza_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
@@ -127,7 +127,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "peter@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, cancellable,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, cancellable,
       send_stanza_cancelled_cb, test);
   g_object_unref (s);
   test->outstanding++;
@@ -136,7 +136,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "samson@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, cancellable,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, cancellable,
       send_stanza_cancelled_cb, test);
   g_object_unref (s);
   test->outstanding++;
@@ -161,7 +161,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, send_stanza_cb,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL, send_stanza_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
@@ -261,7 +261,7 @@ test_receive (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
       send_stanza_cb, test);
   g_queue_push_tail (test->expected_stanzas, s);
   /* We are waiting for the stanza to be sent and received on the other
@@ -788,14 +788,14 @@ test_send_closed (void)
     WOCKY_STANZA_END);
 
   /* try to send a stanza while closing */
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, test_send_closing_cb,
-      test);
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+      test_send_closing_cb, test);
   test->outstanding += 3;
   test_wait_pending (test);
 
   /* try to send a stanza after the closing */
-  wocky_xmpp_scheduler_send_full (test->sched_in, s, NULL, test_send_closed_cb,
-      test);
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+      test_send_closed_cb, test);
   g_object_unref (s);
   test->outstanding++;
   test_wait_pending (test);

@@ -76,7 +76,7 @@ GType wocky_xmpp_scheduler_get_type (void);
 
 WockyXmppScheduler * wocky_xmpp_scheduler_new (WockyXmppConnection *connection);
 
-void wocky_xmpp_scheduler_send_full (WockyXmppScheduler *scheduler,
+void wocky_xmpp_scheduler_send_async (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
