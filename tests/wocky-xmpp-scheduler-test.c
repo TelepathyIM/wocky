@@ -280,7 +280,7 @@ test_receive (void)
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_close_cb, test);
 
-  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
       test);
 
   test->outstanding += 2;
@@ -382,7 +382,7 @@ test_filter (void)
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_close_cb, test);
 
-  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
       test);
 
   test->outstanding += 2;
@@ -468,8 +468,8 @@ test_close_flush (void)
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       test_close_stanza_received_cb, test);
 
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, test_close_sched_close_cb,
-      test);
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL,
+      test_close_sched_close_cb, test);
 
   test->outstanding += 2;
   test_wait_pending (test);
@@ -504,8 +504,8 @@ test_close_not_started (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, test_close_not_started_cb,
-      test);
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL,
+      test_close_not_started_cb, test);
 
   test->outstanding++;
   test_wait_pending (test);
@@ -515,7 +515,7 @@ test_close_not_started (void)
 
   wocky_xmpp_scheduler_start (test->sched_in);
 
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
       test);
 
   test->outstanding += 2;
@@ -573,16 +573,16 @@ test_close_twice (void)
 
   wocky_xmpp_scheduler_start (test->sched_in);
 
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
       test);
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, test_close_twice_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, test_close_twice_cb,
       test);
 
   test->outstanding += 3;
   test_wait_pending (test);
 
   /* Retry now that the scheduler has been closed */
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, test_close_twice_cb2,
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, test_close_twice_cb2,
       test);
   test->outstanding++;
   test_wait_pending (test);
@@ -634,7 +634,7 @@ test_remote_close (void)
 
   test_wait_pending (test);
 
-  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
       test);
   test->outstanding++;
   test_wait_pending (test);
@@ -675,7 +675,7 @@ test_close_cancel (void)
 
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_close_cb, test);
-  wocky_xmpp_scheduler_close (test->sched_out, cancellable,
+  wocky_xmpp_scheduler_close_async (test->sched_out, cancellable,
       sched_close_cancelled_cb, test);
 
   g_cancellable_cancel (cancellable);
@@ -722,7 +722,7 @@ test_reading_error (void)
 
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_close_cb, test);
-  wocky_xmpp_scheduler_close (test->sched_out, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
       test);
   test->outstanding += 2;
   test_wait_pending (test);
@@ -780,7 +780,7 @@ test_send_closed (void)
 
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       wait_close_cb, test);
-  wocky_xmpp_scheduler_close (test->sched_in, NULL, sched_close_cb,
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
       test);
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,

@@ -674,7 +674,7 @@ send_close (WockyXmppScheduler *self)
 }
 
 void
-wocky_xmpp_scheduler_close (WockyXmppScheduler *self,
+wocky_xmpp_scheduler_close_async (WockyXmppScheduler *self,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
