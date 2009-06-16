@@ -31,8 +31,12 @@
 #include <wocky/wocky-xmpp-connection.h>
 
 #include <wocky/wocky-namespaces.h>
+#include <wocky/wocky-debug.h>
 
 #include <sasl/sasl.h>
+
+#define DEBUG(format, ...) \
+  wocky_debug (DEBUG_CONNECTOR, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
 
 G_DEFINE_TYPE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT);
 
@@ -44,8 +48,8 @@ struct _stanza_handler {
   stanza_func func;
 };
 
-static void xmpp_init (GObject *source, GAsyncResult *result,
-    gpointer user_data);
+static void xmpp_init (GObject *source, GAsyncResult *result, gpointer data);
+static void starttls (GObject *source, GAsyncResult *result, gpointer data);
 
 /* ************************************************************************* */
 /* test connector server object definition */
@@ -166,41 +170,64 @@ handle_auth (TestConnectorServer *self,
   test_sasl_auth_server_take_over (G_OBJECT (sasl), priv->conn, xml);
 }
 
+
 static void
 handle_starttls (TestConnectorServer *self,
     WockyXmppStanza *xml)
 {
-  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE(self);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   if (!priv->tls_started)
     {
-      GError *error = NULL;
       WockyXmppConnection *conn = priv->conn;
       WockyXmppStanza *proceed = wocky_xmpp_stanza_new ("proceed");
-      wocky_xmpp_node_set_ns (xml->node, WOCKY_XMPP_NS_TLS);
+      wocky_xmpp_node_set_ns (proceed->node, WOCKY_XMPP_NS_TLS);
 
       /* set up the tls server session */
-      priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
-          "/home/vivek/src/key.pem", "/home/vivek/src/cert.pem", NULL, NULL);
-      priv->tls_conn = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+      /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
+       * gnutls_global_set_log_level (10); */
+      priv->tls_sess =
+       g_tls_session_server_new (priv->stream,
+           1024,
+           "/home/vivek/src/certs/key.pem",
+           "/home/vivek/src/certs/cert.pem",
+           NULL, NULL);
 
-      if (priv->tls_conn == NULL)
-        {
-          g_error ("TLS Server Setup failed: %s\n", error->message);
-          return;
-        }
-
-      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
-      priv->tls_started = TRUE;
-
-      /* send the response (on the old, non-TLS connection saved in 'conn')
-         once we have done that, the client should re-open the stream so
-         we should loop back into the xmpp_init handler */
-      priv->state = SERVER_STATE_START;
-      wocky_xmpp_connection_send_stanza_async (conn, proceed, NULL, xmpp_init,
+      wocky_xmpp_connection_send_stanza_async (conn, proceed, NULL, starttls,
           self);
       g_object_unref (proceed);
     }
 }
+
+static void
+starttls (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (conn, result, &error))
+    {
+      DEBUG ("Sending starttls '<proceed...>' failed: %s", error->message);
+      return;
+    }
+
+  /* begin TLS handshake */
+  priv->tls_conn = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+  if (priv->tls_conn == NULL)
+    {
+      g_error ("TLS Server Setup failed: %s\n", error->message);
+      return;
+    }
+
+  priv->state = SERVER_STATE_START;
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
+  priv->tls_started = TRUE;
+  xmpp_init (NULL,NULL,self);
+}
+
 
 static void
 xmpp_handler (GObject *source,
@@ -239,8 +266,10 @@ xmpp_handler (GObject *source,
 
   /* no handler found: just complain and sit waiting for the next stanza */
   if (!handled)
-    g_warning ("<%s xmlns=\"%s\"… not handled\n", name, ns);
-  wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
+    {
+      g_warning ("<%s xmlns=\"%s\"… not handled\n", name, ns);
+      wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
+    }
 
   g_object_unref (xml);
 }
@@ -272,14 +301,14 @@ feature_stanza (TestConnectorServer *self)
 static void
 xmpp_init (GObject *source,
     GAsyncResult *result,
-    gpointer user_data)
+    gpointer data)
 {
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
   WockyXmppStanza *xml;
   WockyXmppConnection *conn;
 
-  self = TEST_CONNECTOR_SERVER (user_data);
+  self = TEST_CONNECTOR_SERVER (data);
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   conn = (source == NULL) ? priv->conn : WOCKY_XMPP_CONNECTION (source);
 
@@ -287,12 +316,14 @@ xmpp_init (GObject *source,
     {
       /* wait for <stream:stream… from the client */
     case SERVER_STATE_START:
+      DEBUG ("SERVER_STATE_START\n");
       priv->state = SERVER_STATE_CLIENT_OPENED;
       wocky_xmpp_connection_recv_open_async (conn, NULL, xmpp_init, self);
       break;
 
       /* send our own <stream:stream… */
     case SERVER_STATE_CLIENT_OPENED:
+      DEBUG ("SERVER_STATE_CLIENT_OPENED\n");
       priv->state = SERVER_STATE_SERVER_OPENED;
       wocky_xmpp_connection_recv_open_finish (conn, result,
           NULL, NULL, NULL, NULL, NULL);
@@ -302,6 +333,7 @@ xmpp_init (GObject *source,
 
       /* send our feature set */
     case SERVER_STATE_SERVER_OPENED:
+      DEBUG ("SERVER_STATE_SERVER_OPENED\n");
       priv->state = SERVER_STATE_FEATURES_SENT;
       wocky_xmpp_connection_send_open_finish (conn, result, NULL);
       xml = feature_stanza (self);
@@ -312,8 +344,13 @@ xmpp_init (GObject *source,
 
       /* ok, we're done with initial stream setup */
     case SERVER_STATE_FEATURES_SENT:
+      DEBUG ("SERVER_STATE_FEATURES_SENT\n");
       wocky_xmpp_connection_send_stanza_finish (conn, result, NULL);
       wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
+      break;
+
+    default:
+      DEBUG ("Unknown Server state. Broken code flow\n");
     }
 }
 
