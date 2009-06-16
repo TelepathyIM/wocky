@@ -540,14 +540,14 @@ handle_stanza (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   GList *l;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
   for (l = priv->handlers; l != NULL; l = g_list_next (l))
     {
       StanzaHandler *handler = (StanzaHandler *) l->data;
-      WockyStanzaType type;
-      WockyStanzaSubType sub_type;
-
-      wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
       if (type != handler->type)
         continue;
