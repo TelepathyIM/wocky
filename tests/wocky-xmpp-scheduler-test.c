@@ -184,14 +184,7 @@ test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
-
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  test_expected_stanza_received (test, stanza);
 }
 
 static void
@@ -277,16 +270,7 @@ test_receive (void)
   test_wait_pending (test);
   g_object_unref (s);
 
-  /* close connections */
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
@@ -297,14 +281,7 @@ test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
-
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  test_expected_stanza_received (test, stanza);
 }
 
 static void
@@ -359,16 +336,7 @@ test_filter (void)
   g_object_unref (msg);
   g_object_unref (iq);
 
-  /* close connections */
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
@@ -701,13 +669,7 @@ test_reading_error (void)
   wocky_xmpp_scheduler_start (test->sched_out);
   test_wait_pending (test);
 
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
@@ -786,6 +748,18 @@ test_send_closed (void)
 
 /* test if the handler with the higher priority is called */
 static void
+send_stanza (test_data_t *test,
+    WockyXmppStanza *stanza)
+{
+  wocky_xmpp_scheduler_send (test->sched_in, stanza);
+  g_queue_push_tail (test->expected_stanzas, stanza);
+  test->outstanding++;
+
+  test_wait_pending (test);
+  g_object_unref (stanza);
+}
+
+static void
 test_handler_priority_5 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -800,19 +774,13 @@ test_handler_priority_10 (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
   WockyStanzaSubType sub_type;
 
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
+  test_expected_stanza_received (test, stanza);
 
   wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
   /* This handler is supposed to only handle the get stanza */
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
 }
 
 static void
@@ -821,17 +789,7 @@ test_handler_priority_15 (WockyXmppScheduler *scheduler,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected;
-  WockyStanzaSubType sub_type;
-
-  expected = g_queue_pop_head (test->expected_stanzas);
-  g_assert (expected != NULL);
-  g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
-
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
-
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  test_expected_stanza_received (test, stanza);
 }
 
 static void
@@ -859,12 +817,7 @@ test_handler_priority (void)
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, iq);
-  g_queue_push_tail (test->expected_stanzas, iq);
-  test->outstanding++;
-
-  test_wait_pending (test);
-  g_object_unref (iq);
+  send_stanza (test, iq);
 
   /* register an IQ handler with a priority of 15 */
   wocky_xmpp_scheduler_register_handler (test->sched_out,
@@ -876,23 +829,9 @@ test_handler_priority (void)
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, iq);
-  g_queue_push_tail (test->expected_stanzas, iq);
-  test->outstanding++;
+  send_stanza (test, iq);
 
-  test_wait_pending (test);
-  g_object_unref (iq);
-
-  /* close connections */
-  wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
-      wait_close_cb, test);
-
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
-      test);
-
-  test->outstanding += 2;
-  test_wait_pending (test);
-
+  test_close_scheduler (test);
   teardown_test (test);
 }
 
