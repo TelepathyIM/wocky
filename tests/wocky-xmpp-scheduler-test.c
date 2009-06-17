@@ -876,9 +876,7 @@ test_unregister_handler (void)
   wocky_xmpp_scheduler_start (test->sched_out);
 
   /* unregister the first handler */
-  g_assert (wocky_xmpp_scheduler_unregister_handler (test->sched_out, id));
-  /* a second _unregister call says no */
-  g_assert (!wocky_xmpp_scheduler_unregister_handler (test->sched_out, id));
+  wocky_xmpp_scheduler_unregister_handler (test->sched_out, id);
 
   /* Send a 'get' IQ */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
