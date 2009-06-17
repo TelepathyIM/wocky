@@ -107,6 +107,9 @@ guint wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *scheduler,
     guint spec,
     ...);
 
+void wocky_xmpp_scheduler_unregister_handler (WockyXmppScheduler *scheduler,
+    guint id);
+
 void wocky_xmpp_scheduler_close_async (WockyXmppScheduler *scheduler,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

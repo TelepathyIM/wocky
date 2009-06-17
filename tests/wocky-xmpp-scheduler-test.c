@@ -835,6 +835,60 @@ test_handler_priority (void)
   teardown_test (test);
 }
 
+/* Test unregistering a handler */
+static void
+test_unregister_handler_10 (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  /* this handler is unregistred so shouldn't called */
+  g_assert_not_reached ();
+}
+
+static void
+test_unregister_handler_5 (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  test_expected_stanza_received (test, stanza);
+}
+
+static void
+test_unregister_handler (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+  guint id;
+
+  test_open_both_connections (test);
+
+  /* register an IQ handler with a priority of 10 */
+  id = wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 10,
+      test_unregister_handler_10, test, WOCKY_STANZA_END);
+
+  /* register an IQ handler with a priority of 5 */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 5,
+      test_unregister_handler_5, test, WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  /* unregister the first handler */
+  wocky_xmpp_scheduler_unregister_handler (test->sched_out, id);
+
+  /* Send a 'get' IQ */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  send_stanza (test, iq);
+
+  test_close_scheduler (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -855,5 +909,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/reading-error", test_reading_error);
   g_test_add_func ("/xmpp-scheduler/send-closed", test_send_closed);
   g_test_add_func ("/xmpp-scheduler/handler-priority", test_handler_priority);
+  g_test_add_func ("/xmpp-scheduler/unregister-handler",
+      test_unregister_handler);
   return g_test_run ();
 }
