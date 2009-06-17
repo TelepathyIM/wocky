@@ -42,9 +42,9 @@ wocky_strdiff (const gchar *left,
 
 /**
  * wocky_decode_jid:
- * @username_room: address to which return the username/room part of the JID
- * @server_service: address to which return the server/service part of the JID
- * @resource_nick: address to which return the resource/nick part of the JID
+ * @node: address to which return the username/room part of the JID
+ * @domain: address to which return the server/service part of the JID
+ * @resource: address to which return the resource/nick part of the JID
  *
  * Parses a JID which may be one of the following forms:
  *  server
@@ -52,7 +52,7 @@ wocky_strdiff (const gchar *left,
  *  username@server
  *  username@server/resource
  *  room@service/nick
- * and sets the caller's username_room, server_service and resource_nick
+ * and sets the caller's node, domain and resource
  * pointers to the username/room, server/service and resource/nick parts
  * respectively, if available in the provided JID. The caller may set any of
  * the pointers to NULL if they are not interested in a certain component.
@@ -65,22 +65,22 @@ wocky_strdiff (const gchar *left,
  */
 void
 wocky_decode_jid (const gchar *jid,
-    gchar **username_room,
-    gchar **server_service,
-    gchar **resource_nick)
+    gchar **node,
+    gchar **domain,
+    gchar **resource)
 {
   char *tmp_jid, *tmp_username, *tmp_server, *tmp_resource;
 
   g_assert (jid != NULL);
 
-  if (username_room != NULL)
-    *username_room = NULL;
+  if (node != NULL)
+    *node = NULL;
 
-  if (server_service != NULL)
-    *server_service = NULL;
+  if (domain != NULL)
+    *domain = NULL;
 
-  if (resource_nick != NULL)
-    *resource_nick = NULL;
+  if (resource != NULL)
+    *resource = NULL;
 
   /* take a local copy so we don't modify the caller's string */
   tmp_jid = g_strdup (jid);
@@ -96,8 +96,8 @@ wocky_decode_jid (const gchar *jid,
       tmp_server++;
 
       /* store the username if the user provided a pointer */
-      if (username_room != NULL)
-        *username_room = g_utf8_strdown (tmp_username, -1);
+      if (node != NULL)
+        *node = g_utf8_strdown (tmp_username, -1);
     }
   else
     {
@@ -115,14 +115,14 @@ wocky_decode_jid (const gchar *jid,
       tmp_resource++;
 
       /* store the resource if the user provided a pointer */
-      if (resource_nick != NULL)
-        *resource_nick = g_strdup (tmp_resource);
+      if (resource != NULL)
+        *resource = g_strdup (tmp_resource);
     }
 
   /* the server must be stored after the resource, in case we truncated a
    * resource from it */
-  if (server_service != NULL)
-    *server_service = g_utf8_strdown (tmp_server, -1);
+  if (domain != NULL)
+    *domain = g_utf8_strdown (tmp_server, -1);
 
   /* free our working copy */
   g_free (tmp_jid);

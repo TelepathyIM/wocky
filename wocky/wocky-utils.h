@@ -28,9 +28,9 @@ gboolean wocky_strdiff (const gchar *left,
     const gchar *right);
 
 void wocky_decode_jid (const gchar *jid,
-    gchar **username_room,
-    gchar **server_service,
-    gchar **resource_nick);
+    gchar **node,
+    gchar **domain,
+    gchar **resource);
 
 G_END_DECLS
 
