@@ -72,6 +72,7 @@ wocky_decode_jid (const gchar *jid,
   char *tmp_jid, *tmp_username, *tmp_server, *tmp_resource;
 
   g_assert (jid != NULL);
+  g_assert (node != NULL || domain != NULL || resource != NULL);
 
   if (node != NULL)
     *node = NULL;
