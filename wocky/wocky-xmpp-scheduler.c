@@ -159,6 +159,7 @@ typedef struct
   gchar *domain;
   gchar *resource;
   guint priority;
+  WockyXmppStanza *match;
   WockyXmppSchedulerHandlerFunc callback;
   gpointer user_data;
 } StanzaHandler;
@@ -169,6 +170,7 @@ stanza_handler_new (
     WockyStanzaSubType sub_type,
     const gchar *from,
     guint priority,
+    WockyXmppStanza *stanza,
     WockyXmppSchedulerHandlerFunc callback,
     gpointer user_data)
 {
@@ -179,6 +181,7 @@ stanza_handler_new (
   result->priority = priority;
   result->callback = callback;
   result->user_data = user_data;
+  result->match = g_object_ref (stanza);
 
   if (from != NULL)
     {
@@ -195,6 +198,7 @@ stanza_handler_free (StanzaHandler *handler)
   g_free (handler->node);
   g_free (handler->domain);
   g_free (handler->resource);
+  g_object_unref (handler->match);
   g_slice_free (StanzaHandler, handler);
 }
 
@@ -598,7 +602,10 @@ handle_stanza (WockyXmppScheduler *self,
                 continue;
             }
         }
-      /* TODO: check extra args */
+
+      /* Check if the stanza matches the pattern */
+      if (!wocky_xmpp_node_is_superset (stanza->node, handler->match->node))
+        continue;
 
       handler->callback (self, stanza, handler->user_data);
       goto out;
@@ -814,15 +821,23 @@ wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *self,
     guint priority,
     WockyXmppSchedulerHandlerFunc callback,
     gpointer user_data,
-    guint spec,
+    WockyBuildTag spec,
     ...)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   StanzaHandler *handler;
+  WockyXmppStanza *stanza;
+  va_list ap;
 
-  handler = stanza_handler_new (type, sub_type, from, priority, callback,
-      user_data);
-  /* TODO: don't ignore spec */
+  va_start (ap, spec);
+  stanza = wocky_xmpp_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, NULL, spec, ap);
+  g_assert (stanza != NULL);
+  va_end (ap);
+
+  handler = stanza_handler_new (type, sub_type, from, priority, stanza,
+      callback, user_data);
+  g_object_unref (stanza);
 
   g_hash_table_insert (priv->handlers_by_id,
       GUINT_TO_POINTER (priv->next_handler_id), handler);

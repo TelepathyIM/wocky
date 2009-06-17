@@ -104,7 +104,7 @@ guint wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *scheduler,
     guint priority,
     WockyXmppSchedulerHandlerFunc callback,
     gpointer user_data,
-    guint spec,
+    WockyBuildTag spec,
     ...);
 
 void wocky_xmpp_scheduler_unregister_handler (WockyXmppScheduler *scheduler,
