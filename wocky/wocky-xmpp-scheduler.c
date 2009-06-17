@@ -155,9 +155,9 @@ typedef struct
 {
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  gchar *username_room;
-  gchar *server_service;
-  gchar *resource_nick;
+  gchar *node;
+  gchar *domain;
+  gchar *resource;
   guint priority;
   WockyXmppSchedulerHandlerFunc callback;
   gpointer user_data;
@@ -182,8 +182,8 @@ stanza_handler_new (
 
   if (from != NULL)
     {
-      wocky_decode_jid (from, &(result->username_room),
-          &(result->server_service), &(result->resource_nick));
+      wocky_decode_jid (from, &(result->node),
+          &(result->domain), &(result->resource));
     }
 
   return result;
@@ -192,9 +192,9 @@ stanza_handler_new (
 static void
 stanza_handler_free (StanzaHandler *handler)
 {
-  g_free (handler->username_room);
-  g_free (handler->server_service);
-  g_free (handler->resource_nick);
+  g_free (handler->node);
+  g_free (handler->domain);
+  g_free (handler->resource);
   g_slice_free (StanzaHandler, handler);
 }
 
@@ -555,7 +555,7 @@ handle_stanza (WockyXmppScheduler *self,
   const gchar *from;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  gchar *username_room, *server_service, *resource_nick;
+  gchar *node, *domain, *resource;
 
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
@@ -566,7 +566,7 @@ handle_stanza (WockyXmppScheduler *self,
       return;
     }
 
-  wocky_decode_jid (from, &username_room, &server_service, &resource_nick);
+  wocky_decode_jid (from, &node, &domain, &resource);
 
   for (l = priv->handlers; l != NULL; l = g_list_next (l))
     {
@@ -579,22 +579,22 @@ handle_stanza (WockyXmppScheduler *self,
           handler->sub_type != WOCKY_STANZA_SUB_TYPE_NONE)
         continue;
 
-      if (handler->username_room != NULL)
+      if (handler->node != NULL)
         {
-          g_assert (handler->server_service != NULL);
+          g_assert (handler->domain != NULL);
 
-          if (wocky_strdiff (username_room, handler->username_room))
+          if (wocky_strdiff (node, handler->node))
             continue;
 
-          if (wocky_strdiff (server_service, handler->server_service))
+          if (wocky_strdiff (domain, handler->domain))
             continue;
 
-          if (handler->resource_nick != NULL)
+          if (handler->resource != NULL)
             {
               /* A ressource is defined so we want to match exactly the same
                * JID */
 
-              if (wocky_strdiff (resource_nick, handler->resource_nick))
+              if (wocky_strdiff (resource, handler->resource))
                 continue;
             }
         }
@@ -606,9 +606,9 @@ handle_stanza (WockyXmppScheduler *self,
 
   DEBUG ("Stanza not handled");
 out:
-  g_free (username_room);
-  g_free (server_service);
-  g_free (resource_nick);
+  g_free (node);
+  g_free (domain);
+  g_free (resource);
 }
 
 static void
