@@ -437,4 +437,66 @@ wocky_xmpp_node_equal (WockyXmppNode *node0,
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_node_is_superset:
+ * @node: the #WockyXmppNode to test
+ * @subset: the supposed subset
+ *
+ * Returns: %TRUE if @node is a superset of @subset.
+ */
+gboolean
+wocky_xmpp_node_is_superset (WockyXmppNode *node,
+    WockyXmppNode *subset)
+{
+  GSList *l;
 
+  if (subset == NULL)
+    /* We are always a superset of nothing */
+    return TRUE;
+
+  if (node == NULL)
+    /* subset is not NULL so we are not a superset */
+    return FALSE;
+
+  if (wocky_strdiff (node->name, subset->name))
+    /* Node name doesn't match */
+    return FALSE;
+
+  if (subset->ns != 0 &&
+      node->ns != subset->ns)
+    /* Namespace doesn't match */
+    return FALSE;
+
+  if (subset->content != NULL &&
+      wocky_strdiff (node->content, subset->content))
+    /* Content doesn't match */
+    return FALSE;
+
+  /* Check attributes */
+  for (l = subset->attributes; l != NULL;  l = g_slist_next (l))
+    {
+      Attribute *a = (Attribute *) l->data;
+      const gchar *c;
+
+      c = wocky_xmpp_node_get_attribute_ns (node, a->key,
+        a->ns == 0 ? NULL : g_quark_to_string (a->ns));
+
+      if (wocky_strdiff (a->value, c))
+        return FALSE;
+    }
+
+  /* Recursively check children; order doesn't matter */
+  for (l = subset->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *pattern_child = (WockyXmppNode *) l->data;
+      WockyXmppNode *node_child;
+
+      node_child = wocky_xmpp_node_get_child_ns (node, pattern_child->name,
+          wocky_xmpp_node_get_ns (pattern_child));
+
+      if (!wocky_xmpp_node_is_superset (node_child, pattern_child))
+        return FALSE;
+    }
+
+  return TRUE;
+}
