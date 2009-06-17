@@ -5,6 +5,8 @@
 #include <glib.h>
 
 #include <wocky/wocky-xmpp-scheduler.h>
+#include <wocky/wocky-utils.h>
+
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
@@ -988,6 +990,138 @@ test_handler_full_jid (void)
   teardown_test (test);
 }
 
+/* test registering a handler using a stanza as filter criteria */
+static void
+test_handler_stanza_jingle_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  const gchar *id;
+
+  test_expected_stanza_received (test, stanza);
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (!wocky_strdiff (id, "3") ||
+      !wocky_strdiff (id, "4"));
+}
+
+static void
+test_handler_stanza_terminate_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  const gchar *id;
+
+  test_expected_stanza_received (test, stanza);
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (!wocky_strdiff (id, "5"));
+}
+
+static void
+test_handler_stanza (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  /* register an IQ handler for all the jingle stanzas related to one jingle
+   * session */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 0,
+      test_handler_stanza_jingle_cb, test,
+      WOCKY_NODE, "jingle",
+        WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+        WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  /* Send a not jingle IQ */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "1",
+    WOCKY_STANZA_END);
+  send_stanza (test, iq, FALSE);
+
+  /* Send a jingle IQ but related to another session */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "2",
+    WOCKY_NODE, "jingle",
+      WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+      WOCKY_NODE_ATTRIBUTE, "sid", "another_sid",
+    WOCKY_NODE_END, WOCKY_STANZA_END);
+  send_stanza (test, iq, FALSE);
+
+  /* Send a jingle IQ related to the right session */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "3",
+    WOCKY_NODE, "jingle",
+      WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+      WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
+    WOCKY_NODE_END, WOCKY_STANZA_END);
+  send_stanza (test, iq, TRUE);
+
+  /* register a new IQ handler,with higher priority, handling session-terminate
+   * with a specific test message */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 10,
+      test_handler_stanza_terminate_cb, test,
+      WOCKY_NODE, "jingle",
+        WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+        WOCKY_NODE_ATTRIBUTE, "action", "session-terminate",
+        WOCKY_NODE, "reason",
+          WOCKY_NODE, "success", WOCKY_NODE_END,
+          WOCKY_NODE, "test",
+            WOCKY_NODE_TEXT, "Sorry, gotta go!",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  /* Send a session-terminate with the wrong message */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "4",
+    WOCKY_NODE, "jingle",
+      WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+      WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
+      WOCKY_NODE_ATTRIBUTE, "action", "session-terminate",
+        WOCKY_NODE, "reason",
+          WOCKY_NODE, "success", WOCKY_NODE_END,
+          WOCKY_NODE, "test",
+            WOCKY_NODE_TEXT, "Bye Bye",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+    WOCKY_NODE_END, WOCKY_STANZA_END);
+  send_stanza (test, iq, TRUE);
+
+  /* Send a session-terminate with the right message */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "5",
+    WOCKY_NODE, "jingle",
+      WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+      WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
+      WOCKY_NODE_ATTRIBUTE, "action", "session-terminate",
+        WOCKY_NODE, "reason",
+          WOCKY_NODE, "success", WOCKY_NODE_END,
+          WOCKY_NODE, "test",
+            WOCKY_NODE_TEXT, "Sorry, gotta go!",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+    WOCKY_NODE_END, WOCKY_STANZA_END);
+  send_stanza (test, iq, TRUE);
+
+  test_close_scheduler (test);
+  teardown_test (test);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -1012,5 +1146,6 @@ main (int argc, char **argv)
       test_unregister_handler);
   g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_bare_jid);
   g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_full_jid);
+  g_test_add_func ("/xmpp-scheduler/handler-stanza", test_handler_stanza);
   return g_test_run ();
 }
