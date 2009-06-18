@@ -1215,6 +1215,102 @@ test_writing_error (void)
   teardown_test (test);
 }
 
+/* Test send with reply */
+static void
+test_send_with_reply_sent_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+  g_assert (wocky_xmpp_scheduler_send_full_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+
+  data->outstanding--;
+  g_main_loop_quit (data->loop);
+}
+
+static void
+test_send_with_reply_iq_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  const gchar *id;
+
+  test_expected_stanza_received (test, stanza);
+
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+
+  /* Send reply */
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, "romeo@example.net", "juliet@example.com",
+    WOCKY_NODE_ATTRIBUTE, "id", id,
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_async (scheduler, reply,
+      NULL, test_send_with_reply_sent_cb, test);
+  g_queue_push_tail (test->expected_stanzas, reply);
+
+  test->outstanding++;
+}
+
+static void
+test_send_with_reply_reply_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *iq,
+    WockyXmppStanza *reply,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  const gchar *id, *from, *to;
+
+  test_expected_stanza_received (test, reply);
+
+  id = wocky_xmpp_node_get_attribute (iq->node, "id");
+  from = wocky_xmpp_node_get_attribute (iq->node, "from");
+  to = wocky_xmpp_node_get_attribute (iq->node, "to");
+
+  g_assert (!wocky_strdiff (id, wocky_xmpp_node_get_attribute (
+          reply->node, "id")));
+  g_assert (!wocky_strdiff (from, wocky_xmpp_node_get_attribute (
+          reply->node, "to")));
+  g_assert (!wocky_strdiff (to, wocky_xmpp_node_get_attribute (
+          reply->node, "from")));
+}
+
+static void
+test_send_with_reply (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_xmpp_scheduler_start (test->sched_in);
+
+  /* register an IQ handler */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 0,
+      test_send_with_reply_iq_cb, test, WOCKY_STANZA_END);
+
+  /* Send an IQ query */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "1",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_with_reply_async (test->sched_in, iq,
+      NULL, test_send_with_reply_sent_cb, test_send_with_reply_reply_cb, test);
+  g_queue_push_tail (test->expected_stanzas, iq);
+
+  test->outstanding += 3;
+  test_wait_pending (test);
+
+  test_close_both_schedulers (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1243,5 +1339,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/cancel-sent-stanza",
       test_cancel_sent_stanza);
   g_test_add_func ("/xmpp-scheduler/writing-error", test_writing_error);
+  g_test_add_func ("/xmpp-scheduler/send-with-reply", test_send_with_reply);
   return g_test_run ();
 }
