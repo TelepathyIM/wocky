@@ -35,6 +35,7 @@ typedef enum {
   WOCKY_XMPP_SCHEDULER_ERROR_NOT_STARTED,
   WOCKY_XMPP_SCHEDULER_ERROR_CLOSING,
   WOCKY_XMPP_SCHEDULER_ERROR_CLOSED,
+  WOCKY_XMPP_SCHEDULER_ERROR_NOT_IQ,
 } WockyXmppSchedulerError;
 
 GQuark wocky_xmpp_scheduler_error_quark (void);
@@ -119,6 +120,19 @@ gboolean wocky_xmpp_scheduler_close_finish (
     WockyXmppScheduler *scheduler,
     GAsyncResult *result,
     GError **error);
+
+typedef void (* WockyXmppSchedulerReplyCb) (
+    WockyXmppScheduler *scheduler,
+    WockyXmppStanza *iq,
+    WockyXmppStanza *reply,
+    gpointer user_data);
+
+void wocky_xmpp_scheduler_send_with_reply_async (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    WockyXmppSchedulerReplyCb reply_cb,
+    gpointer user_data);
 
 G_END_DECLS
 
