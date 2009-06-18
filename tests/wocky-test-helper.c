@@ -231,6 +231,7 @@ test_expected_stanza_received (test_data_t *test,
   expected = g_queue_pop_head (test->expected_stanzas);
   g_assert (expected != NULL);
   g_assert (wocky_xmpp_node_equal (stanza->node, expected->node));
+  g_object_unref (expected);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);

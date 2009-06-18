@@ -270,7 +270,6 @@ test_receive (void)
   wocky_xmpp_scheduler_start (test->sched_out);
 
   test_wait_pending (test);
-  g_object_unref (s);
 
   test_close_scheduler (test);
   teardown_test (test);
@@ -336,7 +335,6 @@ test_filter (void)
 
   test_wait_pending (test);
   g_object_unref (msg);
-  g_object_unref (iq);
 
   test_close_scheduler (test);
   teardown_test (test);
@@ -760,9 +758,12 @@ send_stanza (test_data_t *test,
       g_queue_push_tail (test->expected_stanzas, stanza);
       test->outstanding++;
     }
+  else
+    {
+      g_object_unref (stanza);
+    }
 
   test_wait_pending (test);
-  g_object_unref (stanza);
 }
 
 static void
