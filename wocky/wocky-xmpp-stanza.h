@@ -21,6 +21,8 @@
 #ifndef __WOCKY_XMPP_STANZA_H__
 #define __WOCKY_XMPP_STANZA_H__
 
+#include <stdarg.h>
+
 #include <glib-object.h>
 #include "wocky-xmpp-node.h"
 
@@ -114,6 +116,13 @@ WockyXmppStanza * wocky_xmpp_stanza_build (WockyStanzaType type,
 
 void wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
     WockyStanzaType *type, WockyStanzaSubType *sub_type);
+
+WockyXmppStanza * wocky_xmpp_stanza_build_va (WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    const gchar *to,
+    WockyBuildTag spec,
+    va_list ap);
 
 G_END_DECLS
 

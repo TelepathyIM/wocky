@@ -371,6 +371,23 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
   WockyXmppStanza *stanza;
   va_list ap;
 
+  va_start (ap, spec);
+  stanza = wocky_xmpp_stanza_build_va (type, sub_type, from, to, spec, ap);
+  va_end (ap);
+
+  return stanza;
+}
+
+WockyXmppStanza *
+wocky_xmpp_stanza_build_va (WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    const gchar *to,
+    WockyBuildTag spec,
+    va_list ap)
+{
+  WockyXmppStanza *stanza;
+
   g_return_val_if_fail (type < NUM_WOCKY_STANZA_TYPE, NULL);
   g_return_val_if_fail (sub_type < NUM_WOCKY_STANZA_SUB_TYPE, NULL);
 
@@ -384,13 +401,11 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
   if (to != NULL)
     wocky_xmpp_node_set_attribute (stanza->node, "to", to);
 
-  va_start (ap, spec);
   if (!wocky_xmpp_stanza_add_build_va (stanza->node, spec, ap))
     {
       g_object_unref (stanza);
       stanza = NULL;
     }
-  va_end (ap);
 
   return stanza;
 }
