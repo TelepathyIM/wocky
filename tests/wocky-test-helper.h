@@ -38,6 +38,8 @@ void test_close_scheduler (test_data_t *test);
 void test_expected_stanza_received (test_data_t *test,
     WockyXmppStanza *stanza);
 
+void test_close_both_schedulers (test_data_t *test);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_HELPER_H__*/

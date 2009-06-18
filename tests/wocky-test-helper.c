@@ -236,3 +236,15 @@ test_expected_stanza_received (test_data_t *test,
   test->outstanding--;
   g_main_loop_quit (test->loop);
 }
+
+void
+test_close_both_schedulers (test_data_t *test)
+{
+  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
+      test);
+  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
+      test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+}
