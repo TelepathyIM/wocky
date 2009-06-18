@@ -722,7 +722,12 @@ close_sent_cb (GObject *source,
     }
 
 out:
-  complete_close (self);
+  if (priv->close_result != NULL)
+    {
+      /* close operation could already be completed if the other side closes
+       * before we send our close */
+      complete_close (self);
+    }
 }
 
 static void
