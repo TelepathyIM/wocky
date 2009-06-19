@@ -1,0 +1,77 @@
+Tests:
+
+Syntactic validity:
+
+Invalid JID (empty)     → Bad JID error
+Invalid JID (no domain) → Bad JID error
+============================================================================
+
+Connection details:
+
+DOMAIN = latter part of JID
+HOST   = specific host provided by user
+SRV    = host + port from SRV record
+
+SRV │ Host │ Port │ Expected Attempt:
+────┼──────┼──────┼──────────────────────────────
+0   │ 0    │ 0    │ connect to DOMAIN + 5222
+0   │ 0    │ 1    │ connect to DOMAIN + port
+0   │ 1    │ 0    │ connect to HOST   + 5222
+0   │ 1    │ 1    │ connect to specified HOST+PORT
+0   │ ☠    │ 0    │ duff host. die.
+0   │ ☠    │ 1    │ duff host. die.
+1   │ 0    │ 0    │ connect to SRV
+1   │ 0    │ 1    │ connect to SRV  + PORT
+1   │ 1    │ 0    │ connect to HOST + 5222
+1   │ 1    │ 1    │ connect to HOST + PORT
+1   │ ☠    │ 0    │ duff host. die.
+1   │ ☠    │ 1    │ duff host. die.
+☠   │ 0    │ 0    │ duff SRV. die.
+☠   │ 0    │ 1    │ duff SRV. die.
+☠   │ 1    │ 0    │ connect to HOST + 5222
+☠   │ 1    │ 1    │ connect to HOST + port
+☠   │ ☠    │ 0    │ duff HOST. die.
+☠   │ ☠    │ 1    │ duff HOST. die.
+============================================================================
+
+Feature Requirements/Support tests:
+
++TLS       = TLS provided by server
+-TLS       = TLS not provided
+INSEC AUTH = Insecure auth channels permitted
+TLS PLAIN  = Insecure auth over TLS permitted
+DIGEST     = + → digest auth available; - → only PLAIN available
+
+Tests flagged with * need to be repeated 4 times, with good auth details,
+a bad password, a bad user and with both wrong. The rest should fail before
+we get that far.
+────┬────────────┬────────────┬─────────────────┬────────────────────────┐
+TLS │ INSEC AUTH │ TLS PLAIN  │ Server Features │ Attempted Action(s)    │
+ 0  │     0      │    x       │ -TLS-DIGEST     │ auth failure           │
+ 0  │     0      │    x       │ -TLS+DIGEST     │ digest auth          * │
+ 0  │     1      │    x       │ -TLS-DIGEST     │ plain auth           * │
+ 0  │     1      │    x       │ -TLS+DIGEST     │ digest auth          * │
+────┼────────────┼────────────┼─────────────────┼────────────────────────┤
+ 1  │     0      │    0       │ -TLS            │ TLS neg failure        │
+ 1  │     0      │    1       │ -TLS            │ TLS neg failure        │
+ 1  │     1      │    0       │ -TLS            │ TLS neg failure        │
+ 1  │     1      │    1       │ -TLS            │ TLS neg failure        │
+────┼────────────┼────────────┼─────────────────┼────────────────────────┤
+ 0  │     0      │    0       │ +TLS-DIGEST     │ TLS auth failure       │
+ 0  │     0      │    1       │ +TLS-DIGEST     │ TLS plain auth       * │
+ 0  │     1      │    0       │ +TLS-DIGEST     │ TLS plain auth       * │
+ 0  │     1      │    1       │ +TLS-DIGEST     │ TLS plain auth       * │
+ 1  │     0      │    0       │ +TLS-DIGEST     │ TLS auth failure       │
+ 1  │     0      │    1       │ +TLS-DIGEST     │ TLS plain auth       * │
+ 1  │     1      │    0       │ +TLS-DIGEST     │ TLS plain auth       * │
+ 1  │     1      │    1       │ +TLS-DIGEST     │ TLS plain auth       * │
+────┼────────────┼────────────┼─────────────────┼────────────────────────┤
+ 0  │     0      │    0       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 0  │     0      │    1       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 0  │     1      │    0       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 0  │     1      │    1       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 1  │     0      │    0       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 1  │     0      │    1       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 1  │     1      │    0       │ +TLS+DIGEST     │ TLS digest auth      * │
+ 1  │     1      │    0       │ +TLS+DIGEST     │ TLS digest auth      * │
+────┴────────────┴────────────┴─────────────────┴────────────────────────┘
