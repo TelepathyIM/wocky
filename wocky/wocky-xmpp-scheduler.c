@@ -209,6 +209,7 @@ typedef struct
 {
   WockyXmppSchedulerReplyCb iq_callback;
   WockyXmppStanza *iq;
+  GCancellable *cancellable;
   gpointer user_data;
 } StanzaIqHandler;
 
@@ -216,6 +217,7 @@ static StanzaIqHandler *
 stanza_iq_handler_new (
     WockyXmppStanza *iq,
     WockyXmppSchedulerReplyCb iq_callback,
+    GCancellable *cancellable,
     gpointer user_data)
 {
   StanzaIqHandler *result = g_slice_new0 (StanzaIqHandler);
@@ -223,6 +225,8 @@ stanza_iq_handler_new (
   result->iq_callback = iq_callback;
   result->user_data = user_data;
   result->iq = g_object_ref (iq);
+  if (cancellable != NULL)
+    result->cancellable = g_object_ref (cancellable);
 
   return result;
 }
@@ -231,6 +235,8 @@ static void
 stanza_iq_handler_free (StanzaIqHandler *handler)
 {
   g_object_unref (handler->iq);
+  if (handler->cancellable != NULL)
+    g_object_unref (handler->cancellable);
   g_slice_free (StanzaIqHandler, handler);
 }
 
@@ -635,8 +641,10 @@ handle_iq_reply (WockyXmppScheduler *self,
       return;
     }
 
-  /* TODO: check cancelled */
-  handler->iq_callback (self, handler->iq, reply, handler->user_data);
+  if (!g_cancellable_is_cancelled (handler->cancellable))
+    {
+      handler->iq_callback (self, handler->iq, reply, handler->user_data);
+    }
 
   g_hash_table_remove (priv->iq_reply_handlers, handler_id);
   g_free (handler_id);
@@ -994,7 +1002,7 @@ wocky_xmpp_scheduler_send_with_reply_async (WockyXmppScheduler *self,
       return;
     }
 
-  handler = stanza_iq_handler_new (stanza, reply_cb, user_data);
+  handler = stanza_iq_handler_new (stanza, reply_cb, cancellable, user_data);
 
   g_hash_table_insert (priv->iq_reply_handlers, handler_id,
       handler);
