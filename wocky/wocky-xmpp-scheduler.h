@@ -121,18 +121,16 @@ gboolean wocky_xmpp_scheduler_close_finish (
     GAsyncResult *result,
     GError **error);
 
-typedef void (* WockyXmppSchedulerReplyCb) (
-    WockyXmppScheduler *scheduler,
-    WockyXmppStanza *iq,
-    WockyXmppStanza *reply,
-    gpointer user_data);
-
 void wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
-    WockyXmppSchedulerReplyCb reply_cb,
     gpointer user_data);
+
+WockyXmppStanza * wocky_xmpp_scheduler_send_iq_finish (
+    WockyXmppScheduler *scheduler,
+    GAsyncResult *result,
+    GError **error);
 
 G_END_DECLS
 
