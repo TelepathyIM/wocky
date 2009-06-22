@@ -632,6 +632,7 @@ handle_iq_reply (WockyXmppScheduler *self,
   if (handler == NULL)
     {
       DEBUG ("Ignored IQ reply");
+      g_free (handler_id);
       return;
     }
 
