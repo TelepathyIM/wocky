@@ -98,7 +98,6 @@ test_send (void)
 {
   test_data_t *test = setup_test ();
   WockyXmppStanza *s;
-  GCancellable *cancellable;
 
   test_open_connection (test);
 
@@ -123,13 +122,11 @@ test_send (void)
   test->outstanding++;
 
   /* Send two stanzas and cancel them immediately */
-  cancellable = g_cancellable_new ();
-
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "peter@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, cancellable,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, test->cancellable,
       send_stanza_cancelled_cb, test);
   g_object_unref (s);
   test->outstanding++;
@@ -138,13 +135,13 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "samson@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, cancellable,
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, test->cancellable,
       send_stanza_cancelled_cb, test);
   g_object_unref (s);
   test->outstanding++;
 
   /* the stanza are not added to expected_stanzas as it was cancelled */
-  g_cancellable_cancel (cancellable);
+  g_cancellable_cancel (test->cancellable);
 
   /* ... and a second (using the simple send method) */
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
@@ -170,8 +167,6 @@ test_send (void)
 
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       send_stanza_received_cb, test);
-
-  g_object_unref (cancellable);
 
   test_wait_pending (test);
 
@@ -614,26 +609,22 @@ static void
 test_close_cancel (void)
 {
   test_data_t *test = setup_test ();
-  GCancellable *cancellable;
 
   test_open_both_connections (test);
 
   wocky_xmpp_scheduler_start (test->sched_out);
 
-  cancellable = g_cancellable_new ();
-
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_close_cb, test);
-  wocky_xmpp_scheduler_close_async (test->sched_out, cancellable,
+  wocky_xmpp_scheduler_close_async (test->sched_out, test->cancellable,
       sched_close_cancelled_cb, test);
 
-  g_cancellable_cancel (cancellable);
+  g_cancellable_cancel (test->cancellable);
 
   test->outstanding += 2;
   test_wait_pending (test);
 
   teardown_test (test);
-  g_object_unref (cancellable);
 }
 
 /* Test if the remote-error signal is fired when scheduler got a read error */
