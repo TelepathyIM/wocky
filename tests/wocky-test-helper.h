@@ -17,6 +17,7 @@ typedef struct {
   WockyXmppScheduler *sched_out;
   WockyTestStream *stream;
   guint outstanding;
+  GCancellable *cancellable;
 } test_data_t;
 
 test_data_t * setup_test (void);

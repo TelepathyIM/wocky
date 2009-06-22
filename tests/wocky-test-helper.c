@@ -28,6 +28,8 @@ setup_test (void)
 
   data->expected_stanzas = g_queue_new ();
 
+  data->cancellable = g_cancellable_new ();
+
   g_timeout_add (2000, test_timeout_cb, NULL);
 
   return data;
@@ -42,6 +44,7 @@ teardown_test (test_data_t *data)
   g_object_unref (data->out);
   g_object_unref (data->sched_in);
   g_object_unref (data->sched_out);
+  g_object_unref (data->cancellable);
 
   /* All the stanzas should have been received */
   g_assert (g_queue_get_length (data->expected_stanzas) == 0);
