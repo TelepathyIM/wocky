@@ -127,7 +127,7 @@ typedef void (* WockyXmppSchedulerReplyCb) (
     WockyXmppStanza *reply,
     gpointer user_data);
 
-void wocky_xmpp_scheduler_send_with_reply_async (WockyXmppScheduler *scheduler,
+void wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

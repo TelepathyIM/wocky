@@ -981,7 +981,7 @@ wocky_xmpp_scheduler_unregister_handler (WockyXmppScheduler *self,
 }
 
 void
-wocky_xmpp_scheduler_send_with_reply_async (WockyXmppScheduler *self,
+wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

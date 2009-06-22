@@ -1217,7 +1217,7 @@ test_writing_error (void)
 
 /* Test send with reply */
 static void
-test_send_with_reply_sent_cb (GObject *source,
+test_send_iq_sent_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
@@ -1230,7 +1230,7 @@ test_send_with_reply_sent_cb (GObject *source,
 }
 
 static void
-test_send_with_reply_iq_cb (WockyXmppScheduler *scheduler,
+test_send_iq_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1249,7 +1249,7 @@ test_send_with_reply_iq_cb (WockyXmppScheduler *scheduler,
     WOCKY_STANZA_END);
 
   wocky_xmpp_scheduler_send_async (scheduler, reply,
-      NULL, test_send_with_reply_sent_cb, test);
+      NULL, test_send_iq_sent_cb, test);
   if (wocky_strdiff (id, "0"))
     /* Reply of the "0" IQ is not expected as it has been cancelled */
     g_queue_push_tail (test->expected_stanzas, reply);
@@ -1260,7 +1260,7 @@ test_send_with_reply_iq_cb (WockyXmppScheduler *scheduler,
 }
 
 static void
-test_send_with_reply_reply_cb (WockyXmppScheduler *scheduler,
+test_send_iq_reply_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *iq,
     WockyXmppStanza *reply,
     gpointer user_data)
@@ -1283,7 +1283,7 @@ test_send_with_reply_reply_cb (WockyXmppScheduler *scheduler,
 }
 
 static void
-test_send_with_reply (void)
+test_send_iq (void)
 {
   test_data_t *test = setup_test ();
   WockyXmppStanza *iq;
@@ -1297,7 +1297,7 @@ test_send_with_reply (void)
   wocky_xmpp_scheduler_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
       NULL, 0,
-      test_send_with_reply_iq_cb, test, WOCKY_STANZA_END);
+      test_send_iq_cb, test, WOCKY_STANZA_END);
 
   cancellable = g_cancellable_new ();
   /* Send an IQ query. We are going to cancel it before we
@@ -1306,8 +1306,8 @@ test_send_with_reply (void)
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     WOCKY_NODE_ATTRIBUTE, "id", "0",
     WOCKY_STANZA_END);
-  wocky_xmpp_scheduler_send_with_reply_async (test->sched_in, iq,
-      cancellable, test_send_with_reply_sent_cb, test_send_with_reply_reply_cb,
+  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+      cancellable, test_send_iq_sent_cb, test_send_iq_reply_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, iq);
 
@@ -1326,8 +1326,8 @@ test_send_with_reply (void)
     WOCKY_NODE_ATTRIBUTE, "id", "1",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_with_reply_async (test->sched_in, iq,
-      NULL, test_send_with_reply_sent_cb, test_send_with_reply_reply_cb, test);
+  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+      NULL, test_send_iq_sent_cb, test_send_iq_reply_cb, test);
   g_queue_push_tail (test->expected_stanzas, iq);
 
   test->outstanding += 3;
@@ -1365,6 +1365,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/cancel-sent-stanza",
       test_cancel_sent_stanza);
   g_test_add_func ("/xmpp-scheduler/writing-error", test_writing_error);
-  g_test_add_func ("/xmpp-scheduler/send-with-reply", test_send_with_reply);
+  g_test_add_func ("/xmpp-scheduler/send-iq", test_send_iq);
   return g_test_run ();
 }
