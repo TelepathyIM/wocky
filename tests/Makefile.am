@@ -2,7 +2,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
   wocky-xmpp-connection-test \
   wocky-xmpp-scheduler-test \
-  wocky-xmpp-node-test
+  wocky-xmpp-node-test \
+  wocky-xmpp-stanza-test
 
 wocky_xmpp_connection_test_SOURCES = \
   wocky-xmpp-connection-test.c \
@@ -36,6 +37,9 @@ wocky_xmpp_scheduler_test_SOURCES = \
 
 wocky_xmpp_node_test_SOURCES = \
   wocky-xmpp-node-test.c
+
+wocky_xmpp_stanza_test_SOURCES = \
+  wocky-xmpp-stanza-test.c
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
