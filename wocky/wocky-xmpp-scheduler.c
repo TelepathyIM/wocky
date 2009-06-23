@@ -416,7 +416,6 @@ send_stanza_cb (GObject *source,
   GError *error = NULL;
 
   elem = g_queue_pop_head (priv->sending_queue);
-  g_assert (elem != NULL);
 
   if (!wocky_xmpp_connection_send_stanza_finish (
         WOCKY_XMPP_CONNECTION (source), res, &error))
@@ -436,7 +435,7 @@ send_stanza_cb (GObject *source,
     }
   else
     {
-
+      g_assert (elem != NULL);
       g_simple_async_result_complete (elem->result);
 
       sending_queue_elem_free (elem);
