@@ -1113,6 +1113,64 @@ test_handler_stanza (void)
   teardown_test (test);
 }
 
+/* Cancel the sending of a stanza after it has been received */
+static void
+test_cancel_sent_stanza_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  test_expected_stanza_received (test, stanza);
+
+  g_cancellable_cancel (test->cancellable);
+}
+
+static void
+test_cancel_sent_stanza_cancelled (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_cancel_sent_stanza (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *stanza;
+
+  test_open_both_connections (test);
+  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_xmpp_scheduler_start (test->sched_in);
+
+  /* register a message handler */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 0,
+      test_cancel_sent_stanza_cb, test, WOCKY_STANZA_END);
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+  wocky_xmpp_scheduler_send_async (test->sched_in, stanza,
+      test->cancellable, test_cancel_sent_stanza_cancelled,
+      test);
+  g_queue_push_tail (test->expected_stanzas, stanza);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  test_close_both_schedulers (test);
+  teardown_test (test);
+}
 
 int
 main (int argc, char **argv)
@@ -1139,5 +1197,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_bare_jid);
   g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_full_jid);
   g_test_add_func ("/xmpp-scheduler/handler-stanza", test_handler_stanza);
+  g_test_add_func ("/xmpp-scheduler/cancel-sent-stanza",
+      test_cancel_sent_stanza);
   return g_test_run ();
 }
