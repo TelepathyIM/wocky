@@ -28,7 +28,7 @@ setup_test (void)
 
   data->expected_stanzas = g_queue_new ();
 
-  g_timeout_add (1000, test_timeout_cb, NULL);
+  g_timeout_add (2000, test_timeout_cb, NULL);
 
   return data;
 }
