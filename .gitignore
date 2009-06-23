@@ -75,6 +75,7 @@ tests/wocky-xmpp-connection-test
 tests/wocky-xmpp-reader-test
 tests/wocky-xmpp-readwrite-test
 tests/wocky-xmpp-scheduler-test
+tests/wocky-xmpp-node-test
 
 examples/wocky-connect
 
