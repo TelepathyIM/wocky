@@ -124,6 +124,9 @@ WockyXmppStanza * wocky_xmpp_stanza_build_va (WockyStanzaType type,
     WockyBuildTag spec,
     va_list ap);
 
+WockyXmppStanza * wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
+    WockyBuildTag spec, ...);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_STANZA_H__*/

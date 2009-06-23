@@ -467,3 +467,50 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
     *sub_type = get_sub_type_from_name (wocky_xmpp_node_get_attribute (
           stanza->node, "type"));
 }
+
+static WockyXmppStanza *
+create_iq_reply (WockyXmppStanza *iq,
+    WockyStanzaSubType sub_type_reply,
+    WockyBuildTag spec,
+    va_list ap)
+{
+  WockyXmppStanza *reply;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  const gchar *from, *to, *id;
+
+  g_return_val_if_fail (iq != NULL, NULL);
+
+  wocky_xmpp_stanza_get_type_info (iq, &type, &sub_type);
+  g_return_val_if_fail (type == WOCKY_STANZA_TYPE_IQ, NULL);
+  g_return_val_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+      sub_type == WOCKY_STANZA_SUB_TYPE_SET, NULL);
+
+  from = wocky_xmpp_node_get_attribute (iq->node, "from");
+  g_return_val_if_fail (from != NULL, NULL);
+  to = wocky_xmpp_node_get_attribute (iq->node, "to");
+  g_return_val_if_fail (to != NULL, NULL);
+  id = wocky_xmpp_node_get_attribute (iq->node, "id");
+  g_return_val_if_fail (id != NULL, NULL);
+
+  reply = wocky_xmpp_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
+      sub_type_reply, to, from, spec, ap);
+
+  wocky_xmpp_node_set_attribute (reply->node, "id", id);
+  return reply;
+}
+
+WockyXmppStanza *
+wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
+    WockyBuildTag spec,
+    ...)
+{
+  WockyXmppStanza *reply;
+  va_list ap;
+
+  va_start (ap, spec);
+  reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_RESULT, spec, ap);
+  va_end (ap);
+
+  return reply;
+}
