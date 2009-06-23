@@ -514,3 +514,18 @@ wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
 
   return reply;
 }
+
+WockyXmppStanza *
+wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
+    WockyBuildTag spec,
+    ...)
+{
+  WockyXmppStanza *reply;
+  va_list ap;
+
+  va_start (ap, spec);
+  reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, spec, ap);
+  va_end (ap);
+
+  return reply;
+}
