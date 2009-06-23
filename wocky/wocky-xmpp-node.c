@@ -406,6 +406,9 @@ wocky_xmpp_node_equal (WockyXmppNode *node0,
   if (node0->ns != node1->ns)
     return FALSE;
 
+  if (g_slist_length (node0->attributes) != g_slist_length (node1->attributes))
+    return FALSE;
+
   /* Compare attributes */
   for (l0 = node0->attributes ; l0 != NULL;  l0 = g_slist_next (l0))
     {
