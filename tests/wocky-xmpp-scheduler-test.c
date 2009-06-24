@@ -1346,6 +1346,50 @@ test_send_iq (void)
   teardown_test (test);
 }
 
+/* Test if the error is correctly propagated when a writing error occurs while
+ * sending an IQ */
+static void
+test_send_iq_error_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_scheduler_send_iq_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_send_iq_error (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_connection (test);
+
+  wocky_test_output_stream_set_write_error (test->stream->stream0_output);
+
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "one",
+    WOCKY_STANZA_END);
+
+  test->outstanding++;
+  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq, NULL,
+      test_send_iq_error_cb, test);
+
+  test_wait_pending (test);
+
+  g_object_unref (iq);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1375,5 +1419,6 @@ main (int argc, char **argv)
       test_cancel_sent_stanza);
   g_test_add_func ("/xmpp-scheduler/writing-error", test_writing_error);
   g_test_add_func ("/xmpp-scheduler/send-iq", test_send_iq);
+  g_test_add_func ("/xmpp-scheduler/send-iq-error", test_send_iq_error);
   return g_test_run ();
 }
