@@ -211,12 +211,14 @@ typedef struct
   GSimpleAsyncResult *result;
   GCancellable *cancellable;
   gulong cancelled_sig_id;
+  gchar *recipient;
 } StanzaIqHandler;
 
 static StanzaIqHandler *
 stanza_iq_handler_new (WockyXmppScheduler *self,
     GSimpleAsyncResult *result,
-    GCancellable *cancellable)
+    GCancellable *cancellable,
+    const gchar *recipient)
 {
   StanzaIqHandler *handler = g_slice_new0 (StanzaIqHandler);
 
@@ -224,6 +226,7 @@ stanza_iq_handler_new (WockyXmppScheduler *self,
   handler->result = result;
   if (cancellable != NULL)
     handler->cancellable = g_object_ref (cancellable);
+  handler->recipient = g_strdup (recipient);
 
   return handler;
 }
@@ -238,6 +241,7 @@ stanza_iq_handler_free (StanzaIqHandler *handler)
           handler->cancelled_sig_id);
       g_object_unref (handler->cancellable);
     }
+  g_free (handler->recipient);
   g_slice_free (StanzaIqHandler, handler);
 }
 
@@ -597,7 +601,7 @@ handle_iq_reply (WockyXmppScheduler *self,
     WockyXmppStanza *reply)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  const gchar *id;
+  const gchar *id, *from;
   StanzaIqHandler *handler;
 
   id = wocky_xmpp_node_get_attribute (reply->node, "id");
@@ -606,6 +610,13 @@ handle_iq_reply (WockyXmppScheduler *self,
   if (handler == NULL)
     {
       DEBUG ("Ignored IQ reply");
+      return;
+    }
+
+  from = wocky_xmpp_node_get_attribute (reply->node, "from");
+  if (wocky_strdiff (from, handler->recipient))
+    {
+      DEBUG ("%s attempts to spoof an IQ reply", from);
       return;
     }
 
@@ -1028,7 +1039,7 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   StanzaIqHandler *handler;
-  const gchar *id;
+  const gchar *id, *recipient;
   GSimpleAsyncResult *result;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
@@ -1046,10 +1057,15 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
   if (id == NULL)
     goto wrong_stanza;
 
+  recipient = wocky_xmpp_node_get_attribute (stanza->node, "to");
+  if (recipient == NULL)
+    goto wrong_stanza;
+
   result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_send_iq_finish);
 
-  handler = stanza_iq_handler_new (self, result, cancellable);
+  handler = stanza_iq_handler_new (self, result, cancellable,
+      recipient);
 
   if (cancellable != NULL)
     {
