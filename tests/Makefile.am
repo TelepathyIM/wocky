@@ -19,7 +19,6 @@ wocky_xmpp_reader_test_SOURCES = \
 
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
-   wocky-connector-test.h        \
    wocky-test-sasl-auth-server.c \
    wocky-test-sasl-auth-server.h \
    wocky-test-connector-server.c \
