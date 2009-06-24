@@ -3,7 +3,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-connection-test \
   wocky-porter-test \
   wocky-xmpp-node-test \
-  wocky-xmpp-stanza-test
+  wocky-xmpp-stanza-test \
+  wocky-connector-test
 
 wocky_xmpp_connection_test_SOURCES = \
   wocky-xmpp-connection-test.c \
@@ -15,6 +16,19 @@ wocky_xmpp_readwrite_test_SOURCES = \
 
 wocky_xmpp_reader_test_SOURCES = \
   wocky-xmpp-reader-test.c
+
+wocky_connector_test_SOURCES = \
+   wocky-connector-test.c        \
+   wocky-connector-test.h        \
+   wocky-test-sasl-auth-server.c \
+   wocky-test-sasl-auth-server.h \
+   wocky-test-connector-server.c \
+   wocky-test-connector-server.h \
+   test-resolver.h        	 \
+   test-resolver.c
+
+wocky_connector_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
+wocky_connector_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
 
 if HAVE_LIBSASL2
   TEST_PROGS += wocky-test-sasl-auth
@@ -50,6 +64,7 @@ LDADD = $(top_builddir)/wocky/libwocky.la
 check_PROGRAMS = $(TEST_PROGS)
 
 check_c_sources = \
+  $(wocky_connector_test_SOURCES) \
   $(wocky_test_sasl_auth_SOURCES) \
   $(wocky_xmpp_connection_test_SOURCES) \
   $(wocky_xmpp_readwrite_test_SOURCES) \
@@ -63,6 +78,9 @@ test-report.xml: ${TEST_PROGS} test
 
 test: ${TEST_PROGS}
 	gtester -o test-report.xml -k --verbose ${TEST_PROGS}
+
+test-%: wocky-%-test
+	gtester -o $@-report.xml -k --verbose $<
 
 .PHONY: test test-report
 
