@@ -132,13 +132,16 @@ test_sasl_auth_server_dispose (GObject *object)
   priv->recv_cancel = NULL;
 
   /* release any references held by the object here */
-  g_object_unref (priv->conn);
+  if (priv->conn != NULL)
+    g_object_unref (priv->conn);
   priv->conn = NULL;
 
-  g_object_unref (priv->stream);
+  if (priv->stream != NULL)
+    g_object_unref (priv->stream);
   priv->stream = NULL;
 
-  sasl_dispose (&priv->sasl_conn);
+  if(&priv->sasl_conn != NULL)
+    sasl_dispose (&priv->sasl_conn);
   priv->sasl_conn = NULL;
 
   if (G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose)
@@ -454,7 +457,6 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   gsize response_len = 0;
   int ret;
 
-
   if (priv->state == AUTH_STATE_FINAL_CHALLENGE)
     {
       g_assert (stanza->node->content == NULL);
@@ -652,13 +654,17 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
 }
 
 void
-test_sasl_auth_server_take_over (GObject *obj, WockyXmppConnection *conn,
+test_sasl_auth_server_take_over (GObject *obj,
+    WockyXmppConnection *conn,
     WockyXmppStanza *auth)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
 
-  g_object_unref (priv->conn);
+  /* we would normally expect this to be NULL in a take-over situation, 
+     but just in case: */
+  if (priv->conn != NULL)
+    g_object_unref (priv->conn);
   priv->state = AUTH_STATE_STARTED;
   priv->conn = conn;
 
