@@ -98,13 +98,16 @@ test_connector_server_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-  g_object_unref (priv->conn);
+  if (priv->conn)
+    g_object_unref (priv->conn);
   priv->conn = NULL;
 
-  g_object_unref (priv->stream);
+  if (priv->stream != NULL)
+    g_object_unref (priv->stream);
   priv->stream = NULL;
 
-  g_object_unref (priv->sasl);
+  if (priv->sasl)
+    g_object_unref (priv->sasl);
   priv->sasl = NULL;
 
   if (G_OBJECT_CLASS (test_connector_server_parent_class)->dispose)
@@ -163,11 +166,10 @@ handle_auth (TestConnectorServer *self,
     WockyXmppStanza *xml)
 {
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE(self);
-  TestSaslAuthServer *sasl = priv->sasl;
-
   /* after this the sasl auth server object is in charge: control of
      the stream does not return to us */
-  test_sasl_auth_server_take_over (G_OBJECT (sasl), priv->conn, xml);
+  /* this will also unref *xml when it has finished with it */
+  test_sasl_auth_server_take_over (G_OBJECT (priv->sasl), priv->conn, xml);
 }
 
 
@@ -196,6 +198,7 @@ handle_starttls (TestConnectorServer *self,
           self);
       g_object_unref (proceed);
     }
+  g_object_unref (xml);
 }
 
 static void
@@ -258,6 +261,7 @@ xmpp_handler (GObject *source,
     {
       if (!strcmp (ns, handlers[i].ns) && !strcmp (name, handlers[i].name))
         {
+          DEBUG ("test_connector_server:invoking handler %s\n", name);
           (handlers[i].func) (self, xml);
           handled = TRUE;
           break;
@@ -269,9 +273,8 @@ xmpp_handler (GObject *source,
     {
       g_warning ("<%s xmlns=\"%s\"… not handled\n", name, ns);
       wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
+      g_object_unref (xml);
     }
-
-  g_object_unref (xml);
 }
 
 /* ************************************************************************* */
@@ -311,6 +314,8 @@ xmpp_init (GObject *source,
   self = TEST_CONNECTOR_SERVER (data);
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   conn = (source == NULL) ? priv->conn : WOCKY_XMPP_CONNECTION (source);
+
+  DEBUG ("test_connector_server:xmpp_init %d\n", priv->state);
 
   switch (priv->state)
     {
@@ -368,6 +373,8 @@ test_connector_server_new (GIOStream *stream,
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
 
+  DEBUG ("test_connector_server_new\n");
+
   self = g_object_new (TEST_TYPE_CONNECTOR_SERVER, NULL);
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
 
@@ -387,6 +394,8 @@ test_connector_server_start (GObject *object)
 {
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
+
+  DEBUG("test_connector_server_start\n");
 
   self = TEST_CONNECTOR_SERVER (object);
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
