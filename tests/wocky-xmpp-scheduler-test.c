@@ -1136,6 +1136,7 @@ test_cancel_sent_stanza_cancelled (GObject *source,
   g_assert (!wocky_xmpp_scheduler_send_full_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+  g_error_free (error);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
