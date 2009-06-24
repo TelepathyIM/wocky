@@ -83,7 +83,7 @@ struct _WockyXmppSchedulerPrivate
   GList *handlers;
   guint next_handler_id;
   /* (const gchar *) => owned (StanzaIqHandler *)
-   * This key is an identifier formed as "$RECEIVER_$ID" */
+   * This key is the ID of the IQ */
   GHashTable *iq_reply_handlers;
 
   WockyXmppConnection *connection;
@@ -592,54 +592,20 @@ complete_close (WockyXmppScheduler *self)
   priv->close_cancellable = NULL;
 }
 
-static gchar *
-get_handler_id (WockyXmppStanza *stanza)
-{
-  WockyStanzaType type;
-  WockyStanzaSubType sub_type;
-  const gchar *id, *receiver;
-
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
-
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  if (type != WOCKY_STANZA_TYPE_IQ || id == NULL)
-    return NULL;
-
-  switch (sub_type)
-    {
-      case WOCKY_STANZA_SUB_TYPE_SET:
-      case WOCKY_STANZA_SUB_TYPE_GET:
-        /* IQ is a query so the receiver is in the 'to' attribute */
-        receiver = wocky_xmpp_node_get_attribute (stanza->node, "to");
-        break;
-      case WOCKY_STANZA_SUB_TYPE_RESULT:
-      case WOCKY_STANZA_SUB_TYPE_ERROR:
-        /* IQ is a reply so the receiver is in the 'from' attribute */
-        receiver = wocky_xmpp_node_get_attribute (stanza->node, "from");
-        break;
-      default:
-        return NULL;
-    }
-
-  g_assert (receiver != NULL);
-  return g_strdup_printf ("%s_%s", receiver, id);
-}
-
 static void
 handle_iq_reply (WockyXmppScheduler *self,
     WockyXmppStanza *reply)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
-  gchar *handler_id;
+  const gchar *id;
   StanzaIqHandler *handler;
 
-  handler_id = get_handler_id (reply);
-  handler = g_hash_table_lookup (priv->iq_reply_handlers, handler_id);
+  id = wocky_xmpp_node_get_attribute (reply->node, "id");
+  handler = g_hash_table_lookup (priv->iq_reply_handlers, id);
 
   if (handler == NULL)
     {
       DEBUG ("Ignored IQ reply");
-      g_free (handler_id);
       return;
     }
 
@@ -650,8 +616,7 @@ handle_iq_reply (WockyXmppScheduler *self,
       g_simple_async_result_complete (handler->result);
     }
 
-  g_hash_table_remove (priv->iq_reply_handlers, handler_id);
-  g_free (handler_id);
+  g_hash_table_remove (priv->iq_reply_handlers, id);
 }
 
 static void
@@ -1063,18 +1028,23 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   StanzaIqHandler *handler;
-  gchar *handler_id;
+  const gchar *id;
   GSimpleAsyncResult *result;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
 
-  handler_id = get_handler_id (stanza);
-  if (handler_id == NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
-          WOCKY_XMPP_SCHEDULER_ERROR_NOT_IQ,
-          "Stanza is not an IQ");
-      return;
-    }
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    goto wrong_stanza;
+
+  if (sub_type != WOCKY_STANZA_SUB_TYPE_GET &&
+      sub_type != WOCKY_STANZA_SUB_TYPE_SET)
+    goto wrong_stanza;
+
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  if (id == NULL)
+    goto wrong_stanza;
 
   result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_send_iq_finish);
@@ -1087,11 +1057,18 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
               G_CALLBACK (send_iq_cancelled_cb), handler);
     }
 
-  g_hash_table_insert (priv->iq_reply_handlers, handler_id,
+  g_hash_table_insert (priv->iq_reply_handlers, g_strdup (id),
       handler);
 
   wocky_xmpp_scheduler_send_async (self, stanza, cancellable, iq_sent_cb,
       handler);
+  return;
+
+wrong_stanza:
+  g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+      user_data, WOCKY_XMPP_SCHEDULER_ERROR,
+      WOCKY_XMPP_SCHEDULER_ERROR_NOT_IQ,
+      "Stanza is not an IQ query");
 }
 
 WockyXmppStanza * wocky_xmpp_scheduler_send_iq_finish (
