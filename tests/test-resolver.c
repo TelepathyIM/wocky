@@ -112,12 +112,14 @@ lookup_service_async (GResolver *resolver,
     GAsyncReadyCallback  cb,
     gpointer data)
 {
-  GList *x;
   GError *error = NULL;
   TestResolver *tr = TEST_RESOLVER (resolver);
   GList *addr = find_fake_services (tr, rr);
   GObject *source = G_OBJECT (resolver);
   GSimpleAsyncResult *res = NULL;
+#ifdef DEBUG_FAKEDNS
+  GList *x;
+#endif
 
   if (addr == NULL)
     {
@@ -125,6 +127,7 @@ lookup_service_async (GResolver *resolver,
       addr = G_RESOLVER_GET_CLASS (real)->
         lookup_service (real, rr, cancellable, &error);
     }
+#ifdef DEBUG_FAKEDNS
   else
     for (x = addr; x; x = x->next)
       g_debug ("FAKE SRV: addr: %s; port: %d; prio: %d; weight: %d;\n",
@@ -132,6 +135,7 @@ lookup_service_async (GResolver *resolver,
           g_srv_target_get_port ((GSrvTarget *) x->data),
           g_srv_target_get_priority ((GSrvTarget *) x->data),
           g_srv_target_get_weight ((GSrvTarget *) x->data));
+#endif
 
   if (addr != NULL)
       res = g_simple_async_result_new (source, cb, data, lookup_service_async);
@@ -166,19 +170,23 @@ lookup_by_name_async (GResolver *resolver,
   GList *addr = find_fake_hosts (tr, hostname);
   GObject *source = G_OBJECT (resolver);
   GSimpleAsyncResult *res = NULL;
+#ifdef DEBUG_FAKEDNS
   GList *x;
   char a[32];
+#endif
 
   if (addr == NULL)
     {
       GResolver *real = G_RESOLVER (tr->real_resolver);
       addr = g_resolver_lookup_by_name (real, hostname, cancellable, &error);
     }
+#ifdef DEBUG_FAKEDNS
   else
     for (x = addr; x; x = x->next)
       g_debug ("FAKE HOST: addr: %s;\n",
           inet_ntop (AF_INET,
               g_inet_address_to_bytes (x->data), a, sizeof (a)));
+#endif
 
   if (addr != NULL)
       res = g_simple_async_result_new (source, cb, data, lookup_service_async);
