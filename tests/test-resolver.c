@@ -128,10 +128,10 @@ lookup_service_async (GResolver *resolver,
   else
     for (x = addr; x; x = x->next)
       g_debug ("FAKE SRV: addr: %s; port: %d; prio: %d; weight: %d;\n",
-          g_srv_target_get_hostname ((GSrvTarget *)x->data),
-          g_srv_target_get_port ((GSrvTarget *)x->data),
-          g_srv_target_get_priority ((GSrvTarget *)x->data),
-          g_srv_target_get_weight ((GSrvTarget *)x->data));
+          g_srv_target_get_hostname ((GSrvTarget *) x->data),
+          g_srv_target_get_port ((GSrvTarget *) x->data),
+          g_srv_target_get_priority ((GSrvTarget *) x->data),
+          g_srv_target_get_weight ((GSrvTarget *) x->data));
 
   if (addr != NULL)
       res = g_simple_async_result_new (source, cb, data, lookup_service_async);
@@ -177,7 +177,8 @@ lookup_by_name_async (GResolver *resolver,
   else
     for (x = addr; x; x = x->next)
       g_debug ("FAKE HOST: addr: %s;\n",
-          inet_ntop (AF_INET, g_inet_address_to_bytes(x->data), a, sizeof(a)));
+          inet_ntop (AF_INET,
+              g_inet_address_to_bytes (x->data), a, sizeof (a)));
 
   if (addr != NULL)
       res = g_simple_async_result_new (source, cb, data, lookup_service_async);

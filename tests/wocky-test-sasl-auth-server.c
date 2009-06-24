@@ -140,7 +140,7 @@ test_sasl_auth_server_dispose (GObject *object)
     g_object_unref (priv->stream);
   priv->stream = NULL;
 
-  if(&priv->sasl_conn != NULL)
+  if (&priv->sasl_conn != NULL)
     sasl_dispose (&priv->sasl_conn);
   priv->sasl_conn = NULL;
 
@@ -661,7 +661,7 @@ test_sasl_auth_server_take_over (GObject *obj,
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
 
-  /* we would normally expect this to be NULL in a take-over situation, 
+  /* we would normally expect this to be NULL in a take-over situation,
      but just in case: */
   if (priv->conn != NULL)
     g_object_unref (priv->conn);

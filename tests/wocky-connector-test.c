@@ -90,7 +90,7 @@ client_connected (GIOChannel *channel,
 
   if (csock < 0)
     {
-      perror("accept() failed");
+      perror ("accept() failed");
       g_warning ("accept() failed on socket that should have been ready.");
       return TRUE;
     }
@@ -134,18 +134,18 @@ start_dummy_xmpp_server (const test_t *test)
   bind (ssock, (struct sockaddr *)&server, sizeof (server));
   listen (ssock, 1024);
 
-  server_pid = fork();
+  server_pid = fork ();
 
   if (server_pid < 0)
     {
       perror ("fork() of dummy server failed\n");
       g_main_loop_quit (mainloop);
-      exit(server_pid);
+      exit (server_pid);
     }
 
   if (server_pid)
     {
-      close(ssock);
+      close (ssock);
       return;
     }
 
@@ -231,5 +231,5 @@ main (int argc,
   for (i = 0; tests[i].desc != NULL; i++)
     g_test_add_data_func (tests[i].desc, &tests[i], run_test);
 
-  return g_test_run();
+  return g_test_run ();
 }
