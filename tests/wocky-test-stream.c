@@ -52,6 +52,7 @@ typedef struct {
 typedef struct {
   GOutputStream parent;
   GAsyncQueue *queue;
+  GError *write_error /* no, this is not a coding style violation */;
   gboolean dispose_has_run;
 } WockyTestOutputStream;
 
@@ -464,7 +465,16 @@ wocky_test_output_stream_write (GOutputStream *stream, const void *buffer,
   gsize count, GCancellable *cancellable, GError **error)
 {
   WockyTestOutputStream *self = WOCKY_TEST_OUTPUT_STREAM (stream);
-  GArray *data = g_array_sized_new (FALSE, FALSE, sizeof (guint8), count);
+  GArray *data;
+
+  if (self->write_error != NULL)
+    {
+      *error = self->write_error;
+      self->write_error = NULL;
+      return -1;
+    }
+
+  data = g_array_sized_new (FALSE, FALSE, sizeof (guint8), count);
 
   g_array_insert_vals (data, 0, buffer, count);
 
@@ -533,4 +543,13 @@ wocky_test_input_stream_set_read_error (GInputStream *stream)
 
    self->read_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
        "read error");
+}
+
+void
+wocky_test_output_stream_set_write_error (GOutputStream *stream)
+{
+  WockyTestOutputStream *self = WOCKY_TEST_OUTPUT_STREAM (stream);
+
+   self->write_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+       "write error");
 }
