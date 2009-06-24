@@ -1012,6 +1012,48 @@ send_iq_cancelled_cb (GCancellable *cancellable,
       remove_iq_reply_using_cancellable, cancellable);
 }
 
+static gboolean
+remove_iq_reply (gpointer key,
+    gpointer value,
+    gpointer handler)
+{
+  return value == handler;
+}
+
+static void
+iq_sent_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (source);
+  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  StanzaIqHandler *handler = (StanzaIqHandler *) user_data;
+  GError *error = NULL;
+  gpointer found;
+
+  if (wocky_xmpp_scheduler_send_full_finish (self, res, &error))
+    /* IQ has been properly sent. Operation will be finished once the reply
+     * received */
+    return;
+
+  found = g_hash_table_find (priv->iq_reply_handlers,
+      remove_iq_reply, handler);
+  if (found == NULL)
+    {
+      /* Operation has been cancelled */
+      g_error_free (error);
+      return;
+    }
+
+  /* Raise an error */
+  g_simple_async_result_set_from_error (handler->result, error);
+  g_simple_async_result_complete (handler->result);
+
+  g_hash_table_foreach_remove (priv->iq_reply_handlers,
+      remove_iq_reply, handler);
+  g_error_free (error);
+}
+
 void
 wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
     WockyXmppStanza *stanza,
@@ -1048,8 +1090,8 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
   g_hash_table_insert (priv->iq_reply_handlers, handler_id,
       handler);
 
-  wocky_xmpp_scheduler_send_async (self, stanza, cancellable, NULL,
-      user_data);
+  wocky_xmpp_scheduler_send_async (self, stanza, cancellable, iq_sent_cb,
+      handler);
 }
 
 WockyXmppStanza * wocky_xmpp_scheduler_send_iq_finish (
