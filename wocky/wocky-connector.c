@@ -176,7 +176,8 @@ copy_error (WockyConnector *connector,
     GError *error)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
-  g_error_free (priv->error);
+  if (priv->error != NULL)
+    g_error_free (priv->error);
   priv->error = NULL;
   return g_simple_async_result_propagate_error (priv->result, &priv->error);
 }
