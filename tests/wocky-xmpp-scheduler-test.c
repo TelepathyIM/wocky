@@ -1172,6 +1172,48 @@ test_cancel_sent_stanza (void)
   teardown_test (test);
 }
 
+/* Test if the error is correctly propagated when a writing error occurs */
+static void
+test_writing_error_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_writing_error (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *s;
+
+  test_open_connection (test);
+
+  wocky_test_output_stream_set_write_error (test->stream->stream0_output);
+
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  test->outstanding++;
+  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+      test_writing_error_cb, test);
+
+  test_wait_pending (test);
+
+  g_object_unref (s);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1199,5 +1241,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/handler-stanza", test_handler_stanza);
   g_test_add_func ("/xmpp-scheduler/cancel-sent-stanza",
       test_cancel_sent_stanza);
+  g_test_add_func ("/xmpp-scheduler/writing-error", test_writing_error);
   return g_test_run ();
 }
