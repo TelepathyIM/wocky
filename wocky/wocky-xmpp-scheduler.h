@@ -40,6 +40,10 @@ typedef enum {
 
 GQuark wocky_xmpp_scheduler_error_quark (void);
 
+#define WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_MIN 0
+#define WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_NORMAL (guint) (G_MAXUINT / 2)
+#define WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_MAX G_MAXUINT
+
 /**
  * WOCKY_XMPP_SCHEDULER_ERROR:
  *
