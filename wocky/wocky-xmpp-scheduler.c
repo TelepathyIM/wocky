@@ -1037,7 +1037,7 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   StanzaIqHandler *handler;
   const gchar *tmp, *recipient;
-  gchar *id;
+  gchar *id = NULL;
   GSimpleAsyncResult *result;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
@@ -1052,14 +1052,18 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
     goto wrong_stanza;
 
   tmp = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  if (tmp == NULL)
-    {
-      id = wocky_xmpp_connection_new_id (priv->connection);
-      wocky_xmpp_node_set_attribute (stanza->node, "id", id);
-    }
-  else
+  if (tmp != NULL)
     {
       id = g_strdup (tmp);
+    }
+
+  /* Check if this ID is already used */
+  while (id == NULL ||
+      g_hash_table_lookup (priv->iq_reply_handlers, id) != NULL)
+    {
+      g_free (id);
+      id = wocky_xmpp_connection_new_id (priv->connection);
+      wocky_xmpp_node_set_attribute (stanza->node, "id", id);
     }
 
   recipient = wocky_xmpp_node_get_attribute (stanza->node, "to");
