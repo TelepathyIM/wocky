@@ -172,9 +172,23 @@ wocky_xmpp_node_set_attribute_n_ns (WockyXmppNode *node, const gchar *key,
     const gchar *value, gsize value_size, const gchar *ns)
 {
   Attribute *a = g_slice_new0 (Attribute);
+  GSList *link;
+  Tuple search;
+
   a->key = g_strdup (key);
   a->value = g_strndup (value, value_size);
   a->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
+
+  /* Remove the old attribute if needed */
+  search.key = a->key;
+  search.ns = a->ns;
+  link = g_slist_find_custom (node->attributes, &search, attribute_compare);
+  if (link != NULL)
+    {
+      Attribute *old = (Attribute *) link->data;
+      attribute_free (old);
+      node->attributes = g_slist_delete_link (node->attributes, link);
+    }
 
   node->attributes = g_slist_append (node->attributes, a);
 }
