@@ -86,8 +86,6 @@ struct _WockyXmppSchedulerPrivate
    * This key is the ID of the IQ */
   GHashTable *iq_reply_handlers;
 
-  guint64 next_iq_id;
-
   WockyXmppConnection *connection;
 };
 
@@ -267,8 +265,6 @@ wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, (GDestroyNotify) stanza_iq_handler_free);
-
-  priv->next_iq_id = 0;
 }
 
 static void wocky_xmpp_scheduler_dispose (GObject *object);
@@ -1058,7 +1054,7 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
   tmp = wocky_xmpp_node_get_attribute (stanza->node, "id");
   if (tmp == NULL)
     {
-      id = g_strdup_printf ("%" G_GUINT64_FORMAT, priv->next_iq_id++);
+      id = wocky_xmpp_connection_new_id (priv->connection);
       wocky_xmpp_node_set_attribute (stanza->node, "id", id);
     }
   else
