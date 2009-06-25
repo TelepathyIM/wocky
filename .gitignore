@@ -79,6 +79,7 @@ tests/wocky-xmpp-readwrite-test
 tests/wocky-porter-test
 tests/wocky-xmpp-node-test
 tests/wocky-xmpp-stanza-test
+tests/wocky-connector-test
 
 examples/wocky-connect
 
