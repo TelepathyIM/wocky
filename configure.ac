@@ -13,12 +13,12 @@ m4_define([wocky_micro_version], [0])
 m4_define([wocky_nano_version], [0])
 
 # Some magic
-m4_define([wockybase_version],
-          [wockymajor_version.wockyminor_version.wockymicro_version])
-m4_define([wockyversion],
-          [m4_if(wockynano_version, 0, [wockybase_version], [wockybase_version].[wockynano_version])])dnl
+m4_define([wocky_base_version],
+          [wocky_major_version.wocky_minor_version.wocky_micro_version])
+m4_define([wocky_version],
+          [m4_if(wocky_nano_version, 0, [wocky_base_version], [wocky_base_version].[wocky_nano_version])])dnl
 
-AC_INIT([Wocky], [wockyversion])
+AC_INIT([Wocky], [wocky_version])
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -33,7 +33,7 @@ AM_PROG_AS
 AM_PROG_MKDIR_P
 
 dnl decide error flags
-ifelse(wockynano_version, 0,
+ifelse(wocky_nano_version, 0,
     [ official_release=yes ],
     [ official_release=no ])
 
@@ -53,7 +53,7 @@ TP_COMPILER_WARNINGS([ERROR_CFLAGS], [test "x$official_release" = xno],
    unused-parameter])
 AC_SUBST([ERROR_CFLAGS])
 
-ifelse(wockynano_version, 0,
+ifelse(wocky_nano_version, 0,
     [ # Wocky is version x.y.z - disable coding style checks by default
 AC_ARG_ENABLE(coding-style-checks,
   AC_HELP_STRING([--enable-coding-style-checks],
