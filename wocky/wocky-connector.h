@@ -35,25 +35,28 @@ typedef struct _WockyConnectorClass WockyConnectorClass;
 /**
  * WockyConnectorError:
  *
- * @WOCKY_CONNECTOR_ERR_UNKNOWN        : Generic Bad Things happened
- * @WOCKY_CONNECTOR_ERR_IS_CONNECTED   : Already connected
- * @WOCKY_CONNECTOR_ERR_INVALID_JID    : JID is malformed in some obvious way
- * @WOCKY_CONNECTOR_ERR_DISCONNECTED   : Connection closed
- * @WOCKY_CONNECTOR_ERR_MALFORMED_XMPP : Malformed XMPP response
- * @WOCKY_CONNECTOR_ERR_NOT_SUPPORTED  : Requested feature not available
- * @WOCKY_CONNECTOR_ERR_REFUSED        : Feature request refused (eg starttls)
- * @WOCKY_CONNECTOR_ERR_AUTH_FAILED    : Auth failed in some way (eg bad pass)
+ * @WOCKY_CONNECTOR_ERROR_UNKNOWN        : Generic Bad Things happened
+ * @WOCKY_CONNECTOR_ERROR_IS_CONNECTED   : Already connected
+ * @WOCKY_CONNECTOR_ERROR_INVALID_JID    : JID is malformed in some obvious way
+ * @WOCKY_CONNECTOR_ERROR_DISCONNECTED   : Connection closed
+ * @WOCKY_CONNECTOR_ERROR_NON_XMPP_SERVER: Malformed XMPP response
+ * @WOCKY_CONNECTOR_ERROR_NOT_SUPPORTED  : Requested feature not available
+ * @WOCKY_CONNECTOR_ERROR_REFUSED        : Feature request refused (eg starttls)
+ * @WOCKY_CONNECTOR_ERROR_AUTH_FAILED    : Auth failed in some way (eg bad pass)
  * The #WockyConnector specific errors that can occur while connecting.
  */
 typedef enum {
-  WOCKY_CONNECTOR_ERR_UNKNOWN,
-  WOCKY_CONNECTOR_ERR_IN_PROGRESS,
-  WOCKY_CONNECTOR_ERR_BAD_JID,
-  WOCKY_CONNECTOR_ERR_DISCONNECTED,
-  WOCKY_CONNECTOR_ERR_MALFORMED_XMPP,
-  WOCKY_CONNECTOR_ERR_NOT_SUPPORTED,
-  WOCKY_CONNECTOR_ERR_REFUSED,
-  WOCKY_CONNECTOR_ERR_AUTH_FAILED
+  WOCKY_CONNECTOR_ERROR_UNKNOWN,
+  WOCKY_CONNECTOR_ERROR_IN_PROGRESS,
+  WOCKY_CONNECTOR_ERROR_BAD_JID,
+  WOCKY_CONNECTOR_ERROR_DISCONNECTED,
+  WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
+  WOCKY_CONNECTOR_ERROR_NOT_SUPPORTED,
+  WOCKY_CONNECTOR_ERROR_BAD_FEATURES,
+  WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE,
+  WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
+  WOCKY_CONNECTOR_ERROR_REFUSED,
+  WOCKY_CONNECTOR_ERROR_AUTH_FAILED
 } WockyConnectorError;
 
 GQuark wocky_connector_error_quark (void);
@@ -94,11 +97,11 @@ GType wocky_connector_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONNECTOR, WockyConnectorClass))
 
 WockyXmppConnection *
-wocky_connector_connect_finish (GObject *connector,
+wocky_connector_connect_finish (WockyConnector *connector,
     GAsyncResult *res,
     GError **error);
 
-gboolean wocky_connector_connect_async (GObject *connector,
+void wocky_connector_connect_async (WockyConnector *self,
     GAsyncReadyCallback cb,
     gpointer user_data);
 
