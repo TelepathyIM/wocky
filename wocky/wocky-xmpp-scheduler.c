@@ -248,7 +248,12 @@ stanza_iq_handler_free (StanzaIqHandler *handler)
 static void send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data);
+
 static void send_close (WockyXmppScheduler *self);
+
+static void handle_iq_reply (WockyXmppScheduler *self,
+    WockyXmppStanza *reply,
+    gpointer user_data);
 
 static void
 wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
@@ -321,6 +326,17 @@ wocky_xmpp_scheduler_constructed (GObject *object)
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
 
   g_assert (priv->connection != NULL);
+
+  /* Register the IQ reply handler */
+  wocky_xmpp_scheduler_register_handler (self,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT, NULL,
+      WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_MAX,
+      handle_iq_reply, self, WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_register_handler (self,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR, NULL,
+      WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_MAX,
+      handle_iq_reply, self, WOCKY_STANZA_END);
 }
 
 static void
@@ -598,7 +614,8 @@ complete_close (WockyXmppScheduler *self)
 
 static void
 handle_iq_reply (WockyXmppScheduler *self,
-    WockyXmppStanza *reply)
+    WockyXmppStanza *reply,
+    gpointer user_data)
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   const gchar *id, *from;
@@ -648,16 +665,6 @@ handle_stanza (WockyXmppScheduler *self,
     {
       DEBUG ("Stanza doesn't have 'from' attribute; discard");
       return;
-    }
-
-  if (type == WOCKY_STANZA_TYPE_IQ)
-    {
-      if (sub_type == WOCKY_STANZA_SUB_TYPE_RESULT ||
-          sub_type == WOCKY_STANZA_SUB_TYPE_ERROR)
-        {
-          handle_iq_reply (self, stanza);
-          return;
-        }
     }
 
   wocky_decode_jid (from, &node, &domain, &resource);
