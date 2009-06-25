@@ -1414,6 +1414,85 @@ test_send_iq_error (void)
   teardown_test (test);
 }
 
+/* Test implementing a filter using handlers */
+static gboolean
+test_handler_filter_get_filter (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyStanzaSubType sub_type;
+  gboolean result;
+
+  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  if (sub_type == WOCKY_STANZA_SUB_TYPE_GET)
+    {
+      /* We filter 'get' IQ. Return TRUE to say that we handled this stanza so
+       * the handling process will be stopped */
+      result = TRUE;
+    }
+  else
+    {
+      /* We don't handle this stanza so the other callback will be called */
+      g_queue_push_tail (test->expected_stanzas, stanza);
+      g_object_ref (stanza);
+      test->outstanding++;
+      result = FALSE;
+    }
+
+  test_expected_stanza_received (test, stanza);
+  return result;
+}
+
+static gboolean
+test_handler_filter_cb (WockyXmppScheduler *scheduler,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  test_expected_stanza_received (test, stanza);
+  return TRUE;
+}
+
+static void
+test_handler_filter (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  /* register an IQ handler which will act as a filter */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 10,
+      test_handler_filter_get_filter, test, WOCKY_STANZA_END);
+
+  /* register another handler with a smaller priority which will be called
+   * after the filter */
+  wocky_xmpp_scheduler_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 5,
+      test_handler_filter_cb, test, WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  /* Send a 'get' IQ that will be filtered */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  send_stanza (test, iq, TRUE);
+
+  /* Send a 'set' IQ that won't be filtered */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  send_stanza (test, iq, TRUE);
+
+  test_close_scheduler (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1444,5 +1523,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/writing-error", test_writing_error);
   g_test_add_func ("/xmpp-scheduler/send-iq", test_send_iq);
   g_test_add_func ("/xmpp-scheduler/send-iq-error", test_send_iq_error);
+  g_test_add_func ("/xmpp-scheduler/handler-filter", test_handler_filter);
   return g_test_run ();
 }
