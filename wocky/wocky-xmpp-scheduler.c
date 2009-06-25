@@ -86,6 +86,8 @@ struct _WockyXmppSchedulerPrivate
    * This key is the ID of the IQ */
   GHashTable *iq_reply_handlers;
 
+  guint64 next_iq_id;
+
   WockyXmppConnection *connection;
 };
 
@@ -265,6 +267,8 @@ wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, (GDestroyNotify) stanza_iq_handler_free);
+
+  priv->next_iq_id = 0;
 }
 
 static void wocky_xmpp_scheduler_dispose (GObject *object);
@@ -1039,7 +1043,8 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
 {
   WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
   StanzaIqHandler *handler;
-  const gchar *id, *recipient;
+  const gchar *tmp, *recipient;
+  gchar *id;
   GSimpleAsyncResult *result;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
@@ -1053,9 +1058,16 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
       sub_type != WOCKY_STANZA_SUB_TYPE_SET)
     goto wrong_stanza;
 
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  if (id == NULL)
-    goto wrong_stanza;
+  tmp = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  if (tmp == NULL)
+    {
+      id = g_strdup_printf ("%" G_GUINT64_FORMAT, priv->next_iq_id++);
+      wocky_xmpp_node_set_attribute (stanza->node, "id", id);
+    }
+  else
+    {
+      id = g_strdup (tmp);
+    }
 
   recipient = wocky_xmpp_node_get_attribute (stanza->node, "to");
   if (recipient == NULL)
@@ -1073,8 +1085,7 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
               G_CALLBACK (send_iq_cancelled_cb), handler);
     }
 
-  g_hash_table_insert (priv->iq_reply_handlers, g_strdup (id),
-      handler);
+  g_hash_table_insert (priv->iq_reply_handlers, id, handler);
 
   wocky_xmpp_scheduler_send_async (self, stanza, cancellable, iq_sent_cb,
       handler);
