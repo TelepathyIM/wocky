@@ -1330,7 +1330,6 @@ test_send_iq (void)
    * but before we receive the reply so the callback won't be called.*/
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
-    WOCKY_NODE_ATTRIBUTE, "id", "0",
     WOCKY_STANZA_END);
   wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
       test->cancellable, test_send_iq_cancelled_cb,
