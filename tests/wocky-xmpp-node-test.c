@@ -22,10 +22,10 @@ test_node_equal (void)
       "juliet@example.com", "romeo@example.org",
       WOCKY_NODE_ATTRIBUTE, "id", "one",
       WOCKY_STANZA_END);
-  g_assert (wocky_xmpp_node_equal (b->node, (b->node)));
+  g_assert (wocky_xmpp_node_equal (b->node, b->node));
 
-  g_assert (!wocky_xmpp_node_equal (a->node, (b->node)));
-  g_assert (!wocky_xmpp_node_equal (b->node, (a->node)));
+  g_assert (!wocky_xmpp_node_equal (a->node, b->node));
+  g_assert (!wocky_xmpp_node_equal (b->node, a->node));
 
   g_object_unref (a);
   g_object_unref (b);
