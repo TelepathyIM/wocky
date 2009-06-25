@@ -1059,6 +1059,10 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
       sub_type != WOCKY_STANZA_SUB_TYPE_SET)
     goto wrong_stanza;
 
+  recipient = wocky_xmpp_node_get_attribute (stanza->node, "to");
+  if (recipient == NULL)
+    goto wrong_stanza;
+
   /* Set an unique ID */
   do
     {
@@ -1068,10 +1072,6 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
   while (g_hash_table_lookup (priv->iq_reply_handlers, id) != NULL);
 
   wocky_xmpp_node_set_attribute (stanza->node, "id", id);
-
-  recipient = wocky_xmpp_node_get_attribute (stanza->node, "to");
-  if (recipient == NULL)
-    goto wrong_stanza;
 
   result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_xmpp_scheduler_send_iq_finish);
