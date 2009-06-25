@@ -45,6 +45,14 @@ wocky_xmpp_node_new (const char *name)
   return result;
 }
 
+static void
+attribute_free (Attribute *a)
+{
+  g_free (a->key);
+  g_free (a->value);
+  g_slice_free (Attribute, a);
+}
+
 /* Frees the node and all it's children */
 void
 wocky_xmpp_node_free (WockyXmppNode *node)
@@ -69,9 +77,7 @@ wocky_xmpp_node_free (WockyXmppNode *node)
   for (l = node->attributes; l != NULL ; l = l->next)
     {
       Attribute *a = (Attribute *) l->data;
-      g_free (a->key);
-      g_free (a->value);
-      g_slice_free (Attribute, a);
+      attribute_free (a);
     }
   g_slist_free (node->attributes);
 
