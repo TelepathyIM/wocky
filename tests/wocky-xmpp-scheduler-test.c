@@ -1238,13 +1238,16 @@ test_send_iq_cb (WockyXmppScheduler *scheduler,
   WockyXmppStanza *reply;
   const gchar *id;
   gboolean cancelled;
+  WockyStanzaSubType sub_type;
 
   test_expected_stanza_received (test, stanza);
 
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
 
-  /* Reply of the "0" IQ is not expected as we are going to cancel it */
-  cancelled = (!wocky_strdiff (id, "0"));
+  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+
+  /* Reply of the "set" IQ is not expected as we are going to cancel it */
+  cancelled = (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
   if (cancelled)
     g_cancellable_cancel (test->cancellable);
@@ -1326,7 +1329,7 @@ test_send_iq (void)
   /* Send an IQ query. We are going to cancel it after it has been received
    * but before we receive the reply so the callback won't be called.*/
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     WOCKY_NODE_ATTRIBUTE, "id", "0",
     WOCKY_STANZA_END);
   wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
