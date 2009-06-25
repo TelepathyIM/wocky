@@ -1493,6 +1493,73 @@ test_handler_filter (void)
   teardown_test (test);
 }
 
+/* test if the right error is raised when trying to send an invalid IQ */
+static void
+test_send_invalid_iq_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  GError *error = NULL;
+
+  reply = wocky_xmpp_scheduler_send_iq_finish (WOCKY_XMPP_SCHEDULER (source),
+      res, &error);
+  g_assert (reply == NULL);
+  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
+      WOCKY_XMPP_SCHEDULER_ERROR_NOT_IQ);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_send_invalid_iq (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  wocky_xmpp_scheduler_start (test->sched_out);
+
+  /* Try to send a message as an IQ */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+      test->cancellable, test_send_invalid_iq_cb, test);
+  g_object_unref (iq);
+  test->outstanding++;
+
+  /* Try to send an IQ reply */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+      test->cancellable, test_send_invalid_iq_cb, test);
+  g_object_unref (iq);
+  test->outstanding++;
+
+  /* Try to send an IQ without recipient */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
+    WOCKY_STANZA_END);
+
+  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+      test->cancellable, test_send_invalid_iq_cb, test);
+  g_object_unref (iq);
+  test->outstanding++;
+
+  test_wait_pending (test);
+
+  test_close_scheduler (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1524,5 +1591,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-scheduler/send-iq", test_send_iq);
   g_test_add_func ("/xmpp-scheduler/send-iq-error", test_send_iq_error);
   g_test_add_func ("/xmpp-scheduler/handler-filter", test_handler_filter);
+  g_test_add_func ("/xmpp-scheduler/send-invalid-iq", test_send_invalid_iq);
   return g_test_run ();
 }
