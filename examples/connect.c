@@ -338,7 +338,7 @@ connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
   WockyXmppConnection *connection =
-    wocky_connector_connect_finish (source, res, &error);
+    wocky_connector_connect_finish (WOCKY_CONNECTOR (source), res, &error);
 
   if (connection != NULL)
     {
@@ -380,12 +380,8 @@ main (int argc,
       WockyConnector *wcon = NULL;
       wcon = wocky_connector_new (argv[1], argv[2]);
 
-      if (wocky_connector_connect_async (G_OBJECT (wcon),
-              connector_callback, NULL))
-        {
-          printf ("Instantiated connector and made async connect call\n");
-          g_main_loop_run (mainloop);
-        }
+      wocky_connector_connect_async (wcon, connector_callback, NULL);
+      g_main_loop_run (mainloop);
 
       return 0;
     }
