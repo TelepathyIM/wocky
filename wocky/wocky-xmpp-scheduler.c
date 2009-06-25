@@ -251,7 +251,7 @@ static void send_stanza_cb (GObject *source,
 
 static void send_close (WockyXmppScheduler *self);
 
-static void handle_iq_reply (WockyXmppScheduler *self,
+static gboolean handle_iq_reply (WockyXmppScheduler *self,
     WockyXmppStanza *reply,
     gpointer user_data);
 
@@ -612,7 +612,7 @@ complete_close (WockyXmppScheduler *self)
   priv->close_cancellable = NULL;
 }
 
-static void
+static gboolean
 handle_iq_reply (WockyXmppScheduler *self,
     WockyXmppStanza *reply,
     gpointer user_data)
@@ -627,14 +627,14 @@ handle_iq_reply (WockyXmppScheduler *self,
   if (handler == NULL)
     {
       DEBUG ("Ignored IQ reply");
-      return;
+      return FALSE;
     }
 
   from = wocky_xmpp_node_get_attribute (reply->node, "from");
   if (wocky_strdiff (from, handler->recipient))
     {
       DEBUG ("%s attempts to spoof an IQ reply", from);
-      return;
+      return FALSE;
     }
 
   if (!g_cancellable_is_cancelled (handler->cancellable))
@@ -645,6 +645,7 @@ handle_iq_reply (WockyXmppScheduler *self,
     }
 
   g_hash_table_remove (priv->iq_reply_handlers, id);
+  return TRUE;
 }
 
 static void
@@ -704,8 +705,8 @@ handle_stanza (WockyXmppScheduler *self,
       if (!wocky_xmpp_node_is_superset (stanza->node, handler->match->node))
         continue;
 
-      handler->callback (self, stanza, handler->user_data);
-      goto out;
+      if (handler->callback (self, stanza, handler->user_data))
+        goto out;
     }
 
   DEBUG ("Stanza not handled");

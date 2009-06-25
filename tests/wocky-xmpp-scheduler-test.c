@@ -175,13 +175,14 @@ test_send (void)
 }
 
 /* receive testing */
-static void
+static gboolean
 test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
+  return TRUE;
 }
 
 static void
@@ -271,16 +272,17 @@ test_receive (void)
 }
 
 /* filter testing */
-static void
+static gboolean
 test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
+  return TRUE;
 }
 
-static void
+static gboolean
 test_filter_presence_received_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -288,6 +290,7 @@ test_filter_presence_received_cb (WockyXmppScheduler *scheduler,
   /* We didn't send any presence stanza so this callback shouldn't be
    * called */
   g_assert_not_reached ();
+  return TRUE;
 }
 
 static void
@@ -757,16 +760,17 @@ send_stanza (test_data_t *test,
   test_wait_pending (test);
 }
 
-static void
+static gboolean
 test_handler_priority_5 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   /* This handler has the lowest priority and is not supposed to be called */
   g_assert_not_reached ();
+  return TRUE;
 }
 
-static void
+static gboolean
 test_handler_priority_10 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -779,15 +783,17 @@ test_handler_priority_10 (WockyXmppScheduler *scheduler,
   wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
   /* This handler is supposed to only handle the get stanza */
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
+  return TRUE;
 }
 
-static void
+static gboolean
 test_handler_priority_15 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
+  return TRUE;
 }
 
 static void
@@ -834,22 +840,24 @@ test_handler_priority (void)
 }
 
 /* Test unregistering a handler */
-static void
+static gboolean
 test_unregister_handler_10 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   /* this handler is unregistred so shouldn't called */
   g_assert_not_reached ();
+  return TRUE;
 }
 
-static void
+static gboolean
 test_unregister_handler_5 (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
+  return TRUE;
 }
 
 static void
@@ -888,13 +896,14 @@ test_unregister_handler (void)
 }
 
 /* test registering a handler using a bare JID as filter criteria */
-static void
+static gboolean
 test_handler_bare_jid_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
+  return TRUE;
 }
 
 static void
@@ -935,13 +944,14 @@ test_handler_bare_jid (void)
 }
 
 /* test registering a handler using a full JID as filter criteria */
-static void
+static gboolean
 test_handler_full_jid_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
+  return TRUE;
 }
 
 static void
@@ -983,7 +993,7 @@ test_handler_full_jid (void)
 }
 
 /* test registering a handler using a stanza as filter criteria */
-static void
+static gboolean
 test_handler_stanza_jingle_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -995,9 +1005,10 @@ test_handler_stanza_jingle_cb (WockyXmppScheduler *scheduler,
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
   g_assert (!wocky_strdiff (id, "3") ||
       !wocky_strdiff (id, "4"));
+  return TRUE;
 }
 
-static void
+static gboolean
 test_handler_stanza_terminate_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -1008,6 +1019,7 @@ test_handler_stanza_terminate_cb (WockyXmppScheduler *scheduler,
   test_expected_stanza_received (test, stanza);
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
   g_assert (!wocky_strdiff (id, "5"));
+  return TRUE;
 }
 
 static void
@@ -1114,7 +1126,7 @@ test_handler_stanza (void)
 }
 
 /* Cancel the sending of a stanza after it has been received */
-static void
+static gboolean
 test_cancel_sent_stanza_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -1123,6 +1135,7 @@ test_cancel_sent_stanza_cb (WockyXmppScheduler *scheduler,
   test_expected_stanza_received (test, stanza);
 
   g_cancellable_cancel (test->cancellable);
+  return TRUE;
 }
 
 static void
@@ -1229,7 +1242,7 @@ test_send_iq_sent_cb (GObject *source,
   g_main_loop_quit (data->loop);
 }
 
-static void
+static gboolean
 test_send_iq_cb (WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data)
@@ -1274,6 +1287,7 @@ test_send_iq_cb (WockyXmppScheduler *scheduler,
     g_object_unref (reply);
 
   test->outstanding++;
+  return TRUE;
 }
 
 static void

@@ -97,7 +97,7 @@ void wocky_xmpp_scheduler_send (WockyXmppScheduler *scheduler,
 
 void wocky_xmpp_scheduler_start (WockyXmppScheduler *scheduler);
 
-typedef void (* WockyXmppSchedulerHandlerFunc) (
+typedef gboolean (* WockyXmppSchedulerHandlerFunc) (
     WockyXmppScheduler *scheduler,
     WockyXmppStanza *stanza,
     gpointer user_data);
