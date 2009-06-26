@@ -35,21 +35,25 @@
  * │  ↓
  * └→ xmpp_init
  *    ↓
- *    xmpp_init_sent_cb ←────┬──┐
- *    ↓                      │  │
- *    xmpp_init_recv_cb      │  │
- *    │ ↓                    │  │
- *    │ xmpp_features_cb     │  │
- *    │ │ ↓                  │  │
- *    │ │ starttls_sent_cb   │  │
- *    │ │ ↓                  │  │
- *    │ │ starttls_recv_cb ──┘  │
- *    │ ↓                       │
- *    │ request-auth            │
- *    │ ↓                       │
- *    │ auth_done ──────────────┘
+ *    xmpp_init_sent_cb ←───┬──┐
+ *    ↓                     │  │
+ *    xmpp_init_recv_cb     │  │
+ *    ↓                     │  │
+ *    xmpp_features_cb      │  │
+ *    │ │ ↓                 │  │
+ *    │ │ starttls_sent_cb  │  │
+ *    │ │ ↓                 │  │
+ *    │ │ starttls_recv_cb ─┘  │
+ *    │ ↓                      │
+ *    │ request-auth           │
+ *    │ ↓                      │
+ *    │ auth_done ─────────────┘
  *    ↓
- *    authed and possibly starttlsed - need a couple more steps here
+ *    iq_bind_resource
+ *    ↓
+ *    iq_bind_resource_sent_cb
+ *    ↓
+ *    iq_bind_resource_recv_cb → success
  */
 
 #include <stdio.h>
@@ -94,13 +98,26 @@ static void starttls_sent_cb (GObject *source,
 static void starttls_recv_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
+
 static void request_auth (WockyConnector *object,
     WockyXmppStanza *stanza);
 static void auth_done (GObject *source,
     GAsyncResult *result,
     gpointer data);
+
+static void iq_bind_resource (WockyConnector *self);
+static void iq_bind_resource_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+static void iq_bind_resource_recv_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+
+
 static void wocky_connector_dispose (GObject *object);
 static void wocky_connector_finalize (GObject *object);
+
+
 
 enum
 {
@@ -121,6 +138,8 @@ typedef enum
   WCON_DISCONNECTED,
   WCON_TCP_CONNECTING,
   WCON_TCP_CONNECTED,
+  WCON_XMPP_AUTHED,
+  WCON_XMPP_BOUND,
 } WockyConnectorState;
 
 
@@ -549,15 +568,6 @@ xmpp_init_sent_cb (GObject *source,
       return;
     }
 
-  /* we are just after a successful auth: trigger the callback */
-  /* FIXME: actually we want to read the next open + features  */
-  /* and follow up (if possible) by handling resource binding  */
-  if (priv->authed)
-    {
-      g_simple_async_result_complete (priv->result);
-      return;
-    }
-
   wocky_xmpp_connection_recv_open_async (priv->conn, NULL,
       xmpp_init_recv_cb, data);
 }
@@ -591,13 +601,8 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
-  if (!priv->authed)
-    {
-      wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
-          xmpp_features_cb, data);
-    }
-  else /* xmpp_init_sent_cb should never call this func if we are authed */
-    g_assert_not_reached ();
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      xmpp_features_cb, data);
 
  out:
   g_free (version);
@@ -614,7 +619,8 @@ xmpp_features_cb (GObject *source,
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   WockyXmppNode   *node;
-  gboolean         can_encrypt = FALSE;
+  gboolean can_encrypt = FALSE;
+  gboolean can_bind = FALSE;
 
   stanza =
     wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
@@ -640,11 +646,14 @@ xmpp_features_cb (GObject *source,
 
   can_encrypt =
     wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) != NULL;
+  can_bind =
+    wocky_xmpp_node_get_child_ns (node, "bind", WOCKY_XMPP_NS_BIND) != NULL;
 
   /* conditions:
    * not encrypted, not encryptable, require encryption → ABORT
    * encryptable                                        → STARTTLS
    * encrypted || not encryptable                       → AUTH
+   * not bound && can bind                              → BIND
    */
 
   if (!priv->encrypted && !can_encrypt && priv->tls_required)
@@ -664,7 +673,18 @@ xmpp_features_cb (GObject *source,
       goto out;
     }
 
-  request_auth (self, stanza);
+  if (!priv->authed)
+    {
+      request_auth (self, stanza);
+      goto out;
+    }
+
+  /* we MUST bind here http://www.ietf.org/rfc/rfc3920.txt */
+  if (can_bind)
+    iq_bind_resource (self);
+  else
+    abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE,
+        "XMPP Server does not support resource binding");
 
  out:
   if (stanza != NULL)
@@ -751,6 +771,9 @@ starttls_recv_cb (GObject *source,
     g_object_unref (stanza);
 }
 
+/* ************************************************************************* */
+/* AUTH calls */
+
 static void
 request_auth (WockyConnector *object,
     WockyXmppStanza *stanza)
@@ -780,18 +803,146 @@ auth_done (GObject *source,
 
   if (!wocky_sasl_auth_authenticate_finish (sasl, result, &error))
     {
-      /* nothing to add, the SASL error should be informativ enough */
+      /* nothing to add, the SASL error should be informative enough */
       abort_connect (self, error, WOCKY_CONNECTOR_ERROR_AUTH_FAILED, "");
       g_error_free (error);
       return;
     }
 
+  priv->state = WCON_XMPP_AUTHED;
   priv->authed = TRUE;
   wocky_xmpp_connection_reset (priv->conn);
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
       "1.0", NULL, NULL, xmpp_init_sent_cb, self);
 }
 
+/* ************************************************************************* */
+/* BIND calls */
+static void
+iq_bind_resource (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *bind =
+    (priv->resource != NULL && *(priv->resource)) ?
+    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+        NULL, NULL,
+        WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+        WOCKY_NODE, "resource", WOCKY_NODE_TEXT,  priv->resource,
+        WOCKY_NODE_END,
+        WOCKY_NODE_END,
+        WOCKY_STANZA_END) :
+    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+        NULL, NULL,
+        WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+        WOCKY_NODE_END,
+        WOCKY_STANZA_END);
+  wocky_xmpp_connection_send_stanza_async (priv->conn, bind, NULL,
+      iq_bind_resource_sent_cb, self);
+  g_object_unref (bind);
+}
+
+static void
+iq_bind_resource_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
+    {
+      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
+          "Failed to send bind iq set");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      iq_bind_resource_recv_cb, data);
+}
+
+static void
+iq_bind_resource_recv_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *reply = NULL;
+  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
+
+  reply = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
+
+  if (reply == NULL)
+    {
+      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
+          "Failed to receive bind iq result");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_stanza_get_type_info (reply, &type, &sub);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
+          "Bind iq response invalid");
+      goto out;
+    }
+
+  switch (sub)
+    {
+      WockyXmppNode *node = NULL;
+      const char *tag = NULL;
+      WockyConnectorError code;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        node = wocky_xmpp_node_get_child (reply->node, "error");
+        if (node != NULL)
+            node = wocky_xmpp_node_get_first_child (node);
+        tag = ((node != NULL) && (node->name != NULL) && (*(node->name))) ?
+          node->name : "unknown-error";
+
+        if (!wocky_strdiff ("bad-request", tag))
+          code = WOCKY_CONNECTOR_ERROR_BIND_INVALID;
+        else if (!wocky_strdiff ("not-allowed", tag))
+          code = WOCKY_CONNECTOR_ERROR_BIND_DENIED;
+        else if (!wocky_strdiff ("conflict", tag))
+          code = WOCKY_CONNECTOR_ERROR_BIND_CONFLICT;
+        else
+          code = WOCKY_CONNECTOR_ERROR_BIND_REJECTED;
+
+        abort_connect (self, NULL, code, tag);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        node = wocky_xmpp_node_get_child (reply->node, "bind");
+        if (node != NULL)
+          node = wocky_xmpp_node_get_child (node, "jid");
+
+        /* store the returned id (or the original if none came back)*/
+        g_free (priv->identity);
+        if ((node != NULL) && (node->content != NULL) && *(node->content))
+          priv->identity = node->content;
+        else
+          priv->identity = priv->jid;
+
+        priv->state = WCON_XMPP_BOUND;
+        g_simple_async_result_complete (priv->result);
+        break;
+
+      default:
+        abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
+            "Bizarre response to bind iq set");
+        break;
+    }
+
+ out:
+  g_object_unref (reply);
+}
 
 /* *************************************************************************
  * exposed methods
