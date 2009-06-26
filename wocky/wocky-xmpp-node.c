@@ -238,9 +238,9 @@ wocky_xmpp_node_get_child (WockyXmppNode *node, const gchar *name)
 WockyXmppNode *
 wocky_xmpp_node_get_first_child (WockyXmppNode *node)
 {
-  if (node->children != NULL)
-    return (WockyXmppNode *)node->children->data;
-  return NULL;
+  g_return_val_if_fail (node != NULL, NULL);
+  g_return_val_if_fail (node->children != NULL, NULL);
+  return (WockyXmppNode *) node->children->data;
 }
 
 
