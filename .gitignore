@@ -1,6 +1,6 @@
 .*.swp
 *~
-
+core
 tags
 TAGS
 cscope.out
@@ -80,6 +80,7 @@ tests/wocky-porter-test
 tests/wocky-xmpp-node-test
 tests/wocky-xmpp-stanza-test
 tests/wocky-connector-test
+tests/*report.xml
 
 examples/wocky-connect
 
