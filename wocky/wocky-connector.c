@@ -950,7 +950,8 @@ iq_bind_resource_recv_cb (GObject *source,
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
     GAsyncResult *res,
-    GError **error)
+    GError **error,
+    gchar **jid)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
@@ -963,6 +964,13 @@ wocky_connector_connect_finish (WockyConnector *self,
   ok =
     g_simple_async_result_is_valid (res, obj, wocky_connector_connect_finish);
   g_return_val_if_fail (ok, NULL);
+
+  if (jid != NULL)
+    {
+      if (*jid != NULL)
+        g_warning ("overwriting non-NULL gchar * pointer arg");
+      *jid = g_strdup (priv->identity);
+    }
 
   return priv->conn;
 }

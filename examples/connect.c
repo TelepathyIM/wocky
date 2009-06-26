@@ -337,12 +337,14 @@ static void
 connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
+  gchar *jid = NULL;
+  WockyConnector *wcon = WOCKY_CONNECTOR (source);
   WockyXmppConnection *connection =
-    wocky_connector_connect_finish (WOCKY_CONNECTOR (source), res, &error);
+    wocky_connector_connect_finish (wcon, res, &error, &jid);
 
   if (connection != NULL)
     {
-      printf ("connected!\n");
+      printf ("connected (%s)!\n", jid);
     }
   else
     {
