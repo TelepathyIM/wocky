@@ -69,7 +69,7 @@ static void
 send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_send_full_finish (
+  g_assert (wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, NULL));
 
   data->outstanding--;
@@ -83,7 +83,7 @@ send_stanza_cancelled_cb (GObject *source, GAsyncResult *res,
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+  g_assert (!wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
   g_assert (error->domain == G_IO_ERROR);
   g_assert (error->code == G_IO_ERROR_CANCELLED);
@@ -677,7 +677,7 @@ test_send_closing_cb (GObject *source,
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+  g_assert (!wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
   g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
       WOCKY_XMPP_SCHEDULER_ERROR_CLOSING);
@@ -695,7 +695,7 @@ test_send_closed_cb (GObject *source,
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+  g_assert (!wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
   g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED);
@@ -1146,7 +1146,7 @@ test_cancel_sent_stanza_cancelled (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+  g_assert (!wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_error_free (error);
@@ -1195,7 +1195,7 @@ test_writing_error_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_full_finish (
+  g_assert (!wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
   g_error_free (error);
@@ -1235,7 +1235,7 @@ test_send_iq_sent_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_send_full_finish (
+  g_assert (wocky_xmpp_scheduler_send_finish (
       WOCKY_XMPP_SCHEDULER (source), res, NULL));
 
   data->outstanding--;

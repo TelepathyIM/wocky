@@ -87,7 +87,7 @@ void wocky_xmpp_scheduler_send_async (WockyXmppScheduler *scheduler,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-gboolean wocky_xmpp_scheduler_send_full_finish (
+gboolean wocky_xmpp_scheduler_send_finish (
     WockyXmppScheduler *scheduler,
     GAsyncResult *result,
     GError **error);

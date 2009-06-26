@@ -135,7 +135,7 @@ sending_queue_elem_new (WockyXmppScheduler *self,
     elem->cancellable = g_object_ref (cancellable);
 
   elem->result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_xmpp_scheduler_send_full_finish);
+    callback, user_data, wocky_xmpp_scheduler_send_finish);
 
   return elem;
 }
@@ -571,7 +571,7 @@ wocky_xmpp_scheduler_send_async (WockyXmppScheduler *self,
 }
 
 gboolean
-wocky_xmpp_scheduler_send_full_finish (WockyXmppScheduler *self,
+wocky_xmpp_scheduler_send_finish (WockyXmppScheduler *self,
     GAsyncResult *result,
     GError **error)
 {
@@ -580,7 +580,7 @@ wocky_xmpp_scheduler_send_full_finish (WockyXmppScheduler *self,
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_xmpp_scheduler_send_full_finish), FALSE);
+    G_OBJECT (self), wocky_xmpp_scheduler_send_finish), FALSE);
 
   return TRUE;
 }
@@ -1014,7 +1014,7 @@ iq_sent_cb (GObject *source,
   StanzaIqHandler *handler = (StanzaIqHandler *) user_data;
   GError *error = NULL;
 
-  if (wocky_xmpp_scheduler_send_full_finish (self, res, &error))
+  if (wocky_xmpp_scheduler_send_finish (self, res, &error))
     /* IQ has been properly sent. Operation will be finished once the reply
      * received */
     return;
