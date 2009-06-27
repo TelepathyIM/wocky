@@ -281,19 +281,6 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
   return len;
 }
 
-static gboolean
-check_data_to_read (WockyTestInputStream *self)
-{
-  if (self->out_array != NULL)
-    return TRUE;
-
-  self->out_array = g_async_queue_try_pop (self->queue);
-  if (self->out_array != NULL)
-    return TRUE;
-
-  return FALSE;
-}
-
 static gssize
 wocky_test_input_stream_read_finish (GInputStream *stream,
     GAsyncResult *result,
@@ -395,15 +382,8 @@ wocky_test_input_stream_try_read (WockyTestInputStream *self)
     /* No pending read operation */
     return FALSE;
 
-  if (!check_data_to_read (self))
+  if (self->out_array != NULL || g_async_queue_length (self->queue) == 0)
     return FALSE;
-
-  if (self->out_array == NULL)
-    {
-      self->out_array = g_async_queue_try_pop (self->queue);
-      if (self->out_array == NULL)
-        return FALSE;
-    }
 
   read_async_complete (self);
   return TRUE;
@@ -484,6 +464,55 @@ wocky_test_output_stream_write (GOutputStream *stream, const void *buffer,
   return count;
 }
 
+static gssize
+wocky_test_output_stream_write_finish (GOutputStream *stream,
+  GAsyncResult *result,
+  GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return -1;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+      G_OBJECT (stream), wocky_test_output_stream_write_finish), -1);
+
+  return g_simple_async_result_get_op_res_gssize (
+    G_SIMPLE_ASYNC_RESULT (result));
+}
+
+static void
+wocky_test_output_stream_write_async (GOutputStream *stream,
+    const void *buffer,
+    gsize count,
+    int io_priority,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple;
+  GError *error = NULL;
+  gssize result;
+
+  result = wocky_test_output_stream_write (stream, buffer, count, cancellable,
+    &error);
+
+  simple = g_simple_async_result_new (G_OBJECT (stream), callback, user_data,
+    wocky_test_output_stream_write_finish);
+
+  if (result == -1)
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_error_free (error);
+    }
+  else
+    {
+      g_simple_async_result_set_op_res_gssize (simple, result);
+    }
+
+  g_simple_async_result_complete_in_idle (simple);
+  g_object_unref (simple);
+}
+
 static void
 wocky_test_output_stream_dispose (GObject *object)
 {
@@ -526,6 +555,8 @@ wocky_test_output_stream_class_init (
   obj_class->dispose = wocky_test_output_stream_dispose;
 
   stream_class->write_fn = wocky_test_output_stream_write;
+  stream_class->write_async = wocky_test_output_stream_write_async;
+  stream_class->write_finish = wocky_test_output_stream_write_finish;
 
   output_signals[OUTPUT_DATA_WRITTEN] = g_signal_new ("data-written",
       G_OBJECT_CLASS_TYPE(wocky_test_output_stream_class),
