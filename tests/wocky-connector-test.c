@@ -159,8 +159,10 @@ test_done (GObject *source,
     GAsyncResult *res,
     gpointer data)
 {
+  gchar *jid;
   test_t *test = data;
-  test->result.xmpp = wocky_connector_connect_finish (source, res, &error);
+  WockyConnector *wcon = WOCKY_CONNECTOR (source);
+  test->result.xmpp = wocky_connector_connect_finish (wcon, res, &error, &jid);
   finished = TRUE;
   g_main_loop_quit (mainloop);
 }
@@ -174,17 +176,19 @@ run_test (gconstpointer data)
   start_dummy_xmpp_server (test);
   setup_dummy_dns_entries (test);
 
-  wcon = wocky_connector_new_full (test->client.auth.jid,
-      test->client.auth.pass,
-      NULL,
-      test->client.options.host,
-      test->client.options.port,
-      test->client.require_tls,
-      FALSE, /* insecure tls cert/etc not yet implemented */
-      !test->client.auth.secure,
-      !test->client.auth.digest);
+  wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
+      "jid", test->client.auth.jid,
+      "password", test->client.auth.pass,
+      "xmpp-server", test->client.options.host,
+      "xmpp-port", test->client.options.port,
+      "tls-required", test->client.require_tls,
+      /* insecure tls cert/etc not yet implemented */
+      "ignore-ssl-errors"      , FALSE,
+      "encrypted-plain-auth-ok", !test->client.auth.secure,
+      "plaintext-auth-allowed" , !test->client.auth.digest,
+      NULL);
 
-  wocky_connector_connect_async (G_OBJECT (wcon), test_done, (gpointer)test);
+  wocky_connector_connect_async (wcon, test_done, (gpointer)test);
 
   if (!finished)
     g_main_loop_run (mainloop);
