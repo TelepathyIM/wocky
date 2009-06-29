@@ -1144,12 +1144,10 @@ test_cancel_sent_stanza_cancelled (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  GError *error = NULL;
 
-  g_assert (!wocky_porter_send_finish (
-      WOCKY_PORTER (source), res, &error));
-  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
-  g_error_free (error);
+  /* Stanza has already be sent to _finish success */
+  g_assert (wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, NULL));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
