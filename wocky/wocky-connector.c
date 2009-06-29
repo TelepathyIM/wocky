@@ -33,9 +33,9 @@
  * tcp_srv_connected
  * ├→ tcp_host_connected
  * │  ↓
- * └→ xmpp_init
- *    ↓
- *    xmpp_init_sent_cb ←───┬──┐
+ * └→ xmpp_init ←───────────┬──┐
+ *    ↓                     │  │
+ *    xmpp_init_sent_cb     │  │
  *    ↓                     │  │
  *    xmpp_init_recv_cb     │  │
  *    ↓                     │  │
@@ -82,7 +82,7 @@ static void tcp_srv_connected (GObject *source,
 static void tcp_host_connected (GObject *source,
     GAsyncResult *result,
     gpointer connector);
-static void xmpp_init (GObject *connector);
+static void xmpp_init (WockyConnector *connector, gboolean new_conn);
 static void xmpp_init_sent_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
@@ -113,11 +113,8 @@ static void iq_bind_resource_recv_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
 
-
 static void wocky_connector_dispose (GObject *object);
 static void wocky_connector_finalize (GObject *object);
-
-
 
 enum
 {
@@ -131,6 +128,7 @@ enum
   PROP_XMPP_PORT,
   PROP_XMPP_HOST,
   PROP_IDENTITY,
+  PROP_FEATURES,
 };
 
 typedef enum
@@ -166,6 +164,9 @@ struct _WockyConnectorPrivate
   gchar *domain;   /* the @[...]/ part of the initial JID */
   /* volatile/derived property: identity = jid, but may be updated by server: */
   gchar *identity; /* if the server hands us a new JID (not handled yet) */
+
+  /* XMPP connection data */
+  WockyXmppStanza *features;
 
   /* misc internal state: */
   WockyConnectorState state;
@@ -369,6 +370,8 @@ wocky_connector_get_property (GObject *object,
       case PROP_IDENTITY:
         g_value_set_string (value, priv->identity);
         break;
+      case PROP_FEATURES:
+        g_value_set_object (value, priv->features);
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -437,6 +440,11 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "XMPP port", 0, 65535, 5222,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_XMPP_PORT, spec);
+
+  spec = g_param_spec_object ("features", "XMPP Features",
+      "Last XMPP Feature Stanza advertised by server", WOCKY_TYPE_XMPP_STANZA,
+      (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_FEATURES, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
@@ -509,7 +517,7 @@ tcp_srv_connected (GObject *source,
     {
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
-      xmpp_init (connector);
+      xmpp_init (self, TRUE);
     }
 }
 
@@ -536,17 +544,18 @@ tcp_host_connected (GObject *source,
     {
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
-      xmpp_init (connector);
+      xmpp_init (self, TRUE);
     }
 }
 
 static void
-xmpp_init (GObject *connector)
+xmpp_init (WockyConnector *connector, gboolean new_conn)
 {
   WockyConnector *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
+  if (new_conn)
+    priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
       "1.0", NULL, NULL, xmpp_init_sent_cb, connector);
 }
@@ -643,6 +652,11 @@ xmpp_features_cb (GObject *source,
       g_free (msg);
       goto out;
     }
+
+  /* cache the current feature set: according to the RFC, we should forget
+   * any previous feature set as soon as we open a new stream, so that
+   * happens elsewhere */
+  priv->features = g_object_ref (stanza);
 
   can_encrypt =
     wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) != NULL;
@@ -762,8 +776,7 @@ starttls_recv_cb (GObject *source,
 
       priv->encrypted = TRUE;
       priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
-      wocky_xmpp_connection_send_open_async (priv->conn, priv->domain,
-          NULL, "1.0", NULL, NULL, xmpp_init_sent_cb, data);
+      xmpp_init (self, FALSE);
     }
 
  out:
@@ -812,8 +825,7 @@ auth_done (GObject *source,
   priv->state = WCON_XMPP_AUTHED;
   priv->authed = TRUE;
   wocky_xmpp_connection_reset (priv->conn);
-  wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
-      "1.0", NULL, NULL, xmpp_init_sent_cb, self);
+  xmpp_init (self, FALSE);
 }
 
 /* ************************************************************************* */
