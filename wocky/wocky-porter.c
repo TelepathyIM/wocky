@@ -149,6 +149,8 @@ sending_queue_elem_free (sending_queue_elem *elem)
       g_object_unref (elem->cancellable);
       if (elem->cancelled_sig_id != 0)
         g_signal_handler_disconnect (elem->cancellable, elem->cancelled_sig_id);
+      /* FIXME: we should use g_cancellable_disconnect but it raises a dead
+       * lock (#587300) */
     }
   g_object_unref (elem->result);
 
