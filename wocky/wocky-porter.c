@@ -571,8 +571,7 @@ wocky_porter_send_async (WockyPorter *self,
     {
       send_head_stanza (self);
     }
-
-  if (cancellable != NULL)
+  else if (cancellable != NULL)
     {
       elem->cancelled_sig_id = g_cancellable_connect (cancellable,
           G_CALLBACK (send_cancelled_cb), elem, NULL);
