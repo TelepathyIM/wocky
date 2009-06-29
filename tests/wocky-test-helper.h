@@ -4,7 +4,7 @@
 G_BEGIN_DECLS
 
 #include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-xmpp-scheduler.h>
+#include <wocky/wocky-porter.h>
 #include "wocky-test-stream.h"
 
 typedef struct {
@@ -13,8 +13,8 @@ typedef struct {
   GQueue *expected_stanzas;
   WockyXmppConnection *in;
   WockyXmppConnection *out;
-  WockyXmppScheduler *sched_in;
-  WockyXmppScheduler *sched_out;
+  WockyPorter *sched_in;
+  WockyPorter *sched_out;
   WockyTestStream *stream;
   guint outstanding;
   GCancellable *cancellable;
@@ -34,12 +34,12 @@ void test_close_connection (test_data_t *test);
 
 void test_open_both_connections (test_data_t *test);
 
-void test_close_scheduler (test_data_t *test);
+void test_close_porter (test_data_t *test);
 
 void test_expected_stanza_received (test_data_t *test,
     WockyXmppStanza *stanza);
 
-void test_close_both_schedulers (test_data_t *test);
+void test_close_both_porters (test_data_t *test);
 
 G_END_DECLS
 

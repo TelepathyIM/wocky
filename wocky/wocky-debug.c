@@ -23,7 +23,7 @@ static GDebugKey keys[] = {
   { "muc-connection",    DEBUG_MUC_CONNECTION    },
   { "bytestream",        DEBUG_BYTESTREAM        },
   { "ft",                DEBUG_FILE_TRANSFER     },
-  { "xmpp-scheduler",    DEBUG_XMPP_SCHEDULER    },
+  { "porter",            DEBUG_PORTER            },
   { "all",               ~0                      },
   { 0, },
 };

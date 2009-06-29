@@ -1,7 +1,7 @@
 TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
   wocky-xmpp-connection-test \
-  wocky-xmpp-scheduler-test \
+  wocky-porter-test \
   wocky-xmpp-node-test \
   wocky-xmpp-stanza-test
 
@@ -30,8 +30,8 @@ wocky_test_sasl_auth_SOURCES = \
 wocky_test_sasl_auth_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
 
-wocky_xmpp_scheduler_test_SOURCES = \
-  wocky-xmpp-scheduler-test.c \
+wocky_porter_test_SOURCES = \
+  wocky-porter-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 

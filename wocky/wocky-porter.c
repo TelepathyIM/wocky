@@ -1,5 +1,5 @@
 /*
- * wocky-xmpp-scheduler.c - Source for WockyXmppScheduler
+ * wocky-porter.c - Source for WockyPorter
  * Copyright (C) 2009 Collabora Ltd.
  * @author Guillaume Desmottes <guillaume.desmottes@collabora.co.uk>
  *
@@ -19,8 +19,8 @@
  */
 
 /**
- * SECTION: wocky-xmpp-scheduler
- * @title: WockyXmppScheduler
+ * SECTION: wocky-porter
+ * @title: WockyPorter
  * @short_description: Wrapper around a #WockyXmppConnection providing a
  * higher level API.
  *
@@ -36,14 +36,14 @@
 
 #include <gio/gio.h>
 
-#include "wocky-xmpp-scheduler.h"
+#include "wocky-porter.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
-#define DEBUG_FLAG DEBUG_XMPP_SCHEDULER
+#define DEBUG_FLAG DEBUG_PORTER
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE(WockyXmppScheduler, wocky_xmpp_scheduler, G_TYPE_OBJECT)
+G_DEFINE_TYPE(WockyPorter, wocky_porter, G_TYPE_OBJECT)
 
 /* properties */
 enum
@@ -62,9 +62,9 @@ enum
 static guint signals[LAST_SIGNAL] = {0};
 
 /* private structure */
-typedef struct _WockyXmppSchedulerPrivate WockyXmppSchedulerPrivate;
+typedef struct _WockyPorterPrivate WockyPorterPrivate;
 
-struct _WockyXmppSchedulerPrivate
+struct _WockyPorterPrivate
 {
   gboolean dispose_has_run;
 
@@ -90,30 +90,30 @@ struct _WockyXmppSchedulerPrivate
 };
 
 /**
- * wocky_xmpp_scheduler_error_quark
+ * wocky_porter_error_quark
  *
- * Get the error quark used by the scheduler.
+ * Get the error quark used by the porter.
  *
- * Returns: the quark for scheduler errors.
+ * Returns: the quark for porter errors.
  */
 GQuark
-wocky_xmpp_scheduler_error_quark (void)
+wocky_porter_error_quark (void)
 {
   static GQuark quark = 0;
 
   if (quark == 0)
-    quark = g_quark_from_static_string ("wocky-xmpp-scheduler-error");
+    quark = g_quark_from_static_string ("wocky-porter-error");
 
   return quark;
 }
 
-#define WOCKY_XMPP_SCHEDULER_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_SCHEDULER, \
-    WockyXmppSchedulerPrivate))
+#define WOCKY_PORTER_GET_PRIVATE(o)  \
+    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_PORTER, \
+    WockyPorterPrivate))
 
 typedef struct
 {
-  WockyXmppScheduler *self;
+  WockyPorter *self;
   WockyXmppStanza *stanza;
   GCancellable *cancellable;
   GSimpleAsyncResult *result;
@@ -121,7 +121,7 @@ typedef struct
 } sending_queue_elem;
 
 static sending_queue_elem *
-sending_queue_elem_new (WockyXmppScheduler *self,
+sending_queue_elem_new (WockyPorter *self,
   WockyXmppStanza *stanza,
   GCancellable *cancellable,
   GAsyncReadyCallback callback,
@@ -135,7 +135,7 @@ sending_queue_elem_new (WockyXmppScheduler *self,
     elem->cancellable = g_object_ref (cancellable);
 
   elem->result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_xmpp_scheduler_send_finish);
+    callback, user_data, wocky_porter_send_finish);
 
   return elem;
 }
@@ -163,7 +163,7 @@ typedef struct
   gchar *resource;
   guint priority;
   WockyXmppStanza *match;
-  WockyXmppSchedulerHandlerFunc callback;
+  WockyPorterHandlerFunc callback;
   gpointer user_data;
 } StanzaHandler;
 
@@ -174,7 +174,7 @@ stanza_handler_new (
     const gchar *from,
     guint priority,
     WockyXmppStanza *stanza,
-    WockyXmppSchedulerHandlerFunc callback,
+    WockyPorterHandlerFunc callback,
     gpointer user_data)
 {
   StanzaHandler *result = g_slice_new0 (StanzaHandler);
@@ -207,7 +207,7 @@ stanza_handler_free (StanzaHandler *handler)
 
 typedef struct
 {
-  WockyXmppScheduler *self;
+  WockyPorter *self;
   GSimpleAsyncResult *result;
   GCancellable *cancellable;
   gulong cancelled_sig_id;
@@ -215,7 +215,7 @@ typedef struct
 } StanzaIqHandler;
 
 static StanzaIqHandler *
-stanza_iq_handler_new (WockyXmppScheduler *self,
+stanza_iq_handler_new (WockyPorter *self,
     GSimpleAsyncResult *result,
     GCancellable *cancellable,
     const gchar *recipient)
@@ -249,17 +249,17 @@ static void send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data);
 
-static void send_close (WockyXmppScheduler *self);
+static void send_close (WockyPorter *self);
 
-static gboolean handle_iq_reply (WockyXmppScheduler *self,
+static gboolean handle_iq_reply (WockyPorter *self,
     WockyXmppStanza *reply,
     gpointer user_data);
 
 static void
-wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
+wocky_porter_init (WockyPorter *obj)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (obj);
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (obj);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   priv->sending_queue = g_queue_new ();
 
@@ -272,18 +272,18 @@ wocky_xmpp_scheduler_init (WockyXmppScheduler *obj)
       g_free, (GDestroyNotify) stanza_iq_handler_free);
 }
 
-static void wocky_xmpp_scheduler_dispose (GObject *object);
-static void wocky_xmpp_scheduler_finalize (GObject *object);
+static void wocky_porter_dispose (GObject *object);
+static void wocky_porter_finalize (GObject *object);
 
 static void
-wocky_xmpp_scheduler_set_property (GObject *object,
+wocky_porter_set_property (GObject *object,
     guint property_id,
     const GValue *value,
     GParamSpec *pspec)
 {
-  WockyXmppScheduler *connection = WOCKY_XMPP_SCHEDULER (object);
-  WockyXmppSchedulerPrivate *priv =
-      WOCKY_XMPP_SCHEDULER_GET_PRIVATE (connection);
+  WockyPorter *connection = WOCKY_PORTER (object);
+  WockyPorterPrivate *priv =
+      WOCKY_PORTER_GET_PRIVATE (connection);
 
   switch (property_id)
     {
@@ -299,14 +299,14 @@ wocky_xmpp_scheduler_set_property (GObject *object,
 }
 
 static void
-wocky_xmpp_scheduler_get_property (GObject *object,
+wocky_porter_get_property (GObject *object,
     guint property_id,
     GValue *value,
     GParamSpec *pspec)
 {
-  WockyXmppScheduler *connection = WOCKY_XMPP_SCHEDULER (object);
-  WockyXmppSchedulerPrivate *priv =
-      WOCKY_XMPP_SCHEDULER_GET_PRIVATE (connection);
+  WockyPorter *connection = WOCKY_PORTER (object);
+  WockyPorterPrivate *priv =
+      WOCKY_PORTER_GET_PRIVATE (connection);
 
   switch (property_id)
     {
@@ -320,55 +320,55 @@ wocky_xmpp_scheduler_get_property (GObject *object,
 }
 
 static void
-wocky_xmpp_scheduler_constructed (GObject *object)
+wocky_porter_constructed (GObject *object)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (object);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   g_assert (priv->connection != NULL);
 
   /* Register the IQ reply handler */
-  wocky_xmpp_scheduler_register_handler (self,
+  wocky_porter_register_handler (self,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT, NULL,
-      WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_MAX,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       handle_iq_reply, self, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_register_handler (self,
+  wocky_porter_register_handler (self,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR, NULL,
-      WOCKY_XMPP_SCHEDULER_HANDLER_PRIORITY_MAX,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       handle_iq_reply, self, WOCKY_STANZA_END);
 }
 
 static void
-wocky_xmpp_scheduler_class_init (
-    WockyXmppSchedulerClass *wocky_xmpp_scheduler_class)
+wocky_porter_class_init (
+    WockyPorterClass *wocky_porter_class)
 {
-  GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_scheduler_class);
+  GObjectClass *object_class = G_OBJECT_CLASS (wocky_porter_class);
   GParamSpec *spec;
 
-  g_type_class_add_private (wocky_xmpp_scheduler_class,
-      sizeof (WockyXmppSchedulerPrivate));
+  g_type_class_add_private (wocky_porter_class,
+      sizeof (WockyPorterPrivate));
 
-  object_class->constructed = wocky_xmpp_scheduler_constructed;
-  object_class->set_property = wocky_xmpp_scheduler_set_property;
-  object_class->get_property = wocky_xmpp_scheduler_get_property;
-  object_class->dispose = wocky_xmpp_scheduler_dispose;
-  object_class->finalize = wocky_xmpp_scheduler_finalize;
+  object_class->constructed = wocky_porter_constructed;
+  object_class->set_property = wocky_porter_set_property;
+  object_class->get_property = wocky_porter_get_property;
+  object_class->dispose = wocky_porter_dispose;
+  object_class->finalize = wocky_porter_finalize;
 
   signals[REMOTE_CLOSED] = g_signal_new ("remote-closed",
-      G_OBJECT_CLASS_TYPE (wocky_xmpp_scheduler_class),
+      G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
   signals[REMOTE_ERROR] = g_signal_new ("remote-error",
-      G_OBJECT_CLASS_TYPE (wocky_xmpp_scheduler_class),
+      G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__UINT_INT_STRING,
       G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
 
   spec = g_param_spec_object ("connection", "XMPP connection",
-    "the XMPP connection used by this scheduler",
+    "the XMPP connection used by this porter",
     WOCKY_TYPE_XMPP_CONNECTION,
     G_PARAM_READWRITE |
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
@@ -377,11 +377,11 @@ wocky_xmpp_scheduler_class_init (
 }
 
 void
-wocky_xmpp_scheduler_dispose (GObject *object)
+wocky_porter_dispose (GObject *object)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
-  WockyXmppSchedulerPrivate *priv =
-      WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (object);
+  WockyPorterPrivate *priv =
+      WOCKY_PORTER_GET_PRIVATE (self);
 
   if (priv->dispose_has_run)
     return;
@@ -396,7 +396,7 @@ wocky_xmpp_scheduler_dispose (GObject *object)
 
   if (priv->receive_cancellable != NULL)
     {
-      g_warning ("Disposing an open XMPP scheduler");
+      g_warning ("Disposing an open XMPP porter");
       g_cancellable_cancel (priv->receive_cancellable);
       g_object_unref (priv->receive_cancellable);
       priv->receive_cancellable = NULL;
@@ -408,18 +408,18 @@ wocky_xmpp_scheduler_dispose (GObject *object)
       priv->close_result = NULL;
     }
 
-  if (G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->dispose (object);
+  if (G_OBJECT_CLASS (wocky_porter_parent_class)->dispose)
+    G_OBJECT_CLASS (wocky_porter_parent_class)->dispose (object);
 }
 
 void
-wocky_xmpp_scheduler_finalize (GObject *object)
+wocky_porter_finalize (GObject *object)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (object);
-  WockyXmppSchedulerPrivate *priv =
-      WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (object);
+  WockyPorterPrivate *priv =
+      WOCKY_PORTER_GET_PRIVATE (self);
 
-  /* sending_queue_elem keeps a ref on the Scheduler (through the
+  /* sending_queue_elem keeps a ref on the Porter (through the
    * GSimpleAsyncResult) so it shouldn't be destroyed while there are
    * elements in the queue. */
   g_assert_cmpuint (g_queue_get_length (priv->sending_queue), ==, 0);
@@ -429,24 +429,24 @@ wocky_xmpp_scheduler_finalize (GObject *object)
   g_list_free (priv->handlers);
   g_hash_table_destroy (priv->iq_reply_handlers);
 
-  G_OBJECT_CLASS (wocky_xmpp_scheduler_parent_class)->finalize (object);
+  G_OBJECT_CLASS (wocky_porter_parent_class)->finalize (object);
 }
 
 /**
- * wocky_xmpp_scheduler_new:
+ * wocky_porter_new:
  * @connection: #WockyXmppConnection which will be used to receive and send
  * #WockyXmppStanza
  *
- * Convenience function to create a new #WockyXmppScheduler.
+ * Convenience function to create a new #WockyPorter.
  *
- * Returns: a new #WockyXmppScheduler.
+ * Returns: a new #WockyPorter.
  */
-WockyXmppScheduler *
-wocky_xmpp_scheduler_new (WockyXmppConnection *connection)
+WockyPorter *
+wocky_porter_new (WockyXmppConnection *connection)
 {
-  WockyXmppScheduler *result;
+  WockyPorter *result;
 
-  result = g_object_new (WOCKY_TYPE_XMPP_SCHEDULER,
+  result = g_object_new (WOCKY_TYPE_PORTER,
     "connection", connection,
     NULL);
 
@@ -454,9 +454,9 @@ wocky_xmpp_scheduler_new (WockyXmppConnection *connection)
 }
 
 static void
-send_head_stanza (WockyXmppScheduler *self)
+send_head_stanza (WockyPorter *self)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   sending_queue_elem *elem;
 
   elem = g_queue_peek_head (priv->sending_queue);
@@ -473,8 +473,8 @@ send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (user_data);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   sending_queue_elem *elem;
   GError *error = NULL;
 
@@ -524,7 +524,7 @@ send_cancelled_cb (GCancellable *cancellable,
     gpointer user_data)
 {
   sending_queue_elem *elem = (sending_queue_elem *) user_data;
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (
       elem->self);
   GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED, "Sending was cancelled" };
 
@@ -536,21 +536,21 @@ send_cancelled_cb (GCancellable *cancellable,
 }
 
 void
-wocky_xmpp_scheduler_send_async (WockyXmppScheduler *self,
+wocky_porter_send_async (WockyPorter *self,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   sending_queue_elem *elem;
 
   if (priv->close_result != NULL)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
-          WOCKY_XMPP_SCHEDULER_ERROR_CLOSING,
-          "Scheduler is closing");
+          user_data, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_CLOSING,
+          "Porter is closing");
       return;
     }
 
@@ -571,7 +571,7 @@ wocky_xmpp_scheduler_send_async (WockyXmppScheduler *self,
 }
 
 gboolean
-wocky_xmpp_scheduler_send_finish (WockyXmppScheduler *self,
+wocky_porter_send_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
@@ -580,24 +580,24 @@ wocky_xmpp_scheduler_send_finish (WockyXmppScheduler *self,
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_xmpp_scheduler_send_finish), FALSE);
+    G_OBJECT (self), wocky_porter_send_finish), FALSE);
 
   return TRUE;
 }
 
 void
-wocky_xmpp_scheduler_send (WockyXmppScheduler *self,
+wocky_porter_send (WockyPorter *self,
     WockyXmppStanza *stanza)
 {
-  wocky_xmpp_scheduler_send_async (self, stanza, NULL, NULL, NULL);
+  wocky_porter_send_async (self, stanza, NULL, NULL, NULL);
 }
 
-static void receive_stanza (WockyXmppScheduler *self);
+static void receive_stanza (WockyPorter *self);
 
 static void
-complete_close (WockyXmppScheduler *self)
+complete_close (WockyPorter *self)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   if (g_cancellable_is_cancelled (priv->close_cancellable))
     {
@@ -613,11 +613,11 @@ complete_close (WockyXmppScheduler *self)
 }
 
 static gboolean
-handle_iq_reply (WockyXmppScheduler *self,
+handle_iq_reply (WockyPorter *self,
     WockyXmppStanza *reply,
     gpointer user_data)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   const gchar *id, *from;
   StanzaIqHandler *handler;
 
@@ -649,10 +649,10 @@ handle_iq_reply (WockyXmppScheduler *self,
 }
 
 static void
-handle_stanza (WockyXmppScheduler *self,
+handle_stanza (WockyPorter *self,
     WockyXmppStanza *stanza)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   GList *l;
   const gchar *from;
   WockyStanzaType type;
@@ -721,8 +721,8 @@ stanza_received_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (user_data);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
@@ -769,21 +769,21 @@ stanza_received_cb (GObject *source,
 }
 
 static void
-receive_stanza (WockyXmppScheduler *self)
+receive_stanza (WockyPorter *self)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   wocky_xmpp_connection_recv_stanza_async (priv->connection,
       priv->receive_cancellable, stanza_received_cb, self);
 }
 
 void
-wocky_xmpp_scheduler_start (WockyXmppScheduler *self)
+wocky_porter_start (WockyPorter *self)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   if (priv->receive_cancellable != NULL)
-    /* Scheduler has already been started */
+    /* Porter has already been started */
     return;
 
   priv->receive_cancellable = g_cancellable_new ();
@@ -796,8 +796,8 @@ close_sent_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (user_data);
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (user_data);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   GError *error = NULL;
 
   priv->local_closed = TRUE;
@@ -829,37 +829,37 @@ out:
 }
 
 static void
-send_close (WockyXmppScheduler *self)
+send_close (WockyPorter *self)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   wocky_xmpp_connection_send_close_async (priv->connection,
       NULL, close_sent_cb, self);
 }
 
 void
-wocky_xmpp_scheduler_close_async (WockyXmppScheduler *self,
+wocky_porter_close_async (WockyPorter *self,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
 
   if (priv->local_closed)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
-          WOCKY_XMPP_SCHEDULER_ERROR_CLOSED,
-          "Scheduler has already been closed");
+          user_data, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_CLOSED,
+          "Porter has already been closed");
       return;
     }
 
   if (priv->receive_cancellable == NULL && !priv->remote_closed)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_XMPP_SCHEDULER_ERROR,
-          WOCKY_XMPP_SCHEDULER_ERROR_NOT_STARTED,
-          "Scheduler has not been started");
+          user_data, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_NOT_STARTED,
+          "Porter has not been started");
       return;
     }
 
@@ -873,7 +873,7 @@ wocky_xmpp_scheduler_close_async (WockyXmppScheduler *self,
     }
 
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_xmpp_scheduler_close_finish);
+    callback, user_data, wocky_porter_close_finish);
 
   priv->close_cancellable = cancellable;
 
@@ -888,8 +888,8 @@ wocky_xmpp_scheduler_close_async (WockyXmppScheduler *self,
 }
 
 gboolean
-wocky_xmpp_scheduler_close_finish (
-    WockyXmppScheduler *self,
+wocky_porter_close_finish (
+    WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
@@ -898,7 +898,7 @@ wocky_xmpp_scheduler_close_finish (
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_xmpp_scheduler_close_finish), FALSE);
+    G_OBJECT (self), wocky_porter_close_finish), FALSE);
 
   return TRUE;
 }
@@ -917,17 +917,17 @@ compare_handler (StanzaHandler *a,
 }
 
 guint
-wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *self,
+wocky_porter_register_handler (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
     guint priority,
-    WockyXmppSchedulerHandlerFunc callback,
+    WockyPorterHandlerFunc callback,
     gpointer user_data,
     WockyBuildTag spec,
     ...)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   StanzaHandler *handler;
   WockyXmppStanza *stanza;
   va_list ap;
@@ -951,10 +951,10 @@ wocky_xmpp_scheduler_register_handler (WockyXmppScheduler *self,
 }
 
 void
-wocky_xmpp_scheduler_unregister_handler (WockyXmppScheduler *self,
+wocky_porter_unregister_handler (WockyPorter *self,
     guint id)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   StanzaHandler *handler;
 
   handler = g_hash_table_lookup (priv->handlers_by_id, GUINT_TO_POINTER (id));
@@ -983,7 +983,7 @@ send_iq_cancelled_cb (GCancellable *cancellable,
     gpointer user_data)
 {
   StanzaIqHandler *handler = (StanzaIqHandler *) user_data;
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (
       handler->self);
   GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED,
       "IQ sending was cancelled" };
@@ -1009,12 +1009,12 @@ iq_sent_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  WockyXmppScheduler *self = WOCKY_XMPP_SCHEDULER (source);
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorter *self = WOCKY_PORTER (source);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   StanzaIqHandler *handler = (StanzaIqHandler *) user_data;
   GError *error = NULL;
 
-  if (wocky_xmpp_scheduler_send_finish (self, res, &error))
+  if (wocky_porter_send_finish (self, res, &error))
     /* IQ has been properly sent. Operation will be finished once the reply
      * received */
     return;
@@ -1036,13 +1036,13 @@ iq_sent_cb (GObject *source,
 }
 
 void
-wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
+wocky_porter_send_iq_async (WockyPorter *self,
     WockyXmppStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyXmppSchedulerPrivate *priv = WOCKY_XMPP_SCHEDULER_GET_PRIVATE (self);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   StanzaIqHandler *handler;
   const gchar *recipient;
   gchar *id = NULL;
@@ -1074,7 +1074,7 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
   wocky_xmpp_node_set_attribute (stanza->node, "id", id);
 
   result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_xmpp_scheduler_send_iq_finish);
+    callback, user_data, wocky_porter_send_iq_finish);
 
   handler = stanza_iq_handler_new (self, result, cancellable,
       recipient);
@@ -1087,19 +1087,19 @@ wocky_xmpp_scheduler_send_iq_async (WockyXmppScheduler *self,
 
   g_hash_table_insert (priv->iq_reply_handlers, id, handler);
 
-  wocky_xmpp_scheduler_send_async (self, stanza, cancellable, iq_sent_cb,
+  wocky_porter_send_async (self, stanza, cancellable, iq_sent_cb,
       handler);
   return;
 
 wrong_stanza:
   g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-      user_data, WOCKY_XMPP_SCHEDULER_ERROR,
-      WOCKY_XMPP_SCHEDULER_ERROR_NOT_IQ,
+      user_data, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_NOT_IQ,
       "Stanza is not an IQ query");
 }
 
-WockyXmppStanza * wocky_xmpp_scheduler_send_iq_finish (
-    WockyXmppScheduler *self,
+WockyXmppStanza * wocky_porter_send_iq_finish (
+    WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
@@ -1108,7 +1108,7 @@ WockyXmppStanza * wocky_xmpp_scheduler_send_iq_finish (
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_xmpp_scheduler_send_iq_finish), NULL);
+    G_OBJECT (self), wocky_porter_send_iq_finish), NULL);
 
   return g_simple_async_result_get_op_res_gpointer (
       G_SIMPLE_ASYNC_RESULT (result));

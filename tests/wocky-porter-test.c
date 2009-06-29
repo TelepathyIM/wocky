@@ -4,7 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-xmpp-scheduler.h>
+#include <wocky/wocky-porter.h>
 #include <wocky/wocky-utils.h>
 
 #include "wocky-test-stream.h"
@@ -13,17 +13,17 @@
 static void
 test_instantiation (void)
 {
-  WockyXmppScheduler *scheduler;
+  WockyPorter *porter;
   WockyXmppConnection *connection;
   WockyTestStream *stream;;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  scheduler = wocky_xmpp_scheduler_new (connection);
+  porter = wocky_porter_new (connection);
 
-  g_assert (scheduler != NULL);
+  g_assert (porter != NULL);
 
-  g_object_unref (scheduler);
+  g_object_unref (porter);
   g_object_unref (connection);
   g_object_unref (stream);
 }
@@ -69,8 +69,8 @@ static void
 send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+  g_assert (wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, NULL));
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
@@ -83,8 +83,8 @@ send_stanza_cancelled_cb (GObject *source, GAsyncResult *res,
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, &error));
   g_assert (error->domain == G_IO_ERROR);
   g_assert (error->code == G_IO_ERROR_CANCELLED);
   g_error_free (error);
@@ -106,7 +106,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL, send_stanza_cb,
+  wocky_porter_send_async (test->sched_in, s, NULL, send_stanza_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
@@ -116,7 +116,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL, send_stanza_cb,
+  wocky_porter_send_async (test->sched_in, s, NULL, send_stanza_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
@@ -126,7 +126,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "peter@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, test->cancellable,
+  wocky_porter_send_async (test->sched_in, s, test->cancellable,
       send_stanza_cancelled_cb, test);
   g_object_unref (s);
   test->outstanding++;
@@ -135,7 +135,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "samson@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, test->cancellable,
+  wocky_porter_send_async (test->sched_in, s, test->cancellable,
       send_stanza_cancelled_cb, test);
   g_object_unref (s);
   test->outstanding++;
@@ -148,7 +148,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "nurse@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, s);
+  wocky_porter_send (test->sched_in, s);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
 
@@ -160,7 +160,7 @@ test_send (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL, send_stanza_cb,
+  wocky_porter_send_async (test->sched_in, s, NULL, send_stanza_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
@@ -176,7 +176,7 @@ test_send (void)
 
 /* receive testing */
 static gboolean
-test_receive_stanza_received_cb (WockyXmppScheduler *scheduler,
+test_receive_stanza_received_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -191,8 +191,8 @@ sched_close_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+  g_assert (wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, NULL));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -252,28 +252,28 @@ test_receive (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+  wocky_porter_send_async (test->sched_in, s, NULL,
       send_stanza_cb, test);
   g_queue_push_tail (test->expected_stanzas, s);
   /* We are waiting for the stanza to be sent and received on the other
    * side */
   test->outstanding += 2;
 
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 0,
       test_receive_stanza_received_cb, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   test_wait_pending (test);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* filter testing */
 static gboolean
-test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
+test_filter_iq_received_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -283,7 +283,7 @@ test_filter_iq_received_cb (WockyXmppScheduler *scheduler,
 }
 
 static gboolean
-test_filter_presence_received_cb (WockyXmppScheduler *scheduler,
+test_filter_presence_received_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -302,23 +302,23 @@ test_filter (void)
   test_open_both_connections (test);
 
   /* register an IQ filter */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 0,
       test_filter_iq_received_cb, test, WOCKY_STANZA_END);
 
   /* register a presence filter */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_PRESENCE, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 0,
       test_filter_presence_received_cb, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Send a message */
   msg = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, msg);
+  wocky_porter_send (test->sched_in, msg);
   /* We don't expect this stanza as we didn't register any message filter */
 
   /* Send an IQ */
@@ -326,7 +326,7 @@ test_filter (void)
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send (test->sched_in, iq);
+  wocky_porter_send (test->sched_in, iq);
   /* We expect to receive this stanza */
   g_queue_push_tail (test->expected_stanzas, iq);
   test->outstanding++;
@@ -334,7 +334,7 @@ test_filter (void)
   test_wait_pending (test);
   g_object_unref (msg);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
@@ -388,8 +388,8 @@ test_close_sched_close_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+  g_assert (wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, NULL));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -403,19 +403,19 @@ test_close_flush (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_start (test->sched_in);
+  wocky_porter_start (test->sched_in);
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
-  wocky_xmpp_scheduler_send (test->sched_in, s);
+  wocky_porter_send (test->sched_in, s);
   g_queue_push_tail (test->expected_stanzas, s);
   test->outstanding++;
 
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       test_close_stanza_received_cb, test);
 
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL,
+  wocky_porter_close_async (test->sched_in, NULL,
       test_close_sched_close_cb, test);
 
   test->outstanding += 2;
@@ -425,7 +425,7 @@ test_close_flush (void)
 }
 
 /* test if the right error is raised when trying to close a not started
- * scheduler */
+ * porter */
 static void
 test_close_not_started_cb (GObject *source,
     GAsyncResult *res,
@@ -434,10 +434,10 @@ test_close_not_started_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
-  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
-      WOCKY_XMPP_SCHEDULER_ERROR_NOT_STARTED);
+  g_assert (!wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error));
+  g_assert_error (error, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_NOT_STARTED);
   g_error_free (error);
 
   test->outstanding--;
@@ -451,7 +451,7 @@ test_close_not_started (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL,
+  wocky_porter_close_async (test->sched_in, NULL,
       test_close_not_started_cb, test);
 
   test->outstanding++;
@@ -460,9 +460,9 @@ test_close_not_started (void)
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       wait_close_cb, test);
 
-  wocky_xmpp_scheduler_start (test->sched_in);
+  wocky_porter_start (test->sched_in);
 
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_in, NULL, sched_close_cb,
       test);
 
   test->outstanding += 2;
@@ -471,7 +471,7 @@ test_close_not_started (void)
   teardown_test (test);
 }
 
-/* test if the right error is raised when trying to close the scheduler
+/* test if the right error is raised when trying to close the porter
  * twice */
 static void
 test_close_twice_cb (GObject *source,
@@ -481,8 +481,8 @@ test_close_twice_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PENDING);
   g_error_free (error);
 
@@ -498,10 +498,10 @@ test_close_twice_cb2 (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
-  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
-      WOCKY_XMPP_SCHEDULER_ERROR_CLOSED);
+  g_assert (!wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error));
+  g_assert_error (error, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_CLOSED);
   g_error_free (error);
 
   test->outstanding--;
@@ -518,18 +518,18 @@ test_close_twice (void)
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       wait_close_cb, test);
 
-  wocky_xmpp_scheduler_start (test->sched_in);
+  wocky_porter_start (test->sched_in);
 
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_in, NULL, sched_close_cb,
       test);
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, test_close_twice_cb,
+  wocky_porter_close_async (test->sched_in, NULL, test_close_twice_cb,
       test);
 
   test->outstanding += 3;
   test_wait_pending (test);
 
-  /* Retry now that the scheduler has been closed */
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, test_close_twice_cb2,
+  /* Retry now that the porter has been closed */
+  wocky_porter_close_async (test->sched_in, NULL, test_close_twice_cb2,
       test);
   test->outstanding++;
   test_wait_pending (test);
@@ -540,7 +540,7 @@ test_close_twice (void)
 /* Test if the remote-closed signal is emitted when the other side closes his
  * XMPP connection */
 static void
-remote_closed_cb (WockyXmppScheduler *scheduler,
+remote_closed_cb (WockyPorter *porter,
     test_data_t *test)
 {
   test->outstanding--;
@@ -568,7 +568,7 @@ test_remote_close (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   g_signal_connect (test->sched_out, "remote-closed",
       G_CALLBACK (remote_closed_cb), test);
@@ -581,7 +581,7 @@ test_remote_close (void)
 
   test_wait_pending (test);
 
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_out, NULL, sched_close_cb,
       test);
   test->outstanding++;
   test_wait_pending (test);
@@ -598,8 +598,8 @@ sched_close_cancelled_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error));
 
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_error_free (error);
@@ -615,11 +615,11 @@ test_close_cancel (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_close_cb, test);
-  wocky_xmpp_scheduler_close_async (test->sched_out, test->cancellable,
+  wocky_porter_close_async (test->sched_out, test->cancellable,
       sched_close_cancelled_cb, test);
 
   g_cancellable_cancel (test->cancellable);
@@ -630,9 +630,9 @@ test_close_cancel (void)
   teardown_test (test);
 }
 
-/* Test if the remote-error signal is fired when scheduler got a read error */
+/* Test if the remote-error signal is fired when porter got a read error */
 static void
-remote_error_cb (WockyXmppScheduler *scheduler,
+remote_error_cb (WockyPorter *porter,
     GQuark domain,
     guint code,
     const gchar *message,
@@ -660,15 +660,15 @@ test_reading_error (void)
 
   wocky_test_input_stream_set_read_error (test->stream->stream1_input);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
   test_wait_pending (test);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* Test if the right error is raised when trying to send a stanza through a
- * closed scheduler */
+ * closed porter */
 static void
 test_send_closing_cb (GObject *source,
     GAsyncResult *res,
@@ -677,10 +677,10 @@ test_send_closing_cb (GObject *source,
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
-  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
-      WOCKY_XMPP_SCHEDULER_ERROR_CLOSING);
+  g_assert (!wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, &error));
+  g_assert_error (error, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_CLOSING);
 
   g_error_free (error);
   data->outstanding--;
@@ -695,8 +695,8 @@ test_send_closed_cb (GObject *source,
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, &error));
   g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED);
 
@@ -713,11 +713,11 @@ test_send_closed (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_start (test->sched_in);
+  wocky_porter_start (test->sched_in);
 
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       wait_close_cb, test);
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_in, NULL, sched_close_cb,
       test);
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
@@ -725,13 +725,13 @@ test_send_closed (void)
     WOCKY_STANZA_END);
 
   /* try to send a stanza while closing */
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+  wocky_porter_send_async (test->sched_in, s, NULL,
       test_send_closing_cb, test);
   test->outstanding += 3;
   test_wait_pending (test);
 
   /* try to send a stanza after the closing */
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+  wocky_porter_send_async (test->sched_in, s, NULL,
       test_send_closed_cb, test);
   g_object_unref (s);
   test->outstanding++;
@@ -746,7 +746,7 @@ send_stanza (test_data_t *test,
     WockyXmppStanza *stanza,
     gboolean expected)
 {
-  wocky_xmpp_scheduler_send (test->sched_in, stanza);
+  wocky_porter_send (test->sched_in, stanza);
   if (expected)
     {
       g_queue_push_tail (test->expected_stanzas, stanza);
@@ -761,7 +761,7 @@ send_stanza (test_data_t *test,
 }
 
 static gboolean
-test_handler_priority_5 (WockyXmppScheduler *scheduler,
+test_handler_priority_5 (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -771,7 +771,7 @@ test_handler_priority_5 (WockyXmppScheduler *scheduler,
 }
 
 static gboolean
-test_handler_priority_10 (WockyXmppScheduler *scheduler,
+test_handler_priority_10 (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -787,7 +787,7 @@ test_handler_priority_10 (WockyXmppScheduler *scheduler,
 }
 
 static gboolean
-test_handler_priority_15 (WockyXmppScheduler *scheduler,
+test_handler_priority_15 (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -805,16 +805,16 @@ test_handler_priority (void)
   test_open_both_connections (test);
 
   /* register an IQ handler with a priority of 10 */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 10,
       test_handler_priority_10, test, WOCKY_STANZA_END);
 
   /* register an IQ handler with a priority of 5 */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 5,
       test_handler_priority_5, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -824,7 +824,7 @@ test_handler_priority (void)
   send_stanza (test, iq, TRUE);
 
   /* register an IQ handler with a priority of 15 */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 15,
       test_handler_priority_15, test, WOCKY_STANZA_END);
 
@@ -835,13 +835,13 @@ test_handler_priority (void)
 
   send_stanza (test, iq, TRUE);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* Test unregistering a handler */
 static gboolean
-test_unregister_handler_10 (WockyXmppScheduler *scheduler,
+test_unregister_handler_10 (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -851,7 +851,7 @@ test_unregister_handler_10 (WockyXmppScheduler *scheduler,
 }
 
 static gboolean
-test_unregister_handler_5 (WockyXmppScheduler *scheduler,
+test_unregister_handler_5 (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -870,19 +870,19 @@ test_unregister_handler (void)
   test_open_both_connections (test);
 
   /* register an IQ handler with a priority of 10 */
-  id = wocky_xmpp_scheduler_register_handler (test->sched_out,
+  id = wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 10,
       test_unregister_handler_10, test, WOCKY_STANZA_END);
 
   /* register an IQ handler with a priority of 5 */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 5,
       test_unregister_handler_5, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* unregister the first handler */
-  wocky_xmpp_scheduler_unregister_handler (test->sched_out, id);
+  wocky_porter_unregister_handler (test->sched_out, id);
 
   /* Send a 'get' IQ */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -891,13 +891,13 @@ test_unregister_handler (void)
 
   send_stanza (test, iq, TRUE);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* test registering a handler using a bare JID as filter criteria */
 static gboolean
-test_handler_bare_jid_cb (WockyXmppScheduler *scheduler,
+test_handler_bare_jid_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -915,11 +915,11 @@ test_handler_bare_jid (void)
   test_open_both_connections (test);
 
   /* register an IQ handler for all IQ from a bare jid */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", 0,
       test_handler_bare_jid_cb, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ from the bare jid */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -939,13 +939,13 @@ test_handler_bare_jid (void)
     WOCKY_STANZA_END);
   send_stanza (test, iq, TRUE);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* test registering a handler using a full JID as filter criteria */
 static gboolean
-test_handler_full_jid_cb (WockyXmppScheduler *scheduler,
+test_handler_full_jid_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -963,12 +963,12 @@ test_handler_full_jid (void)
   test_open_both_connections (test);
 
   /* register an IQ handler for all IQ from a bare jid */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
       "juliet@example.com/Pub", 0,
       test_handler_full_jid_cb, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ from the bare jid */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -988,13 +988,13 @@ test_handler_full_jid (void)
     WOCKY_STANZA_END);
   send_stanza (test, iq, TRUE);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* test registering a handler using a stanza as filter criteria */
 static gboolean
-test_handler_stanza_jingle_cb (WockyXmppScheduler *scheduler,
+test_handler_stanza_jingle_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1009,7 +1009,7 @@ test_handler_stanza_jingle_cb (WockyXmppScheduler *scheduler,
 }
 
 static gboolean
-test_handler_stanza_terminate_cb (WockyXmppScheduler *scheduler,
+test_handler_stanza_terminate_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1032,7 +1032,7 @@ test_handler_stanza (void)
 
   /* register an IQ handler for all the jingle stanzas related to one jingle
    * session */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
       NULL, 0,
       test_handler_stanza_jingle_cb, test,
@@ -1041,7 +1041,7 @@ test_handler_stanza (void)
         WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
       WOCKY_NODE_END, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Send a not jingle IQ */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -1072,7 +1072,7 @@ test_handler_stanza (void)
 
   /* register a new IQ handler,with higher priority, handling session-terminate
    * with a specific test message */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
       NULL, 10,
       test_handler_stanza_terminate_cb, test,
@@ -1121,13 +1121,13 @@ test_handler_stanza (void)
     WOCKY_NODE_END, WOCKY_STANZA_END);
   send_stanza (test, iq, TRUE);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
 /* Cancel the sending of a stanza after it has been received */
 static gboolean
-test_cancel_sent_stanza_cb (WockyXmppScheduler *scheduler,
+test_cancel_sent_stanza_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1146,8 +1146,8 @@ test_cancel_sent_stanza_cancelled (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_error_free (error);
 
@@ -1162,11 +1162,11 @@ test_cancel_sent_stanza (void)
   WockyXmppStanza *stanza;
 
   test_open_both_connections (test);
-  wocky_xmpp_scheduler_start (test->sched_out);
-  wocky_xmpp_scheduler_start (test->sched_in);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
 
   /* register a message handler */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
       NULL, 0,
       test_cancel_sent_stanza_cb, test, WOCKY_STANZA_END);
@@ -1174,7 +1174,7 @@ test_cancel_sent_stanza (void)
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
-  wocky_xmpp_scheduler_send_async (test->sched_in, stanza,
+  wocky_porter_send_async (test->sched_in, stanza,
       test->cancellable, test_cancel_sent_stanza_cancelled,
       test);
   g_queue_push_tail (test->expected_stanzas, stanza);
@@ -1182,7 +1182,7 @@ test_cancel_sent_stanza (void)
   test->outstanding += 2;
   test_wait_pending (test);
 
-  test_close_both_schedulers (test);
+  test_close_both_porters (test);
   teardown_test (test);
 }
 
@@ -1195,8 +1195,8 @@ test_writing_error_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
   g_error_free (error);
 
@@ -1219,7 +1219,7 @@ test_writing_error (void)
     WOCKY_STANZA_END);
 
   test->outstanding++;
-  wocky_xmpp_scheduler_send_async (test->sched_in, s, NULL,
+  wocky_porter_send_async (test->sched_in, s, NULL,
       test_writing_error_cb, test);
 
   test_wait_pending (test);
@@ -1235,15 +1235,15 @@ test_send_iq_sent_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_send_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+  g_assert (wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, NULL));
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
 }
 
 static gboolean
-test_send_iq_cb (WockyXmppScheduler *scheduler,
+test_send_iq_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1270,7 +1270,7 @@ test_send_iq_cb (WockyXmppScheduler *scheduler,
     WOCKY_STANZA_SUB_TYPE_RESULT, "oscar@example.net", "juliet@example.com",
     WOCKY_NODE_ATTRIBUTE, "id", id,
     WOCKY_STANZA_END);
-  wocky_xmpp_scheduler_send (scheduler, reply);
+  wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
   /* Send reply */
@@ -1279,7 +1279,7 @@ test_send_iq_cb (WockyXmppScheduler *scheduler,
     WOCKY_NODE_ATTRIBUTE, "id", id,
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_async (scheduler, reply,
+  wocky_porter_send_async (porter, reply,
       NULL, test_send_iq_sent_cb, test);
   if (!cancelled)
     g_queue_push_tail (test->expected_stanzas, reply);
@@ -1298,7 +1298,7 @@ test_send_iq_reply_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppStanza *reply;
 
-  reply = wocky_xmpp_scheduler_send_iq_finish (WOCKY_XMPP_SCHEDULER (source),
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
       res, NULL);
   g_assert (reply != NULL);
 
@@ -1314,7 +1314,7 @@ test_send_iq_cancelled_cb (GObject *source,
   WockyXmppStanza *reply;
   GError *error = NULL;
 
-  reply = wocky_xmpp_scheduler_send_iq_finish (WOCKY_XMPP_SCHEDULER (source),
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
       res, &error);
   g_assert (reply == NULL);
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
@@ -1331,11 +1331,11 @@ test_send_iq (void)
   WockyXmppStanza *iq;
 
   test_open_both_connections (test);
-  wocky_xmpp_scheduler_start (test->sched_out);
-  wocky_xmpp_scheduler_start (test->sched_in);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
 
   /* register an IQ handler */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
       NULL, 0,
       test_send_iq_cb, test, WOCKY_STANZA_END);
@@ -1345,7 +1345,7 @@ test_send_iq (void)
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
-  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+  wocky_porter_send_iq_async (test->sched_in, iq,
       test->cancellable, test_send_iq_cancelled_cb,
       test);
   g_queue_push_tail (test->expected_stanzas, iq);
@@ -1359,14 +1359,14 @@ test_send_iq (void)
     WOCKY_NODE_ATTRIBUTE, "id", "1",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+  wocky_porter_send_iq_async (test->sched_in, iq,
       NULL, test_send_iq_reply_cb, test);
   g_queue_push_tail (test->expected_stanzas, iq);
 
   test->outstanding += 2;
   test_wait_pending (test);
 
-  test_close_both_schedulers (test);
+  test_close_both_porters (test);
   teardown_test (test);
 }
 
@@ -1380,8 +1380,8 @@ test_send_iq_error_cb (GObject *source,
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
-  g_assert (!wocky_xmpp_scheduler_send_iq_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, &error));
+  g_assert (!wocky_porter_send_iq_finish (
+      WOCKY_PORTER (source), res, &error));
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
   g_error_free (error);
 
@@ -1405,7 +1405,7 @@ test_send_iq_error (void)
     WOCKY_STANZA_END);
 
   test->outstanding++;
-  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq, NULL,
+  wocky_porter_send_iq_async (test->sched_in, iq, NULL,
       test_send_iq_error_cb, test);
 
   test_wait_pending (test);
@@ -1416,7 +1416,7 @@ test_send_iq_error (void)
 
 /* Test implementing a filter using handlers */
 static gboolean
-test_handler_filter_get_filter (WockyXmppScheduler *scheduler,
+test_handler_filter_get_filter (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1445,7 +1445,7 @@ test_handler_filter_get_filter (WockyXmppScheduler *scheduler,
 }
 
 static gboolean
-test_handler_filter_cb (WockyXmppScheduler *scheduler,
+test_handler_filter_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -1463,17 +1463,17 @@ test_handler_filter (void)
   test_open_both_connections (test);
 
   /* register an IQ handler which will act as a filter */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 10,
       test_handler_filter_get_filter, test, WOCKY_STANZA_END);
 
   /* register another handler with a smaller priority which will be called
    * after the filter */
-  wocky_xmpp_scheduler_register_handler (test->sched_out,
+  wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL, 5,
       test_handler_filter_cb, test, WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ that will be filtered */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -1489,7 +1489,7 @@ test_handler_filter (void)
 
   send_stanza (test, iq, TRUE);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
@@ -1503,11 +1503,11 @@ test_send_invalid_iq_cb (GObject *source,
   WockyXmppStanza *reply;
   GError *error = NULL;
 
-  reply = wocky_xmpp_scheduler_send_iq_finish (WOCKY_XMPP_SCHEDULER (source),
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
       res, &error);
   g_assert (reply == NULL);
-  g_assert_error (error, WOCKY_XMPP_SCHEDULER_ERROR,
-      WOCKY_XMPP_SCHEDULER_ERROR_NOT_IQ);
+  g_assert_error (error, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_NOT_IQ);
   g_error_free (error);
 
   test->outstanding--;
@@ -1522,14 +1522,14 @@ test_send_invalid_iq (void)
 
   test_open_both_connections (test);
 
-  wocky_xmpp_scheduler_start (test->sched_out);
+  wocky_porter_start (test->sched_out);
 
   /* Try to send a message as an IQ */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+  wocky_porter_send_iq_async (test->sched_in, iq,
       test->cancellable, test_send_invalid_iq_cb, test);
   g_object_unref (iq);
   test->outstanding++;
@@ -1539,7 +1539,7 @@ test_send_invalid_iq (void)
     WOCKY_STANZA_SUB_TYPE_RESULT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+  wocky_porter_send_iq_async (test->sched_in, iq,
       test->cancellable, test_send_invalid_iq_cb, test);
   g_object_unref (iq);
   test->outstanding++;
@@ -1549,14 +1549,14 @@ test_send_invalid_iq (void)
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
     WOCKY_STANZA_END);
 
-  wocky_xmpp_scheduler_send_iq_async (test->sched_in, iq,
+  wocky_porter_send_iq_async (test->sched_in, iq,
       test->cancellable, test_send_invalid_iq_cb, test);
   g_object_unref (iq);
   test->outstanding++;
 
   test_wait_pending (test);
 
-  test_close_scheduler (test);
+  test_close_porter (test);
   teardown_test (test);
 }
 
@@ -1568,29 +1568,29 @@ main (int argc, char **argv)
   g_test_init (&argc, &argv, NULL);
   g_type_init ();
 
-  g_test_add_func ("/xmpp-scheduler/initiation", test_instantiation);
-  g_test_add_func ("/xmpp-scheduler/send", test_send);
-  g_test_add_func ("/xmpp-scheduler/receive", test_receive);
-  g_test_add_func ("/xmpp-scheduler/filter", test_filter);
-  g_test_add_func ("/xmpp-scheduler/close-flush", test_close_flush);
-  g_test_add_func ("/xmpp-scheduler/close-not-started", test_close_not_started);
-  g_test_add_func ("/xmpp-scheduler/close-twice", test_close_twice);
-  g_test_add_func ("/xmpp-scheduler/remote-close", test_remote_close);
-  g_test_add_func ("/xmpp-scheduler/close-cancel", test_close_cancel);
-  g_test_add_func ("/xmpp-scheduler/reading-error", test_reading_error);
-  g_test_add_func ("/xmpp-scheduler/send-closed", test_send_closed);
-  g_test_add_func ("/xmpp-scheduler/handler-priority", test_handler_priority);
-  g_test_add_func ("/xmpp-scheduler/unregister-handler",
+  g_test_add_func ("/xmpp-porter/initiation", test_instantiation);
+  g_test_add_func ("/xmpp-porter/send", test_send);
+  g_test_add_func ("/xmpp-porter/receive", test_receive);
+  g_test_add_func ("/xmpp-porter/filter", test_filter);
+  g_test_add_func ("/xmpp-porter/close-flush", test_close_flush);
+  g_test_add_func ("/xmpp-porter/close-not-started", test_close_not_started);
+  g_test_add_func ("/xmpp-porter/close-twice", test_close_twice);
+  g_test_add_func ("/xmpp-porter/remote-close", test_remote_close);
+  g_test_add_func ("/xmpp-porter/close-cancel", test_close_cancel);
+  g_test_add_func ("/xmpp-porter/reading-error", test_reading_error);
+  g_test_add_func ("/xmpp-porter/send-closed", test_send_closed);
+  g_test_add_func ("/xmpp-porter/handler-priority", test_handler_priority);
+  g_test_add_func ("/xmpp-porter/unregister-handler",
       test_unregister_handler);
-  g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_bare_jid);
-  g_test_add_func ("/xmpp-scheduler/handler-bare-jid", test_handler_full_jid);
-  g_test_add_func ("/xmpp-scheduler/handler-stanza", test_handler_stanza);
-  g_test_add_func ("/xmpp-scheduler/cancel-sent-stanza",
+  g_test_add_func ("/xmpp-porter/handler-bare-jid", test_handler_bare_jid);
+  g_test_add_func ("/xmpp-porter/handler-bare-jid", test_handler_full_jid);
+  g_test_add_func ("/xmpp-porter/handler-stanza", test_handler_stanza);
+  g_test_add_func ("/xmpp-porter/cancel-sent-stanza",
       test_cancel_sent_stanza);
-  g_test_add_func ("/xmpp-scheduler/writing-error", test_writing_error);
-  g_test_add_func ("/xmpp-scheduler/send-iq", test_send_iq);
-  g_test_add_func ("/xmpp-scheduler/send-iq-error", test_send_iq_error);
-  g_test_add_func ("/xmpp-scheduler/handler-filter", test_handler_filter);
-  g_test_add_func ("/xmpp-scheduler/send-invalid-iq", test_send_invalid_iq);
+  g_test_add_func ("/xmpp-porter/writing-error", test_writing_error);
+  g_test_add_func ("/xmpp-porter/send-iq", test_send_iq);
+  g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
+  g_test_add_func ("/xmpp-porter/handler-filter", test_handler_filter);
+  g_test_add_func ("/xmpp-porter/send-invalid-iq", test_send_invalid_iq);
   return g_test_run ();
 }

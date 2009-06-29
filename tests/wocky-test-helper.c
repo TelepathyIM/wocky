@@ -1,5 +1,5 @@
 #include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-xmpp-scheduler.h>
+#include <wocky/wocky-porter.h>
 #include "wocky-test-helper.h"
 
 gboolean
@@ -23,8 +23,8 @@ setup_test (void)
   data->in = wocky_xmpp_connection_new (data->stream->stream0);
   data->out = wocky_xmpp_connection_new (data->stream->stream1);
 
-  data->sched_in = wocky_xmpp_scheduler_new (data->in);
-  data->sched_out = wocky_xmpp_scheduler_new (data->out);
+  data->sched_in = wocky_porter_new (data->in);
+  data->sched_out = wocky_porter_new (data->out);
 
   data->expected_stanzas = g_queue_new ();
 
@@ -177,8 +177,8 @@ sched_close_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_xmpp_scheduler_close_finish (
-      WOCKY_XMPP_SCHEDULER (source), res, NULL));
+  g_assert (wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, NULL));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -212,13 +212,13 @@ wait_sched_close_cb (GObject *source,
 }
 
 void
-test_close_scheduler (test_data_t *test)
+test_close_porter (test_data_t *test)
 {
   /* close connections */
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
       wait_sched_close_cb, test);
 
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_out, NULL, sched_close_cb,
       test);
 
   test->outstanding += 2;
@@ -241,11 +241,11 @@ test_expected_stanza_received (test_data_t *test,
 }
 
 void
-test_close_both_schedulers (test_data_t *test)
+test_close_both_porters (test_data_t *test)
 {
-  wocky_xmpp_scheduler_close_async (test->sched_out, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_out, NULL, sched_close_cb,
       test);
-  wocky_xmpp_scheduler_close_async (test->sched_in, NULL, sched_close_cb,
+  wocky_porter_close_async (test->sched_in, NULL, sched_close_cb,
       test);
 
   test->outstanding += 2;

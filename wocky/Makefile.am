@@ -25,8 +25,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-xmpp-writer.h            \
   wocky-sasl-auth.c              \
   wocky-sasl-auth.h              \
-  wocky-xmpp-scheduler.c         \
-  wocky-xmpp-scheduler.h
+  wocky-porter.c                 \
+  wocky-porter.h
 
 libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES) $(BUILT_SOURCES)
 
