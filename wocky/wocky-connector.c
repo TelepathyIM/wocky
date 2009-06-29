@@ -768,7 +768,7 @@ starttls_recv_cb (GObject *source,
 
       if (priv->tls == NULL)
         {
-          abort_connect (data, error, WOCKY_CONNECTOR_ERROR_REFUSED,
+          abort_connect (data, error, WOCKY_CONNECTOR_ERROR_TLS_FAILED,
               "TLS Handshake Error");
           g_error_free (error);
           goto out;
