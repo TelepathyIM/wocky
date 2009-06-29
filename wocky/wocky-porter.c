@@ -147,7 +147,8 @@ sending_queue_elem_free (sending_queue_elem *elem)
   if (elem->cancellable != NULL)
     {
       g_object_unref (elem->cancellable);
-      g_signal_handler_disconnect (elem->cancellable, elem->cancelled_sig_id);
+      if (elem->cancelled_sig_id != 0)
+        g_signal_handler_disconnect (elem->cancellable, elem->cancelled_sig_id);
     }
   g_object_unref (elem->result);
 
@@ -463,6 +464,14 @@ send_head_stanza (WockyPorter *self)
   if (elem == NULL)
     /* Nothing to send */
     return;
+
+  if (elem->cancelled_sig_id != 0)
+    {
+      /* We are going to start sending the stanza. Lower layers are now
+       * responsible of handling the cancellable. */
+      g_signal_handler_disconnect (elem->cancellable, elem->cancelled_sig_id);
+      elem->cancelled_sig_id = 0;
+    }
 
   wocky_xmpp_connection_send_stanza_async (priv->connection,
       elem->stanza, elem->cancellable, send_stanza_cb, self);
