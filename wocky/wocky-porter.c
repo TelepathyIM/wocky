@@ -574,8 +574,8 @@ wocky_porter_send_async (WockyPorter *self,
 
   if (cancellable != NULL)
     {
-      elem->cancelled_sig_id = g_signal_connect (cancellable, "cancelled",
-          G_CALLBACK (send_cancelled_cb), elem);
+      elem->cancelled_sig_id = g_cancellable_connect (cancellable,
+          G_CALLBACK (send_cancelled_cb), elem, NULL);
     }
 }
 
@@ -1090,8 +1090,8 @@ wocky_porter_send_iq_async (WockyPorter *self,
 
   if (cancellable != NULL)
     {
-      handler->cancelled_sig_id = g_signal_connect (cancellable, "cancelled",
-              G_CALLBACK (send_iq_cancelled_cb), handler);
+      handler->cancelled_sig_id = g_cancellable_connect (cancellable,
+          G_CALLBACK (send_iq_cancelled_cb), handler, NULL);
     }
 
   g_hash_table_insert (priv->iq_reply_handlers, id, handler);
