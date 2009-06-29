@@ -473,6 +473,7 @@ wocky_connector_dispose (GObject *object)
   UNREF_AND_FORGET (priv->sock);
   UNREF_AND_FORGET (priv->tls_sess);
   UNREF_AND_FORGET (priv->tls);
+  UNREF_AND_FORGET (priv->features);
 
   if (G_OBJECT_CLASS (wocky_connector_parent_class )->dispose)
     G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
