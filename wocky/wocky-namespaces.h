@@ -11,6 +11,9 @@
 #define WOCKY_XMPP_NS_BIND \
   "urn:ietf:params:xml:ns:xmpp-bind"
 
+#define WOCKY_XMPP_NS_SESSION \
+  "urn:ietf:params:xml:ns:xmpp-session"
+
 #define WOCKY_XMPP_NS_TLS \
   "urn:ietf:params:xml:ns:xmpp-tls"
 

@@ -113,6 +113,14 @@ static void iq_bind_resource_recv_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
 
+void establish_session (WockyConnector *self);
+static void establish_session_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+static void establish_session_recv_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+
 static void wocky_connector_dispose (GObject *object);
 static void wocky_connector_finalize (GObject *object);
 
@@ -943,12 +951,131 @@ iq_bind_resource_recv_cb (GObject *source,
           priv->identity = priv->jid;
 
         priv->state = WCON_XMPP_BOUND;
-        g_simple_async_result_complete (priv->result);
+        establish_session (self);
         break;
 
       default:
         abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
             "Bizarre response to bind iq set");
+        break;
+    }
+
+ out:
+  g_object_unref (reply);
+}
+
+/* ************************************************************************* */
+/* final stage: establish a session, if so advertised: */
+void
+establish_session (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppNode *feat = (priv->features != NULL) ? priv->features->node : NULL;
+
+  /* _if_ session setup is advertised, a session _must_ be established to *
+   * allow presence/messaging etc to work. If not, it is not important    */
+  if ((feat != NULL) &&
+      wocky_xmpp_node_get_child_ns (feat, "session", WOCKY_XMPP_NS_SESSION))
+    {
+      WockyXmppStanza *session =
+        wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+            WOCKY_STANZA_SUB_TYPE_SET,
+            NULL, NULL,
+            WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
+            WOCKY_NODE_END,
+            WOCKY_STANZA_END);
+      wocky_xmpp_connection_send_stanza_async (priv->conn, session, NULL,
+          establish_session_sent_cb, self);
+      g_object_unref (session);
+    }
+  else
+    g_simple_async_result_complete (priv->result);
+}
+
+static void
+establish_session_sent_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
+    {
+      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
+          "Failed to send session iq set");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      establish_session_recv_cb, data);
+}
+
+static void
+establish_session_recv_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *reply = NULL;
+  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
+
+  reply = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
+
+  if (reply == NULL)
+    {
+      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
+          "Failed to receive session iq result");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_stanza_get_type_info (reply, &type, &sub);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
+          "Session iq response invalid");
+      goto out;
+    }
+
+  switch (sub)
+    {
+      WockyXmppNode *node = NULL;
+      const char *tag = NULL;
+      WockyConnectorError code;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        node = wocky_xmpp_node_get_child (reply->node, "error");
+        if (node != NULL)
+          node = wocky_xmpp_node_get_first_child (node);
+        tag = ((node != NULL) && (node->name != NULL) && (*(node->name))) ?
+          node->name : "unknown-error";
+
+        if (!wocky_strdiff ("internal-server-error", tag))
+          code = WOCKY_CONNECTOR_ERROR_SESSION_FAILED;
+        else if (!wocky_strdiff ("forbidden", tag))
+          code = WOCKY_CONNECTOR_ERROR_SESSION_DENIED;
+        else if (!wocky_strdiff ("conflict" , tag))
+          code = WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT;
+        else
+          code = WOCKY_CONNECTOR_ERROR_SESSION_REJECTED;
+
+        abort_connect (self, NULL, code, tag);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        g_simple_async_result_complete (priv->result);
+        break;
+
+      default:
+        abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
+            "Bizarre response to session iq set");
         break;
     }
 
