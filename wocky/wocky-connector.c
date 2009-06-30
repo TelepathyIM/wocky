@@ -195,21 +195,22 @@ struct _WockyConnectorPrivate
 #define WOCKY_CONNECTOR_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_CONNECTOR,WockyConnectorPrivate))
 
-/* during XMPP setup, we have to loop through very similar states
-   (handling the same stanza types) about 3 times: the handling is
-   almost identical, with the few differences depending on which
-   of these states we are in: AUTHENTICATED, ENCRYPTED or INITIAL
-   This macro wraps up the logic of inspecting our internal state
-   and deciding which condition applies: */
-
+/* choose an appropriate chunk of text describing our state for debug/error */
 static char *
 state_message (WockyConnectorPrivate *priv, const char *str)
 {
   GString *msg = g_string_new ("");
-  const char *state = (priv->authed ? "Authentication Completed" :
-      priv->encrypted ? "TLS Negotiated" :
-      priv->connected ? "TCP Connection Established" :
-      "Connecting... ");
+  const char *state = NULL;
+
+  if (priv->authed)
+    state = "Authentication Completed";
+  else if (priv->encrypted)
+    state = "TLS Negotiated";
+  else if (priv->connected)
+    state = "TCP Connection Established";
+  else
+    state = "Connecting... ";
+
   g_string_printf (msg, "%s: %s", state, str);
   return g_string_free (msg, FALSE);
 }
