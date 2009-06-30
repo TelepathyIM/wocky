@@ -276,7 +276,7 @@ wocky_connector_init (WockyConnector *obj)
 static char *
 make_resource (void)
 {
-  return g_strdup_printf ("Wocky_%x%lx", rand(), time(NULL));
+  return g_strdup_printf ("Wocky_%x", rand());
 }
 
 static void
