@@ -516,7 +516,7 @@ tcp_srv_connected (GObject *source,
     {
       const gchar *host = rindex (priv->jid, '@') + 1;
       DEBUG ("SRV connect failed: %s", error->message);
-      DEBUG ("Falling back to direct connection");
+      DEBUG ("Falling back to HOST connection");
       g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
       g_socket_client_connect_to_host_async (priv->client,
@@ -524,6 +524,7 @@ tcp_srv_connected (GObject *source,
     }
   else
     {
+      DEBUG ("SRV connection succeeded");
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
       xmpp_init (self, TRUE);
@@ -551,6 +552,7 @@ tcp_host_connected (GObject *source,
     }
   else
     {
+      DEBUG ("HOST connection succeeded");
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
       xmpp_init (self, TRUE);
@@ -565,6 +567,8 @@ xmpp_init (WockyConnector *connector, gboolean new_conn)
 
   if (new_conn)
     priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
+
+  DEBUG ("sending XMPP stream open to server");
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
       "1.0", NULL, NULL, xmpp_init_sent_cb, connector);
 }
@@ -586,6 +590,7 @@ xmpp_init_sent_cb (GObject *source,
       return;
     }
 
+  DEBUG ("waiting for stream open from server");
   wocky_xmpp_connection_recv_open_async (priv->conn, NULL,
       xmpp_init_recv_cb, data);
 }
@@ -612,6 +617,8 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
+  DEBUG ("received XMPP stream open from server");
+
   if (wocky_strdiff (version, "1.0"))
     {
       abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
@@ -619,6 +626,7 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
+  DEBUG ("waiting for feature stanza from server");
   wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
       xmpp_features_cb, data);
 
@@ -651,6 +659,7 @@ xmpp_features_cb (GObject *source,
       return;
     }
 
+  DEBUG ("received feature stanza from server");
   node = stanza->node;
 
   if (wocky_strdiff (node->name, "features") ||
@@ -690,6 +699,7 @@ xmpp_features_cb (GObject *source,
     {
       WockyXmppStanza *starttls = wocky_xmpp_stanza_new ("starttls");
       wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
+      DEBUG ("sending TLS request");
       wocky_xmpp_connection_send_stanza_async (priv->conn, starttls,
           NULL, starttls_sent_cb, data);
       g_object_unref (starttls);
@@ -732,6 +742,7 @@ starttls_sent_cb (GObject *source,
       return;
     }
 
+  DEBUG ("sent TLS request");
   wocky_xmpp_connection_recv_stanza_async (priv->conn,
       NULL, starttls_recv_cb, data);
 }
@@ -758,6 +769,7 @@ starttls_recv_cb (GObject *source,
       goto out;
     }
 
+  DEBUG ("received TLS response");
   node = stanza->node;
 
   if (wocky_strdiff (node->name, "proceed") ||
@@ -769,8 +781,10 @@ starttls_recv_cb (GObject *source,
     }
   else
     {
+      DEBUG ("starting client TLS handshake");
       priv->tls_sess = g_tls_session_new (G_IO_STREAM (priv->sock));
       priv->tls = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+      DEBUG ("completed TLS handshake");
 
       if (priv->tls == NULL)
         {
@@ -807,6 +821,7 @@ request_auth (WockyConnector *object,
       (priv->encrypted && priv->encrypted_plain_auth_ok))
     clear = TRUE;
 
+  DEBUG ("handing over control to SASL module");
   wocky_sasl_auth_authenticate_async (s, stanza, clear, NULL, auth_done, self);
 }
 
@@ -828,6 +843,7 @@ auth_done (GObject *source,
       return;
     }
 
+  DEBUG ("SASL complete (success)");
   priv->state = WCON_XMPP_AUTHED;
   priv->authed = TRUE;
   wocky_xmpp_connection_reset (priv->conn);
@@ -856,6 +872,7 @@ iq_bind_resource (WockyConnector *self)
       wocky_xmpp_node_add_child_with_content (bind, "resource", priv->resource);
     }
 
+  DEBUG ("sending bind iq set stanza");
   wocky_xmpp_connection_send_stanza_async (priv->conn, iq, NULL,
       iq_bind_resource_sent_cb, self);
   g_object_unref (iq);
@@ -878,6 +895,7 @@ iq_bind_resource_sent_cb (GObject *source,
       return;
     }
 
+  DEBUG ("bind iq set stanza sent");
   wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
       iq_bind_resource_recv_cb, data);
 }
@@ -895,7 +913,7 @@ iq_bind_resource_recv_cb (GObject *source,
   WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
 
   reply = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
-
+  DEBUG ("bind iq response stanza received");
   if (reply == NULL)
     {
       abort_connect (self, error, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
