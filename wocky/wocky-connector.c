@@ -273,12 +273,6 @@ wocky_connector_init (WockyConnector *obj)
 {
 }
 
-static char *
-make_resource (void)
-{
-  return g_strdup_printf ("Wocky_%x", rand());
-}
-
 static void
 wocky_connector_set_property (GObject *object,
     guint property_id,
@@ -314,9 +308,11 @@ wocky_connector_set_property (GObject *object,
         break;
       case PROP_RESOURCE:
         g_free (priv->resource);
-        priv->resource = g_value_dup_string (value);
-        if (priv->resource == NULL)
-          priv->resource = make_resource ();
+        if ((g_value_get_string (value) != NULL) &&
+            *g_value_get_string (value) != '\0')
+          priv->resource = g_value_dup_string (value);
+        else
+          priv->resource = g_strdup_printf ("Wocky_%x", rand());
         break;
       case PROP_XMPP_PORT:
         priv->xmpp_port = g_value_get_uint (value);
@@ -430,7 +426,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
 
   spec = g_param_spec_string ("resource", "resource",
       "XMPP resource to append to the jid", NULL,
-      (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_RESOURCE, spec);
 
   spec = g_param_spec_string ("identity", "identity",
