@@ -847,6 +847,7 @@ iq_bind_resource (WockyConnector *self)
     (priv->resource != NULL && *(priv->resource)) ?
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
         NULL, NULL,
+        WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (priv->conn),
         WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
         WOCKY_NODE, "resource", WOCKY_NODE_TEXT,  priv->resource,
         WOCKY_NODE_END,
@@ -854,6 +855,7 @@ iq_bind_resource (WockyConnector *self)
         WOCKY_STANZA_END) :
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
         NULL, NULL,
+        WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (priv->conn),
         WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
         WOCKY_NODE_END,
         WOCKY_STANZA_END);
@@ -978,14 +980,16 @@ establish_session (WockyConnector *self)
   if ((feat != NULL) &&
       wocky_xmpp_node_get_child_ns (feat, "session", WOCKY_XMPP_NS_SESSION))
     {
+      WockyXmppConnection *conn = priv->conn;
       WockyXmppStanza *session =
         wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
             WOCKY_STANZA_SUB_TYPE_SET,
             NULL, NULL,
+            WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (conn),
             WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
             WOCKY_NODE_END,
             WOCKY_STANZA_END);
-      wocky_xmpp_connection_send_stanza_async (priv->conn, session, NULL,
+      wocky_xmpp_connection_send_stanza_async (conn, session, NULL,
           establish_session_sent_cb, self);
       g_object_unref (session);
     }
