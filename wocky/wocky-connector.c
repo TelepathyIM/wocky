@@ -276,7 +276,7 @@ static char *
 make_resource (void)
 {
   GString *res = g_string_new ("");
-  g_string_printf (res, "無%x%lx", rand(), time(NULL));
+  g_string_printf (res, "Wocky_%x%lx", rand(), time(NULL));
   return g_string_free (res, FALSE);
 }
 
