@@ -302,9 +302,14 @@ wocky_connector_set_property (GObject *object,
         break;
       case PROP_PASS:
         g_free (priv->pass);
-        priv->pass = g_value_dup_string (value);
-        if (priv->pass == NULL)
-          priv->pass = g_strdup ("");
+        if (g_value_get_string (value) != NULL)
+          priv->pass = g_value_dup_string (value);
+        else
+          {
+            g_warning ("%s property %s cannot be NULL",
+                G_OBJECT_TYPE_NAME (object), pspec->name);
+            priv->pass = g_strdup ("");
+          }
         break;
       case PROP_RESOURCE:
         g_free (priv->resource);
