@@ -216,8 +216,40 @@ state_message (WockyConnectorPrivate *priv, const char *str)
 }
 
 static void
-abort_connect (WockyConnector *connector,
-    GError *error,
+abort_connect_error (WockyConnector *connector,
+    GError **error,
+    const char *fmt,
+    ...)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  va_list args;
+
+  g_assert (error != NULL);
+  g_assert (*error != NULL);
+
+  va_start (args, fmt);
+  if ((fmt != NULL) && (*fmt != '\0'))
+    {
+      gchar *msg = g_strdup_vprintf (fmt, args);
+      g_prefix_error (error, "%s: ", msg);
+      g_free (msg);
+    }
+  va_end (args);
+
+  if (priv->sock != NULL)
+    {
+      g_object_unref (priv->sock);
+      priv->sock = NULL;
+    }
+  priv->state = WCON_DISCONNECTED;
+
+  g_simple_async_result_set_from_error (priv->result, *error);
+  g_simple_async_result_complete (priv->result);
+  g_object_unref (priv->result);
+}
+
+static void
+abort_connect_code (WockyConnector *connector,
     int code,
     const char *fmt,
     ...)
@@ -227,21 +259,7 @@ abort_connect (WockyConnector *connector,
   va_list args;
 
   va_start (args, fmt);
-  if (error != NULL)
-    {
-      err = g_error_new (WOCKY_CONNECTOR_ERROR, code, "%s", error->message);
-      if ((fmt != NULL) && *fmt)
-        {
-          GString *msg = g_string_new ("");
-          g_string_vprintf (msg, fmt, args);
-          g_prefix_error (&err, "%s: ", msg->str);
-          g_string_free (msg, TRUE);
-        }
-    }
-  else
-    {
-      err = g_error_new_valist (WOCKY_CONNECTOR_ERROR, code, fmt, args);
-    }
+  err = g_error_new_valist (WOCKY_CONNECTOR_ERROR, code, fmt, args);
   va_end (args);
 
   if (priv->sock != NULL)
@@ -546,8 +564,7 @@ tcp_host_connected (GObject *source,
   if (priv->sock == NULL)
     {
       DEBUG ("HOST connect failed: %s\n", error->message);
-      abort_connect (connector, error, WOCKY_CONNECTOR_ERROR_DISCONNECTED,
-          "connection failed");
+      abort_connect_error (connector, &error, "connection failed");
       g_error_free (error);
     }
   else
@@ -584,8 +601,7 @@ xmpp_init_sent_cb (GObject *source,
 
   if (!wocky_xmpp_connection_send_open_finish (priv->conn, result, &error))
     {
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_DISCONNECTED,
-          "Failed to send open stanza");
+      abort_connect_error (self, &error, "Failed to send open stanza");
       g_error_free (error);
       return;
     }
@@ -611,7 +627,7 @@ xmpp_init_recv_cb (GObject *source,
           &from, &version, NULL, &error))
     {
       char *msg = state_message (priv, error->message);
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_DISCONNECTED, msg);
+      abort_connect_error (self, &error, msg);
       g_free (msg);
       g_error_free (error);
       goto out;
@@ -621,7 +637,7 @@ xmpp_init_recv_cb (GObject *source,
 
   if (wocky_strdiff (version, "1.0"))
     {
-      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
           "Server not XMPP 1.0 Compliant");
       goto out;
     }
@@ -653,7 +669,7 @@ xmpp_features_cb (GObject *source,
 
   if (stanza == NULL)
     {
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_DISCONNECTED,
+      abort_connect_error (self, &error,
           "disconnected before XMPP features stanza");
       g_error_free (error);
       return;
@@ -666,7 +682,7 @@ xmpp_features_cb (GObject *source,
       wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
     {
       char *msg = state_message (priv, "Malformed or missing feature stanza");
-      abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, msg);
+      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, msg);
       g_free (msg);
       goto out;
     }
@@ -690,7 +706,7 @@ xmpp_features_cb (GObject *source,
 
   if (!priv->encrypted && !can_encrypt && priv->tls_required)
     {
-      abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE,
+      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE,
           "TLS requested but lack server support");
       goto out;
     }
@@ -716,7 +732,7 @@ xmpp_features_cb (GObject *source,
   if (can_bind)
     iq_bind_resource (self);
   else
-    abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE,
+    abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE,
         "XMPP Server does not support resource binding");
 
  out:
@@ -736,8 +752,7 @@ starttls_sent_cb (GObject *source,
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result,
           &error))
     {
-      abort_connect (data, error, WOCKY_CONNECTOR_ERROR_DISCONNECTED,
-          "Failed to send STARTTLS stanza");
+      abort_connect_error (data, &error, "Failed to send STARTTLS stanza");
       g_error_free (error);
       return;
     }
@@ -763,8 +778,7 @@ starttls_recv_cb (GObject *source,
 
   if (stanza == NULL)
     {
-      abort_connect (data, error, WOCKY_CONNECTOR_ERROR_DISCONNECTED,
-          "STARTTLS reply not received");
+      abort_connect_error (data, &error, "STARTTLS reply not received");
       g_error_free (error);
       goto out;
     }
@@ -775,7 +789,7 @@ starttls_recv_cb (GObject *source,
   if (wocky_strdiff (node->name, "proceed") ||
       wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_TLS))
     {
-      abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
+      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
           "STARTTLS refused by server");
       goto out;
     }
@@ -788,8 +802,7 @@ starttls_recv_cb (GObject *source,
 
       if (priv->tls == NULL)
         {
-          abort_connect (data, error, WOCKY_CONNECTOR_ERROR_TLS_FAILED,
-              "TLS Handshake Error");
+          abort_connect_error (data, &error, "TLS Handshake Error");
           g_error_free (error);
           goto out;
         }
@@ -838,7 +851,7 @@ auth_done (GObject *source,
   if (!wocky_sasl_auth_authenticate_finish (sasl, result, &error))
     {
       /* nothing to add, the SASL error should be informative enough */
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_AUTH_FAILED, "");
+      abort_connect_error (self, &error, "");
       g_error_free (error);
       return;
     }
@@ -889,8 +902,7 @@ iq_bind_resource_sent_cb (GObject *source,
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
     {
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
-          "Failed to send bind iq set");
+      abort_connect_error (self, &error, "Failed to send bind iq set");
       g_error_free (error);
       return;
     }
@@ -916,8 +928,7 @@ iq_bind_resource_recv_cb (GObject *source,
   DEBUG ("bind iq response stanza received");
   if (reply == NULL)
     {
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
-          "Failed to receive bind iq result");
+      abort_connect_error (self, &error, "Failed to receive bind iq result");
       g_error_free (error);
       return;
     }
@@ -926,7 +937,7 @@ iq_bind_resource_recv_cb (GObject *source,
 
   if (type != WOCKY_STANZA_TYPE_IQ)
     {
-      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
           "Bind iq response invalid");
       goto out;
     }
@@ -956,7 +967,7 @@ iq_bind_resource_recv_cb (GObject *source,
         else
           code = WOCKY_CONNECTOR_ERROR_BIND_REJECTED;
 
-        abort_connect (self, NULL, code, tag);
+        abort_connect_code (self, code, "resource binding: %s", tag);
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
@@ -976,7 +987,7 @@ iq_bind_resource_recv_cb (GObject *source,
         break;
 
       default:
-        abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BIND_FAILED,
             "Bizarre response to bind iq set");
         break;
     }
@@ -1026,8 +1037,7 @@ establish_session_sent_cb (GObject *source,
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
     {
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
-          "Failed to send session iq set");
+      abort_connect_error (self, &error, "Failed to send session iq set");
       g_error_free (error);
       return;
     }
@@ -1052,8 +1062,7 @@ establish_session_recv_cb (GObject *source,
 
   if (reply == NULL)
     {
-      abort_connect (self, error, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
-          "Failed to receive session iq result");
+      abort_connect_error (self, &error, "Failed to receive session iq result");
       g_error_free (error);
       return;
     }
@@ -1062,7 +1071,7 @@ establish_session_recv_cb (GObject *source,
 
   if (type != WOCKY_STANZA_TYPE_IQ)
     {
-      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
           "Session iq response invalid");
       goto out;
     }
@@ -1089,7 +1098,7 @@ establish_session_recv_cb (GObject *source,
         else
           code = WOCKY_CONNECTOR_ERROR_SESSION_REJECTED;
 
-        abort_connect (self, NULL, code, tag);
+        abort_connect_code (self, code, "establish session: %s", tag);
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
@@ -1097,7 +1106,7 @@ establish_session_recv_cb (GObject *source,
         break;
 
       default:
-        abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_SESSION_FAILED,
             "Bizarre response to session iq set");
         break;
     }
@@ -1168,13 +1177,13 @@ wocky_connector_connect_async (WockyConnector *self,
 
   if (host == NULL)
     {
-      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BAD_JID, "Invalid JID");
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID, "Invalid JID");
       return;
     }
 
   if (*(++host) == '\0')
     {
-      abort_connect (self, NULL, WOCKY_CONNECTOR_ERROR_BAD_JID,
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
           "Missing Domain");
       return;
     }
