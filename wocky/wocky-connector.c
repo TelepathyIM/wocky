@@ -719,9 +719,9 @@ starttls_sent_cb (GObject *source,
     GAsyncResult *result,
     gpointer data)
 {
-  GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  GError *error = NULL;
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result,
           &error))
