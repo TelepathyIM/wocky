@@ -923,8 +923,11 @@ iq_bind_resource_recv_cb (GObject *source,
         node = wocky_xmpp_node_get_child (reply->node, "error");
         if (node != NULL)
             node = wocky_xmpp_node_get_first_child (node);
-        tag = ((node != NULL) && (node->name != NULL) && (*(node->name))) ?
-          node->name : "unknown-error";
+
+        if ((node != NULL) && (node->name != NULL) && (*node->name != '\0'))
+          tag = node->name;
+        else
+          tag = "unknown-error";
 
         if (!wocky_strdiff ("bad-request", tag))
           code = WOCKY_CONNECTOR_ERROR_BIND_INVALID;
@@ -946,7 +949,7 @@ iq_bind_resource_recv_cb (GObject *source,
         /* store the returned id (or the original if none came back)*/
         g_free (priv->identity);
         if ((node != NULL) && (node->content != NULL) && *(node->content))
-          priv->identity = node->content;
+          priv->identity = g_strdup (node->content);
         else
           priv->identity = priv->jid;
 
