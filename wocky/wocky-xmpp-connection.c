@@ -773,6 +773,18 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   priv->input_result = g_simple_async_result_new (G_OBJECT (connection),
     callback, user_data, wocky_xmpp_connection_recv_stanza_finish);
 
+  /* There is already a stanza waiting, no need to read */
+  if (wocky_xmpp_reader_peek_stanza (priv->reader) != NULL)
+    {
+      GSimpleAsyncResult *r = priv->input_result;
+
+      priv->input_result = NULL;
+
+      g_simple_async_result_complete_in_idle (r);
+      g_object_unref (r);
+      return;
+    }
+
   priv->input_cancellable = cancellable;
 
   wocky_xmpp_connection_do_read (connection);
