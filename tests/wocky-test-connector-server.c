@@ -48,6 +48,14 @@ struct _stanza_handler {
   stanza_func func;
 };
 
+typedef struct _iq_handler iq_handler;
+struct _iq_handler {
+  WockyStanzaSubType subtype;
+  const gchar *payload;
+  const gchar *ns;
+  stanza_func func;
+};
+
 static void xmpp_init (GObject *source, GAsyncResult *result, gpointer data);
 static void starttls (GObject *source, GAsyncResult *result, gpointer data);
 
@@ -148,10 +156,32 @@ test_connector_server_class_init (TestConnectorServerClass *klass)
 
 /* ************************************************************************* */
 /* xmpp stanza handling: */
+static void xmpp_handler (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data);
 static void handle_auth     (TestConnectorServer *self,
     WockyXmppStanza *xml);
 static void handle_starttls (TestConnectorServer *self,
     WockyXmppStanza *xml);
+
+static void
+after_auth (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+static void xmpp_close (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+static void xmpp_closed (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+
+static void iq_set_bind (TestConnectorServer *self,
+    WockyXmppStanza *xml);
+static void iq_set_session (TestConnectorServer *self,
+    WockyXmppStanza *xml);
+static void iq_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
 
 #define HANDLER(ns,x) { WOCKY_XMPP_NS_##ns, #x, handle_##x }
 static stanza_handler handlers[] =
@@ -161,17 +191,81 @@ static stanza_handler handlers[] =
     { NULL, NULL, NULL }
   };
 
+#define IQH(S,s,name,ns) \
+  { WOCKY_STANZA_SUB_TYPE_##S, #name, WOCKY_XMPP_NS_##ns, iq_##s##_##name }
+static iq_handler iq_handlers[] =
+  {
+    IQH (SET, set, bind, BIND),
+    IQH (SET, set, session, SESSION),
+    { WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL, NULL }
+  };
+
+static void
+iq_set_bind (TestConnectorServer *self,
+    WockyXmppStanza *xml)
+{
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  WockyXmppStanza *iq =
+    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+        WOCKY_STANZA_SUB_TYPE_RESULT,
+        NULL, NULL,
+        WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+        WOCKY_NODE_END,
+        WOCKY_STANZA_END);
+  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL, iq_sent, self);
+  g_object_unref (xml);
+  g_object_unref (iq);
+}
+
+static void
+iq_set_session (TestConnectorServer *self,
+    WockyXmppStanza *xml)
+{
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  WockyXmppStanza *iq =
+    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+        WOCKY_STANZA_SUB_TYPE_RESULT,
+        NULL, NULL,
+        WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
+        WOCKY_NODE_END,
+        WOCKY_STANZA_END);
+  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL, iq_sent, self);
+  g_object_unref (xml);
+  g_object_unref (iq);
+}
+
+static void
+iq_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (data);
+  WockyXmppConnection *conn = priv->conn;
+  if (!wocky_xmpp_connection_send_stanza_finish (conn, result, &error))
+    {
+      DEBUG ("send iq response failed: %s", error->message);
+      g_error_free (error);
+      return;
+    }
+  wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, data);
+}
+
 static void
 handle_auth (TestConnectorServer *self,
     WockyXmppStanza *xml)
 {
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE(self);
-  /* after this the sasl auth server object is in charge: control of
+  GObject *sasl = G_OBJECT (priv->sasl);
+  /* after this the sasl auth server object is in charge:
+     control should return to us after the auth stages, at the point
+     when we need to send our final feature stanza:
      the stream does not return to us */
   /* this will also unref *xml when it has finished with it */
-  test_sasl_auth_server_take_over (G_OBJECT (priv->sasl), priv->conn, xml);
+  test_sasl_auth_server_auth_async (sasl, priv->conn, xml, after_auth, self);
 }
-
 
 static void
 handle_starttls (TestConnectorServer *self,
@@ -245,6 +339,8 @@ xmpp_handler (GObject *source,
   const gchar *name = NULL;
   gboolean handled = FALSE;
   GError *error = NULL;
+  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockyStanzaSubType subtype = WOCKY_STANZA_SUB_TYPE_NONE;
   int i;
 
   self = TEST_CONNECTOR_SERVER (user_data);
@@ -254,19 +350,35 @@ xmpp_handler (GObject *source,
   xml  = wocky_xmpp_connection_recv_stanza_finish (conn, result, &error);
   ns   = wocky_xmpp_node_get_ns (xml->node);
   name = xml->node->name;
+  wocky_xmpp_stanza_get_type_info (xml, &type, &subtype);
 
   /* if we find a handler, the handler is responsible for listening for the
      next stanza and setting up the next callback in the chain: */
-  for (i = 0; handlers[i].ns != NULL; i++)
-    {
-      if (!strcmp (ns, handlers[i].ns) && !strcmp (name, handlers[i].name))
-        {
-          DEBUG ("test_connector_server:invoking handler %s\n", name);
-          (handlers[i].func) (self, xml);
-          handled = TRUE;
-          break;
-        }
-    }
+  if (type == WOCKY_STANZA_TYPE_IQ)
+    for (i = 0; iq_handlers[i].payload != NULL; i++)
+      {
+        iq_handler *iq = &iq_handlers[i];
+        WockyXmppNode *payload =
+          wocky_xmpp_node_get_child_ns (xml->node, iq->payload, iq->ns);
+        /* namespace, stanza subtype and payload tag name must match: */
+        if ((payload == NULL) || (subtype != iq->subtype))
+          continue;
+        DEBUG ("test_connector_server:invoking iq handler %s\n", iq->payload);
+        (iq->func) (self, xml);
+        handled = TRUE;
+        break;
+      }
+  else
+    for (i = 0; handlers[i].ns != NULL; i++)
+      {
+        if (!strcmp (ns, handlers[i].ns) && !strcmp (name, handlers[i].name))
+          {
+            DEBUG ("test_connector_server:invoking handler %s\n", name);
+            (handlers[i].func) (self, xml);
+            handled = TRUE;
+            break;
+          }
+      }
 
   /* no handler found: just complain and sit waiting for the next stanza */
   if (!handled)
@@ -275,6 +387,40 @@ xmpp_handler (GObject *source,
       wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
       g_object_unref (xml);
     }
+}
+/* ************************************************************************* */
+/* resume control after the sasl auth server is done:                        */
+static void
+after_auth (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyXmppStanza *feat = NULL;
+  TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (source);
+  TestConnectorServer *tcs = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (tcs);
+  WockyXmppConnection *conn = priv->conn;
+
+  if (!test_sasl_auth_server_auth_finish (tsas, res, &error))
+    {
+      wocky_xmpp_connection_send_close_async (conn, NULL, xmpp_close, data);
+      return;
+    }
+
+  feat = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_FEATURES,
+      WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, NULL,
+      WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+      WOCKY_NODE_END,
+      WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  priv->state = SERVER_STATE_FEATURES_SENT;
+  wocky_xmpp_connection_send_stanza_async (conn, feat, NULL, xmpp_init, data);
+
+  g_object_unref (feat);
 }
 
 /* ************************************************************************* */
@@ -300,6 +446,28 @@ feature_stanza (TestConnectorServer *self)
 
   return features;
 }
+
+static void
+xmpp_close (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  wocky_xmpp_connection_send_close_async (priv->conn, NULL, xmpp_closed, self);
+}
+
+static void
+xmpp_closed (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
+}
+
 
 static void
 xmpp_init (GObject *source,
