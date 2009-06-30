@@ -823,6 +823,41 @@ test_recv_cancel (void)
   teardown_test (test);
 }
 
+/* Send message in a big chunk */
+static void
+test_recv_simple_message_in_one_chunk (void)
+{
+  WockyXmppConnection *connection;
+  WockyTestStream *stream;
+  gsize len;
+  gchar message[] = SIMPLE_MESSAGE;
+  GMainLoop *loop = NULL;
+  test_data_t data = { NULL, FALSE };
+
+  loop = g_main_loop_new (NULL, FALSE);
+
+  len = strlen (message);
+
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  connection = wocky_xmpp_connection_new (stream->stream0);
+
+  g_timeout_add (1000, test_timeout_cb, NULL);
+
+  data.loop = loop;
+
+  g_output_stream_write_all (stream->stream1_output,
+      message, len, NULL, NULL, NULL);
+
+  wocky_xmpp_connection_recv_open_async (connection,
+      NULL, received_open_cb, &data);
+
+  g_main_loop_run (loop);
+  g_main_loop_unref (loop);
+
+  g_object_unref (stream);
+  g_object_unref (connection);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -841,5 +876,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-connection/error-is-open-or-closed",
     test_error_is_open_or_closed);
   g_test_add_func ("/xmpp-connection/recv-cancel", test_recv_cancel);
+  g_test_add_func ("/xmpp-connection/recv-simple-message-in-one-chunk",
+    test_recv_simple_message_in_one_chunk);
   return g_test_run ();
 }
