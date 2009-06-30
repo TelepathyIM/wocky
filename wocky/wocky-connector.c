@@ -840,25 +840,25 @@ static void
 iq_bind_resource (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
-  WockyXmppStanza *bind =
-    (priv->resource != NULL && *(priv->resource)) ?
-    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-        NULL, NULL,
-        WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (priv->conn),
-        WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
-        WOCKY_NODE, "resource", WOCKY_NODE_TEXT,  priv->resource,
-        WOCKY_NODE_END,
-        WOCKY_NODE_END,
-        WOCKY_STANZA_END) :
+  WockyXmppStanza *iq =
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
         NULL, NULL,
         WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (priv->conn),
         WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
         WOCKY_NODE_END,
         WOCKY_STANZA_END);
-  wocky_xmpp_connection_send_stanza_async (priv->conn, bind, NULL,
+
+  /* if we have a specific resource to ask for, ask for it: otherwise the
+   * server will make one up for us */
+  if ((priv->resource != NULL) && (*priv->resource != '\0'))
+    {
+      WockyXmppNode *bind = wocky_xmpp_node_get_child (iq->node, "bind");
+      wocky_xmpp_node_add_child_with_content (bind, "resource", priv->resource);
+    }
+
+  wocky_xmpp_connection_send_stanza_async (priv->conn, iq, NULL,
       iq_bind_resource_sent_cb, self);
-  g_object_unref (bind);
+  g_object_unref (iq);
 }
 
 static void
