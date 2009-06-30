@@ -763,11 +763,8 @@ starttls_recv_cb (GObject *source,
   if (wocky_strdiff (node->name, "proceed") ||
       wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_TLS))
     {
-      if (priv->tls_required)
-          abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
-              "STARTTLS refused by server");
-      else
-        request_auth (self, stanza);
+      abort_connect (data, NULL, WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
+          "STARTTLS refused by server");
       goto out;
     }
   else
