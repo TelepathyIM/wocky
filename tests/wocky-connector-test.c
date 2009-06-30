@@ -159,7 +159,7 @@ test_done (GObject *source,
     GAsyncResult *res,
     gpointer data)
 {
-  gchar *jid;
+  gchar *jid = NULL;
   test_t *test = data;
   WockyConnector *wcon = WOCKY_CONNECTOR (source);
   test->result.xmpp = wocky_connector_connect_finish (wcon, res, &error, &jid);
