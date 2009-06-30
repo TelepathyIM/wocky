@@ -77,6 +77,7 @@ struct _TestSaslAuthServerPrivate
   AuthState state;
   ServerProblem problem;
   GCancellable *recv_cancel;
+  GSimpleAsyncResult *result;
 };
 
 #define TEST_SASL_AUTH_SERVER_GET_PRIVATE(o)  \
@@ -143,6 +144,10 @@ test_sasl_auth_server_dispose (GObject *object)
   if (&priv->sasl_conn != NULL)
     sasl_dispose (&priv->sasl_conn);
   priv->sasl_conn = NULL;
+
+  if (priv->result != NULL)
+    g_object_unref (priv->result);
+  priv->result = NULL;
 
   if (G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose (object);
@@ -271,17 +276,25 @@ post_auth_open_sent (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  WockyXmppStanza *s;
+  TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (tsas);
   g_assert (wocky_xmpp_connection_send_open_finish (
     WOCKY_XMPP_CONNECTION (source), result, NULL));
 
-  s = wocky_xmpp_stanza_new ("features");
-  wocky_xmpp_node_set_ns (s->node, WOCKY_XMPP_NS_STREAM);
-
-  wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (source), s,
-      NULL, post_auth_features_sent, user_data);
-
-  g_object_unref (s);
+  /* if our caller wanted control back, hand it back here: */
+  if (priv->result != NULL)
+    {
+      g_simple_async_result_complete (priv->result);
+      g_object_unref (priv->result);
+    }
+  else
+    {
+      WockyXmppStanza *s = wocky_xmpp_stanza_new ("features");
+      wocky_xmpp_node_set_ns (s->node, WOCKY_XMPP_NS_STREAM);
+      wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (source),
+          s, NULL, post_auth_features_sent, user_data);
+      g_object_unref (s);
+    }
 }
 
 static void
@@ -326,7 +339,7 @@ auth_succeeded (TestSaslAuthServer *self)
   wocky_xmpp_node_set_ns (s->node, WOCKY_XMPP_NS_SASL_AUTH);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
-    success_sent, NULL);
+    success_sent, self);
 
   g_object_unref (s);
 }
@@ -653,10 +666,31 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   return server;
 }
 
+gboolean
+test_sasl_auth_server_auth_finish (TestSaslAuthServer *self,
+    GAsyncResult *res,
+    GError **error)
+{
+  gboolean ok = FALSE;
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+
+  if (g_simple_async_result_propagate_error (priv->result, error))
+    return FALSE;
+
+  ok = g_simple_async_result_is_valid (G_ASYNC_RESULT (priv->result),
+      G_OBJECT (self),
+      test_sasl_auth_server_auth_finish);
+  g_return_val_if_fail (ok, FALSE);
+
+  return (priv->state == AUTH_STATE_AUTHENTICATED);
+}
+
 void
-test_sasl_auth_server_take_over (GObject *obj,
+test_sasl_auth_server_auth_async (GObject *obj,
     WockyXmppConnection *conn,
-    WockyXmppStanza *auth)
+    WockyXmppStanza *auth,
+    GAsyncReadyCallback cb,
+    gpointer data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
@@ -665,8 +699,14 @@ test_sasl_auth_server_take_over (GObject *obj,
      but just in case: */
   if (priv->conn != NULL)
     g_object_unref (priv->conn);
+
   priv->state = AUTH_STATE_STARTED;
   priv->conn = conn;
+
+  /* save the details of the point ot which we will hand back control */
+  if (cb != NULL)
+    priv->result = g_simple_async_result_new (obj, cb, data,
+        test_sasl_auth_server_auth_finish);
 
   handle_auth (self, auth);
   if (priv->state < AUTH_STATE_AUTHENTICATED)

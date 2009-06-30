@@ -69,8 +69,12 @@ GType test_sasl_auth_server_get_type (void);
    TestSaslAuthServerClass))
 
 
-void test_sasl_auth_server_take_over (GObject *obj, WockyXmppConnection *conn,
-    WockyXmppStanza *auth);
+void test_sasl_auth_server_auth_async (GObject *obj, WockyXmppConnection *conn,
+    WockyXmppStanza *auth, GAsyncReadyCallback cb, gpointer data);
+
+gboolean
+test_sasl_auth_server_auth_finish (TestSaslAuthServer *self, GAsyncResult *res,
+    GError **error);
 
 TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *password,
