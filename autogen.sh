@@ -17,6 +17,15 @@ fi
 
 autoreconf -i -f
 
+# Workaround for gtk-doc + shave + libtool 1.x
+# See http://git.lespiau.name/cgit/shave/tree/README#n83
+sed -e 's#) --mode=compile#) --tag=CC --mode=compile#' gtk-doc.make \
+                > gtk-doc.temp \
+        && mv gtk-doc.temp gtk-doc.make
+sed -e 's#) --mode=link#) --tag=CC --mode=link#' gtk-doc.make \
+                > gtk-doc.temp \
+        && mv gtk-doc.temp gtk-doc.make
+
 run_configure=true
 for arg in $*; do
     case $arg in
