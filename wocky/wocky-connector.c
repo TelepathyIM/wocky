@@ -430,9 +430,9 @@ wocky_connector_class_init (WockyConnectorClass *klass)
 
   spec = g_param_spec_boolean ("encrypted-plain-auth-ok",
       "encrypted-plain-auth-ok",
-      "Whether auth info can be sent in the clear", TRUE,
+      "Whether PLAIN auth can be used when encrypted", TRUE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (oclass, PROP_AUTH_INSECURE_OK, spec);
+  g_object_class_install_property (oclass, PROP_ENC_PLAIN_AUTH_OK, spec);
 
   spec = g_param_spec_boolean ("tls-required", "TLS required",
       "Whether SSL/TLS is required", TRUE,
