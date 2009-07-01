@@ -68,8 +68,6 @@ struct _WockyXmppConnectionPrivate
 
   /* received open from the input stream */
   gboolean input_open;
-  /* received close from the input stream */
-  gboolean input_closed;
   GSimpleAsyncResult *input_result;
   GCancellable *input_cancellable;
 
@@ -443,6 +441,15 @@ wocky_xmpp_connection_do_read (WockyXmppConnection *self)
     self);
 }
 
+static gboolean
+input_is_closed (WockyXmppConnection *self)
+{
+  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+
+  return wocky_xmpp_reader_get_state (priv->reader) >
+    WOCKY_XMPP_READER_STATE_OPENED;
+}
+
 static void
 _xmpp_connection_received_data (GObject *source,
     GAsyncResult *result,
@@ -481,11 +488,6 @@ _xmpp_connection_received_data (GObject *source,
       /* stream was opened, can only be as a result of calling recv_open */
       priv->input_open = TRUE;
       goto finished;
-    }
-  else if (wocky_xmpp_reader_get_state (priv->reader) >
-      WOCKY_XMPP_READER_STATE_OPENED)
-    {
-      priv->input_closed = TRUE;
     }
 
   if (wocky_xmpp_reader_peek_stanza (priv->reader) != NULL)
@@ -541,7 +543,7 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   if (G_UNLIKELY (priv->input_result != NULL))
     goto pending;
 
-  if (G_UNLIKELY (priv->input_closed))
+  if (G_UNLIKELY (input_is_closed (connection)))
     goto is_closed;
 
   if (G_UNLIKELY (priv->input_open))
@@ -764,7 +766,7 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   if (G_UNLIKELY (!priv->input_open))
     goto not_open;
 
-  if (G_UNLIKELY (priv->input_closed))
+  if (G_UNLIKELY (input_is_closed (connection)))
     goto is_closed;
 
   g_assert (priv->input_result == NULL);
@@ -991,7 +993,6 @@ wocky_xmpp_connection_reset (WockyXmppConnection *connection)
   g_assert (priv->output_result == NULL);
 
   priv->input_open = FALSE;
-  priv->input_closed = FALSE;
 
   priv->output_open = FALSE;
   priv->output_closed = FALSE;
