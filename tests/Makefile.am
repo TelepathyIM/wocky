@@ -3,10 +3,10 @@
 .PRECIOUS: %-key.pem
 CERTTOOL := $(shell which certtool)
 GENKEY   := $(CERTTOOL) --generate-privkey --outfile
-CA_KEY   := $(realpath certs/ca-key.pem)
-CA_CERT  := $(realpath certs/ca-cert.pem)
-TLS_KEY  := $(realpath certs/tls-key.pem)
-TLS_CERT := $(realpath certs/tls-cert.pem)
+CA_KEY   := $(abspath certs/ca-key.pem)
+CA_CERT  := $(abspath certs/ca-cert.pem)
+TLS_KEY  := $(abspath certs/tls-key.pem)
+TLS_CERT := $(abspath certs/tls-cert.pem)
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
