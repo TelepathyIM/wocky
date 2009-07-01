@@ -1,4 +1,5 @@
 include $(top_srcdir)/tools/shave.mk
+include $(top_srcdir)/tools/flymake.mk
 
 noinst_LTLIBRARIES = libwocky.la
 
