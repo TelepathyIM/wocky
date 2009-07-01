@@ -1213,9 +1213,14 @@ wocky_connector_connect_async (WockyConnector *self,
 
 WockyConnector *
 wocky_connector_new (const gchar *jid,
-    const gchar *pass)
+    const gchar *pass,
+    const gchar *resource)
 {
   return
-    g_object_new (WOCKY_TYPE_CONNECTOR, "jid", jid, "password", pass, NULL);
+    g_object_new (WOCKY_TYPE_CONNECTOR,
+        "jid", jid,
+        "password", pass,
+        "resource", resource,
+        NULL);
 }
 

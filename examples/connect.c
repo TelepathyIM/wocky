@@ -380,7 +380,7 @@ main (int argc,
   if (!strcmp ("connector",type))
     {
       WockyConnector *wcon = NULL;
-      wcon = wocky_connector_new (argv[1], argv[2]);
+      wcon = wocky_connector_new (argv[1], argv[2], NULL);
 
       wocky_connector_connect_async (wcon, connector_callback, NULL);
       g_main_loop_run (mainloop);
