@@ -281,12 +281,12 @@ handle_starttls (TestConnectorServer *self,
       /* set up the tls server session */
       /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
        * gnutls_global_set_log_level (10); */
-      priv->tls_sess =
-       g_tls_session_server_new (priv->stream,
-           1024,
-           "/home/vivek/src/certs/key.pem",
-           "/home/vivek/src/certs/cert.pem",
-           NULL, NULL);
+      priv->tls_sess = g_tls_session_server_new (priv->stream,
+          1024,
+          TLS_SERVER_KEY_FILE,
+          TLS_SERVER_CRT_FILE,
+          TLS_CA_CRT_FILE,
+          NULL);
 
       wocky_xmpp_connection_send_stanza_async (conn, proceed, NULL, starttls,
           self);

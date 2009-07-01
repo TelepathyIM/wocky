@@ -1,3 +1,17 @@
+############################################################################
+# x509 certificates:
+.PRECIOUS: %-key.pem
+CERTTOOL := $(shell which certtool)
+GENKEY   := $(CERTTOOL) --generate-privkey --outfile
+CA_KEY   := $(realpath certs/ca-key.pem)
+CA_CERT  := $(realpath certs/ca-cert.pem)
+TLS_KEY  := $(realpath certs/tls-key.pem)
+TLS_CERT := $(realpath certs/tls-cert.pem)
+TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
+            -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
+            -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
+            -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'
+############################################################################
 TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
   wocky-xmpp-connection-test \
@@ -17,6 +31,7 @@ wocky_xmpp_readwrite_test_SOURCES = \
 wocky_xmpp_reader_test_SOURCES = \
   wocky-xmpp-reader-test.c
 
+wocky_connector_test_DEPENDENCIES = $(TLS_CERT)
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -25,6 +40,8 @@ wocky_connector_test_SOURCES = \
    wocky-test-connector-server.h \
    test-resolver.h        	 \
    test-resolver.c
+wocky_connector_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
+wocky_connector_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
 
 wocky_connector_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_connector_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
@@ -37,8 +54,6 @@ wocky_test_sasl_auth_SOURCES = \
    wocky-test-sasl-auth.c \
    wocky-test-sasl-auth-server.c \
    wocky-test-sasl-auth-server.h \
-   wocky-test-connector-server.c \
-   wocky-test-connector-server.h \
    wocky-test-stream.c \
    wocky-test-stream.h
 
@@ -85,6 +100,27 @@ test-%: wocky-%-test
 
 include $(top_srcdir)/tools/check-coding-style.mk
 check-local: test check-coding-style
+
+############################################################################
+# x509 certificates:
+%-key.pem:
+	$(GENKEY) $@
+
+%-cert.pem: %-key.pem %-cert.cfg certs/ca-cert.pem 
+	@echo $@ DEPS: $^
+	$(CERTTOOL) --generate-certificate                  \
+                    --load-ca-certificate certs/ca-cert.pem \
+	            --load-ca-privkey certs/ca-key.pem      \
+	            --load-privkey $*-key.pem               \
+	            --template $*-cert.cfg                  \
+	            --outfile $@
+
+certs/ca-cert.pem: certs/ca-key.pem certs/ca-cert.cfg
+	$(CERTTOOL) --generate-self-signed            \
+	            --load-privkey $<                 \
+	            --template     $(basename $@).cfg \
+	            --outfile      $@
+############################################################################
 
 SUPPRESSIONS=threadlocal.supp
 
