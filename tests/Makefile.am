@@ -11,6 +11,10 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'
+DUMMY    := $(if $(shell which certtool),                  \
+                 $(info  certtool  installed, proceeding), \
+                 $(error certtool NOT IN PATH - install gnutls-bin?))
+
 ############################################################################
 TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
@@ -120,6 +124,9 @@ certs/ca-cert.pem: certs/ca-key.pem certs/ca-cert.cfg
 	            --load-privkey $<                 \
 	            --template     $(basename $@).cfg \
 	            --outfile      $@
+
+clean-local:
+	rm -fv certs/*.pem
 ############################################################################
 
 SUPPRESSIONS=threadlocal.supp
