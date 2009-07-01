@@ -1113,6 +1113,8 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
     GAsyncResult *result,
     GError **error)
 {
+  WockyXmppStanza *reply;
+
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
     return NULL;
@@ -1120,6 +1122,8 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (self), wocky_porter_send_iq_finish), NULL);
 
-  return g_simple_async_result_get_op_res_gpointer (
+  reply = g_simple_async_result_get_op_res_gpointer (
       G_SIMPLE_ASYNC_RESULT (result));
+
+  return g_object_ref (reply);
 }

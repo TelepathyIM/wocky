@@ -1301,6 +1301,7 @@ test_send_iq_reply_cb (GObject *source,
   g_assert (reply != NULL);
 
   test_expected_stanza_received (test, reply);
+  g_object_unref (reply);
 }
 
 static void
