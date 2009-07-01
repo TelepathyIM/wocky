@@ -25,6 +25,7 @@ static GDebugKey keys[] = {
   { "ft",                DEBUG_FILE_TRANSFER     },
   { "porter",            DEBUG_PORTER            },
   { "connector",         DEBUG_CONNECTOR         },
+  { "roster",            DEBUG_ROSTER            },
   { "all",               ~0                      },
   { 0, },
 };
