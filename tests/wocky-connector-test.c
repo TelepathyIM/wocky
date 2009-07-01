@@ -95,8 +95,6 @@ client_connected (GIOChannel *channel,
       return TRUE;
     }
 
-  fprintf (stderr, "XMPP CLIENT CONNECTION\n");
-
   while (g_source_remove_by_user_data (test));
   g_io_channel_close (channel);
 
