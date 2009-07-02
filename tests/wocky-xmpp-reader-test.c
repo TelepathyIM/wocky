@@ -34,6 +34,30 @@
 "       and a Montague?</body>                                             " \
 "  </message>                                                              "
 
+#define VCARD_MESSAGE \
+" <iq id='v1'                                                    " \
+"     to='stpeter@jabber.org/roundabout'                         " \
+"     type='result'>                                             " \
+"   <vCard xmlns='vcard-temp'>                                   " \
+"     <FN>Peter Saint-Andre</FN>                                 " \
+"     <N>                                                        " \
+"      <FAMILY>Saint-Andre</FAMILY>                              " \
+"      <GIVEN>Peter</GIVEN>                                      " \
+"      <MIDDLE/>                                                 " \
+"    </N>                                                        " \
+"    <NICKNAME>stpeter</NICKNAME>                                " \
+"    <URL>http://www.xmpp.org/xsf/people/stpeter.shtml</URL>     " \
+"    <BDAY>1966-08-06</BDAY>                                     " \
+"    <ORG>                                                       " \
+"      <ORGNAME>XMPP Standards Foundation</ORGNAME>              " \
+"      <ORGUNIT/>                                                " \
+"    </ORG>                                                      " \
+"    <TITLE>Executive Director</TITLE>                           " \
+"    <ROLE>Patron Saint</ROLE>                                   " \
+"    <JABBERID>stpeter@jabber.org</JABBERID>                     " \
+"  </vCard>                                                      " \
+"</iq>                                                           "
+
 static void
 test_stream_no_stanzas (void)
 {
@@ -169,6 +193,27 @@ test_no_stream_hunks (void)
   g_object_unref (reader);
 }
 
+/* libXML2 doesn't like the vcard-temp namespace test if we can still
+   correctly parse it */
+static void
+test_vcard_namespace (void)
+{
+  WockyXmppReader *reader;
+  WockyXmppStanza *stanza;
+
+  reader = wocky_xmpp_reader_new_no_stream ();
+
+  wocky_xmpp_reader_push (reader,
+    (guint8 *) VCARD_MESSAGE, strlen (VCARD_MESSAGE));
+
+  g_assert ((stanza = wocky_xmpp_reader_pop_stanza (reader)) != NULL);
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_CLOSED);
+
+  g_object_unref (stanza);
+  g_object_unref (reader);
+}
+
 int
 main (int argc,
     char **argv)
@@ -182,6 +227,7 @@ main (int argc,
   g_test_add_func ("/xmpp-reader/stream-open-error", test_stream_open_error);
   g_test_add_func ("/xmpp-reader/parse-error", test_parse_error);
   g_test_add_func ("/xmpp-reader/no-stream-hunks", test_no_stream_hunks);
+  g_test_add_func ("/xmpp-reader/vcard-namespace", test_vcard_namespace);
 
   return g_test_run ();
 }
