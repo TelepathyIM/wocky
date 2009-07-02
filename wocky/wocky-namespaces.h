@@ -87,4 +87,7 @@
 #define WOCKY_GOOGLE_NS_AUTH \
   "http://www.google.com/talk/protocol/auth"
 
+#define WOCKY_XMPP_NS_ROSTER \
+  "jabber:iq:roster"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
