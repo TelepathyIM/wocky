@@ -91,10 +91,10 @@ wocky_roster_set_property (GObject *object,
   switch (property_id)
     {
     case PROP_CONNECTION:
-      priv->conn = g_value_get_object (value);
+      priv->conn = g_value_dup_object (value);
       break;
     case PROP_PORTER:
-      priv->porter = g_value_get_object (value);
+      priv->porter = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
