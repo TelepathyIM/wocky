@@ -1619,6 +1619,93 @@ test_send_invalid_iq (void)
   teardown_test (test);
 }
 
+/* Test sending IQ's to the server (no 'to' attribute) */
+static gboolean
+test_send_iq_server_received_cb (WockyPorter *porter,
+    WockyXmppStanza *iq,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  const gchar *id;
+  const gchar *from;
+
+  test_expected_stanza_received (test, iq);
+
+  id = wocky_xmpp_node_get_attribute (iq->node, "id");
+
+  if (wocky_xmpp_node_get_child (iq->node, "first") != NULL)
+    /* No from attribute */
+    from = NULL;
+  else if (wocky_xmpp_node_get_child (iq->node, "second") != NULL)
+    /* bare JID */
+    from = "juliet@example.com";
+  else if (wocky_xmpp_node_get_child (iq->node, "third") != NULL)
+    /* full JID */
+    from = "juliet@example.com/Balcony";
+  else
+    g_assert_not_reached ();
+
+  /* Send reply */
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, from, "juliet@example.com/Balcony",
+    WOCKY_NODE_ATTRIBUTE, "id", id,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_async (porter, reply,
+      NULL, test_send_iq_sent_cb, test);
+  g_queue_push_tail (test->expected_stanzas, reply);
+
+  test->outstanding++;
+  return TRUE;
+}
+
+static void
+test_send_iq_server (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+  const gchar *node[] = { "first", "second", "third", NULL };
+  guint i;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  /* register an IQ handler */
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
+      test_send_iq_server_received_cb, test, WOCKY_STANZA_END);
+
+  /* From XMPP RFC:
+   * "When a server generates a stanza from the server itself for delivery to
+   * a connected client (e.g., in the context of data storage services
+   * provided by the server on behalf of the client), the stanza MUST either
+   * (1) not include a 'from' attribute or (2) include a 'from' attribute
+   * whose value is the account's bare JID (<node@domain>) or client's full
+   * JID (<node@domain/resource>)".
+   *
+   * Each reply will test one of these 3 options. */
+
+  for (i = 0; node[i] != NULL; i++)
+    {
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+        WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
+        WOCKY_NODE, node[i], WOCKY_NODE_END,
+        WOCKY_STANZA_END);
+
+      wocky_porter_send_iq_async (test->sched_in, iq,
+          test->cancellable, test_send_iq_reply_cb, test);
+      g_queue_push_tail (test->expected_stanzas, iq);
+      test->outstanding += 2;
+      test_wait_pending (test);
+    }
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1653,5 +1740,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/send-invalid-iq", test_send_invalid_iq);
   g_test_add_func ("/xmpp-porter/handler-filter-from",
       test_handler_filter_from);
+  g_test_add_func ("/xmpp-porter/send-iq-server", test_send_iq_server);
   return g_test_run ();
 }
