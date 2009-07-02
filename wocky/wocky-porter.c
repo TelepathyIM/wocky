@@ -540,7 +540,7 @@ send_cancelled_cb (GCancellable *cancellable,
   GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED, "Sending was cancelled" };
 
   g_simple_async_result_set_from_error (elem->result, &error);
-  g_simple_async_result_complete (elem->result);
+  g_simple_async_result_complete_in_idle (elem->result);
 
   g_queue_remove (priv->sending_queue, elem);
   sending_queue_elem_free (elem);
