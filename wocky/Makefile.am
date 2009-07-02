@@ -39,7 +39,9 @@ HANDWRITTEN_SOURCES =            \
   wocky-porter.c                 \
   wocky-porter.h                 \
   wocky-contact.c                \
-  wocky-contact.h
+  wocky-contact.h                \
+  wocky-roster.c                 \
+  wocky-roster.h
 
 libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES) $(BUILT_SOURCES)
 
