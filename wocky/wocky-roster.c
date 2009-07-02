@@ -130,9 +130,11 @@ roster_recv_items_cb (GObject *source_object,
     gpointer user_data)
 {
   GError *error = NULL;
+  WockyXmppStanza *iq;
 
-  if (!wocky_xmpp_connection_send_stanza_finish (
-          WOCKY_XMPP_CONNECTION (source_object), res, &error))
+  iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
+
+  if (iq == NULL)
     {
       DEBUG ("Failed to receive roster items: %s",
           error ? error->message : "no message");
@@ -173,7 +175,7 @@ wocky_roster_constructed (GObject *object)
       WOCKY_STANZA_END);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, NULL, roster_recv_items_cb, object);
+      iq, NULL, roster_recv_items_cb, self);
 }
 
 static void
