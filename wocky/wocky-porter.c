@@ -641,7 +641,10 @@ handle_iq_reply (WockyPorter *self,
     }
 
   from = wocky_xmpp_node_get_attribute (reply->node, "from");
-  if (wocky_strdiff (from, handler->recipient))
+  /* FIXME: If handler->recipient is NULL, we should check if the 'from' is
+   * either NULL, our bare jid or our full jid. */
+  if (handler->recipient != NULL &&
+      wocky_strdiff (from, handler->recipient))
     {
       DEBUG ("%s attempts to spoof an IQ reply", from);
       return FALSE;
@@ -1068,8 +1071,6 @@ wocky_porter_send_iq_async (WockyPorter *self,
     goto wrong_stanza;
 
   recipient = wocky_xmpp_node_get_attribute (stanza->node, "to");
-  if (recipient == NULL)
-    goto wrong_stanza;
 
   /* Set an unique ID */
   do
