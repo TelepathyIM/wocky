@@ -31,9 +31,12 @@
 #include "wocky-roster.h"
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-stanza.h"
+#include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_ROSTER
 #include "wocky-debug.h"
+
+#define GOOGLE_ROSTER_VERSION "2"
 
 G_DEFINE_TYPE (WockyRoster, wocky_roster, G_TYPE_OBJECT)
 
@@ -124,11 +127,70 @@ wocky_roster_get_property (GObject *object,
     }
 }
 
+static void
+roster_update (WockyRoster *self,
+    WockyXmppStanza *stanza,
+    gboolean google_roster)
+{
+
+}
+
 static gboolean
 roster_iq_handler_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
+  WockyRoster *self = WOCKY_ROSTER (user_data);
+  WockyStanzaSubType sub_type;
+  const gchar *from;
+  gboolean google_roster = FALSE;
+
+  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+
+  if (from != NULL)
+    {
+      /* TODO: discard roster IQs which are not from ourselves or the
+       * server.
+       */
+      return TRUE;
+    }
+
+  if (FALSE /* can support google */)
+    {
+      const gchar *gr_ext;
+
+      gr_ext = wocky_xmpp_node_get_attribute (stanza->node, "gr:ext");
+
+      if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
+        google_roster = TRUE;
+    }
+
+  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+
+  switch (sub_type)
+    {
+    case WOCKY_STANZA_SUB_TYPE_RESULT:
+    case WOCKY_STANZA_SUB_TYPE_SET:
+      roster_update (self, stanza, google_roster);
+      break;
+
+    default:
+      DEBUG ("Unhandled roster IQ");
+      return FALSE;
+    }
+
+  switch (sub_type)
+    {
+    case WOCKY_STANZA_SUB_TYPE_RESULT:
+      /* emit updated? */
+      break;
+    case WOCKY_STANZA_SUB_TYPE_SET:
+      /* ack roster */
+      break;
+    default:
+      break;
+    }
+
   return TRUE;
 }
 
