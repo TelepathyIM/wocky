@@ -212,6 +212,7 @@ static void
 wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_roster_class);
+  GParamSpec *spec;
 
   g_type_class_add_private (wocky_roster_class,
       sizeof (WockyRosterPrivate));
@@ -221,6 +222,20 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
   object_class->get_property = wocky_roster_get_property;
   object_class->dispose = wocky_roster_dispose;
   object_class->finalize = wocky_roster_finalize;
+
+  spec = g_param_spec_object ("connection", "XMPP connection",
+    "the XMPP connection used by this roster",
+    WOCKY_TYPE_XMPP_CONNECTION,
+    G_PARAM_READWRITE |
+    G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_CONNECTION, spec);
+
+  spec = g_param_spec_object ("porter", "Wocky porter",
+    "the wocky porter used by this roster",
+    WOCKY_TYPE_PORTER,
+    G_PARAM_READWRITE |
+    G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_PORTER, spec);
 }
 
 WockyRoster *
