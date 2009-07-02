@@ -83,8 +83,8 @@ tests/wocky-xmpp-node-test
 tests/wocky-xmpp-stanza-test
 tests/wocky-connector-test
 tests/*report.xml
-
 tests/certs/*.pem
+tests/wocky-roster-test
 
 examples/wocky-connect
 examples/wocky-register

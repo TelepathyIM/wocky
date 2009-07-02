@@ -23,7 +23,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-porter-test \
   wocky-xmpp-node-test \
   wocky-xmpp-stanza-test \
-  wocky-connector-test
+  wocky-connector-test \
+  wocky-roster-test
 
 wocky_xmpp_connection_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_connection_test_SOURCES = \
@@ -90,6 +91,11 @@ wocky_xmpp_stanza_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-stanza-test.c
+
+wocky_roster_test_SOURCES = \
+  wocky-roster-test.c \
+  wocky-test-helper.c wocky-test-helper.h \
+  wocky-test-stream.c wocky-test-stream.h
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
