@@ -657,7 +657,7 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
 
   if (start)
     {
-      priv->stream = stream;
+      priv->stream = g_object_ref (stream);
       priv->conn = wocky_xmpp_connection_new (stream);
       wocky_xmpp_connection_recv_open_async (priv->conn,
           NULL, stream_open_received, server);
