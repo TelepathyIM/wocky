@@ -1492,6 +1492,76 @@ test_handler_filter (void)
   teardown_test (test);
 }
 
+static gboolean
+test_handler_filter_from_juliet_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  const gchar *from;
+
+  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+  g_assert (!wocky_strdiff (from, "juliet@example.com"));
+
+  test_expected_stanza_received (test, stanza);
+  return TRUE;
+}
+
+static gboolean
+test_handler_filter_from_null_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  test_expected_stanza_received (test, stanza);
+  return TRUE;
+}
+
+static void
+test_handler_filter_from (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  /* Register a handler for from=juliet@example.com messages stanzas. */
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com",
+      10, test_handler_filter_from_juliet_cb, test, WOCKY_STANZA_END);
+
+  /* Register a handler for from= unset or any messages stanzas. */
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+      5, test_handler_filter_from_null_cb, test, WOCKY_STANZA_END);
+
+  wocky_porter_start (test->sched_out);
+
+  /* Send an IQ that will be filtered by from_juliet only */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  send_stanza (test, iq, TRUE);
+
+  /* Send an IQ that will be filtered by from_null only */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "romeo@example.com", "juliet@example.net",
+    WOCKY_STANZA_END);
+
+  send_stanza (test, iq, TRUE);
+
+  /* Send an IQ that will be filtered by from_null only */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, NULL, "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  send_stanza (test, iq, TRUE);
+
+  test_close_porter (test);
+  teardown_test (test);
+}
+
 /* test if the right error is raised when trying to send an invalid IQ */
 static void
 test_send_invalid_iq_cb (GObject *source,
@@ -1591,5 +1661,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
   g_test_add_func ("/xmpp-porter/handler-filter", test_handler_filter);
   g_test_add_func ("/xmpp-porter/send-invalid-iq", test_send_invalid_iq);
+  g_test_add_func ("/xmpp-porter/handler-filter-from",
+      test_handler_filter_from);
   return g_test_run ();
 }
