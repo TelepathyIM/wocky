@@ -617,7 +617,8 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
 
 TestSaslAuthServer *
 test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
-    const gchar *user, const gchar *password, ServerProblem problem,
+    const gchar *user, const gchar *password,
+    const gchar *servername, ServerProblem problem,
     gboolean start)
 {
   TestSaslAuthServer *server;
@@ -641,7 +642,7 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
 
   priv->state = AUTH_STATE_STARTED;
 
-  ret = sasl_server_new ("xmpp", NULL, NULL, NULL, NULL, callbacks,
+  ret = sasl_server_new ("xmpp", servername, NULL, NULL, NULL, callbacks,
       SASL_SUCCESS_DATA, &(priv->sasl_conn));
   CHECK_SASL_RETURN (ret);
 

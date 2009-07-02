@@ -78,7 +78,7 @@ test_sasl_auth_server_auth_finish (TestSaslAuthServer *self, GAsyncResult *res,
 
 TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *password,
-    ServerProblem problem, gboolean start);
+    const gchar *servername, ServerProblem problem, gboolean start);
 
 gint test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat);
 
