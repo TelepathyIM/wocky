@@ -1613,16 +1613,6 @@ test_send_invalid_iq (void)
   g_object_unref (iq);
   test->outstanding++;
 
-  /* Try to send an IQ without recipient */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_in, iq,
-      test->cancellable, test_send_invalid_iq_cb, test);
-  g_object_unref (iq);
-  test->outstanding++;
-
   test_wait_pending (test);
 
   test_close_porter (test);
