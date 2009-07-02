@@ -1263,10 +1263,17 @@ test_send_iq_cb (WockyPorter *porter,
   if (cancelled)
     g_cancellable_cancel (test->cancellable);
 
-  /* Send a spoofed reply */
+  /* Send a spoofed reply; should be ignored */
   reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "oscar@example.net", "juliet@example.com",
     WOCKY_NODE_ATTRIBUTE, "id", id,
+    WOCKY_STANZA_END);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  /* Send a reply without 'id' attribute; should be ignored */
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, "romeo@example.net", "juliet@example.com",
     WOCKY_STANZA_END);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
