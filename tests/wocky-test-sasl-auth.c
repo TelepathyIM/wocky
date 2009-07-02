@@ -15,16 +15,15 @@ typedef struct {
   ServerProblem problem;
   gboolean wrong_username;
   gboolean wrong_password;
+  const gchar *username;
+  const gchar *password;
+  const gchar *servername;
 } test_t;
 
 GMainLoop *mainloop;
 GIOStream *xmpp_connection;
 WockyXmppConnection *conn;
 WockySaslAuth *sasl = NULL;
-
-const gchar *username = "test";
-const gchar *password = "test123";
-const gchar *servername = "testserver";
 
 gboolean authenticated = FALSE;
 gboolean run_done = FALSE;
@@ -108,6 +107,7 @@ sasl_auth_finished_cb (GObject *source,
     gpointer user_data)
 {
   GError *auth_error = NULL;
+  test_t *test = (test_t *) user_data;
 
   if (wocky_sasl_auth_authenticate_finish (WOCKY_SASL_AUTH (source),
       res, &auth_error))
@@ -117,7 +117,7 @@ sasl_auth_finished_cb (GObject *source,
       wocky_xmpp_connection_reset (conn);
 
       wocky_xmpp_connection_send_open_async (conn,
-       servername, NULL, "1.0", NULL,
+        test->servername, NULL, "1.0", NULL,
         NULL, post_auth_open_sent, NULL);
     }
   else
@@ -142,16 +142,16 @@ feature_stanza_received (GObject *source,
   g_assert (stanza != NULL);
 
   g_assert (sasl == NULL);
-  sasl = wocky_sasl_auth_new (servername,
-    test->wrong_username ? "wrong" : username,
-    test->wrong_password ? "wrong" : password,
+  sasl = wocky_sasl_auth_new (test->servername,
+    test->wrong_username ? "wrong" : test->username,
+    test->wrong_password ? "wrong" : test->password,
     WOCKY_XMPP_CONNECTION (source));
 
   wocky_sasl_auth_authenticate_async (sasl,
       stanza,
       current_test->allow_plain, NULL,
       sasl_auth_finished_cb,
-      NULL);
+      test);
 
   g_object_unref (stanza);
 }
@@ -193,7 +193,7 @@ run_test (gconstpointer user_data)
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
 
   server = test_sasl_auth_server_new (stream->stream0, test->mech,
-      username, password, test->problem, TRUE);
+      test->username, test->password, test->servername, test->problem, TRUE);
 
   authenticated = FALSE;
   run_done = FALSE;
@@ -203,7 +203,7 @@ run_test (gconstpointer user_data)
   conn = wocky_xmpp_connection_new (xmpp_connection);
 
   wocky_xmpp_connection_send_open_async (conn,
-    servername, NULL, "1.0", NULL,
+    test->servername, NULL, "1.0", NULL,
     NULL, stream_open_sent, test);
 
   if (!run_done)
@@ -232,10 +232,15 @@ run_test (gconstpointer user_data)
   error = NULL;
 }
 
-#define SUCCESS(desc, mech, allow_plain)                 \
- { desc, mech, allow_plain, 0, 0, SERVER_PROBLEM_NO_PROBLEM, FALSE, FALSE}
+#define SUCCESS(desc, mech, allow_plain) \
+ { desc, mech, allow_plain, 0, 0, SERVER_PROBLEM_NO_PROBLEM, FALSE, FALSE, \
+  "test", "test123", NULL }
 
-#define NUMBER_OF_TEST 11
+#define FAIL(desc, mech, allow_plain, domain, code, problem) \
+ { desc, mech, allow_plain, domain, code, problem, FALSE, FALSE, \
+  "test", "test123", NULL }
+
+#define NUMBER_OF_TEST 12
 
 int
 main (int argc,
@@ -247,27 +252,37 @@ main (int argc,
     SUCCESS("/xmpp-sasl/only-plain", "PLAIN", TRUE),
     SUCCESS("/xmpp-sasl/only-digest-md5", "DIGEST-MD5", TRUE),
 
-    { "/xmpp-sasl/no-supported-mechs", "NONSENSE", TRUE,
+    FAIL("/xmpp-sasl/no-supported-mechs", "NONSENSE", TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-       SERVER_PROBLEM_NO_PROBLEM },
-    { "/xmpp-sasl/refuse-plain-only", "PLAIN", FALSE,
+       SERVER_PROBLEM_NO_PROBLEM),
+    FAIL("/xmpp-sasl/refuse-plain-only", "PLAIN", FALSE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-       SERVER_PROBLEM_NO_PROBLEM },
-    { "/xmpp-sasl/no-sasl-support", NULL, TRUE,
+       SERVER_PROBLEM_NO_PROBLEM),
+    FAIL("/xmpp-sasl/no-sasl-support", NULL, TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
-       SERVER_PROBLEM_NO_SASL },
+       SERVER_PROBLEM_NO_SASL),
+
     { "/xmpp-sasl/wrong-username-plain", "PLAIN", TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-       SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE },
+       SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE, "test", "test123" },
     { "/xmpp-sasl/wrong-username-md5", "DIGEST-MD5", TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-       SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE },
+       SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE, "test", "test123" },
+
     { "/xmpp-sasl/wrong-password-plain", "PLAIN", TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE },
+       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE, "test", "test123" },
     { "/xmpp-sasl/wrong-password-md5", "DIGEST-MD5", TRUE,
        WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE },
+       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE, "test", "test123" },
+
+    /* Redo the MD5-DIGEST test with a username, password and realm that
+     * happens to generate a \0 byte in the md5 hash of
+     * 'username:realm:password'. This used to trigger a bug in the sasl helper
+     * when calculating the A! part of the response MD5-DIGEST hash */
+    { "/xmpp-sasl/digest-md5-A1-null-byte", "DIGEST-MD5", TRUE,
+       0, 0, SERVER_PROBLEM_NO_PROBLEM, FALSE, FALSE,
+       "moose", "something", "cass-x200s" },
   };
 
   g_thread_init (NULL);
