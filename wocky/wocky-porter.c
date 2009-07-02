@@ -632,6 +632,12 @@ handle_iq_reply (WockyPorter *self,
   StanzaIqHandler *handler;
 
   id = wocky_xmpp_node_get_attribute (reply->node, "id");
+  if (id == NULL)
+    {
+      DEBUG ("Ignoring reply without IQ id");
+      return FALSE;
+    }
+
   handler = g_hash_table_lookup (priv->iq_reply_handlers, id);
 
   if (handler == NULL)
