@@ -667,18 +667,16 @@ handle_stanza (WockyPorter *self,
   const gchar *from;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  gchar *node, *domain, *resource;
+  gchar *node = NULL, *domain = NULL, *resource = NULL;
 
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
+  /* The from attribute of the stanza need not always be present, for example
+   * when receiving roster items, so don't enforce it. */
   from = wocky_xmpp_node_get_attribute (stanza->node, "from");
-  if (from == NULL)
-    {
-      DEBUG ("Stanza doesn't have 'from' attribute; discard");
-      return;
-    }
 
-  wocky_decode_jid (from, &node, &domain, &resource);
+  if (from != NULL)
+    wocky_decode_jid (from, &node, &domain, &resource);
 
   for (l = priv->handlers; l != NULL; l = g_list_next (l))
     {
