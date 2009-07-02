@@ -252,9 +252,8 @@ wocky_roster_fetch_roster (WockyRoster *self)
 
   priv = WOCKY_ROSTER_GET_PRIVATE (self);
 
-  /* TODO: from attribute */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_GET, "from", NULL,
+      WOCKY_STANZA_SUB_TYPE_GET, NULL, NULL,
         WOCKY_NODE, "query",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
         WOCKY_NODE_END,
