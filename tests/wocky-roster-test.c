@@ -28,6 +28,7 @@ test_instantiation (void)
   g_assert (roster != NULL);
 
   g_object_unref (roster);
+  g_object_unref (porter);
   g_object_unref (connection);
   g_object_unref (stream);
 }
