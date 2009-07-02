@@ -529,6 +529,12 @@ _error (void *user_data, xmlErrorPtr error)
   WockyXmppReader *self = WOCKY_XMPP_READER (user_data);
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (self);
 
+  if (error->level < XML_ERR_ERROR)
+    {
+      DEBUG ("Ignoring parser warning: %s", error->message);
+      return;
+    }
+
   priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
     WOCKY_XMPP_READER_ERROR_PARSE_ERROR, error->message);
 
