@@ -47,9 +47,6 @@ wocky_connector_test_SOURCES = \
 wocky_connector_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_connector_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
 
-wocky_connector_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
-wocky_connector_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
-
 if HAVE_LIBSASL2
   TEST_PROGS += wocky-test-sasl-auth
 endif
