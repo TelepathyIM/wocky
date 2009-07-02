@@ -124,25 +124,6 @@ wocky_roster_get_property (GObject *object,
     }
 }
 
-static void
-roster_recv_items_cb (GObject *source_object,
-    GAsyncResult *res,
-    gpointer user_data)
-{
-  GError *error = NULL;
-  WockyXmppStanza *iq;
-
-  iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
-
-  if (iq == NULL)
-    {
-      DEBUG ("Failed to receive roster items: %s",
-          error ? error->message : "no message");
-      g_clear_error (&error);
-      return;
-    }
-}
-
 static gboolean
 roster_iq_handler_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
@@ -156,7 +137,6 @@ wocky_roster_constructed (GObject *object)
 {
   WockyRoster *self = WOCKY_ROSTER (object);
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-  WockyXmppStanza *iq;
 
   priv->items = g_hash_table_new (g_str_hash, g_str_equal);
 
@@ -166,16 +146,6 @@ wocky_roster_constructed (GObject *object)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END, WOCKY_STANZA_END);
-
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_GET, "foo", NULL,
-        WOCKY_NODE, "query",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (priv->porter,
-      iq, NULL, roster_recv_items_cb, self);
 }
 
 static void
@@ -251,4 +221,45 @@ wocky_roster_new (WockyXmppConnection *conn,
       "connection", conn,
       "porter", porter,
       NULL);
+}
+
+static void
+roster_fetch_roster_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GError *error = NULL;
+  WockyXmppStanza *iq;
+
+  iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
+
+  if (iq == NULL)
+    {
+      DEBUG ("Failed to receive roster: %s",
+          error ? error->message : "no message");
+      g_clear_error (&error);
+      return;
+    }
+}
+
+void
+wocky_roster_fetch_roster (WockyRoster *self)
+{
+  WockyRosterPrivate *priv;
+  WockyXmppStanza *iq;
+
+  g_return_if_fail (WOCKY_IS_ROSTER (self));
+
+  priv = WOCKY_ROSTER_GET_PRIVATE (self);
+
+  /* TODO: from attribute */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "from", NULL,
+        WOCKY_NODE, "query",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (priv->porter,
+      iq, NULL, roster_fetch_roster_cb, self);
 }
