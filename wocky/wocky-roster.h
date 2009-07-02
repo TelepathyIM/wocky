@@ -62,8 +62,6 @@ GType wocky_roster_get_type (void);
 WockyRoster * wocky_roster_new (WockyXmppConnection *conn,
     WockyPorter *porter);
 
-void wocky_roster_recv_items (WockyRoster *roster);
-
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_ROSTER_H__*/
