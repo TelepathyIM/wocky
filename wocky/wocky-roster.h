@@ -62,7 +62,12 @@ GType wocky_roster_get_type (void);
 WockyRoster * wocky_roster_new (WockyXmppConnection *conn,
     WockyPorter *porter);
 
-void wocky_roster_fetch_roster (WockyRoster *self);
+void wocky_roster_fetch_roster_async (WockyRoster *self,
+    GCancellable *cancellable, GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_roster_fetch_roster_finish (WockyRoster *self,
+    GAsyncResult *result, GError **error);
 
 G_END_DECLS
 

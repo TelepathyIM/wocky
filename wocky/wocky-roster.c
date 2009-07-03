@@ -268,23 +268,32 @@ roster_fetch_roster_cb (GObject *source_object,
 {
   GError *error = NULL;
   WockyXmppStanza *iq;
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
 
   iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
 
   if (iq == NULL)
     {
-      DEBUG ("Failed to receive roster: %s",
-          error ? error->message : "no message");
-      g_clear_error (&error);
-      return;
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
     }
+
+  /* look at stanza and retreive items */
+
+out:
+  g_simple_async_result_complete (result);
 }
 
 void
-wocky_roster_fetch_roster (WockyRoster *self)
+wocky_roster_fetch_roster_async (WockyRoster *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
 {
   WockyRosterPrivate *priv;
   WockyXmppStanza *iq;
+  GSimpleAsyncResult *result;
 
   g_return_if_fail (WOCKY_IS_ROSTER (self));
 
@@ -297,6 +306,24 @@ wocky_roster_fetch_roster (WockyRoster *self)
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_fetch_roster_finish);
+
   wocky_porter_send_iq_async (priv->porter,
-      iq, NULL, roster_fetch_roster_cb, self);
+      iq, cancellable, roster_fetch_roster_cb, result);
+}
+
+gboolean
+wocky_roster_fetch_roster_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+          error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+          G_OBJECT (self), wocky_roster_fetch_roster_finish), FALSE);
+
+  return TRUE;
 }

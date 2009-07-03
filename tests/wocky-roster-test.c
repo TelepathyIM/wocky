@@ -79,7 +79,7 @@ test_fetch_roster (void)
 
   roster = wocky_roster_new (test->in, test->sched_in);
 
-  wocky_roster_fetch_roster (roster);
+  wocky_roster_fetch_roster_async (roster, NULL, NULL, NULL);
   test->outstanding++;
 
   test_wait_pending (test);
