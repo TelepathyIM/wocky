@@ -339,8 +339,6 @@ wocky_connector_set_property (GObject *object,
         break;
       case PROP_XMPP_PORT:
         priv->xmpp_port = g_value_get_uint (value);
-        if (priv->xmpp_port == 0)
-          priv->xmpp_port = 5222;
         break;
       case PROP_XMPP_HOST:
         g_free (priv->xmpp_host);
@@ -532,13 +530,17 @@ tcp_srv_connected (GObject *source,
      talk to that */
   if (priv->sock == NULL)
     {
+      /* FIXME: once we're in master, use the jid slicing function there */
       const gchar *host = rindex (priv->jid, '@') + 1;
+      guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
+
       DEBUG ("SRV connect failed: %s", error->message);
       DEBUG ("Falling back to HOST connection");
+
       g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
       g_socket_client_connect_to_host_async (priv->client,
-          host, priv->xmpp_port, NULL, tcp_host_connected, connector);
+          host, port, NULL, tcp_host_connected, connector);
     }
   else
     {
@@ -1160,6 +1162,7 @@ wocky_connector_connect_async (WockyConnector *self,
    *  an XMPP server: Otherwise we look for a SRV record for 'host',
    *  falling back to a direct connection to 'host' if that fails.
    */
+  /* FIXME: once we're in master, use the jid slicing function there */
   const gchar *host = priv->jid ? rindex (priv->jid, '@') : NULL;
 
   if (priv->result != NULL)
@@ -1193,14 +1196,17 @@ wocky_connector_connect_async (WockyConnector *self,
   priv->client = g_socket_client_new ();
   priv->state  = WCON_TCP_CONNECTING;
 
-  /* if the user specified a specific server to connect to, try to use that:
-     if not, try to find a SRV record for the 'host' extracted from the JID
-     above */
-  if (priv->xmpp_host)
+  /* if the user supplied a specific HOST or PORT, use those:
+     if just a HOST is supplied, HOST:5222,
+     if just a port, set HOST from the JID and use JIDHOST:PORT
+     otherwise attempt to find a SRV record  */
+  if ((priv->xmpp_host != NULL) || (priv->xmpp_port != 0))
     {
+      guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
+      gchar *srv = (priv->xmpp_host == NULL) ? host : priv->xmpp_host;
+
       DEBUG ("host: %s; port: %d\n", priv->xmpp_host, priv->xmpp_port);
-      g_socket_client_connect_to_host_async (priv->client,
-          priv->xmpp_host, priv->xmpp_port, NULL,
+      g_socket_client_connect_to_host_async (priv->client, srv, port, NULL,
           tcp_host_connected, self);
     }
   else
