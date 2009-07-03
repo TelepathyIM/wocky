@@ -535,7 +535,24 @@ tcp_srv_connected (GObject *source,
       guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
 
       DEBUG ("SRV connect failed: %s", error->message);
-      DEBUG ("Falling back to HOST connection");
+
+      if (error != NULL)
+        {
+          /* io-error-quark => there IS a SRV record but we could not
+             connect: we do not fall through in this case: */
+          if (error->domain == g_io_error_quark ())
+            {
+              abort_connect_error (self, &error, "Bad SRV record");
+              g_error_free (error);
+              return;
+            }
+          else
+            {
+              const gchar *domain = g_quark_to_string (error->domain);
+              DEBUG ("SRV error is: %s:%d", domain, error->code);
+            }
+        }
+      DEBUG ("Falling back to HOST connection\n");
 
       g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
@@ -1203,7 +1220,7 @@ wocky_connector_connect_async (WockyConnector *self,
   if ((priv->xmpp_host != NULL) || (priv->xmpp_port != 0))
     {
       guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
-      gchar *srv = (priv->xmpp_host == NULL) ? host : priv->xmpp_host;
+      const gchar *srv = (priv->xmpp_host == NULL) ? host : priv->xmpp_host;
 
       DEBUG ("host: %s; port: %d\n", priv->xmpp_host, priv->xmpp_port);
       g_socket_client_connect_to_host_async (priv->client, srv, port, NULL,
