@@ -27,7 +27,7 @@ SRV │ Host │ Port │ Expected Attempt:
 1   │ ☠    │ 0    │ duff host. die.
 1   │ ☠    │ 1    │ duff host. die.
 ☠   │ 0    │ 0    │ duff SRV. die.
-☠   │ 0    │ 1    │ connect to DOMAIN + POSRT
+☠   │ 0    │ 1    │ connect to DOMAIN + PORT
 ☠   │ 1    │ 0    │ connect to HOST   + 5222
 ☠   │ 1    │ 1    │ connect to HOST   + port
 ☠   │ ☠    │ 0    │ duff HOST. die.
