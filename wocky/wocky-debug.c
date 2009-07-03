@@ -24,6 +24,7 @@ static GDebugKey keys[] = {
   { "bytestream",        DEBUG_BYTESTREAM        },
   { "ft",                DEBUG_FILE_TRANSFER     },
   { "porter",            DEBUG_PORTER            },
+  { "connector",         DEBUG_CONNECTOR         },
   { "all",               ~0                      },
   { 0, },
 };
