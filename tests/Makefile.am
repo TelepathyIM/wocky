@@ -35,7 +35,7 @@ wocky_xmpp_readwrite_test_SOURCES = \
 wocky_xmpp_reader_test_SOURCES = \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(TLS_CERT)
+wocky_connector_test_DEPENDENCIES = $(TLS_CERT) ../wocky/libwocky.la
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
