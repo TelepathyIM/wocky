@@ -1,6 +1,6 @@
 /*
  * wocky-test-connector-server.c - Source for TestConnectorServer
- * Copyright (C) 2006 Collabora Ltd.
+ * Copyright © 2009 Collabora Ltd.
  * @author Vivek Dasmohapatra <vivek@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
@@ -348,6 +348,10 @@ xmpp_handler (GObject *source,
   conn = WOCKY_XMPP_CONNECTION (source);
 
   xml  = wocky_xmpp_connection_recv_stanza_finish (conn, result, &error);
+
+  if (error != NULL)
+      exit (0);
+
   ns   = wocky_xmpp_node_get_ns (xml->node);
   name = xml->node->name;
   wocky_xmpp_stanza_get_type_info (xml, &type, &subtype);
