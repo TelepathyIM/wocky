@@ -136,12 +136,11 @@ roster_update (WockyRoster *self,
 }
 
 static gboolean
-roster_iq_handler_cb (WockyPorter *porter,
+roster_iq_handler_set_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   WockyRoster *self = WOCKY_ROSTER (user_data);
-  WockyStanzaSubType sub_type;
   const gchar *from;
   gboolean google_roster = FALSE;
 
@@ -150,8 +149,7 @@ roster_iq_handler_cb (WockyPorter *porter,
   if (from != NULL)
     {
       /* TODO: discard roster IQs which are not from ourselves or the
-       * server.
-       */
+       * server. */
       return TRUE;
     }
 
@@ -165,31 +163,9 @@ roster_iq_handler_cb (WockyPorter *porter,
         google_roster = TRUE;
     }
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  roster_update (self, stanza, google_roster);
 
-  switch (sub_type)
-    {
-    case WOCKY_STANZA_SUB_TYPE_RESULT:
-    case WOCKY_STANZA_SUB_TYPE_SET:
-      roster_update (self, stanza, google_roster);
-      break;
-
-    default:
-      DEBUG ("Unhandled roster IQ");
-      return FALSE;
-    }
-
-  switch (sub_type)
-    {
-    case WOCKY_STANZA_SUB_TYPE_RESULT:
-      /* emit updated? */
-      break;
-    case WOCKY_STANZA_SUB_TYPE_SET:
-      /* ack roster */
-      break;
-    default:
-      break;
-    }
+  /* now ack roster */
 
   return TRUE;
 }
@@ -203,8 +179,8 @@ wocky_roster_constructed (GObject *object)
   priv->items = g_hash_table_new (g_str_hash, g_str_equal);
 
   priv->iq_cb = wocky_porter_register_handler (priv->porter,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT, NULL,
-      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_cb, self,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_set_cb, self,
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END, WOCKY_STANZA_END);
