@@ -443,7 +443,7 @@ start_dummy_xmpp_server (test_t *test)
   channel = g_io_channel_unix_new (ssock);
   g_io_add_watch (channel, G_IO_IN|G_IO_PRI, client_connected, (gpointer)test);
   g_main_loop_run (mainloop);
-  exit(0);
+  exit (0);
 }
 /* ************************************************************************* */
 static void
@@ -466,8 +466,10 @@ test_done (GObject *source,
   g_main_loop_quit (mainloop);
 }
 
+typedef void (*test_func) (gconstpointer);
+
 static void
-run_test (gconstpointer data)
+run_test (gpointer data)
 {
   WockyConnector *wcon = NULL;
   test_t *test = data;
@@ -539,7 +541,7 @@ main (int argc,
   mainloop = g_main_loop_new (NULL, FALSE);
 
   for (i = 0; tests[i].desc != NULL; i++)
-    g_test_add_data_func (tests[i].desc, &tests[i], run_test);
+    g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
 
   return g_test_run ();
 }
