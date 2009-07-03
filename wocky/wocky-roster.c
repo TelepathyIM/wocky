@@ -129,29 +129,9 @@ wocky_roster_get_property (GObject *object,
 
 static void
 roster_update (WockyRoster *self,
-    WockyXmppStanza *stanza,
-    gboolean google_roster)
+    WockyXmppStanza *stanza)
 {
-
-}
-
-static gboolean
-roster_iq_handler_set_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
-    gpointer user_data)
-{
-  WockyRoster *self = WOCKY_ROSTER (user_data);
-  const gchar *from;
   gboolean google_roster = FALSE;
-
-  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
-
-  if (from != NULL)
-    {
-      /* TODO: discard roster IQs which are not from ourselves or the
-       * server. */
-      return TRUE;
-    }
 
   if (FALSE /* can support google */)
     {
@@ -162,8 +142,26 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
         google_roster = TRUE;
     }
+}
 
-  roster_update (self, stanza, google_roster);
+static gboolean
+roster_iq_handler_set_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  WockyRoster *self = WOCKY_ROSTER (user_data);
+  const gchar *from;
+
+  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+
+  if (from != NULL)
+    {
+      /* TODO: discard roster IQs which are not from ourselves or the
+       * server. */
+      return TRUE;
+    }
+
+  roster_update (self, stanza);
 
   /* now ack roster */
 
@@ -269,6 +267,8 @@ roster_fetch_roster_cb (GObject *source_object,
   GError *error = NULL;
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyRoster *self = WOCKY_ROSTER (
+      g_async_result_get_source_object (G_ASYNC_RESULT (result)));
 
   iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
 
@@ -279,7 +279,7 @@ roster_fetch_roster_cb (GObject *source_object,
       goto out;
     }
 
-  /* look at stanza and retreive items */
+  roster_update (self, iq);
 
 out:
   g_simple_async_result_complete (result);
