@@ -59,6 +59,25 @@ GType wocky_roster_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_ROSTER, \
    WockyRosterClass))
 
+/**
+ * WockyRosterError:
+ * @WOCKY_ROSTER_INVALID_STANZA
+ *
+ * The different errors that can occur while reading a stream
+ */
+typedef enum {
+  WOCKY_ROSTER_INVALID_STANZA,
+} WockyRosterError;
+
+GQuark wocky_roster_error_quark (void);
+
+/**
+ * WOCKY_ROSTER_ERROR:
+ *
+ * Get access to the error quark of the roster.
+ */
+#define WOCKY_ROSTER_ERROR (wocky_roster_error_quark ())
+
 WockyRoster * wocky_roster_new (WockyXmppConnection *conn,
     WockyPorter *porter);
 

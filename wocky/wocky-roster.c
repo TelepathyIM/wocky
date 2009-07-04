@@ -74,6 +74,24 @@ struct _WockyRosterPrivate
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_ROSTER, \
     WockyRosterPrivate))
 
+/**
+ * wocky_roster_error_quark
+ *
+ * Get the error quark used by the roster.
+ *
+ * Returns: the quark for roster errors.
+ */
+GQuark
+wocky_roster_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string ("wocky-roster-error");
+
+  return quark;
+}
+
 static void
 wocky_roster_init (WockyRoster *obj)
 {
