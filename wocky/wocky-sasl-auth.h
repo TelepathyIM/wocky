@@ -50,6 +50,12 @@ typedef enum
   WOCKY_SASL_AUTH_ERROR_FAILURE,
 } WockySaslAuthError;
 
+typedef enum {
+  WOCKY_SASL_AUTH_PLAIN = 0,
+  WOCKY_SASL_AUTH_DIGEST_MD5,
+  WOCKY_SASL_AUTH_NR_MECHANISMS,
+} WockySaslAuthMechanism;
+
 typedef struct _WockySaslAuth WockySaslAuth;
 typedef struct _WockySaslAuthClass WockySaslAuthClass;
 
@@ -92,6 +98,9 @@ void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
 gboolean wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error);
+
+WockySaslAuthMechanism
+wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl);
 
 G_END_DECLS
 

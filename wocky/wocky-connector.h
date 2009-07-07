@@ -24,6 +24,7 @@
 #include <glib-object.h>
 #include <gio/gnio.h>
 
+#include "wocky-sasl-auth.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-stanza.h"
 
@@ -115,6 +116,8 @@ void wocky_connector_connect_async (WockyConnector *self,
 WockyConnector *wocky_connector_new (const gchar *jid,
     const gchar *pass,
     const gchar *resource);
+
+WockySaslAuthMechanism wocky_connector_auth_mechanism (WockyConnector *self);
 
 G_END_DECLS
 

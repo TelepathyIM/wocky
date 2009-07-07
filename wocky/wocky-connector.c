@@ -1,6 +1,6 @@
 /*
  * wocky-connector.c - Source for WockyConnector
- * Copyright (C) 2006-2009 Collabora Ltd.
+ * Copyright © 2009 Collabora Ltd.
  * @author Vivek Dasmohapatra <vivek@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
@@ -183,6 +183,7 @@ struct _WockyConnectorPrivate
   gboolean encrypted;
   gboolean connected;
   GSimpleAsyncResult *result;
+  WockySaslAuthMechanism mech;
 
   /* socket/tls/etc structures */
   GSocketClient *client;
@@ -870,16 +871,20 @@ auth_done (GObject *source,
   if (!wocky_sasl_auth_authenticate_finish (sasl, result, &error))
     {
       /* nothing to add, the SASL error should be informative enough */
+      DEBUG ("SASL complete (failure)");
       abort_connect_error (self, &error, "");
       g_error_free (error);
-      return;
+      goto out;
     }
 
   DEBUG ("SASL complete (success)");
   priv->state = WCON_XMPP_AUTHED;
   priv->authed = TRUE;
+  priv->mech = wocky_sasl_auth_mechanism_used (sasl);
   wocky_xmpp_connection_reset (priv->conn);
   xmpp_init (self, FALSE);
+ out:
+  g_object_unref (sasl);
 }
 
 /* ************************************************************************* */
@@ -1163,6 +1168,13 @@ wocky_connector_connect_finish (WockyConnector *self,
     }
 
   return priv->conn;
+}
+
+WockySaslAuthMechanism
+wocky_connector_auth_mechanism (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  return priv->mech;
 }
 
 void

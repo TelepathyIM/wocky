@@ -51,12 +51,6 @@ typedef enum {
   WOCKY_SASL_AUTH_STATE_FAILED,
 } WockySaslAuthState;
 
-typedef enum {
-  WOCKY_SASL_AUTH_PLAIN = 0,
-  WOCKY_SASL_AUTH_DIGEST_MD5,
-  WOCKY_SASL_AUTH_NR_MECHANISMS,
-} WockySaslAuthMechanism;
-
 /* private structure */
 typedef struct _WockySaslAuthPrivate WockySaslAuthPrivate;
 
@@ -865,6 +859,13 @@ out:
   return ret;
 }
 
+
+WockySaslAuthMechanism
+wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl)
+{
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  return priv->mech;
+}
 
 gboolean
 wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
