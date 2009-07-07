@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <wocky/wocky-connector.h>
@@ -11,6 +12,8 @@
 
 #include "wocky-test-connector-server.h"
 #include "test-resolver.h"
+
+#define SASL_DB_NAME "sasl-test.db"
 
 #define INVISIBLE_HOST "unreachable.host"
 #define VISIBLE_HOST   "reachable.host"
@@ -76,7 +79,7 @@ test_t tests[] =
       { TLS_REQUIRED,
         { BARE_JID, PASSWORD, MUST_BE_SECURE, MUST_BE_DIGEST_AUTH },
         { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } } }, */
-#if 1
+
     { "/connector/basic/noserv/nohost/noport",
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
@@ -433,14 +436,14 @@ test_t tests[] =
       { TRUE,
         { "moose@weasel-juice.org", "something", TRUE, NOTLS },
         { NULL, 0 } } },
-#endif
+
     /* **************************************************************** *
      * this will be a mix of failures and sucesses depending on whether *
      * we allow plain auth or not                                       */
     { "/connector/auth/secure/no-tlsplain/tls/plain",
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
         5222 },
       { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
@@ -614,6 +617,63 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    /* ***************************************************************** *
+     * SASL problems                                                     */
+    { "/connector/problem/sasl/bad-pass",
+      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "somethink", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/sasl/bad-user",
+      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_INVALID_USERNAME, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "caribou", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/sasl/no-sasl",
+      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_SASL, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/sas/no-mechanisms",
+      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_MECHANISMS, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/sasl/bad-mechanism",
+      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { { TLS, "omg-poniez" },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* we are done, cap the list: */
     { NULL }
   };
@@ -760,9 +820,17 @@ run_test (gpointer data)
 {
   WockyConnector *wcon = NULL;
   test_t *test = data;
+  const gchar *base[PATH_MAX + 1];
+  gchar *path = NULL;
+  struct stat dummy;
 
   start_dummy_xmpp_server (test);
   setup_dummy_dns_entries (test);
+
+  /* unlink the sasl db, we want to test against a fresh one */
+  path = g_strdup_printf ("%s/%s", getcwd (base, sizeof (base)), SASL_DB_NAME);
+  g_assert ((stat(path, &dummy) != 0) || (unlink (path) == 0));
+  g_free (path);
 
   wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
       "jid"                     , test->client.auth.jid,
