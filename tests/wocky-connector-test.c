@@ -94,7 +94,7 @@ test_t tests[] =
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
-#if 1
+
     { "/connector/basic/noserv/nohost/port",
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
@@ -690,7 +690,7 @@ test_t tests[] =
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
-#endif
+
     /* ********************************************************************* *
      * Invalid JID                                                           */
     { "/connector/problem/jid/invalid",
@@ -740,11 +740,77 @@ test_t tests[] =
         { NULL, 0 } } },
 
     /* WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE */
-    /* WOCKY_CONNECTOR_ERROR_BIND_FAILED      */
-    /* WOCKY_CONNECTOR_ERROR_BIND_INVALID     */
-    /* WOCKY_CONNECTOR_ERROR_BIND_DENIED      */
-    /* WOCKY_CONNECTOR_ERROR_BIND_CONFLICT    */
+    { "/connector/problem/xmpp/no-bind",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_CANNOT_BIND },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* WOCKY_CONNECTOR_ERROR_BIND_INVALID      */
+    { "/connector/problem/xmpp/bind/failed",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_INVALID },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_INVALID },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* WOCKY_CONNECTOR_ERROR_BIND_DENIED     */
+    { "/connector/problem/xmpp/bind/denied",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_DENIED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_DENIED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* WOCKY_CONNECTOR_ERROR_BIND_CONFLICT      */
+    { "/connector/problem/xmpp/bind/conflict",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_CONFLICT },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_CONFLICT },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* WOCKY_CONNECTOR_ERROR_BIND_REJECTED    */
+    { "/connector/problem/xmpp/bind/rejected",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_REJECTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_REJECTED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* WOCKY_CONNECTOR_ERROR_BIND_FAILED    */
+    { "/connector/problem/xmpp/bind/rejected",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_FAILED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* WOCKY_CONNECTOR_ERROR_SESSION_FAILED   */
     /* WOCKY_CONNECTOR_ERROR_SESSION_DENIED   */
     /* WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT */
