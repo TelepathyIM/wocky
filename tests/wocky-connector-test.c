@@ -27,6 +27,9 @@
 #define PLAIN  FALSE
 #define DIGEST TRUE
 
+#define PORT_XMPP 5222
+#define PORT_NONE 0
+
 #define DOMAIN_NONE NULL
 #define DOMAIN_SASL "wocky_sasl_auth_error"
 #define DOMAIN_CONN "wocky-connector-error"
@@ -43,7 +46,7 @@ typedef struct {
   gchar *desc;
   struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; } result;
   struct {
-    struct { gboolean tls; gchar *auth_mech; } features;
+    struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
     struct { ServerProblem sasl; ConnectorProblem conn; } problem;
     struct { gchar *user; gchar *pass; } auth;
     guint port;
@@ -86,12 +89,12 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
+        PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
-
+#if 1
     { "/connector/basic/noserv/nohost/port",
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
@@ -119,7 +122,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
+        PORT_XMPP },
       { NULL, 0, "schadenfreude.org", REACHABLE, NULL },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
@@ -152,7 +155,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { NULL, NULL },
-        0 },
+        PORT_NONE },
       { NULL, 0, NULL, NULL, NULL },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
@@ -163,7 +166,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { NULL, NULL },
-        0 },
+        PORT_NONE },
       { NULL, 0, NULL, NULL, NULL },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
@@ -207,7 +210,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
+        PORT_XMPP },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
@@ -240,8 +243,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, REACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, REACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { DUFF_H0ST, 0 } } },
@@ -251,19 +254,19 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, REACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, REACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
-        { DUFF_H0ST, 5222 } } },
+        { DUFF_H0ST, PORT_XMPP } } },
 
     { "/connector/basic/duffserv/nohost/noport",
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", UNREACHABLE, REACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
@@ -274,7 +277,7 @@ test_t tests[] =
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
         5050 },
-      { "weasel-juice.org", 5222, "thud.org", UNREACHABLE, REACHABLE },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 5050 } } },
@@ -285,7 +288,7 @@ test_t tests[] =
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
         5050 },
-      { "weasel-juice.org", 5222, "thud.org", UNREACHABLE, REACHABLE },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 5049 } } },
@@ -295,7 +298,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
+        PORT_XMPP },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
@@ -328,7 +331,7 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
+        PORT_XMPP },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
@@ -353,8 +356,8 @@ test_t tests[] =
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, TLS },
         { NULL, 0 } } },
@@ -364,8 +367,8 @@ test_t tests[] =
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, TLS },
         { NULL, 0 } } },
@@ -375,8 +378,8 @@ test_t tests[] =
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -386,8 +389,8 @@ test_t tests[] =
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
@@ -399,8 +402,8 @@ test_t tests[] =
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { TRUE,
         { "moose@weasel-juice.org", "something", FALSE, TLS },
         { NULL, 0 } } },
@@ -410,8 +413,8 @@ test_t tests[] =
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { TRUE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
@@ -421,8 +424,8 @@ test_t tests[] =
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { TRUE,
         { "moose@weasel-juice.org", "something", TRUE, TLS },
         { NULL, 0 } } },
@@ -432,8 +435,8 @@ test_t tests[] =
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { TRUE,
         { "moose@weasel-juice.org", "something", TRUE, NOTLS },
         { NULL, 0 } } },
@@ -446,8 +449,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, TLS },
         { NULL, 0 } } },
@@ -457,8 +460,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, TLS },
         { NULL, 0 } } },
@@ -468,8 +471,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, NOTLS },
         { NULL, 0 } } },
@@ -479,8 +482,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -490,8 +493,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, TLS },
         { NULL, 0 } } },
@@ -501,8 +504,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, TLS },
         { NULL, 0 } } },
@@ -512,8 +515,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, NOTLS },
         { NULL, 0 } } },
@@ -523,8 +526,8 @@ test_t tests[] =
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -535,8 +538,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, TLS },
         { NULL, 0 } } },
@@ -546,8 +549,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, TLS },
         { NULL, 0 } } },
@@ -557,8 +560,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, NOTLS },
         { NULL, 0 } } },
@@ -568,8 +571,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
           { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -579,8 +582,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, TLS },
         { NULL, 0 } } },
@@ -590,8 +593,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, TLS },
         { NULL, 0 } } },
@@ -601,8 +604,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", DIGEST, NOTLS },
         { NULL, 0 } } },
@@ -612,8 +615,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -624,22 +627,22 @@ test_t tests[] =
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_PROBLEM_NO_PROBLEM },
-        { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        { "foo", "bar" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "somethink", PLAIN, NOTLS },
+        { "foo@weasel-juice.org", "notbar", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     { "/connector/problem/sasl/bad-user",
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_USERNAME, CONNECTOR_PROBLEM_NO_PROBLEM },
-        { "caribou", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { "caribou@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     { "/connector/problem/sasl/no-sasl",
@@ -647,8 +650,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -658,8 +661,8 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_MECHANISMS, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -669,8 +672,8 @@ test_t tests[] =
       { { TLS, "omg-poniez" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
@@ -682,12 +685,12 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_TLS_REFUSED },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
-
+#endif
     /* ********************************************************************* *
      * Invalid JID                                                           */
     { "/connector/problem/jid/invalid",
@@ -695,22 +698,57 @@ test_t tests[] =
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
+        PORT_NONE },
       { NULL, 0, "thud.org", REACHABLE },
       { FALSE,
         { "blahblahblah", "something", PLAIN, NOTLS },
-        { "weasel-juice.org", 5222 } } },
+        { "weasel-juice.org", PORT_XMPP } } },
 
     { "/connector/problem/jid/domainless",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
-        5222 },
-      { "weasel-juice.org", 5222, "thud.org", REACHABLE, REACHABLE },
+        PORT_NONE },
+      { "weasel-juice.org", 5001, "thud.org", REACHABLE, REACHABLE },
       { FALSE,
         { "moose@", "something", PLAIN, NOTLS },
         { "weasel-juice.org", 0 } } },
+
+    /* ********************************************************************* *
+     * XMPP errors                                                           */
+    { "/connector/problem/xmpp/version",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER },
+      { { TLS, NULL, "3.1415" },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/xmpp/features",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_FEATURES },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_FEATURES },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE */
+    /* WOCKY_CONNECTOR_ERROR_BIND_FAILED      */
+    /* WOCKY_CONNECTOR_ERROR_BIND_INVALID     */
+    /* WOCKY_CONNECTOR_ERROR_BIND_DENIED      */
+    /* WOCKY_CONNECTOR_ERROR_BIND_CONFLICT    */
+    /* WOCKY_CONNECTOR_ERROR_BIND_REJECTED    */
+    /* WOCKY_CONNECTOR_ERROR_SESSION_FAILED   */
+    /* WOCKY_CONNECTOR_ERROR_SESSION_DENIED   */
+    /* WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT */
+    /* WOCKY_CONNECTOR_ERROR_SESSION_REJECTED */
 
     /* we are done, cap the list: */
     { NULL }
@@ -723,7 +761,7 @@ static void
 setup_dummy_dns_entries (const test_t *test)
 {
   TestResolver *tr = TEST_RESOLVER (kludged);
-  guint port = test->dns.port ? test->dns.port : 5222;
+  guint port = test->dns.port ? test->dns.port : PORT_XMPP;
   const char *domain = test->dns.srv;
   const char *host = test->dns.host;
   const char *addr = test->dns.addr;
@@ -786,6 +824,7 @@ client_connected (GIOChannel *channel,
       test->server.features.auth_mech,
       test->server.auth.user,
       test->server.auth.pass,
+      test->server.features.version,
       cproblem,
       test->server.problem.sasl);
   test_connector_server_start (G_OBJECT (server));
@@ -867,17 +906,9 @@ run_test (gpointer data)
 {
   WockyConnector *wcon = NULL;
   test_t *test = data;
-  gchar base[PATH_MAX + 1];
-  gchar *path = NULL;
-  struct stat dummy;
 
   start_dummy_xmpp_server (test);
   setup_dummy_dns_entries (test);
-
-  /* unlink the sasl db, we want to test against a fresh one */
-  path = g_strdup_printf ("%s/%s", getcwd (base, sizeof (base)), SASL_DB_NAME);
-  g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
-  g_free (path);
 
   wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
       "jid"                     , test->client.auth.jid,
@@ -944,12 +975,25 @@ main (int argc,
     char **argv)
 {
   int i;
+  gchar base[PATH_MAX + 1];
+  gchar *path = NULL;
+  struct stat dummy;
+
   g_thread_init (NULL);
   g_type_init ();
   g_test_init (&argc, &argv, NULL);
+
+  /* hook up the fake DNS resolver that lets us divert A and SRV queries *
+   * into our local cache before asking the real DNS                     */
   original = g_resolver_get_default ();
   kludged = g_object_new (TEST_TYPE_RESOLVER, "real-resolver", original, NULL);
   g_resolver_set_default (kludged);
+
+  /* unlink the sasl db, we want to test against a fresh one */
+  path = g_strdup_printf ("%s/%s", getcwd (base, sizeof (base)), SASL_DB_NAME);
+  g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
+  g_free (path);
+
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
