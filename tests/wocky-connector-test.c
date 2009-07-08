@@ -33,6 +33,7 @@
 #define DOMAIN_GIO  "g-io-error-quark"
 #define DOMAIN_RES  "g-resolver-error-quark"
 
+gboolean running_test = FALSE;
 static GError *error = NULL;
 static GResolver *original;
 static GResolver *kludged;
@@ -396,7 +397,7 @@ test_t tests[] =
     { "/connector/auth/insecure/no-tlsplain/notls/any",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_TLS },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
         5222 },
       { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
@@ -407,7 +408,7 @@ test_t tests[] =
     { "/connector/auth/insecure/tlsplain/notls/any",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_TLS },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
         5222 },
       { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
@@ -418,7 +419,7 @@ test_t tests[] =
     { "/connector/auth/secure/no-tlsplain/notls/any",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_TLS },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
         5222 },
       { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
@@ -429,7 +430,7 @@ test_t tests[] =
     { "/connector/auth/secure/tlsplain/notls/any",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_TLS },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
         { "moose", "something" },
         5222 },
       { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
@@ -674,6 +675,43 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    /* ********************************************************************* */
+    /* TLS error conditions */
+    { "/connector/problem/tls/refused",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_REFUSED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_TLS_REFUSED },
+        { "moose", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* ********************************************************************* *
+     * Invalid JID                                                           */
+    { "/connector/problem/jid/invalid",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        5222 },
+      { NULL, 0, "thud.org", REACHABLE },
+      { FALSE,
+        { "blahblahblah", "something", PLAIN, NOTLS },
+        { "weasel-juice.org", 5222 } } },
+
+    { "/connector/problem/jid/domainless",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        5222 },
+      { "weasel-juice.org", 5222, "thud.org", REACHABLE, REACHABLE },
+      { FALSE,
+        { "moose@", "something", PLAIN, NOTLS },
+        { "weasel-juice.org", 0 } } },
+
     /* we are done, cap the list: */
     { NULL }
   };
@@ -719,6 +757,7 @@ client_connected (GIOChannel *channel,
   int csock = accept (ssock, (struct sockaddr *)&client, &clen);
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
   test_t *test = data;
+  ConnectorProblem cproblem = CONNECTOR_PROBLEM_NO_PROBLEM;
 
   GSocketConnection *gconn;
   TestConnectorServer *server;
@@ -734,6 +773,11 @@ client_connected (GIOChannel *channel,
   while (g_source_remove_by_user_data (test));
   g_io_channel_close (channel);
 
+  cproblem |= test->server.problem.conn;
+  if (!test->server.features.tls)
+      cproblem |= CONNECTOR_PROBLEM_NO_TLS;
+
+
   flags = fcntl (csock, F_GETFL );
   flags = flags & ~O_NONBLOCK;
   fcntl (csock, F_SETFL, flags);
@@ -742,7 +786,7 @@ client_connected (GIOChannel *channel,
       test->server.features.auth_mech,
       test->server.auth.user,
       test->server.auth.pass,
-      test->server.problem.conn,
+      cproblem,
       test->server.problem.sasl);
   test_connector_server_start (G_OBJECT (server));
   return FALSE;
@@ -810,7 +854,10 @@ test_done (GObject *source,
   if (test->server_pid > 0)
     kill (test->server_pid, SIGKILL);
 
-  g_main_loop_quit (mainloop);
+  if (g_main_loop_is_running (mainloop))
+    g_main_loop_quit (mainloop);
+
+  running_test = FALSE;
 }
 
 typedef void (*test_func) (gconstpointer);
@@ -820,7 +867,7 @@ run_test (gpointer data)
 {
   WockyConnector *wcon = NULL;
   test_t *test = data;
-  const gchar *base[PATH_MAX + 1];
+  gchar base[PATH_MAX + 1];
   gchar *path = NULL;
   struct stat dummy;
 
@@ -829,7 +876,7 @@ run_test (gpointer data)
 
   /* unlink the sasl db, we want to test against a fresh one */
   path = g_strdup_printf ("%s/%s", getcwd (base, sizeof (base)), SASL_DB_NAME);
-  g_assert ((stat(path, &dummy) != 0) || (unlink (path) == 0));
+  g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
   g_free (path);
 
   wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
@@ -845,9 +892,14 @@ run_test (gpointer data)
       "ignore-ssl-errors"       , FALSE,
       NULL);
 
+  running_test = TRUE;
   wocky_connector_connect_async (wcon, test_done, (gpointer)test);
+  /* race condition here: wocky_connector_connect_async can return
+     control to test_done before we start the mainloop, hence this
+     running_test check */
 
-  g_main_loop_run (mainloop);
+  if (running_test)
+    g_main_loop_run (mainloop);
 
   if (test->result.domain == NULL)
     {
