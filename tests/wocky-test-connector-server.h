@@ -33,6 +33,7 @@ typedef enum {
   CONNECTOR_PROBLEM_BAD_XMPP    = 0x1,
   CONNECTOR_PROBLEM_NO_TLS      = 0x1 << 1,
   CONNECTOR_PROBLEM_TLS_REFUSED = 0x1 << 2,
+  CONNECTOR_PROBLEM_FEATURES    = 0x1 << 3,
 } ConnectorProblem;
 
 
@@ -70,6 +71,7 @@ TestConnectorServer * test_connector_server_new (GIOStream *stream,
     gchar *mech,
     const gchar *user,
     const gchar *pass,
+    const gchar *version,
     ConnectorProblem problem,
     ServerProblem sasl_problem);
 

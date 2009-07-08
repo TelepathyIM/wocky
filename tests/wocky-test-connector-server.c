@@ -85,6 +85,7 @@ struct _TestConnectorServerPrivate
   gchar *mech;
   gchar *user;
   gchar *pass;
+  gchar *version;
 
   GTLSSession *tls_sess;
   GTLSConnection *tls_conn;
@@ -133,6 +134,7 @@ test_connector_server_finalise (GObject *object)
   g_free (priv->mech);
   g_free (priv->user);
   g_free (priv->pass);
+  g_free (priv->version);
 
   G_OBJECT_CLASS (test_connector_server_parent_class)->finalize (object);
 }
@@ -474,22 +476,29 @@ static WockyXmppStanza *
 feature_stanza (TestConnectorServer *self)
 {
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
-  WockyXmppStanza *features = wocky_xmpp_stanza_new ("features");
-  WockyXmppNode *node = features->node;
   ConnectorProblem problem = priv->problem.connector;
+  const gchar *name = NULL;
+  WockyXmppStanza *feat = NULL;
+  WockyXmppNode *node = NULL;
+
+  name = (problem & CONNECTOR_PROBLEM_FEATURES) ? "badger" : "features";
+  feat = wocky_xmpp_stanza_new (name);
+  node = feat->node;
+
+  DEBUG ("constructing <%s...>... stanza\n", name);
   wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STREAM);
 
   if (priv->problem.sasl != SERVER_PROBLEM_NO_SASL)
     {
       priv->sasl = test_sasl_auth_server_new (NULL, priv->mech,
           priv->user, priv->pass, priv->problem.sasl, FALSE);
-      test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), features);
+      test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), feat);
     }
 
   if (!(problem & CONNECTOR_PROBLEM_NO_TLS) && !priv->tls_started)
     wocky_xmpp_node_add_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS);
 
-  return features;
+  return feat;
 }
 
 static void
@@ -545,8 +554,8 @@ xmpp_init (GObject *source,
       priv->state = SERVER_STATE_SERVER_OPENED;
       wocky_xmpp_connection_recv_open_finish (conn, result,
           NULL, NULL, NULL, NULL, NULL);
-      wocky_xmpp_connection_send_open_async (conn, NULL, "testserver", "1.0",
-          NULL, NULL, xmpp_init, self);
+      wocky_xmpp_connection_send_open_async (conn, NULL, "testserver",
+          priv->version, NULL, NULL, xmpp_init, self);
       break;
 
       /* send our feature set */
@@ -580,6 +589,7 @@ test_connector_server_new (GIOStream *stream,
     gchar *mech,
     const gchar *user,
     const gchar *pass,
+    const gchar *version,
     ConnectorProblem problem,
     ServerProblem sasl_problem)
 {
@@ -598,6 +608,7 @@ test_connector_server_new (GIOStream *stream,
   priv->problem.sasl      = sasl_problem;
   priv->problem.connector = problem;
   priv->conn   = wocky_xmpp_connection_new (stream);
+  priv->version = g_strdup ((version == NULL) ? "1.0" : version);
 
   return self;
 }
