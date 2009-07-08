@@ -58,6 +58,8 @@ struct _iq_handler {
 
 static void xmpp_init (GObject *source, GAsyncResult *result, gpointer data);
 static void starttls (GObject *source, GAsyncResult *result, gpointer data);
+static void finished (GObject *source, GAsyncResult *, gpointer data);
+static void quit (GObject *source, GAsyncResult *result, gpointer data);
 
 /* ************************************************************************* */
 /* test connector server object definition */
@@ -275,25 +277,64 @@ handle_starttls (TestConnectorServer *self,
   if (!priv->tls_started)
     {
       WockyXmppConnection *conn = priv->conn;
-      WockyXmppStanza *proceed = wocky_xmpp_stanza_new ("proceed");
-      wocky_xmpp_node_set_ns (proceed->node, WOCKY_XMPP_NS_TLS);
+      ConnectorProblem problem = priv->problem.connector;
+      WockyXmppStanza *reply = NULL;
 
-      /* set up the tls server session */
-      /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
-       * gnutls_global_set_log_level (10); */
-      priv->tls_sess = g_tls_session_server_new (priv->stream,
-          1024,
-          TLS_SERVER_KEY_FILE,
-          TLS_SERVER_CRT_FILE,
-          TLS_CA_CRT_FILE,
-          NULL);
+      if (problem & CONNECTOR_PROBLEM_TLS_REFUSED)
+        {
+          reply = wocky_xmpp_stanza_new ("failure");
+          wocky_xmpp_node_set_ns (reply->node, WOCKY_XMPP_NS_TLS);
 
-      wocky_xmpp_connection_send_stanza_async (conn, proceed, NULL, starttls,
-          self);
-      g_object_unref (proceed);
+          wocky_xmpp_connection_send_stanza_async (conn, reply, NULL,
+              finished, self);
+        }
+      else
+        {
+          reply = wocky_xmpp_stanza_new ("proceed");
+          wocky_xmpp_node_set_ns (reply->node, WOCKY_XMPP_NS_TLS);
+
+          /* set up the tls server session */
+          /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
+           * gnutls_global_set_log_level (10); */
+          priv->tls_sess = g_tls_session_server_new (priv->stream,
+              1024,
+              TLS_SERVER_KEY_FILE,
+              TLS_SERVER_CRT_FILE,
+              TLS_CA_CRT_FILE,
+              NULL);
+
+          wocky_xmpp_connection_send_stanza_async (conn, reply, NULL,
+              starttls, self);
+        }
+      g_object_unref (reply);
     }
   g_object_unref (xml);
 }
+
+static void
+finished (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  wocky_xmpp_connection_send_close_async (priv->conn, NULL, quit, data);
+}
+
+static void
+quit (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  GError *error = NULL;
+
+  wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
+  g_object_unref (self);
+  exit (0);
+}
+
 
 static void
 starttls (GObject *source,
@@ -445,7 +486,7 @@ feature_stanza (TestConnectorServer *self)
       test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), features);
     }
 
-  if ((problem != CONNECTOR_PROBLEM_NO_TLS) && !priv->tls_started)
+  if (!(problem & CONNECTOR_PROBLEM_NO_TLS) && !priv->tls_started)
     wocky_xmpp_node_add_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS);
 
   return features;
