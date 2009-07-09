@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <unistd.h>
 #include <glib.h>
 #include <gio/gnio.h>
 
@@ -402,12 +402,13 @@ handle_starttls (TestConnectorServer *self,
           /* set up the tls server session */
           /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
            * gnutls_global_set_log_level (10); */
-          priv->tls_sess = g_tls_session_server_new (priv->stream,
-              1024,
-              TLS_SERVER_KEY_FILE,
-              TLS_SERVER_CRT_FILE,
-              TLS_CA_CRT_FILE,
-              NULL);
+          if (priv->problem.connector & CONNECTOR_PROBLEM_DIE_TLS_NEG)
+            priv->tls_sess = g_tls_session_server_new (priv->stream,
+                1024, NULL, NULL, NULL, NULL);
+          else
+            priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
+                TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE,
+                NULL);
 
           wocky_xmpp_connection_send_stanza_async (conn, reply, NULL,
               starttls, self);
@@ -458,12 +459,12 @@ starttls (GObject *source,
       return;
     }
 
-  /* begin TLS handshake */
   priv->tls_conn = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+
   if (priv->tls_conn == NULL)
     {
       g_error ("TLS Server Setup failed: %s\n", error->message);
-      return;
+      exit (0);
     }
 
   priv->state = SERVER_STATE_START;
@@ -651,6 +652,11 @@ xmpp_init (GObject *source,
       DEBUG ("SERVER_STATE_START\n");
       priv->state = SERVER_STATE_CLIENT_OPENED;
       wocky_xmpp_connection_recv_open_async (conn, NULL, xmpp_init, self);
+      if (priv->problem.connector & CONNECTOR_PROBLEM_DIE_SERVER_START)
+        {
+          sleep (1);
+          exit (0);
+        }
       break;
 
       /* send our own <stream:stream… */
@@ -661,6 +667,11 @@ xmpp_init (GObject *source,
           NULL, NULL, NULL, NULL, NULL);
       wocky_xmpp_connection_send_open_async (conn, NULL, "testserver",
           priv->version, NULL, NULL, xmpp_init, self);
+      if (priv->problem.connector & CONNECTOR_PROBLEM_DIE_CLIENT_OPEN)
+        {
+          sleep (1);
+          exit (0);
+        }
       break;
 
       /* send our feature set */
@@ -671,6 +682,11 @@ xmpp_init (GObject *source,
       xml = feature_stanza (self);
       wocky_xmpp_connection_send_stanza_async (conn, xml,
           NULL, xmpp_init, self);
+      if (priv->problem.connector & CONNECTOR_PROBLEM_DIE_SERVER_OPEN)
+        {
+          sleep (1);
+          exit (0);
+        }
       g_object_unref (xml);
       break;
 
@@ -679,6 +695,11 @@ xmpp_init (GObject *source,
       DEBUG ("SERVER_STATE_FEATURES_SENT\n");
       wocky_xmpp_connection_send_stanza_finish (conn, result, NULL);
       wocky_xmpp_connection_recv_stanza_async (conn, NULL, xmpp_handler, self);
+      if (priv->problem.connector & CONNECTOR_PROBLEM_DIE_FEATURES)
+        {
+          sleep (1);
+          exit (0);
+        }
       break;
 
     default:
