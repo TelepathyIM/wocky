@@ -36,6 +36,8 @@
 #define DOMAIN_GIO  "g-io-error-quark"
 #define DOMAIN_RES  "g-resolver-error-quark"
 
+#define CONNECTOR_INTERNALS_TEST "/connector/basic/internals"
+
 gboolean running_test = FALSE;
 static GError *error = NULL;
 static GResolver *original;
@@ -83,6 +85,17 @@ test_t tests[] =
       { TLS_REQUIRED,
         { BARE_JID, PASSWORD, MUST_BE_SECURE, MUST_BE_DIGEST_AUTH },
         { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } } }, */
+#if 1
+    { CONNECTOR_INTERNALS_TEST,
+      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0 } } },
 
     { "/connector/basic/noserv/nohost/noport",
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -811,10 +824,75 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    { "/connector/problem/xmpp/session/none",
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_SESSION },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* WOCKY_CONNECTOR_ERROR_SESSION_FAILED   */
+    { "/connector/problem/xmpp/session/failed",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_FAILED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* WOCKY_CONNECTOR_ERROR_SESSION_DENIED   */
+    { "/connector/problem/xmpp/session/denied",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_DENIED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_DENIED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT */
+    { "/connector/problem/xmpp/session/conflict",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_CONFLICT },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     /* WOCKY_CONNECTOR_ERROR_SESSION_REJECTED */
+    { "/connector/problem/xmpp/session/rejected",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_REJECTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_REJECTED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+#endif
+    { "/connector/problem/xmpp/session/nonsense",
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_NONSENSE },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
 
     /* we are done, cap the list: */
     { NULL }
@@ -952,6 +1030,7 @@ test_done (GObject *source,
   WockyConnector *wcon = WOCKY_CONNECTOR (source);
   WockyXmppConnection *conn = NULL;
 
+  error = NULL;
   conn = wocky_connector_connect_finish (wcon, res, &error, &jid);
   if (conn != NULL)
     test->result.xmpp = g_object_ref (conn);
@@ -991,10 +1070,10 @@ run_test (gpointer data)
 
   running_test = TRUE;
   wocky_connector_connect_async (wcon, test_done, (gpointer)test);
+
   /* race condition here: wocky_connector_connect_async can return
      control to test_done before we start the mainloop, hence this
      running_test check */
-
   if (running_test)
     g_main_loop_run (mainloop);
 
@@ -1007,15 +1086,71 @@ run_test (gpointer data)
             error->message);
       g_assert (error == NULL);
       g_assert (test->result.xmpp != NULL);
+
+      /* make sure we selected the right auth mechanism */
       if (test->result.mech < WOCKY_SASL_AUTH_NR_MECHANISMS)
         {
           WockySaslAuthMechanism mech = wocky_connector_auth_mechanism (wcon);
           g_assert (test->result.mech == mech);
         }
+
+      /* property get/set functionality */
+      if (!strcmp (test->desc, CONNECTOR_INTERNALS_TEST))
+        {
+          int i;
+          gchar *identity = NULL;
+          WockyConnector *tmp = wocky_connector_new ("foo@bar.org","abc","xyz");
+          WockyXmppStanza *feat = NULL;
+          const gchar *prop = NULL;
+          const gchar *str_prop[] = { "jid", "password", "xmpp-server", NULL };
+          const gchar *str_vals[] = { "abc", "PASSWORD", "xmpp.server", NULL };
+          const gchar *boolprop[] = { "ignore-ssl-errors",
+                                      "plaintext-auth-allowed",
+                                      "encrypted-plain-auth-ok",
+                                      "tls-required",
+                                      NULL };
+
+          g_object_get (wcon, "identity", &identity, "features", &feat, NULL);
+          g_assert (identity != NULL);
+          g_assert (*identity |= '\0');
+          g_assert (feat != NULL);
+          g_assert (G_OBJECT_TYPE (feat) == WOCKY_TYPE_XMPP_STANZA);
+
+          g_object_get (wcon, "resource", &identity, NULL);
+          g_assert (identity != NULL);
+          g_assert (*identity |= '\0');
+
+          for(i = 0, prop = str_prop[0]; prop; prop = str_prop[++i])
+            {
+              gchar *val = NULL;
+              g_object_set (tmp, prop, str_vals[i], NULL);
+              g_object_get (tmp, prop, &val, NULL);
+              g_assert (!strcmp (val, str_vals[i]));
+              g_assert (val != str_vals[i]);
+            }
+
+          for(i = 0, prop = boolprop[0]; prop; prop = boolprop[++i])
+            {
+              gboolean val;
+              g_object_set (tmp, prop, TRUE, NULL);
+              g_object_get (tmp, prop, &val, NULL);
+              g_assert (val);
+              g_object_set (tmp, prop, FALSE, NULL);
+              g_object_get (tmp, prop, &val, NULL);
+              g_assert (!val);
+            }
+
+          g_object_set (tmp, "xmpp-port", 31415, NULL);
+          g_object_get (tmp, "xmpp-port", &i, NULL);
+          g_assert (i == 31415);
+
+          g_object_unref (tmp);
+        }
     }
   else
     {
-      GQuark domain = g_quark_from_string (test->result.domain);
+      GQuark domain = 0;
+      domain = g_quark_from_string (test->result.domain);
       if (!g_error_matches (error, domain, test->result.code))
         fprintf (stderr, "ERROR: %s.%d: %s\n",
             g_quark_to_string (error->domain),
