@@ -31,8 +31,10 @@
 #define PORT_NONE 0
 
 #define DOMAIN_NONE NULL
+#define DOMAIN_ANY  "*any*"
 #define DOMAIN_SASL "wocky_sasl_auth_error"
 #define DOMAIN_CONN "wocky-connector-error"
+#define DOMAIN_XCON "wocky-xmpp-connection-error"
 #define DOMAIN_GIO  "g-io-error-quark"
 #define DOMAIN_RES  "g-resolver-error-quark"
 
@@ -813,7 +815,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     /* WOCKY_CONNECTOR_ERROR_BIND_FAILED    */
-    { "/connector/problem/xmpp/bind/rejected",
+    { "/connector/problem/xmpp/bind/failed",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_FAILED },
@@ -887,6 +889,61 @@ test_t tests[] =
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_NONSENSE },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/econnreset/server-start",
+      { DOMAIN_ANY, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_SERVER_START },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/econnreset/client-open",
+      { DOMAIN_ANY, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_CLIENT_OPEN },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/econnreset/server-open",
+      { DOMAIN_ANY, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_SERVER_OPEN },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/econnreset/features",
+      { DOMAIN_ANY, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_FEATURES },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/econnreset/tls-negotiate",
+      { DOMAIN_ANY, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_TLS_NEG },
         { "moose", "something" },
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
@@ -1120,7 +1177,7 @@ run_test (gpointer data)
           g_assert (identity != NULL);
           g_assert (*identity |= '\0');
 
-          for(i = 0, prop = str_prop[0]; prop; prop = str_prop[++i])
+          for (i = 0, prop = str_prop[0]; prop; prop = str_prop[++i])
             {
               gchar *val = NULL;
               g_object_set (tmp, prop, str_vals[i], NULL);
@@ -1129,7 +1186,7 @@ run_test (gpointer data)
               g_assert (val != str_vals[i]);
             }
 
-          for(i = 0, prop = boolprop[0]; prop; prop = boolprop[++i])
+          for (i = 0, prop = boolprop[0]; prop; prop = boolprop[++i])
             {
               gboolean val;
               g_object_set (tmp, prop, TRUE, NULL);
@@ -1146,6 +1203,10 @@ run_test (gpointer data)
 
           g_object_unref (tmp);
         }
+    }
+  else if (!strcmp (test->result.domain, DOMAIN_ANY))
+    {
+      g_assert (test->result.xmpp == NULL);
     }
   else
     {
