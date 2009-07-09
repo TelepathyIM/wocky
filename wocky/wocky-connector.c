@@ -345,9 +345,6 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->xmpp_host);
         priv->xmpp_host = g_value_dup_string (value);
         break;
-      case PROP_IDENTITY:
-        g_free (priv->identity);
-        priv->identity = g_value_dup_string (value);
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -397,6 +394,7 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_FEATURES:
         g_value_set_object (value, priv->features);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -508,6 +506,7 @@ wocky_connector_finalize (GObject *object)
   GFREE_AND_FORGET (priv->resource);
   GFREE_AND_FORGET (priv->identity);
   GFREE_AND_FORGET (priv->xmpp_host);
+  GFREE_AND_FORGET (priv->pass);
 
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
@@ -828,6 +827,8 @@ starttls_recv_cb (GObject *source,
         }
 
       priv->encrypted = TRUE;
+      /* throw away the old connection object, we're in TLS land now */
+      g_object_unref (priv->conn);
       priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
       xmpp_init (self, FALSE);
     }
@@ -893,10 +894,11 @@ static void
 iq_bind_resource (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  gchar *id = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq =
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
         NULL, NULL,
-        WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (priv->conn),
+        WOCKY_NODE_ATTRIBUTE, "id", id,
         WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
         WOCKY_NODE_END,
         WOCKY_STANZA_END);
@@ -912,6 +914,7 @@ iq_bind_resource (WockyConnector *self)
   DEBUG ("sending bind iq set stanza");
   wocky_xmpp_connection_send_stanza_async (priv->conn, iq, NULL,
       iq_bind_resource_sent_cb, self);
+  g_free (id);
   g_object_unref (iq);
 }
 
@@ -1004,7 +1007,7 @@ iq_bind_resource_recv_cb (GObject *source,
         if ((node != NULL) && (node->content != NULL) && *(node->content))
           priv->identity = g_strdup (node->content);
         else
-          priv->identity = priv->jid;
+          priv->identity = g_strdup (priv->jid);
 
         priv->state = WCON_XMPP_BOUND;
         establish_session (self);
@@ -1034,17 +1037,19 @@ establish_session (WockyConnector *self)
       wocky_xmpp_node_get_child_ns (feat, "session", WOCKY_XMPP_NS_SESSION))
     {
       WockyXmppConnection *conn = priv->conn;
+      gchar *id = wocky_xmpp_connection_new_id (conn);
       WockyXmppStanza *session =
         wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
             WOCKY_STANZA_SUB_TYPE_SET,
             NULL, NULL,
-            WOCKY_NODE_ATTRIBUTE, "id", wocky_xmpp_connection_new_id (conn),
+            WOCKY_NODE_ATTRIBUTE, "id", id,
             WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
             WOCKY_NODE_END,
             WOCKY_STANZA_END);
       wocky_xmpp_connection_send_stanza_async (conn, session, NULL,
           establish_session_sent_cb, self);
       g_object_unref (session);
+      g_free (id);
     }
   else
     g_simple_async_result_complete (priv->result);
@@ -1251,11 +1256,10 @@ wocky_connector_new (const gchar *jid,
     const gchar *pass,
     const gchar *resource)
 {
-  return
-    g_object_new (WOCKY_TYPE_CONNECTOR,
-        "jid", jid,
-        "password", pass,
-        "resource", resource,
-        NULL);
+  return g_object_new (WOCKY_TYPE_CONNECTOR,
+      "jid", jid,
+      "password", pass,
+      "resource", resource,
+      NULL);
 }
 
