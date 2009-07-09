@@ -213,6 +213,7 @@ iq_set_bind (TestConnectorServer *self,
   WockyXmppStanza *iq = NULL;
   ConnectorProblem problems = priv->problem.connector;
   ConnectorProblem pr = CONNECTOR_PROBLEM_NO_PROBLEM;
+
   if ((pr = problems & CONNECTOR_PROBLEM_BIND_INVALID)  ||
       (pr = problems & CONNECTOR_PROBLEM_BIND_DENIED)   ||
       (pr = problems & CONNECTOR_PROBLEM_BIND_CONFLICT) ||
@@ -278,13 +279,66 @@ iq_set_session (TestConnectorServer *self,
 {
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   WockyXmppConnection *conn = priv->conn;
-  WockyXmppStanza *iq =
-    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-        WOCKY_STANZA_SUB_TYPE_RESULT,
-        NULL, NULL,
-        WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
-        WOCKY_NODE_END,
-        WOCKY_STANZA_END);
+  WockyXmppStanza *iq = NULL;
+  ConnectorProblem problems = priv->problem.connector;
+  ConnectorProblem pr = CONNECTOR_PROBLEM_NO_PROBLEM;
+
+  if ((pr = problems & CONNECTOR_PROBLEM_SESSION_FAILED)   ||
+      (pr = problems & CONNECTOR_PROBLEM_SESSION_DENIED)   ||
+      (pr = problems & CONNECTOR_PROBLEM_SESSION_CONFLICT) ||
+      (pr = problems & CONNECTOR_PROBLEM_SESSION_REJECTED))
+    {
+      const gchar *error = NULL;
+      const gchar *etype = NULL;
+      switch (pr)
+        {
+        case CONNECTOR_PROBLEM_SESSION_FAILED:
+          error = "internal-server-error";
+          etype = "wait";
+          break;
+        case CONNECTOR_PROBLEM_SESSION_DENIED:
+          error = "forbidden";
+          etype = "auth";
+          break;
+        case CONNECTOR_PROBLEM_SESSION_CONFLICT:
+          error = "conflict";
+          etype = "cancel";
+          break;
+        default:
+          error = "snaaaaake";
+          etype = "mushroom";
+          break;
+        }
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+          WOCKY_STANZA_SUB_TYPE_ERROR,
+          NULL, NULL,
+          WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", etype,
+          WOCKY_NODE, error, WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+    }
+  else if (problems & CONNECTOR_PROBLEM_SESSION_NONSENSE)
+    {
+      /* deliberately nonsensical response */
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+          WOCKY_STANZA_SUB_TYPE_SET,
+          NULL, NULL,
+          WOCKY_NODE, "surstromming", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+          WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+    }
+  else
+    {
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+          WOCKY_STANZA_SUB_TYPE_RESULT,
+          NULL, NULL,
+          WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
+          WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+    }
+
   wocky_xmpp_connection_send_stanza_async (conn, iq, NULL, iq_sent, self);
   g_object_unref (xml);
   g_object_unref (iq);
@@ -494,6 +548,7 @@ after_auth (GObject *source,
 {
   GError *error = NULL;
   WockyXmppStanza *feat = NULL;
+  WockyXmppNode *node = NULL;
   TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (source);
   TestConnectorServer *tcs = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (tcs);
@@ -505,26 +560,14 @@ after_auth (GObject *source,
       return;
     }
 
-  if (priv->problem.connector & CONNECTOR_PROBLEM_CANNOT_BIND)
-    {
-      feat = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_FEATURES,
-          WOCKY_STANZA_SUB_TYPE_NONE,
-          NULL, NULL,
-          WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
-          WOCKY_NODE_END,
-          WOCKY_STANZA_END);
-    }
-  else
-    {
-      feat = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_FEATURES,
-          WOCKY_STANZA_SUB_TYPE_NONE,
-          NULL, NULL,
-          WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
-          WOCKY_NODE_END,
-          WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
-          WOCKY_NODE_END,
-          WOCKY_STANZA_END);
-    }
+  feat = wocky_xmpp_stanza_new ("stream:features");
+  node = feat->node;
+
+  if (!(priv->problem.connector & CONNECTOR_PROBLEM_NO_SESSION))
+    wocky_xmpp_node_add_child_ns (node, "session", WOCKY_XMPP_NS_SESSION);
+
+  if (!(priv->problem.connector & CONNECTOR_PROBLEM_CANNOT_BIND))
+    wocky_xmpp_node_add_child_ns (node, "bind", WOCKY_XMPP_NS_BIND);
 
   priv->state = SERVER_STATE_FEATURES_SENT;
   wocky_xmpp_connection_send_stanza_async (conn, feat, NULL, xmpp_init, data);
