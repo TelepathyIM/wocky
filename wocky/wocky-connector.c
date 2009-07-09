@@ -652,7 +652,8 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
-  DEBUG ("received XMPP v%s stream open from server", version);
+  DEBUG ("%s: received XMPP v%s stream open from server",
+      state_message(priv, ""), version);
 
   if (wocky_strdiff (version, "1.0"))
     {
