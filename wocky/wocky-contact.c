@@ -46,7 +46,10 @@ G_DEFINE_TYPE (WockyContact, wocky_contact, G_TYPE_OBJECT)
 /* properties */
 enum
 {
-  PROP_CONNECTION = 1,
+  PROP_JID = 1,
+  PROP_NAME,
+  PROP_SUBSCRIPTION,
+  PROP_GROUPS,
 };
 
 /* signal enum */
@@ -66,7 +69,10 @@ struct _WockyContactPrivate
 {
   gboolean dispose_has_run;
 
-  GHashTable *resources;
+  gchar *jid;
+  gchar *name;
+  WockyRosterSubscriptionType subscription;
+  gchar **groups;
 };
 
 #define WOCKY_CONTACT_GET_PRIVATE(o)  \
@@ -88,16 +94,27 @@ wocky_contact_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  /*
   WockyContactPrivate *priv =
-      WOCKY_CONTACT_GET_PRIVATE (connection);
-  */
+      WOCKY_CONTACT_GET_PRIVATE (object);
 
   switch (property_id)
     {
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
+    case PROP_JID:
+      priv->jid = g_value_dup_string (value);
+      break;
+    case PROP_NAME:
+      wocky_contact_set_name (WOCKY_CONTACT (object),
+          g_value_get_string (value), NULL);
+      break;
+    case PROP_SUBSCRIPTION:
+      priv->subscription = g_value_get_uint (value);
+      break;
+    case PROP_GROUPS:
+      priv->groups = g_value_get_boxed (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
     }
 }
 
@@ -107,26 +124,36 @@ wocky_contact_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  /*
   WockyContactPrivate *priv =
-      WOCKY_CONTACT_GET_PRIVATE (connection);
-  */
+      WOCKY_CONTACT_GET_PRIVATE (object);
 
   switch (property_id)
     {
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
+    case PROP_JID:
+      g_value_set_string (value, priv->jid);
+      break;
+    case PROP_NAME:
+      g_value_set_string (value, priv->name);
+      break;
+    case PROP_SUBSCRIPTION:
+      g_value_set_uint (value, priv->subscription);
+      break;
+    case PROP_GROUPS:
+      g_value_set_boxed (value, priv->groups);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
     }
 }
 
 static void
 wocky_contact_constructed (GObject *object)
 {
+  /*
   WockyContact *self = WOCKY_CONTACT (object);
   WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
-
-  priv->resources = g_hash_table_new (g_str_hash, g_str_equal);
+  */
 }
 
 static void
@@ -147,10 +174,10 @@ wocky_contact_dispose (GObject *object)
 static void
 wocky_contact_finalize (GObject *object)
 {
+  /*
   WockyContact *self = WOCKY_CONTACT (object);
   WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
-
-  g_hash_table_destroy (priv->resources);
+  */
 
   G_OBJECT_CLASS (wocky_contact_parent_class)->finalize (object);
 }
@@ -159,6 +186,7 @@ static void
 wocky_contact_class_init (WockyContactClass *wocky_contact_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_contact_class);
+  GParamSpec *spec;
 
   g_type_class_add_private (wocky_contact_class,
       sizeof (WockyContactPrivate));
@@ -168,17 +196,42 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
   object_class->get_property = wocky_contact_get_property;
   object_class->dispose = wocky_contact_dispose;
   object_class->finalize = wocky_contact_finalize;
+
+  spec = g_param_spec_string ("jid", "Contact JID",
+      "Contact JID",
+      "",
+      G_PARAM_READWRITE |
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_JID, spec);
+
+  spec = g_param_spec_string ("name", "Contact Name",
+      "Contact Name",
+      "",
+      G_PARAM_READWRITE |
+      G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_NAME, spec);
+
+  spec = g_param_spec_uint ("subscription", "Contact Subscription",
+      "Contact Subscription",
+      1,
+      LAST_WOCKY_ROSTER_SUBSCRIPTION_TYPE,
+      1,
+      G_PARAM_READWRITE |
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_SUBSCRIPTION, spec);
+
+  spec = g_param_spec_boxed ("groups", "Contact Groups",
+      "Contact Groups",
+      G_TYPE_STRV,
+      G_PARAM_READWRITE |
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_GROUPS, spec);
 }
 
-/**
- * wocky_contact_new:
- *
- * TODO
- *
- * Returns: a new #WockyContact.
- */
-WockyContact *
-wocky_contact_new (void)
+gboolean
+wocky_contact_set_name (WockyContact *contact,
+    const gchar *name,
+    GError **error)
 {
-  return g_object_new (WOCKY_TYPE_CONTACT, NULL);
+  return TRUE;
 }

@@ -23,6 +23,8 @@
 
 #include <glib-object.h>
 
+#include "wocky-roster.h"
+
 G_BEGIN_DECLS
 
 typedef struct _WockyContact WockyContact;
@@ -56,16 +58,19 @@ GType wocky_contact_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONTACT, \
    WockyContactClass))
 
-WockyContact * wocky_contact_new (void);
-
-gboolean wocky_contact_get_subscription (WockyContact *contact);
-
-gboolean wocky_contact_set_blocked (WockyContact *contact);
+const gchar *wocky_contact_get_jid (WockyContact *contact);
 
 const gchar *wocky_contact_get_name (WockyContact *contact);
 
 gboolean wocky_contact_set_name (WockyContact *contact,
     const gchar *name, GError **error);
+
+WockyRosterSubscriptionType wocky_contact_get_subscription (
+    WockyContact *contact);
+
+const gchar * const *wocky_contact_get_groups (WockyContact *contact);
+
+gboolean wocky_contact_set_blocked (WockyContact *contact);
 
 G_END_DECLS
 
