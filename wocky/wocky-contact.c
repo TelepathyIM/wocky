@@ -174,10 +174,17 @@ wocky_contact_dispose (GObject *object)
 static void
 wocky_contact_finalize (GObject *object)
 {
-  /*
   WockyContact *self = WOCKY_CONTACT (object);
   WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
-  */
+
+  if (priv->jid != NULL)
+    g_free (priv->jid);
+
+  if (priv->name != NULL)
+    g_free (priv->name);
+
+  if (priv->groups != NULL)
+    g_strfreev (priv->groups);
 
   G_OBJECT_CLASS (wocky_contact_parent_class)->finalize (object);
 }
