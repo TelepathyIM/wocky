@@ -159,6 +159,7 @@ roster_update (WockyRoster *self,
   WockyXmppNode *query_node;
   GSList *j;
 
+  /* Check for google roster support */
   if (FALSE /* can support google */)
     {
       const gchar *gr_ext;
@@ -169,6 +170,7 @@ roster_update (WockyRoster *self,
         google_roster = TRUE;
     }
 
+  /* Check stanza contains query node. */
   query_node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
       WOCKY_XMPP_NS_ROSTER);
 
@@ -181,11 +183,16 @@ roster_update (WockyRoster *self,
       return FALSE;
     }
 
+  /* Iterate through item nodes. */
   for (j = query_node->children; j; j = j->next)
     {
       const gchar *jid;
       WockyXmppNode *n = (WockyXmppNode *) j->data;
       WockyContact *contact = NULL;
+      const gchar *subscription;
+      WockyRosterSubscriptionType subscription_type;
+      WockyXmppNode *group_node;
+      gchar **groups = { NULL };
 
       if (wocky_strdiff (n->name, "item"))
         {
@@ -207,50 +214,54 @@ roster_update (WockyRoster *self,
           continue;
         }
 
+      /* Parse item. */
+      subscription = wocky_xmpp_node_get_attribute (n, "subscription");
+
+      if (!wocky_strdiff (subscription, "to"))
+        subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO;
+      else if (!wocky_strdiff (subscription, "from"))
+        subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM;
+      else if (!wocky_strdiff (subscription, "both"))
+        subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH;
+      else
+        subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE;
+
+      group_node = wocky_xmpp_node_get_child (n, "group");
+
+      if (group_node != NULL)
+        {
+          GSList *tmp;
+          guint i = 0;
+
+          i = g_slist_length (group_node->children) + 1;
+
+          groups = g_slice_alloc0 (sizeof (gchar *) *  i);
+
+          for (i = 0, tmp = group_node->children; tmp; tmp = tmp->next)
+            {
+              groups[i++] = g_strdup (
+                  ((WockyXmppNode *) tmp->data)->content);
+            }
+
+          groups[i] = NULL;
+        }
+
       contact = g_hash_table_lookup (priv->items, jid);
 
       if (contact != NULL)
         {
-          /* update */
+          /* Contact already exists; update. */
+          wocky_contact_set_name (contact,
+              wocky_xmpp_node_get_attribute (n, "name"), NULL);
+
+          wocky_contact_set_subscription (contact,
+              subscription_type, NULL);
+
+          wocky_contact_set_groups (contact, groups, NULL);
         }
       else
         {
-          const gchar *subscription;
-          WockyRosterSubscriptionType subscription_type;
-          WockyXmppNode *group_node;
-          gchar **groups = { NULL };
-
-          subscription = wocky_xmpp_node_get_attribute (n, "subscription");
-
-          if (!wocky_strdiff (subscription, "to"))
-            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO;
-          else if (!wocky_strdiff (subscription, "from"))
-            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM;
-          else if (!wocky_strdiff (subscription, "both"))
-            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH;
-          else
-            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE;
-
-          group_node = wocky_xmpp_node_get_child (n, "group");
-
-          if (group_node != NULL)
-            {
-              GSList *tmp;
-              guint i = 0;
-
-              i = g_slist_length (group_node->children) + 1;
-
-              groups = g_slice_alloc0 (sizeof (gchar *) *  i);
-
-              for (i = 0, tmp = group_node->children; tmp; tmp = tmp->next)
-                {
-                  groups[i++] = g_strdup (
-                      ((WockyXmppNode *) tmp->data)->content);
-                }
-
-              groups[i] = NULL;
-            }
-
+          /* Create a new contact. */
           contact = g_object_new (WOCKY_TYPE_CONTACT,
               "jid", jid,
               "name", wocky_xmpp_node_get_attribute (n, "name"),
