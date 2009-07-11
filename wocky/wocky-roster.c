@@ -26,9 +26,13 @@
  * TODO
  */
 
+#include <string.h>
+
 #include <gio/gio.h>
 
 #include "wocky-roster.h"
+
+#include "wocky-contact.h"
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-stanza.h"
 #include "wocky-utils.h"
@@ -145,11 +149,15 @@ wocky_roster_get_property (GObject *object,
     }
 }
 
-static void
+static gboolean
 roster_update (WockyRoster *self,
-    WockyXmppStanza *stanza)
+    WockyXmppStanza *stanza,
+    GError **error)
 {
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
   gboolean google_roster = FALSE;
+  WockyXmppNode *query_node;
+  GSList *j;
 
   if (FALSE /* can support google */)
     {
@@ -160,6 +168,102 @@ roster_update (WockyRoster *self,
       if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
         google_roster = TRUE;
     }
+
+  query_node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
+      WOCKY_XMPP_NS_ROSTER);
+
+  if (query_node == NULL)
+    {
+      *error = g_error_new_literal (WOCKY_ROSTER_ERROR,
+          WOCKY_ROSTER_INVALID_STANZA,
+          "IQ does not have query node");
+
+      return FALSE;
+    }
+
+  for (j = query_node->children; j; j = j->next)
+    {
+      const gchar *jid;
+      WockyXmppNode *n = (WockyXmppNode *) j->data;
+      WockyContact *contact = NULL;
+
+      if (wocky_strdiff (n->name, "item"))
+        {
+          DEBUG ("Node %s is not item, skipping", n->name);
+          continue;
+        }
+
+      jid = wocky_xmpp_node_get_attribute (n, "jid");
+
+      if (jid == NULL)
+        {
+          DEBUG ("Node %s has no jid attribute, skipping", n->name);
+          continue;
+        }
+
+      if (strchr (jid, '/') != NULL)
+        {
+          DEBUG ("Item node has resource in jid, skipping");
+          continue;
+        }
+
+      contact = g_hash_table_lookup (priv->items, jid);
+
+      if (contact != NULL)
+        {
+          /* update */
+        }
+      else
+        {
+          const gchar *subscription;
+          WockyRosterSubscriptionType subscription_type;
+          WockyXmppNode *group_node;
+          gchar **groups = { NULL };
+
+          subscription = wocky_xmpp_node_get_attribute (n, "subscription");
+
+          if (!wocky_strdiff (subscription, "to"))
+            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO;
+          else if (!wocky_strdiff (subscription, "from"))
+            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM;
+          else if (!wocky_strdiff (subscription, "both"))
+            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH;
+          else
+            subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE;
+
+          group_node = wocky_xmpp_node_get_child (n, "group");
+
+          if (group_node != NULL)
+            {
+              GSList *tmp;
+              guint i = 0;
+
+              i = g_slist_length (group_node->children) + 1;
+
+              groups = g_slice_alloc0 (sizeof (gchar *) *  i);
+
+              for (i = 0, tmp = group_node->children; tmp; tmp = tmp->next)
+                {
+                  groups[i++] = g_strdup (
+                      ((WockyXmppNode *) tmp->data)->content);
+                }
+
+              groups[i] = NULL;
+            }
+
+          contact = g_object_new (WOCKY_TYPE_CONTACT,
+              "jid", jid,
+              "name", wocky_xmpp_node_get_attribute (n, "name"),
+              "subscription", subscription_type,
+              "groups", groups,
+              NULL);
+
+          g_hash_table_insert (priv->items, g_strdup (jid), contact);
+        }
+
+    }
+
+  return TRUE;
 }
 
 static gboolean
@@ -169,6 +273,7 @@ roster_iq_handler_set_cb (WockyPorter *porter,
 {
   WockyRoster *self = WOCKY_ROSTER (user_data);
   const gchar *from;
+  GError *error = NULL;
 
   from = wocky_xmpp_node_get_attribute (stanza->node, "from");
 
@@ -179,7 +284,13 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       return TRUE;
     }
 
-  roster_update (self, stanza);
+  if (!roster_update (self, stanza, &error))
+    {
+      DEBUG ("Failed to update roster: %s",
+          error ? error->message : "no message");
+      g_error_free (error);
+      return TRUE;
+    }
 
   /* now ack roster */
 
@@ -192,7 +303,8 @@ wocky_roster_constructed (GObject *object)
   WockyRoster *self = WOCKY_ROSTER (object);
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
 
-  priv->items = g_hash_table_new (g_str_hash, g_str_equal);
+  priv->items = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, g_object_unref);
 
   priv->iq_cb = wocky_porter_register_handler (priv->porter,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -291,15 +403,18 @@ roster_fetch_roster_cb (GObject *source_object,
   iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
 
   if (iq == NULL)
+    goto out;
+
+  if (!roster_update (self, iq, &error))
+    goto out;
+
+out:
+  if (error != NULL)
     {
       g_simple_async_result_set_from_error (result, error);
       g_error_free (error);
-      goto out;
     }
 
-  roster_update (self, iq);
-
-out:
   g_simple_async_result_complete (result);
 }
 
