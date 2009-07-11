@@ -21,11 +21,12 @@
 /**
  * SECTION: wocky-contact
  * @title: WockyContact
- * @short_description: TODO
+ * @short_description: Wrapper around a roster item.
+ * @include: wocky/wocky-contact.h
  *
- * TODO
+ * Stores information regarding a roster item and provides a higher level API
+ * for altering its details.
  */
-
 
 #include <stdio.h>
 #include <unistd.h>
@@ -204,6 +205,11 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
   object_class->dispose = wocky_contact_dispose;
   object_class->finalize = wocky_contact_finalize;
 
+  /**
+   * WockyContact:jid:
+   *
+   * The contact's bare JID, according to the roster.
+   */
   spec = g_param_spec_string ("jid", "Contact JID",
       "Contact JID",
       "",
@@ -211,6 +217,11 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_JID, spec);
 
+  /**
+   * WockyContact:name:
+   *
+   * The contact's name, according to the roster.
+   */
   spec = g_param_spec_string ("name", "Contact Name",
       "Contact Name",
       "",
@@ -218,6 +229,11 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
       G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_NAME, spec);
 
+  /**
+   * WockyContact:subscription:
+   *
+   * The subscription type of the contact, according to the roster.
+   */
   spec = g_param_spec_uint ("subscription", "Contact Subscription",
       "Contact Subscription",
       1,
@@ -227,6 +243,11 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_SUBSCRIPTION, spec);
 
+  /**
+   * WockyContact:groups:
+   *
+   * A list of the contact's groups, according to the roster.
+   */
   spec = g_param_spec_boxed ("groups", "Contact Groups",
       "Contact Groups",
       G_TYPE_STRV,
@@ -235,10 +256,169 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
   g_object_class_install_property (object_class, PROP_GROUPS, spec);
 }
 
+/**
+ * wocky_contact_get_jid:
+ * @contact: a #WockyContact instance
+ *
+ * <!-- -->
+ *
+ * Returns: @contact's JID.
+ */
+const gchar *
+wocky_contact_get_jid (WockyContact *contact)
+{
+  WockyContactPrivate *priv;
+
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), NULL);
+
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  return priv->jid;
+}
+
+/**
+ * wocky_contact_get_name:
+ * @contact: #WockyContact instance
+ *
+ * <!-- -->
+ *
+ * Returns: @contact's name
+ */
+const gchar *
+wocky_contact_get_name (WockyContact *contact)
+{
+  WockyContactPrivate *priv;
+
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), NULL);
+
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  return priv->name;
+}
+
+/**
+ * wocky_contact_set_name:
+ * @contact: a #WockyContact instance
+ * @name: the name to set @contact
+ * @error: a #GError to fill on failure
+ *
+ * Sets @contact's name to @name.
+ *
+ * Returns: %TRUE on success, %FALSE on failure.
+ */
 gboolean
 wocky_contact_set_name (WockyContact *contact,
     const gchar *name,
     GError **error)
 {
+  WockyContactPrivate *priv;
+
+  /* TODO */
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), FALSE);
+
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  /* TODO */
+  if (priv->name != NULL)
+    g_free (priv->name);
+
+  priv->name = g_strdup (name);
+
+  return TRUE;
+}
+
+/**
+ * wocky_contact_get_subscription:
+ * @contact: a #WockyContact instance
+ *
+ * <!-- -->
+ *
+ * Returns: @contact's subscription.
+ */
+WockyRosterSubscriptionType
+wocky_contact_get_subscription (WockyContact *contact)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact),
+      WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE);
+
+  return priv->subscription;
+}
+
+/**
+ * wocky_contact_set_subscription:
+ * @contact: a #WockyContact instance
+ * @subscription: the new subscription type
+ * @error: a #GError to fill on failure
+ *
+ * Sets the subscription of @contact.
+ *
+ * Returns: %TRUE on success, %FALSE on failure.
+ */
+gboolean
+wocky_contact_set_subscription (WockyContact *contact,
+    WockyRosterSubscriptionType subscription,
+    GError **error)
+{
+  WockyContactPrivate *priv;
+
+  /* TODO */
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), FALSE);
+
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  /* TODO */
+  priv->subscription = subscription;
+
+  return TRUE;
+}
+
+/**
+ * wocky_contact_get_groups:
+ * @contact: a #WockyContact instance
+ *
+ * <!-- -->
+ *
+ * Returns: a list of @contact's groups
+ */
+const gchar * const *
+wocky_contact_get_groups (WockyContact *contact)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), NULL);
+
+  return (const gchar * const *) priv->groups;
+}
+
+/**
+ * wocky_contact_set_groups:
+ * @contact: a #WockyContact instance
+ * @groups: a list of groups
+ * @error: a #GError to fill on failure
+ *
+ * Sets @contact's groups.
+ *
+ * Returns: %TRUE on success, %FALSE on failure
+ */
+gboolean
+wocky_contact_set_groups (WockyContact *contact,
+    gchar **groups,
+    GError **error)
+{
+  WockyContactPrivate *priv;
+
+  /* TODO */
+  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), FALSE);
+
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+
+  if (priv->groups != NULL)
+    g_strfreev (priv->groups);
+
+  /* TODO */
+  priv->groups = g_strdupv (groups);
+
   return TRUE;
 }

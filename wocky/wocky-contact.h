@@ -30,8 +30,6 @@ G_BEGIN_DECLS
 typedef struct _WockyContact WockyContact;
 typedef struct _WockyContactClass WockyContactClass;
 
-GQuark wocky_contact_error_quark (void);
-
 struct _WockyContactClass {
   GObjectClass parent_class;
 };
@@ -68,9 +66,13 @@ gboolean wocky_contact_set_name (WockyContact *contact,
 WockyRosterSubscriptionType wocky_contact_get_subscription (
     WockyContact *contact);
 
+gboolean wocky_contact_set_subscription (WockyContact *contact,
+    WockyRosterSubscriptionType subscription, GError **error);
+
 const gchar * const *wocky_contact_get_groups (WockyContact *contact);
 
-gboolean wocky_contact_set_blocked (WockyContact *contact);
+gboolean wocky_contact_set_groups (WockyContact *contact,
+    gchar **groups, GError **error);
 
 G_END_DECLS
 
