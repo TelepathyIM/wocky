@@ -1193,10 +1193,14 @@ run_test (gpointer data)
           g_assert (*identity |= '\0');
           g_assert (feat != NULL);
           g_assert (G_OBJECT_TYPE (feat) == WOCKY_TYPE_XMPP_STANZA);
+          g_free (identity);
+          g_object_unref (feat);
+          identity = NULL;
 
           g_object_get (wcon, "resource", &identity, NULL);
           g_assert (identity != NULL);
           g_assert (*identity |= '\0');
+          g_free (identity);
 
           for (i = 0, prop = str_prop[0]; prop; prop = str_prop[++i])
             {
@@ -1205,6 +1209,7 @@ run_test (gpointer data)
               g_object_get (tmp, prop, &val, NULL);
               g_assert (!strcmp (val, str_vals[i]));
               g_assert (val != str_vals[i]);
+              g_free (val);
             }
 
           for (i = 0, prop = boolprop[0]; prop; prop = boolprop[++i])
