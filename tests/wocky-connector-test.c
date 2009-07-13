@@ -1059,7 +1059,7 @@ start_dummy_xmpp_server (test_t *test)
 
   /* it can take a couple of attempts before the last test run actually *
    * relinquishes the port we want                                      */
-  for (res = -1, i = 0; res != 0 && i < 3; i++)
+  for (res = -1, i = 0; res != 0 && i < 3; i++, sleep (1))
     res = bind (ssock, (struct sockaddr *)&server, sizeof (server));
 
   if (res != 0)
