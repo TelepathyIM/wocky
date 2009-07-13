@@ -7,6 +7,7 @@ CA_KEY   := $(abspath certs/ca-key.pem)
 CA_CERT  := $(abspath certs/ca-cert.pem)
 TLS_KEY  := $(abspath certs/tls-key.pem)
 TLS_CERT := $(abspath certs/tls-cert.pem)
+LIBWOCKY := $(top_builddir)/wocky/libwocky.la
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
@@ -24,18 +25,21 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-stanza-test \
   wocky-connector-test
 
+wocky_xmpp_connection_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_connection_test_SOURCES = \
   wocky-xmpp-connection-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
+wocky_xmpp_readwrite_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_readwrite_test_SOURCES = \
   wocky-xmpp-readwrite-test.c
 
+wocky_xmpp_reader_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_reader_test_SOURCES = \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(TLS_CERT) ../wocky/libwocky.la
+wocky_connector_test_DEPENDENCIES = $(TLS_CERT) $(LIBWOCKY)
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -51,6 +55,7 @@ if HAVE_LIBSASL2
   TEST_PROGS += wocky-test-sasl-auth
 endif
 
+wocky_test_sasl_auth_DEPENDENCIES = $(LIBWOCKY)
 wocky_test_sasl_auth_SOURCES = \
    wocky-test-sasl-auth.c \
    wocky-test-sasl-auth-server.c \
@@ -61,14 +66,17 @@ wocky_test_sasl_auth_SOURCES = \
 wocky_test_sasl_auth_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
 
+wocky_porter_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_porter_test_SOURCES = \
   wocky-porter-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
+wocky_xmpp_node_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_node_test_SOURCES = \
   wocky-xmpp-node-test.c
 
+wocky_xmpp_stanza_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_stanza_test_SOURCES = \
   wocky-xmpp-stanza-test.c
 
