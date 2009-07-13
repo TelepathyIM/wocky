@@ -1041,8 +1041,9 @@ start_dummy_xmpp_server (test_t *test)
   struct sockaddr_in server;
   GIOChannel *channel;
   pid_t server_pid;
-  int res = 0;
+  int res = -1;
   guint port = test->server.port;
+  int i;
 
   if (port == 0)
     return;
@@ -1056,7 +1057,11 @@ start_dummy_xmpp_server (test_t *test)
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
 
-  res = bind (ssock, (struct sockaddr *)&server, sizeof (server));
+  /* it can take a couple of attempts before the last test run actually *
+   * relinquishes the port we want                                      */
+  for (res = -1, i = 0; res != 0 && i < 3; i++)
+    res = bind (ssock, (struct sockaddr *)&server, sizeof (server));
+
   if (res != 0)
     {
       int code = errno;
