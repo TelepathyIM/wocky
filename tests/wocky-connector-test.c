@@ -22,6 +22,9 @@
 #define UNREACHABLE    "127.255.255.255"
 #define DUFF_H0ST      "no_such_host.at.all"
 
+#define QUIET TRUE
+#define NOISY FALSE
+
 #define TLS   TRUE
 #define NOTLS FALSE
 
@@ -49,6 +52,7 @@ static GMainLoop *mainloop;
 
 typedef struct {
   gchar *desc;
+  gboolean quiet;
   struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; } result;
   struct {
     struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
@@ -69,8 +73,9 @@ test_t tests[] =
   { /* basic connection test, no SRV record, no host or port supplied: */
     /*
     { "/name/of/test",
+      SUPPRESS_STDERR,
       // result of test:
-      { DOMAIN, CODE, XMPP_CONNECTION_PLACEHOLDER },
+      { DOMAIN, CODE, AUTH_MECH_USED, XMPP_CONNECTION_PLACEHOLDER },
 
       // Server Details:
       { { TLS_SUPPORT, AUTH_MECH_OR_NULL_FOR_ALL  },
@@ -87,9 +92,11 @@ test_t tests[] =
       // Client Details
       { TLS_REQUIRED,
         { BARE_JID, PASSWORD, MUST_BE_SECURE, MUST_BE_DIGEST_AUTH },
-        { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } } }, */
+        { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } }
+        SERVER_PROCESS_ID }, */
 
     { CONNECTOR_INTERNALS_TEST,
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -101,6 +108,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/basic/noserv/nohost/noport",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -112,6 +120,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/basic/noserv/nohost/port",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -123,6 +132,7 @@ test_t tests[] =
         { NULL, 8222 } } },
 
     { "/connector/basic/noserv/nohost/duffport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -134,6 +144,7 @@ test_t tests[] =
         { NULL, 8221 } } },
 
     { "/connector/basic/noserv/host/noport",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -145,6 +156,7 @@ test_t tests[] =
         { "schadenfreude.org", 0 } } },
 
     { "/connector/basic/noserv/host/port",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -156,6 +168,7 @@ test_t tests[] =
         { "meerkats.net", 5555 } } },
 
     { "/connector/basic/noserv/host/duffport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -167,6 +180,7 @@ test_t tests[] =
         { "meerkats.net", 5554 } } },
 
     { "/connector/basic/noserv/duffhost/noport",
+      NOISY,
       { DOMAIN_RES, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -178,6 +192,7 @@ test_t tests[] =
         { DUFF_H0ST, 0 } } },
 
     { "/connector/basic/noserv/duffhost/port",
+      NOISY,
       { DOMAIN_RES, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -189,6 +204,7 @@ test_t tests[] =
         { "still.no_such_host.at.all", 23 } } },
 
     { "/connector/basic/serv/nohost/noport",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -200,6 +216,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/basic/serv/nohost/port",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -211,6 +228,7 @@ test_t tests[] =
         { NULL, 5051 } } },
 
     { "/connector/basic/serv/nohost/duffport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -222,6 +240,7 @@ test_t tests[] =
         { NULL, 5050 } } },
 
     { "/connector/basic/serv/host/noport",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -233,6 +252,7 @@ test_t tests[] =
         { VISIBLE_HOST, 0 } } },
 
     { "/connector/basic/serv/host/port",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -244,6 +264,7 @@ test_t tests[] =
         { VISIBLE_HOST, 5656 } } },
 
     { "/connector/basic/serv/host/duffport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -255,6 +276,7 @@ test_t tests[] =
         { VISIBLE_HOST, 5655 } } },
 
     { "/connector/basic/serv/duffhost/noport",
+      NOISY,
       { DOMAIN_RES, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -266,6 +288,7 @@ test_t tests[] =
         { DUFF_H0ST, 0 } } },
 
     { "/connector/basic/serv/duffhost/port",
+      NOISY,
       { DOMAIN_RES, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -277,6 +300,7 @@ test_t tests[] =
         { DUFF_H0ST, PORT_XMPP } } },
 
     { "/connector/basic/duffserv/nohost/noport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -288,6 +312,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/basic/duffserv/nohost/port",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -299,6 +324,7 @@ test_t tests[] =
         { NULL, 5050 } } },
 
     { "/connector/basic/duffserv/nohost/duffport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -310,6 +336,7 @@ test_t tests[] =
         { NULL, 5049 } } },
 
     { "/connector/basic/duffserv/host/noport",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -321,6 +348,7 @@ test_t tests[] =
         { VISIBLE_HOST, 0 } } },
 
     { "/connector/basic/duffserv/host/port",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -332,6 +360,7 @@ test_t tests[] =
         { VISIBLE_HOST, 5151 } } },
 
     { "/connector/basic/duffserv/host/duffport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -343,6 +372,7 @@ test_t tests[] =
         { VISIBLE_HOST, 5149 } } },
 
     { "/connector/basic/duffserv/duffhost/noport",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -354,6 +384,7 @@ test_t tests[] =
         { INVISIBLE_HOST, 0 } } },
 
     { "/connector/basic/duffserv/duffhost/port",
+      NOISY,
       { DOMAIN_GIO, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -368,6 +399,7 @@ test_t tests[] =
      * that's it for the basic DNS/connection-logic tests                  *
      * now onto the post-tcp-connect stages:                               */
     { "/connector/auth/secure/no-tlsplain/notls/nodigest",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -379,6 +411,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/secure/no-tlsplain/notls/digest",
+      NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -390,6 +423,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/no-tlsplain/notls/nodigest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -401,6 +435,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/no-tlsplain/notls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -414,6 +449,7 @@ test_t tests[] =
     /* *************************************************************** *
      * This block of tests will fail as we don't advertise TLS support */
     { "/connector/auth/insecure/no-tlsplain/notls/any",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
@@ -425,6 +461,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/tlsplain/notls/any",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
@@ -436,6 +473,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/secure/no-tlsplain/notls/any",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
@@ -447,6 +485,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/secure/tlsplain/notls/any",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM /**/ },
@@ -461,6 +500,7 @@ test_t tests[] =
      * this will be a mix of failures and sucesses depending on whether *
      * we allow plain auth or not                                       */
     { "/connector/auth/secure/no-tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -472,6 +512,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/secure/tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -483,6 +524,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/no-tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -494,6 +536,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -505,6 +548,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/secure/no-tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -516,6 +560,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/secure/tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -527,6 +572,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/insecure/no-tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -538,6 +584,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/insecure/tlsplain/tls/plain",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -550,6 +597,7 @@ test_t tests[] =
     /* **************************************************************** *
      * these should all be digest auth successes                        */
     { "/connector/auth/secure/no-tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -561,6 +609,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/secure/tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -572,6 +621,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/no-tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -583,6 +633,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -594,6 +645,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/secure/no-tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -605,6 +657,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/secure/tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -616,6 +669,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/insecure/no-tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -627,6 +681,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/tls+auth/insecure/tlsplain/tls/digest",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -640,6 +695,7 @@ test_t tests[] =
     /* ***************************************************************** *
      * SASL problems                                                     */
     { "/connector/problem/sasl/bad-pass",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -651,6 +707,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/sasl/bad-user",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_USERNAME, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -662,6 +719,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/sasl/no-sasl",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -673,6 +731,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/sas/no-mechanisms",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_MECHANISMS, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -684,6 +743,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/sasl/bad-mechanism",
+      NOISY,
       { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "omg-poniez" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -697,6 +757,7 @@ test_t tests[] =
     /* ********************************************************************* */
     /* TLS error conditions */
     { "/connector/problem/tls/refused",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_TLS_REFUSED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_TLS_REFUSED },
@@ -710,6 +771,7 @@ test_t tests[] =
     /* ********************************************************************* *
      * Invalid JID                                                           */
     { "/connector/problem/jid/invalid",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -721,6 +783,7 @@ test_t tests[] =
         { "weasel-juice.org", PORT_XMPP } } },
 
     { "/connector/problem/jid/domainless",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -734,6 +797,7 @@ test_t tests[] =
     /* ********************************************************************* *
      * XMPP errors                                                           */
     { "/connector/problem/xmpp/version",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER },
       { { TLS, NULL, "3.1415" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
@@ -745,6 +809,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/xmpp/features",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_FEATURES },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_FEATURES },
@@ -757,6 +822,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE */
     { "/connector/problem/xmpp/no-bind",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_CANNOT_BIND },
@@ -769,6 +835,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_BIND_INVALID      */
     { "/connector/problem/xmpp/bind/failed",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_INVALID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_INVALID },
@@ -781,6 +848,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_BIND_DENIED     */
     { "/connector/problem/xmpp/bind/denied",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_DENIED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_DENIED },
@@ -793,6 +861,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_BIND_CONFLICT      */
     { "/connector/problem/xmpp/bind/conflict",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_CONFLICT },
@@ -805,6 +874,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_BIND_REJECTED    */
     { "/connector/problem/xmpp/bind/rejected",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_REJECTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_REJECTED },
@@ -817,6 +887,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_BIND_FAILED    */
     { "/connector/problem/xmpp/bind/failed",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_BIND_FAILED },
@@ -828,6 +899,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/xmpp/session/none",
+      NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_SESSION },
@@ -840,6 +912,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_SESSION_FAILED   */
     { "/connector/problem/xmpp/session/failed",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_FAILED },
@@ -852,6 +925,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_SESSION_DENIED   */
     { "/connector/problem/xmpp/session/denied",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_DENIED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_DENIED },
@@ -864,6 +938,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT */
     { "/connector/problem/xmpp/session/conflict",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_CONFLICT },
@@ -876,6 +951,7 @@ test_t tests[] =
 
     /* WOCKY_CONNECTOR_ERROR_SESSION_REJECTED */
     { "/connector/problem/xmpp/session/rejected",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_REJECTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_REJECTED },
@@ -887,6 +963,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/problem/xmpp/session/nonsense",
+      NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_SESSION_NONSENSE },
@@ -898,6 +975,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/econnreset/server-start",
+      NOISY,
       { DOMAIN_ANY, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_SERVER_START },
@@ -909,6 +987,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/econnreset/client-open",
+      NOISY,
       { DOMAIN_ANY, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_CLIENT_OPEN },
@@ -920,6 +999,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/econnreset/server-open",
+      NOISY,
       { DOMAIN_ANY, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_SERVER_OPEN },
@@ -931,6 +1011,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/econnreset/features",
+      NOISY,
       { DOMAIN_ANY, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_FEATURES },
@@ -942,6 +1023,7 @@ test_t tests[] =
         { NULL, 0 } } },
 
     { "/connector/econnreset/tls-negotiate",
+      QUIET,
       { DOMAIN_ANY, 0 },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_DIE_TLS_NEG },
@@ -1097,6 +1179,12 @@ start_dummy_xmpp_server (test_t *test)
       return;
     }
 
+  if (test->quiet)
+    {
+      int nullfd = open("/dev/null", O_WRONLY);
+      int errfd  = fileno (stderr);
+      dup2 (nullfd, errfd);
+    }
   channel = g_io_channel_unix_new (ssock);
   g_io_add_watch (channel, G_IO_IN|G_IO_PRI, client_connected, (gpointer)test);
   g_main_loop_run (mainloop);
