@@ -42,8 +42,10 @@ teardown_test (test_data_t *data)
   g_object_unref (data->stream);
   g_object_unref (data->in);
   g_object_unref (data->out);
-  g_object_unref (data->sched_in);
-  g_object_unref (data->sched_out);
+  if (data->sched_in != NULL)
+    g_object_unref (data->sched_in);
+  if (data->sched_out != NULL)
+    g_object_unref (data->sched_out);
   g_object_unref (data->cancellable);
 
   /* All the stanzas should have been received */
