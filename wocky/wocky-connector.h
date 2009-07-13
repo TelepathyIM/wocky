@@ -103,8 +103,7 @@ GType wocky_connector_get_type (void);
 #define WOCKY_CONNECTOR_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONNECTOR, WockyConnectorClass))
 
-WockyXmppConnection *
-wocky_connector_connect_finish (WockyConnector *connector,
+WockyXmppConnection *wocky_connector_connect_finish (WockyConnector *connector,
     GAsyncResult *res,
     GError **error,
     gchar **jid);
