@@ -497,6 +497,9 @@ xmpp_handler (GObject *source,
 
   xml  = wocky_xmpp_connection_recv_stanza_finish (conn, result, &error);
 
+  /* A real XMPP server would need to do some error handling here, but if
+   * we got this far, we can just exit: The client (ie the test) will
+   * report any error that actually needs reporting - we don't need to */
   if (error != NULL)
       exit (0);
 
