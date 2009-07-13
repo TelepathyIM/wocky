@@ -88,7 +88,7 @@ test_t tests[] =
       { TLS_REQUIRED,
         { BARE_JID, PASSWORD, MUST_BE_SECURE, MUST_BE_DIGEST_AUTH },
         { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } } }, */
-#if 1
+
     { CONNECTOR_INTERNALS_TEST,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
       { { TLS, NULL },
@@ -885,7 +885,7 @@ test_t tests[] =
       { FALSE,
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
-#endif
+
     { "/connector/problem/xmpp/session/nonsense",
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_SESSION_FAILED },
       { { TLS, NULL },
