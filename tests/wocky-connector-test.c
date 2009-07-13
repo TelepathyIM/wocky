@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -1040,8 +1041,10 @@ start_dummy_xmpp_server (test_t *test)
   struct sockaddr_in server;
   GIOChannel *channel;
   pid_t server_pid;
+  int res = 0;
+  guint port = test->server.port;
 
-  if (test->server.port == 0)
+  if (port == 0)
     return;
 
   /* setenv ("WOCKY_DEBUG","all",TRUE); */
@@ -1049,11 +1052,29 @@ start_dummy_xmpp_server (test_t *test)
 
   server.sin_family = AF_INET;
   inet_aton (REACHABLE, &server.sin_addr);
-  server.sin_port = htons (test->server.port);
+  server.sin_port = htons (port);
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
-  bind (ssock, (struct sockaddr *)&server, sizeof (server));
+
+  res = bind (ssock, (struct sockaddr *)&server, sizeof (server));
+  if (res != 0)
+    {
+      int code = errno;
+      char *err = g_strdup_printf ("bind to " REACHABLE ":%d failed", port);
+      perror (err);
+      g_free (err);
+      exit (code);
+    }
+
   listen (ssock, 1024);
+  if (res != 0)
+    {
+      int code = errno;
+      char *err = g_strdup_printf ("listen on " REACHABLE ":%d failed", port);
+      perror (err);
+      g_free (err);
+      exit (code);
+    }
 
   server_pid = fork ();
 
