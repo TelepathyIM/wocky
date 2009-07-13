@@ -1713,6 +1713,45 @@ test_send_iq_server (void)
   teardown_test (test);
 }
 
+/* Unref the porter in the async close callback */
+static void
+test_unref_when_closed_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  g_assert (wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, NULL));
+
+  /* Porter has been closed, unref it */
+  g_object_unref (test->sched_in);
+  test->sched_in = NULL;
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_unref_when_closed (void)
+{
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_in);
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+      test_close_stanza_received_cb, test);
+
+  wocky_porter_close_async (test->sched_in, NULL,
+      test_unref_when_closed_cb, test);
+
+  test->outstanding += 3;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1748,5 +1787,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/handler-filter-from",
       test_handler_filter_from);
   g_test_add_func ("/xmpp-porter/send-iq-server", test_send_iq_server);
+  g_test_add_func ("/xmpp-porter/unref-when-closed", test_unref_when_closed);
   return g_test_run ();
 }
