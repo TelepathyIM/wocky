@@ -1231,6 +1231,17 @@ run_test (gpointer data)
 {
   WockyConnector *wcon = NULL;
   test_t *test = data;
+  struct stat dummy;
+  gchar base[PATH_MAX + 1];
+  char *path;
+
+  /* clean up any leftover messes from previous tests     */
+  /* unlink the sasl db tmpfile, it will cause a deadlock */
+  path = g_strdup_printf ("%s/__db.%s",
+      getcwd (base, sizeof (base)), SASL_DB_NAME);
+  g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
+  g_free (path);
+  /* end of cleanup block */
 
   start_dummy_xmpp_server (test);
   setup_dummy_dns_entries (test);
