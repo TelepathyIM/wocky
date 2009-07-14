@@ -512,6 +512,7 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   tmp = g_strdup_printf ("%s:%s:%s", priv->username, realm, priv->password);
   digest_md5 = md5_hash (tmp);
+  g_free (tmp);
 
   a1 = g_strdup_printf ("0123456789012345:%s:%s", nonce, cnonce);
   len = strlen (a1);
