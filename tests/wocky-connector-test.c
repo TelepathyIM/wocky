@@ -1179,9 +1179,13 @@ start_dummy_xmpp_server (test_t *test)
       return;
     }
 
+  /* this test is guaranteed to produce an uninteresting error message
+   * from the dummy XMPP server process: mask it (we ca't just close stderr
+   * because that makes it fail in a way which is detected as a different
+   * error, which causes the test to fail) */
   if (test->quiet)
     {
-      int nullfd = open("/dev/null", O_WRONLY);
+      int nullfd = open ("/dev/null", O_WRONLY);
       int errfd  = fileno (stderr);
       dup2 (nullfd, errfd);
     }
