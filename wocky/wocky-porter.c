@@ -758,7 +758,7 @@ stanza_received_cb (GObject *source,
       if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
         {
-          if (priv->close_result != NULL)
+          if (priv->close_result != NULL && priv->local_closed)
             {
               /* Close completed */
               complete_close (self);
