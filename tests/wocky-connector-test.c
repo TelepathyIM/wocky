@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <wocky/wocky-connector.h>
@@ -1211,7 +1212,11 @@ test_done (GObject *source,
     test->result.xmpp = g_object_ref (conn);
 
   if (test->server_pid > 0)
-    kill (test->server_pid, SIGKILL);
+    {
+      /* kick it and wait for the thing to die */
+      kill (test->server_pid, SIGKILL);
+      waitpid (test->server_pid, NULL, WNOHANG);
+    }
 
   if (g_main_loop_is_running (mainloop))
     g_main_loop_quit (mainloop);
