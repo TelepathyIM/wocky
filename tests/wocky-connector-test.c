@@ -1219,6 +1219,8 @@ start_dummy_xmpp_server (test_t *test)
   channel = g_io_channel_unix_new (ssock);
   g_io_add_watch (channel, G_IO_IN|G_IO_PRI, client_connected, (gpointer)test);
   g_main_loop_run (mainloop);
+  g_io_channel_close (ssock);
+  g_io_channel_unref (ssock);
   exit (0);
 }
 /* ************************************************************************* */
