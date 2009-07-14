@@ -1070,7 +1070,10 @@ establish_session (WockyConnector *self)
       g_free (id);
     }
   else
-    g_simple_async_result_complete (priv->result);
+    {
+      g_simple_async_result_complete (priv->result);
+      g_object_unref (priv->result);
+    }
 }
 
 static void
@@ -1150,6 +1153,7 @@ establish_session_recv_cb (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         g_simple_async_result_complete (priv->result);
+        g_object_unref (priv->result);
         break;
 
       default:
