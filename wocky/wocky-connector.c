@@ -530,8 +530,8 @@ tcp_srv_connected (GObject *source,
      talk to that */
   if (priv->sock == NULL)
     {
-      /* FIXME: once we're in master, use the jid slicing function there */
-      const gchar *host = rindex (priv->jid, '@') + 1;
+      gchar *node = NULL;      /* username   */ /* @ */
+      gchar *host = NULL;      /* domain.tld */ /* / */
       guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
 
       DEBUG ("SRV connect failed: %s", error->message);
@@ -556,8 +556,21 @@ tcp_srv_connected (GObject *source,
 
       g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
-      g_socket_client_connect_to_host_async (priv->client,
-          host, port, NULL, tcp_host_connected, connector);
+
+      /* decode a hostname from the JID here: Don't check for an explicit *
+       * connect host supplied by the user as we shouldn't even try a SRV *
+       * connection in that case, and should therefore never get here     */
+      wocky_decode_jid (priv->jid, &node, &host, NULL);
+
+      if ((host != NULL) && (*host != '\0'))
+        g_socket_client_connect_to_host_async (priv->client,
+            host, port, NULL, tcp_host_connected, connector);
+      else
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
+            "JID contains no domain: %s", priv->jid);
+
+      g_free (node);
+      g_free (host);
     }
   else
     {
@@ -1199,7 +1212,9 @@ wocky_connector_connect_async (WockyConnector *self,
    *  falling back to a direct connection to 'host' if that fails.
    */
   /* FIXME: once we're in master, use the jid slicing function there */
-  const gchar *host = priv->jid ? rindex (priv->jid, '@') : NULL;
+  gchar *node = NULL;  /* username   */ /* @ */
+  gchar *host = NULL;  /* domain.tld */ /* / */
+  gchar *uniq = NULL;  /* uniquifier */
 
   if (priv->result != NULL)
     {
@@ -1214,21 +1229,29 @@ wocky_connector_connect_async (WockyConnector *self,
       user_data,
       wocky_connector_connect_finish);
 
+  wocky_decode_jid (priv->jid, &node, &host, &uniq);
+
   if (host == NULL)
     {
-      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID, "Invalid JID");
-      return;
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
+          "Invalid JID %s", priv->jid);
+      goto abort;
     }
 
-  if (*(++host) == '\0')
+  if (*host == '\0')
     {
       abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
-          "Missing Domain");
-      return;
+          "Missing Domain %s", priv->jid);
+      goto abort;
     }
 
-  priv->user   = g_strndup (priv->jid, (host - priv->jid - 1));
-  priv->domain = g_strdup (host);
+  if (priv->resource == NULL)
+      priv->resource = uniq;
+  else
+    g_free (uniq);
+
+  priv->user   = node;
+  priv->domain = host;
   priv->client = g_socket_client_new ();
   priv->state  = WCON_TCP_CONNECTING;
 
@@ -1250,6 +1273,12 @@ wocky_connector_connect_async (WockyConnector *self,
       g_socket_client_connect_to_service_async (priv->client,
           host, "xmpp-client", NULL, tcp_srv_connected, self);
     }
+  return;
+
+ abort:
+  g_free (host);
+  g_free (node);
+  g_free (uniq);
   return;
 }
 
