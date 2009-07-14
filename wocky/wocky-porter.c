@@ -608,6 +608,7 @@ static void
 complete_close (WockyPorter *self)
 {
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
+  GSimpleAsyncResult *tmp;
 
   if (g_cancellable_is_cancelled (priv->close_cancellable))
     {
@@ -617,9 +618,11 @@ complete_close (WockyPorter *self)
 
   g_simple_async_result_complete (priv->close_result);
 
-  g_object_unref (priv->close_result);
+  tmp = priv->close_result;
   priv->close_result = NULL;
   priv->close_cancellable = NULL;
+
+  g_object_unref (tmp);
 }
 
 static gboolean
