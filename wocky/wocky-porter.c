@@ -743,6 +743,11 @@ stanza_received_cb (GObject *source,
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
+  /* Completing a close operation, firing the remote-error signal or handling
+   * a stanza could make the user unref the porter. Ref it so, in such case, it
+   * would stay alive until we have finished to threat the error/stanza. */
+  g_object_ref (self);
+
   stanza = wocky_xmpp_connection_recv_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), res, &error);
   if (stanza == NULL)
@@ -774,6 +779,7 @@ stanza_received_cb (GObject *source,
 
       priv->remote_closed = TRUE;
       g_error_free (error);
+      g_object_unref (self);
       return;
     }
 
@@ -783,6 +789,7 @@ stanza_received_cb (GObject *source,
 
   /* wait for next stanza */
   receive_stanza (self);
+  g_object_unref (self);
 }
 
 static void
