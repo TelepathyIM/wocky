@@ -615,7 +615,10 @@ xmpp_init (WockyConnector *connector, gboolean new_conn)
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
   if (new_conn)
-    priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
+    {
+      g_assert (priv->conn == NULL);
+      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
+    }
 
   DEBUG ("sending XMPP stream open to server");
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
