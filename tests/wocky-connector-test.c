@@ -97,6 +97,8 @@ test_t tests[] =
         { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } }
         SERVER_PROCESS_ID }, */
 
+    /* simple connection, followed by checks on all the internal state *
+     * and get/set property methods to make sure they work             */
     { CONNECTOR_INTERNALS_TEST,
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -109,6 +111,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
 
+    /* No SRV or connect host specified */
     { "/connector/basic/noserv/nohost/noport",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -121,6 +124,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
 
+    /* No SRV or connect host specified, connect port specified */
     { "/connector/basic/noserv/nohost/port",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -133,6 +137,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 8222 } } },
 
+    /* No SRV or connect host specified, bad port specified: FAIL */
     { "/connector/basic/noserv/nohost/duffport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -145,6 +150,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 8221 } } },
 
+    /* No SRV record, connect host specified */
     { "/connector/basic/noserv/host/noport",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -157,6 +163,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { "schadenfreude.org", 0 } } },
 
+    /* No SRV record, connect host and port specified */
     { "/connector/basic/noserv/host/port",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -169,6 +176,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { "meerkats.net", 5555 } } },
 
+    /* No SRV record, connect host and bad port specified: FAIL */
     { "/connector/basic/noserv/host/duffport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -181,6 +189,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { "meerkats.net", 5554 } } },
 
+    /* No SRV record, bad connect host: FAIL */
     { "/connector/basic/noserv/duffhost/noport",
       NOISY,
       { DOMAIN_RES, 0 },
@@ -193,6 +202,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { DUFF_H0ST, 0 } } },
 
+    /* No SRV record, bad connect host, port specified: FAIL */
     { "/connector/basic/noserv/duffhost/port",
       NOISY,
       { DOMAIN_RES, 0 },
@@ -205,6 +215,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { "still.no_such_host.at.all", 23 } } },
 
+    /* SRV record specified */
     { "/connector/basic/serv/nohost/noport",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -217,6 +228,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
 
+    /* SRV record specified, port specified: ignore SRV and connect */
     { "/connector/basic/serv/nohost/port",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -229,6 +241,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 5051 } } },
 
+    /* SRV record specified, bad port: ignore SRV and FAIL */
     { "/connector/basic/serv/nohost/duffport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -241,6 +254,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 5050 } } },
 
+    /* SRV record, connect host specified: use connect host */
     { "/connector/basic/serv/host/noport",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -253,6 +267,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { VISIBLE_HOST, 0 } } },
 
+    /* SRV, connect host and port specified: use host and port */
     { "/connector/basic/serv/host/port",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -265,6 +280,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { VISIBLE_HOST, 5656 } } },
 
+    /* SRV record, connect host, bad port: ignore SRV, FAIL */
     { "/connector/basic/serv/host/duffport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -277,6 +293,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { VISIBLE_HOST, 5655 } } },
 
+    /* SRV record, bad connect host: use bad host and FAIL */
     { "/connector/basic/serv/duffhost/noport",
       NOISY,
       { DOMAIN_RES, 0 },
@@ -289,6 +306,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { DUFF_H0ST, 0 } } },
 
+    /* SRV record, bad connect host, connect port: use bad host and FAIL */
     { "/connector/basic/serv/duffhost/port",
       NOISY,
       { DOMAIN_RES, 0 },
@@ -301,6 +319,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { DUFF_H0ST, PORT_XMPP } } },
 
+    /* Bad SRV record: use it and FAIL */
     { "/connector/basic/duffserv/nohost/noport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -313,6 +332,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0 } } },
 
+    /* Bad SRV record, port specified, ignore SRV and connect to domain host */
     { "/connector/basic/duffserv/nohost/port",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -325,6 +345,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 5050 } } },
 
+    /* Bad SRV record, bad port specified, ignore SRV and FAIL */
     { "/connector/basic/duffserv/nohost/duffport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -337,6 +358,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 5049 } } },
 
+    /* Bad SRV record, connect host specified, ignore SRV */
     { "/connector/basic/duffserv/host/noport",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -349,6 +371,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { VISIBLE_HOST, 0 } } },
 
+    /* Bad SRV record, connect host and port given: ignore SRV */
     { "/connector/basic/duffserv/host/port",
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -361,6 +384,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { VISIBLE_HOST, 5151 } } },
 
+    /* Bad SRV record, connect host and bad port, ignore SRV and FAIL */
     { "/connector/basic/duffserv/host/duffport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -373,6 +397,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { VISIBLE_HOST, 5149 } } },
 
+    /* Bad SRV record, bad host and bad port: Just FAIL */
     { "/connector/basic/duffserv/duffhost/noport",
       NOISY,
       { DOMAIN_GIO, 0 },
@@ -385,6 +410,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { INVISIBLE_HOST, 0 } } },
 
+    /*Bad SRV and connect host, ignore SRV and FAIL */
     { "/connector/basic/duffserv/duffhost/port",
       NOISY,
       { DOMAIN_GIO, 0 },
