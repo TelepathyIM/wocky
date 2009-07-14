@@ -1104,7 +1104,7 @@ client_connected (GIOChannel *channel,
   struct sockaddr_in client;
   socklen_t clen = sizeof (client);
   int ssock = g_io_channel_unix_get_fd (channel);
-  int csock = accept (ssock, (struct sockaddr *)&client, &clen);
+  int csock = accept (ssock, (struct sockaddr *) &client, &clen);
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
   test_t *test = data;
   ConnectorProblem cproblem = CONNECTOR_PROBLEM_NO_PROBLEM;
@@ -1167,10 +1167,9 @@ start_dummy_xmpp_server (test_t *test)
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
 
-  /* it can take a couple of attempts before the last test run actually *
-   * relinquishes the port we want                                      */
-  for (res = -1, i = 0; res != 0 && i < 3; i++, sleep (1))
-    res = bind (ssock, (struct sockaddr *)&server, sizeof (server));
+  for (i = 0; res != 0 && i < 3; i++)
+    if (0 != (res = bind (ssock, (struct sockaddr *) &server, sizeof (server))))
+      sleep (1);
 
   if (res != 0)
     {
