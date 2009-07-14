@@ -68,6 +68,7 @@ typedef struct {
     struct { gchar *host; guint port; } options;
   } client;
   pid_t  server_pid;
+  WockyConnector *connector;
 } test_t;
 
 test_t tests[] =
@@ -1226,6 +1227,14 @@ test_done (GObject *source,
 
 typedef void (*test_func) (gconstpointer);
 
+static gboolean
+start_test (gpointer data)
+{
+  test_t *test = data;
+  wocky_connector_connect_async (test->connector, test_done, data);
+  return FALSE;
+}
+
 static void
 run_test (gpointer data)
 {
@@ -1259,14 +1268,11 @@ run_test (gpointer data)
       "ignore-ssl-errors"       , FALSE,
       NULL);
 
+  test->connector = wcon;
   running_test = TRUE;
-  wocky_connector_connect_async (wcon, test_done, (gpointer)test);
+  g_idle_add (start_test, test);
 
-  /* race condition here: wocky_connector_connect_async can return
-     control to test_done before we start the mainloop, hence this
-     running_test check */
-  if (running_test)
-    g_main_loop_run (mainloop);
+  g_main_loop_run (mainloop);
 
   if (test->result.domain == NULL)
     {
