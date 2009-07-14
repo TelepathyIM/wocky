@@ -1752,6 +1752,58 @@ test_unref_when_closed (void)
   teardown_test (test);
 }
 
+/* Both sides try to close the connection at the same time */
+static void
+test_close_simultanously_recv_stanza_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *s;
+  GError *error = NULL;
+
+  s = wocky_xmpp_connection_recv_stanza_finish (WOCKY_XMPP_CONNECTION (source),
+      res, &error);
+
+  g_assert (s == NULL);
+  g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_simultanously (void)
+{
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_in);
+
+  /* Sent close from one side */
+  wocky_xmpp_connection_send_close_async (test->out, NULL,
+      close_sent_cb, test);
+
+  /* .. and from the other */
+  wocky_porter_close_async (test->sched_in, NULL,
+      test_unref_when_closed_cb, test);
+
+  /* Wait that the 'in' side received the close */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* Now read the close on the 'out' side */
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+      test_close_simultanously_recv_stanza_cb, test);
+  test->outstanding++;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1788,5 +1840,7 @@ main (int argc, char **argv)
       test_handler_filter_from);
   g_test_add_func ("/xmpp-porter/send-iq-server", test_send_iq_server);
   g_test_add_func ("/xmpp-porter/unref-when-closed", test_unref_when_closed);
+  g_test_add_func ("/xmpp-porter/close-simultanously",
+      test_close_simultanously);
   return g_test_run ();
 }
