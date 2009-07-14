@@ -778,6 +778,11 @@ sasl_auth_stanza_received (GObject *source,
       return;
     }
 
+  /* If the SASL async result is _complete()d in the handler, the SASL object *
+   * will be unref'd, which means the ref count could fall to zero while we   *
+   * are still using it. grab  aref to it and drop it after we are sure that  *
+   * we don't need it anymore:                                                */
+  g_object_ref (sasl);
   for (i = 0 ; handlers[priv->mech][i].name != NULL; i++)
     {
       if (!strcmp (stanza->node->name, handlers[priv->mech][i].name))
@@ -788,6 +793,7 @@ sasl_auth_stanza_received (GObject *source,
               wocky_xmpp_connection_recv_stanza_async (priv->connection,
                   NULL, sasl_auth_stanza_received, sasl);
             }
+          g_object_unref (sasl);
           g_object_unref (stanza);
           return;
         }
@@ -796,6 +802,7 @@ sasl_auth_stanza_received (GObject *source,
   auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
       "Server send an invalid reply (%s)",
       stanza->node->name);
+  g_object_unref (sasl);
 }
 
 static gboolean
