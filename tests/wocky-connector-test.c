@@ -54,7 +54,7 @@ static GMainLoop *mainloop;
 typedef struct {
   gchar *desc;
   gboolean quiet;
-  struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; } result;
+  struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; gchar *jid; } result;
   struct {
     struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
     struct { ServerProblem sasl; ConnectorProblem conn; } problem;
@@ -1181,7 +1181,7 @@ start_dummy_xmpp_server (test_t *test)
       exit (code);
     }
 
-  listen (ssock, 1024);
+  res = listen (ssock, 1024);
   if (res != 0)
     {
       int code = errno;
@@ -1208,7 +1208,7 @@ start_dummy_xmpp_server (test_t *test)
     }
 
   /* this test is guaranteed to produce an uninteresting error message
-   * from the dummy XMPP server process: mask it (we ca't just close stderr
+   * from the dummy XMPP server process: mask it (we can't just close stderr
    * because that makes it fail in a way which is detected as a different
    * error, which causes the test to fail) */
   if (test->quiet)
@@ -1228,13 +1228,12 @@ test_done (GObject *source,
     GAsyncResult *res,
     gpointer data)
 {
-  gchar *jid = NULL;
   test_t *test = data;
   WockyConnector *wcon = WOCKY_CONNECTOR (source);
   WockyXmppConnection *conn = NULL;
 
   error = NULL;
-  conn = wocky_connector_connect_finish (wcon, res, &error, &jid);
+  conn = wocky_connector_connect_finish (wcon, res, &error, &test->result.jid);
   if (conn != NULL)
     test->result.xmpp = g_object_ref (conn);
 
@@ -1316,6 +1315,11 @@ run_test (gpointer data)
           WockySaslAuthMechanism mech = wocky_connector_auth_mechanism (wcon);
           g_assert (test->result.mech == mech);
         }
+
+      /* we got a JID back, I hope */
+      g_assert (test->result.jid != NULL);
+      g_assert (*test->result.jid != '\0');
+      g_free (test->result.jid);
 
       /* property get/set functionality */
       if (!strcmp (test->desc, CONNECTOR_INTERNALS_TEST))
