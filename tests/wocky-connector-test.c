@@ -1168,8 +1168,11 @@ start_dummy_xmpp_server (test_t *test)
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
 
   for (i = 0; res != 0 && i < 3; i++)
-    if (0 != (res = bind (ssock, (struct sockaddr *) &server, sizeof (server))))
-      sleep (1);
+    {
+      res = bind (ssock, (struct sockaddr *) &server, sizeof (server));
+      if (res != 0)
+        sleep (1);
+    }
 
   if (res != 0)
     {
