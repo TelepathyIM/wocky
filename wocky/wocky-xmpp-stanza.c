@@ -489,7 +489,6 @@ create_iq_reply (WockyXmppStanza *iq,
   from = wocky_xmpp_node_get_attribute (iq->node, "from");
   g_return_val_if_fail (from != NULL, NULL);
   to = wocky_xmpp_node_get_attribute (iq->node, "to");
-  g_return_val_if_fail (to != NULL, NULL);
   id = wocky_xmpp_node_get_attribute (iq->node, "id");
   g_return_val_if_fail (id != NULL, NULL);
 
