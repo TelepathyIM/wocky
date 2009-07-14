@@ -638,7 +638,7 @@ xmpp_init_recv_cb (GObject *source,
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
-
+  gchar *debug = NULL;
   gchar *version = NULL;
   gchar *from = NULL;
 
@@ -652,8 +652,9 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
-  DEBUG ("%s: received XMPP v%s stream open from server",
-      state_message (priv, ""), version);
+  debug = state_message (priv, "");
+  DEBUG ("%s: received XMPP v%s stream open from server", debug, version);
+  g_free (debug);
 
   if (wocky_strdiff (version, "1.0"))
     {
