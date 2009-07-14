@@ -35,7 +35,7 @@ test_instantiation (void)
 }
 
 static gboolean
-fetch_roster_cb (WockyPorter *porter,
+fetch_roster_send_iq_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
@@ -62,7 +62,7 @@ fetch_roster_cb (WockyPorter *porter,
 }
 
 static void
-test_fetch_roster (void)
+test_fetch_roster_send_iq (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
@@ -72,7 +72,7 @@ test_fetch_roster (void)
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      fetch_roster_cb, test, WOCKY_STANZA_END);
+      fetch_roster_send_iq_cb, test, WOCKY_STANZA_END);
 
   wocky_porter_start (test->sched_out);
   wocky_porter_start (test->sched_in);
@@ -88,6 +88,87 @@ test_fetch_roster (void)
   teardown_test (test);
 }
 
+static void
+fetch_roster_reply_roster_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_return_if_fail (wocky_roster_fetch_roster_finish (
+          WOCKY_ROSTER (source_object), res, NULL));
+
+  /* TODO: Check whether the contacts added are correct. */
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static gboolean
+fetch_roster_reply_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  WockyXmppStanza *reply;
+
+  /* We're acting like the server here. The client doesn't need to send a
+   * "from" attribute, and in fact it doesn't when fetch_roster is called. It
+   * is left up to the server to know which client is the user and then throw
+   * in a correct to attribute. Here we're just adding a from attribute so the
+   * IQ result builder doesn't complain. */
+  if (wocky_xmpp_node_get_attribute (stanza->node, "from") == NULL)
+    wocky_xmpp_node_set_attribute (stanza->node, "from",
+        "juliet@example.com/balcony");
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, "jabber:iq:roster",
+        WOCKY_NODE, "item",
+          WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
+          WOCKY_NODE_ATTRIBUTE, "name", "Romeo",
+          WOCKY_NODE_ATTRIBUTE, "subscription", "both",
+          WOCKY_NODE, "group",
+            WOCKY_NODE_TEXT, "Friends",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+
+  g_object_unref (reply);
+
+  return TRUE;
+}
+
+static void
+test_fetch_roster_reply (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      fetch_roster_reply_cb, test, WOCKY_STANZA_END);
+
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  roster = wocky_roster_new (test->in, test->sched_in);
+
+  wocky_roster_fetch_roster_async (roster, NULL,
+      fetch_roster_reply_roster_cb, test);
+
+  test->outstanding++;
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -97,7 +178,9 @@ main (int argc, char **argv)
   g_type_init ();
 
   g_test_add_func ("/xmpp-roster/instantiation", test_instantiation);
-  g_test_add_func ("/xmpp-roster/fetch-roster", test_fetch_roster);
+  g_test_add_func ("/xmpp-roster/fetch-roster-send-iq",
+      test_fetch_roster_send_iq);
+  g_test_add_func ("/xmpp-roster/fetch-roster-reply", test_fetch_roster_reply);
 
   return g_test_run ();
 }
