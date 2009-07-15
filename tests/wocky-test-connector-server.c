@@ -204,6 +204,26 @@ static iq_handler iq_handlers[] =
     { WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL, NULL }
   };
 
+
+/* ************************************************************************* */
+/* error stanza                                                              */
+static WockyXmppStanza *
+error_stanza (const gchar *cond,
+    const gchar *msg)
+{
+  WockyXmppStanza *error = wocky_xmpp_stanza_new ("error");
+  WockyXmppNode *node = error->node;
+
+  wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STREAM);
+  wocky_xmpp_node_add_child_ns (node, cond, WOCKY_XMPP_NS_STREAMS);
+  if ((msg != NULL) && (*msg != '\0'))
+    wocky_xmpp_node_add_child_with_content_ns (node, "text", msg,
+        WOCKY_XMPP_NS_STREAMS);
+
+  return error;
+}
+
+/* ************************************************************************* */
 static void
 iq_set_bind (TestConnectorServer *self,
     WockyXmppStanza *xml)
@@ -259,14 +279,35 @@ iq_set_bind (TestConnectorServer *self,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
+  else if (problems & CONNECTOR_PROBLEM_XMPP_BIND_CLASH)
+    {
+      iq = error_stanza ("conflict", "Terminated by a /resource clone");
+    }
   else
     {
+      WockyXmppNode *ciq = xml->node;
+      WockyXmppNode *bind =
+        wocky_xmpp_node_get_child_ns (ciq, "bind", WOCKY_XMPP_NS_BIND);
+      WockyXmppNode *res = wocky_xmpp_node_get_child (bind, "resource");
+      const gchar *uniq = NULL;
+      gchar *jid = NULL;
+
+      if (res != NULL)
+        uniq = res->content;
+      if (uniq == NULL)
+        uniq = "/a-made-up-resource";
+
+      jid = g_strdup_printf ("user@some.doma.in/%s", uniq);
+
       iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
           WOCKY_STANZA_SUB_TYPE_RESULT,
           NULL, NULL,
           WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+          WOCKY_NODE, "jid", WOCKY_NODE_TEXT, jid, WOCKY_NODE_END,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
+
+      g_free (jid);
     }
   wocky_xmpp_connection_send_stanza_async (conn, iq, NULL, iq_sent, self);
   g_object_unref (xml);
@@ -318,6 +359,10 @@ iq_set_session (TestConnectorServer *self,
           WOCKY_NODE, error, WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
+    }
+  else if (problems & CONNECTOR_PROBLEM_XMPP_NO_SESSION)
+    {
+      iq = error_stanza ("resource-constraint", "Out of Cheese Error");
     }
   else if (problems & CONNECTOR_PROBLEM_SESSION_NONSENSE)
     {
@@ -385,20 +430,22 @@ handle_starttls (TestConnectorServer *self,
       WockyXmppConnection *conn = priv->conn;
       ConnectorProblem problem = priv->problem.connector;
       WockyXmppStanza *reply = NULL;
+      GAsyncReadyCallback cb = finished;
 
-      if (problem & CONNECTOR_PROBLEM_TLS_REFUSED)
+      if (problem & CONNECTOR_PROBLEM_XMPP_TLS_LOAD)
+        {
+          reply = error_stanza ("resource-constraint", "Load Too High");
+        }
+      else if (problem & CONNECTOR_PROBLEM_TLS_REFUSED)
         {
           reply = wocky_xmpp_stanza_new ("failure");
           wocky_xmpp_node_set_ns (reply->node, WOCKY_XMPP_NS_TLS);
-
-          wocky_xmpp_connection_send_stanza_async (conn, reply, NULL,
-              finished, self);
         }
       else
         {
           reply = wocky_xmpp_stanza_new ("proceed");
           wocky_xmpp_node_set_ns (reply->node, WOCKY_XMPP_NS_TLS);
-
+          cb = starttls;
           /* set up the tls server session */
           /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
            * gnutls_global_set_log_level (10); */
@@ -410,9 +457,8 @@ handle_starttls (TestConnectorServer *self,
                 TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE,
                 NULL);
 
-          wocky_xmpp_connection_send_stanza_async (conn, reply, NULL,
-              starttls, self);
         }
+      wocky_xmpp_connection_send_stanza_async (conn, reply, NULL, cb, self);
       g_object_unref (reply);
     }
   g_object_unref (xml);
@@ -589,6 +635,9 @@ feature_stanza (TestConnectorServer *self)
   const gchar *name = NULL;
   WockyXmppStanza *feat = NULL;
   WockyXmppNode *node = NULL;
+
+  if (priv->problem.connector & CONNECTOR_PROBLEM_XMPP_OTHER_HOST)
+    return error_stanza ("host-unknown", "some sort of DNS error up here");
 
   name = (problem & CONNECTOR_PROBLEM_FEATURES) ? "badger" : "features";
   feat = wocky_xmpp_stanza_new (name);
