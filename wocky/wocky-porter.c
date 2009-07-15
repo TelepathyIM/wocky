@@ -1087,6 +1087,15 @@ wocky_porter_send_iq_async (WockyPorter *self,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
+  if (priv->close_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_CLOSING,
+          "Porter is closing");
+      return;
+    }
+
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
   if (type != WOCKY_STANZA_TYPE_IQ)
