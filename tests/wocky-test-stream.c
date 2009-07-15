@@ -572,8 +572,17 @@ wocky_test_input_stream_set_read_error (GInputStream *stream)
 {
   WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
 
-   self->read_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
-       "read error");
+  if (self->read_result == NULL)
+    {
+      /* No pending read operation. Set the error so next read will fail */
+      self->read_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
+          "read error");
+      return;
+    }
+
+  g_simple_async_result_set_error (self->read_result, G_IO_ERROR,
+          G_IO_ERROR_FAILED, "read error");
+  read_async_complete (self);
 }
 
 void
