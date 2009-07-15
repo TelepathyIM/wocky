@@ -1852,6 +1852,38 @@ test_close_error (void)
   teardown_test (test);
 }
 
+/* Try to send an IQ using a closing porter and cancel it immediately */
+static void
+test_cancel_iq_closing (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+
+  /* Start to close the porter */
+  wocky_porter_close_async (test->sched_in, NULL,
+      test_close_sched_close_cb, test);
+
+  /* Try to send a stanza using the closing porter */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      test->cancellable, test_send_closing_cb, test);
+
+  /* Cancel the sending */
+  g_cancellable_cancel (test->cancellable);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  g_object_unref (iq);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1891,5 +1923,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/close-simultanously",
       test_close_simultanously);
   g_test_add_func ("/xmpp-porter/close-error", test_close_error);
+  g_test_add_func ("/xmpp-porter/cancel-iq-closing", test_cancel_iq_closing);
   return g_test_run ();
 }
