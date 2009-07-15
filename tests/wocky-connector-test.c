@@ -838,6 +838,54 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    { "/connector/problem/xmpp/error/host-unknown",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_OTHER_HOST },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/xmpp/error/tls-load",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_TLS_LOAD },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/xmpp/error/bind-conflict",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_BIND_CLASH },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/problem/xmpp/error/session-fail",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_NO_SESSION },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     { "/connector/problem/xmpp/features",
       NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_FEATURES },
@@ -1436,7 +1484,6 @@ main (int argc,
   path = g_strdup_printf ("%s/%s", getcwd (base, sizeof (base)), SASL_DB_NAME);
   g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
   g_free (path);
-
 
   mainloop = g_main_loop_new (NULL, FALSE);
 

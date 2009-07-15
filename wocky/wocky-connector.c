@@ -26,7 +26,7 @@
  * Sends and receives #WockyXmppStanzas from an underlying GIOStream.
  * negotiating TLS if possible and completing authentication with the server
  * by the "most suitable" method available.
- * Returns a WockyXmppConnection objetc to the user on successful completion.
+ * Returns a WockyXmppConnection object to the user on successful completion.
  */
 
 /*
@@ -690,6 +690,53 @@ xmpp_init_recv_cb (GObject *source,
   g_free (from);
 }
 
+/* ************************************************************************* */
+/* handle stream errors                                                      */
+static gboolean
+stream_error_abort (WockyConnector *connector, WockyXmppStanza *stanza)
+{
+  WockyStanzaType type;
+  WockyXmppNode *xmpp = stanza->node;
+  GSList *item = NULL;
+  const gchar *msg = NULL;
+  const gchar *err = NULL;
+  WockyXmppNode *cond = NULL;
+  WockyXmppNode *text = NULL;
+
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+
+  if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
+    return FALSE;
+
+  for (item = xmpp->children; item != NULL; item = g_slist_next (item))
+    {
+      WockyXmppNode *child = item->data;
+      const gchar *cns = wocky_xmpp_node_get_ns (child);
+
+      if (wocky_strdiff (cns, WOCKY_XMPP_NS_STREAMS))
+        continue;
+
+      if (!wocky_strdiff (child->name, "text"))
+        text = child;
+      else
+        cond = child;
+    }
+
+  if (text != NULL)
+    msg = text->content;
+  else if (cond != NULL)
+    msg = cond->name;
+  else
+    msg = "-";
+
+  err = (cond != NULL) ? cond->name : "unknown-error";
+  abort_connect_code (connector, WOCKY_CONNECTOR_ERROR_STREAM,
+      "%s: %s", err, msg);
+  return TRUE;
+}
+
+/* ************************************************************************* */
 static void
 xmpp_features_cb (GObject *source,
     GAsyncResult *result,
@@ -713,6 +760,9 @@ xmpp_features_cb (GObject *source,
       g_error_free (error);
       return;
     }
+
+  if (stream_error_abort (self, stanza))
+    goto out;
 
   DEBUG ("received feature stanza from server");
   node = stanza->node;
@@ -821,6 +871,9 @@ starttls_recv_cb (GObject *source,
       g_error_free (error);
       goto out;
     }
+
+  if (stream_error_abort (self, stanza))
+    goto out;
 
   DEBUG ("received TLS response");
   node = stanza->node;
@@ -980,6 +1033,9 @@ iq_bind_resource_recv_cb (GObject *source,
       return;
     }
 
+  if (stream_error_abort (self, reply))
+    goto out;
+
   wocky_xmpp_stanza_get_type_info (reply, &type, &sub);
 
   if (type != WOCKY_STANZA_TYPE_IQ)
@@ -1121,6 +1177,9 @@ establish_session_recv_cb (GObject *source,
       g_error_free (error);
       return;
     }
+
+  if (stream_error_abort (self, reply))
+    goto out;
 
   wocky_xmpp_stanza_get_type_info (reply, &type, &sub);
 

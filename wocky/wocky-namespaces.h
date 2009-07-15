@@ -8,6 +8,9 @@
 #define WOCKY_XMPP_NS_STREAM \
   "http://etherx.jabber.org/streams"
 
+#define WOCKY_XMPP_NS_STREAMS \
+  "urn:ietf:params:xml:ns:xmpp-streams"
+
 #define WOCKY_XMPP_NS_BIND \
   "urn:ietf:params:xml:ns:xmpp-bind"
 
