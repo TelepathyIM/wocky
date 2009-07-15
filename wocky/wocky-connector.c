@@ -247,6 +247,7 @@ abort_connect_error (WockyConnector *connector,
   g_simple_async_result_set_from_error (priv->result, *error);
   g_simple_async_result_complete (priv->result);
   g_object_unref (priv->result);
+  priv->result = NULL;
 }
 
 static void
@@ -273,6 +274,7 @@ abort_connect_code (WockyConnector *connector,
   g_simple_async_result_set_from_error (priv->result, err);
   g_simple_async_result_complete (priv->result);
   g_object_unref (priv->result);
+  priv->result = NULL;
   g_error_free (err);
 }
 
@@ -1073,6 +1075,7 @@ establish_session (WockyConnector *self)
     {
       g_simple_async_result_complete (priv->result);
       g_object_unref (priv->result);
+      priv->result = NULL;
     }
 }
 
@@ -1154,6 +1157,7 @@ establish_session_recv_cb (GObject *source,
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         g_simple_async_result_complete (priv->result);
         g_object_unref (priv->result);
+        priv->result = NULL;
         break;
 
       default:
