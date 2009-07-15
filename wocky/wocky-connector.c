@@ -1073,9 +1073,11 @@ establish_session (WockyConnector *self)
     }
   else
     {
+      GSimpleAsyncResult *tmp = priv->result;
+
       g_simple_async_result_complete (priv->result);
-      g_object_unref (priv->result);
       priv->result = NULL;
+      g_object_unref (tmp);
     }
 }
 
