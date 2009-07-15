@@ -772,6 +772,15 @@ stanza_received_cb (GObject *source,
           DEBUG ("Error receiving stanza: %s\n", error->message);
           g_signal_emit (self, signals[REMOTE_ERROR], 0, error->domain,
               error->code, error->message);
+
+          if (priv->close_result != NULL && priv->local_closed)
+            {
+              /* We sent our close but something went wrong with the connection
+               * so we won't be able to receive close from the other side.
+               * Complete the close operation. */
+              g_simple_async_result_set_from_error (priv->close_result, error);
+              complete_close (self);
+            }
         }
 
       if (priv->receive_cancellable != NULL)
