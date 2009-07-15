@@ -32,6 +32,7 @@ MT
 *#
 *.gcno
 *.gcda
+valgrind.*.log
 
 .cvsignore
 Thumbs.db
