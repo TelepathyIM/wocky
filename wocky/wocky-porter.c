@@ -1055,6 +1055,7 @@ iq_sent_cb (GObject *source,
      * received */
     return;
 
+  DEBUG ("error sending IQ: %s\n", error->message);
   if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
       /* Operation has been cancelled */
