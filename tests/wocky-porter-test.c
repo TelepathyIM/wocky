@@ -1804,6 +1804,54 @@ test_close_simultanously (void)
   teardown_test (test);
 }
 
+/* We sent our close stanza but a reading error occurs (as a disconnection for
+ * example) before the other side sends his close */
+static void
+test_close_error_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error));
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+
+  g_error_free (error);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_error (void)
+{
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+
+  /* Sent close */
+  wocky_porter_close_async (test->sched_in, NULL,
+      test_close_error_cb, test);
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+      test_close_simultanously_recv_stanza_cb, test);
+
+  /* Wait that the 'out' side received the close */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  /* Something goes wrong */
+  wocky_test_input_stream_set_read_error (test->stream->stream0_input);
+
+  /* The close operation is completed with an error */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1842,5 +1890,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/unref-when-closed", test_unref_when_closed);
   g_test_add_func ("/xmpp-porter/close-simultanously",
       test_close_simultanously);
+  g_test_add_func ("/xmpp-porter/close-error", test_close_error);
   return g_test_run ();
 }
