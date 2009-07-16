@@ -976,6 +976,18 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    { "/connector/problem/xmpp/bind/no-jid",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_JID_RETURNED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     { "/connector/problem/xmpp/session/none",
       NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },

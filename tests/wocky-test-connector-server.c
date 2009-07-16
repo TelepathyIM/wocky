@@ -209,16 +209,21 @@ static iq_handler iq_handlers[] =
 /* error stanza                                                              */
 static WockyXmppStanza *
 error_stanza (const gchar *cond,
-    const gchar *msg)
+    const gchar *msg, gboolean extended)
 {
   WockyXmppStanza *error = wocky_xmpp_stanza_new ("error");
   WockyXmppNode *node = error->node;
 
   wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STREAM);
   wocky_xmpp_node_add_child_ns (node, cond, WOCKY_XMPP_NS_STREAMS);
+
   if ((msg != NULL) && (*msg != '\0'))
     wocky_xmpp_node_add_child_with_content_ns (node, "text", msg,
         WOCKY_XMPP_NS_STREAMS);
+
+  if (extended)
+    wocky_xmpp_node_add_child_with_content_ns (node, "something", "blah",
+        "urn:ietf:a:namespace:I:made:up");
 
   return error;
 }
@@ -281,7 +286,7 @@ iq_set_bind (TestConnectorServer *self,
     }
   else if (problems & CONNECTOR_PROBLEM_XMPP_BIND_CLASH)
     {
-      iq = error_stanza ("conflict", "Terminated by a /resource clone");
+      iq = error_stanza ("conflict", NULL, FALSE);
     }
   else
     {
@@ -297,17 +302,25 @@ iq_set_bind (TestConnectorServer *self,
       if (uniq == NULL)
         uniq = "/a-made-up-resource";
 
-      jid = g_strdup_printf ("user@some.doma.in/%s", uniq);
-
-      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-          WOCKY_STANZA_SUB_TYPE_RESULT,
-          NULL, NULL,
-          WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
-          WOCKY_NODE, "jid", WOCKY_NODE_TEXT, jid, WOCKY_NODE_END,
-          WOCKY_NODE_END,
-          WOCKY_STANZA_END);
-
-      g_free (jid);
+      if (problems & CONNECTOR_PROBLEM_NO_JID_RETURNED)
+        {
+          iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+              WOCKY_STANZA_SUB_TYPE_RESULT, NULL, NULL,
+              WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+              WOCKY_NODE_END, WOCKY_STANZA_END);
+        }
+      else
+        {
+          jid = g_strdup_printf ("user@some.doma.in/%s", uniq);
+          iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+              WOCKY_STANZA_SUB_TYPE_RESULT,
+              NULL, NULL,
+              WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+              WOCKY_NODE, "jid", WOCKY_NODE_TEXT, jid, WOCKY_NODE_END,
+              WOCKY_NODE_END,
+              WOCKY_STANZA_END);
+          g_free (jid);
+        }
     }
   wocky_xmpp_connection_send_stanza_async (conn, iq, NULL, iq_sent, self);
   g_object_unref (xml);
@@ -362,13 +375,13 @@ iq_set_session (TestConnectorServer *self,
     }
   else if (problems & CONNECTOR_PROBLEM_XMPP_NO_SESSION)
     {
-      iq = error_stanza ("resource-constraint", "Out of Cheese Error");
+      iq = error_stanza ("resource-constraint", "Out of Cheese Error", FALSE);
     }
   else if (problems & CONNECTOR_PROBLEM_SESSION_NONSENSE)
     {
       /* deliberately nonsensical response */
-      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-          WOCKY_STANZA_SUB_TYPE_SET,
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+          WOCKY_STANZA_SUB_TYPE_NONE,
           NULL, NULL,
           WOCKY_NODE, "surstromming", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
           WOCKY_NODE_END,
@@ -434,7 +447,7 @@ handle_starttls (TestConnectorServer *self,
 
       if (problem & CONNECTOR_PROBLEM_XMPP_TLS_LOAD)
         {
-          reply = error_stanza ("resource-constraint", "Load Too High");
+          reply = error_stanza ("resource-constraint", "Load Too High", FALSE);
         }
       else if (problem & CONNECTOR_PROBLEM_TLS_REFUSED)
         {
@@ -637,7 +650,7 @@ feature_stanza (TestConnectorServer *self)
   WockyXmppNode *node = NULL;
 
   if (priv->problem.connector & CONNECTOR_PROBLEM_XMPP_OTHER_HOST)
-    return error_stanza ("host-unknown", "some sort of DNS error up here");
+    return error_stanza ("host-unknown", "some sort of DNS error", TRUE);
 
   name = (problem & CONNECTOR_PROBLEM_FEATURES) ? "badger" : "features";
   feat = wocky_xmpp_stanza_new (name);
