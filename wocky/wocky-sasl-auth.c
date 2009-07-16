@@ -27,6 +27,7 @@
 #include "wocky-sasl-auth.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
+#include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_SASL
 #include "wocky-debug.h"
@@ -291,6 +292,57 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   g_free (message);
 }
 
+static gboolean
+stream_error (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+{
+  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockyXmppNode *xmpp = NULL;
+  GSList *item = NULL;
+  const gchar *msg = NULL;
+  const gchar *err = NULL;
+  WockyXmppNode *cond = NULL;
+  WockyXmppNode *text = NULL;
+
+  if (stanza == NULL)
+    {
+      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_CONNRESET, "Disconnected");
+      return TRUE;
+    }
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+
+  if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
+    {
+      xmpp = stanza->node;
+      for (item = xmpp->children; item != NULL; item = g_slist_next (item))
+        {
+          WockyXmppNode *child = item->data;
+          const gchar *cns = wocky_xmpp_node_get_ns (child);
+
+          if (wocky_strdiff (cns, WOCKY_XMPP_NS_STREAMS))
+            continue;
+
+          if (!wocky_strdiff (child->name, "text"))
+            text = child;
+          else
+            cond = child;
+        }
+
+      if (text != NULL)
+        msg = text->content;
+      else if (cond != NULL)
+        msg = cond->name;
+      else
+        msg = "-";
+
+      err = (cond != NULL) ? cond->name : "unknown-error";
+
+      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_STREAM, "%s: %s", err, msg);
+      return TRUE;
+    }
+
+  return FALSE;
+}
 
 WockySaslAuth *
 wocky_sasl_auth_new (const gchar *server,
@@ -767,7 +819,8 @@ sasl_auth_stanza_received (GObject *source,
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
 
-  g_assert (stanza != NULL);
+  if (stream_error (sasl, stanza))
+    return;
 
   if (strcmp (
       wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_SASL_AUTH))

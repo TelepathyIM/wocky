@@ -48,6 +48,10 @@ typedef enum
   WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
   /* Server send a failure */
   WOCKY_SASL_AUTH_ERROR_FAILURE,
+  /* disconnected */
+  WOCKY_SASL_AUTH_ERROR_CONNRESET,
+  /* XMPP stream error while authing */
+  WOCKY_SASL_AUTH_ERROR_STREAM,
 } WockySaslAuthError;
 
 typedef enum {
