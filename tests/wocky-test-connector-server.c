@@ -300,7 +300,7 @@ iq_set_bind (TestConnectorServer *self,
       if (res != NULL)
         uniq = res->content;
       if (uniq == NULL)
-        uniq = "/a-made-up-resource";
+        uniq = "a-made-up-resource";
 
       if (problems & CONNECTOR_PROBLEM_NO_JID_RETURNED)
         {
