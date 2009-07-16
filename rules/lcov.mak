@@ -28,3 +28,5 @@ lcov-report:
 	@rm $(COVERAGE_DIR)/remove
 	@mv $(COVERAGE_DIR)/lcov.cleaned.info $(COVERAGE_DIR)/lcov.info
 	@genhtml -t "$(PACKAGE_STRING)" -o $(COVERAGE_DIR) $(COVERAGE_DIR)/lcov.info
+	@(find $(COVERAGE_DIR) -name \*.html -exec \
+	    sed -i -e 's|charset=ISO-8859-1">|charset=UTF-8">|g' {} \;)
