@@ -222,6 +222,7 @@ abort_connect_error (WockyConnector *connector,
     const char *fmt,
     ...)
 {
+  GSimpleAsyncResult *tmp;
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
   va_list args;
 
@@ -244,10 +245,11 @@ abort_connect_error (WockyConnector *connector,
     }
   priv->state = WCON_DISCONNECTED;
 
-  g_simple_async_result_set_from_error (priv->result, *error);
-  g_simple_async_result_complete (priv->result);
-  g_object_unref (priv->result);
+  tmp = priv->result;
   priv->result = NULL;
+  g_simple_async_result_set_from_error (tmp, *error);
+  g_simple_async_result_complete (tmp);
+  g_object_unref (tmp);
 }
 
 static void
@@ -257,6 +259,7 @@ abort_connect_code (WockyConnector *connector,
     ...)
 {
   GError *err = NULL;
+  GSimpleAsyncResult *tmp = NULL;
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
   va_list args;
 
@@ -271,10 +274,11 @@ abort_connect_code (WockyConnector *connector,
     }
   priv->state = WCON_DISCONNECTED;
 
-  g_simple_async_result_set_from_error (priv->result, err);
-  g_simple_async_result_complete (priv->result);
-  g_object_unref (priv->result);
+  tmp = priv->result;
   priv->result = NULL;
+  g_simple_async_result_set_from_error (tmp, err);
+  g_simple_async_result_complete (tmp);
+  g_object_unref (tmp);
   g_error_free (err);
 }
 
@@ -703,7 +707,6 @@ stream_error_abort (WockyConnector *connector, WockyXmppStanza *stanza)
   WockyXmppNode *cond = NULL;
   WockyXmppNode *text = NULL;
 
-
   wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
 
   if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
@@ -1130,9 +1133,8 @@ establish_session (WockyConnector *self)
   else
     {
       GSimpleAsyncResult *tmp = priv->result;
-
-      g_simple_async_result_complete (priv->result);
       priv->result = NULL;
+      g_simple_async_result_complete (tmp);
       g_object_unref (tmp);
     }
 }
@@ -1195,6 +1197,7 @@ establish_session_recv_cb (GObject *source,
       WockyXmppNode *node = NULL;
       const char *tag = NULL;
       WockyConnectorError code;
+      GSimpleAsyncResult *tmp;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         node = wocky_xmpp_node_get_child (reply->node, "error");
@@ -1216,9 +1219,9 @@ establish_session_recv_cb (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        g_simple_async_result_complete (priv->result);
-        g_object_unref (priv->result);
-        priv->result = NULL;
+        tmp = priv->result;
+        g_simple_async_result_complete (tmp);
+        g_object_unref (tmp);
         break;
 
       default:
@@ -1283,7 +1286,6 @@ wocky_connector_connect_async (WockyConnector *self,
    *  an XMPP server: Otherwise we look for a SRV record for 'host',
    *  falling back to a direct connection to 'host' if that fails.
    */
-  /* FIXME: once we're in master, use the jid slicing function there */
   gchar *node = NULL;  /* username   */ /* @ */
   gchar *host = NULL;  /* domain.tld */ /* / */
   gchar *uniq = NULL;  /* uniquifier */
