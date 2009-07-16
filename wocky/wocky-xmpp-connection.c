@@ -40,8 +40,6 @@
 #include "wocky-xmpp-reader.h"
 #include "wocky-xmpp-writer.h"
 #include "wocky-xmpp-stanza.h"
-#include "wocky-utils.h"
-#include "wocky-namespaces.h"
 
 #define BUFFER_SIZE 1024
 
