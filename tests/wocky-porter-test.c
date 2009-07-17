@@ -1946,6 +1946,90 @@ test_stream_error (void)
   teardown_test (test);
 }
 
+/* test wocky_porter_close_force */
+static void
+test_close_force_stanza_sent_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *data = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_porter_send_finish (
+      WOCKY_PORTER (source), res, &error));
+  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSING);
+
+  data->outstanding--;
+  g_error_free (error);
+  g_main_loop_quit (data->loop);
+}
+
+static void
+test_close_force_closed_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  g_assert (!wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error));
+  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSING);
+
+  test->outstanding--;
+  g_error_free (error);
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_force_force_closed_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  wocky_porter_force_close_finish (
+      WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_force (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *s;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+
+  /* Try to send a stanza; it will never reach the other side */
+  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+    WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_async (test->sched_in, s, NULL,
+      test_close_force_stanza_sent_cb, test);
+
+  /* Try to properly close the connection; we'll give up before it has been
+   * done */
+  wocky_porter_close_async (test->sched_in, NULL,
+      test_close_force_closed_cb, test);
+
+  /* force closing */
+  wocky_porter_force_close_async (test->sched_in, NULL,
+        test_close_force_force_closed_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (s);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1987,5 +2071,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/close-error", test_close_error);
   g_test_add_func ("/xmpp-porter/cancel-iq-closing", test_cancel_iq_closing);
   g_test_add_func ("/xmpp-porter/stream-error", test_stream_error);
+  g_test_add_func ("/xmpp-porter/close-force", test_close_force);
   return g_test_run ();
 }
