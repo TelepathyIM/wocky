@@ -56,6 +56,7 @@ enum
 {
     REMOTE_CLOSED,
     REMOTE_ERROR,
+    CLOSING,
     LAST_SIGNAL
 };
 
@@ -369,6 +370,12 @@ wocky_porter_class_init (
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__UINT_INT_STRING,
       G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
+
+  signals[CLOSING] = g_signal_new ("closing",
+      G_OBJECT_CLASS_TYPE (wocky_porter_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 
   spec = g_param_spec_object ("connection", "XMPP connection",
     "the XMPP connection used by this porter",
@@ -912,6 +919,8 @@ wocky_porter_close_async (WockyPorter *self,
     callback, user_data, wocky_porter_close_finish);
 
   priv->close_cancellable = cancellable;
+
+  g_signal_emit (self, signals[CLOSING], 0);
 
   if (g_queue_get_length (priv->sending_queue) > 0)
     {
