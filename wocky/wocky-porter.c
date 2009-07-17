@@ -744,19 +744,62 @@ out:
 }
 
 static void
+remote_connection_closed (WockyPorter *self,
+    GError *error)
+{
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
+  gboolean error_occured = TRUE;
+
+  /* Completing a close operation, firing the remote-error signal could make the
+   * user unref the porter. Ref it so, in such case, it would stay alive until
+   * we have finished to threat the error. */
+  g_object_ref (self);
+
+  if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
+            WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
+    error_occured = FALSE;
+
+  if (error_occured)
+    {
+      g_signal_emit (self, signals[REMOTE_ERROR], 0, error->domain,
+          error->code, error->message);
+    }
+  else
+    {
+      g_signal_emit (self, signals[REMOTE_CLOSED], 0);
+    }
+
+  if (priv->close_result != NULL && priv->local_closed)
+    {
+      if (error_occured)
+        {
+          /* We sent our close but something went wrong with the connection
+           * so we won't be able to receive close from the other side.
+           * Complete the close operation. */
+          g_simple_async_result_set_from_error (priv->close_result, error);
+        }
+
+       complete_close (self);
+    }
+
+  if (priv->receive_cancellable != NULL)
+    {
+      g_object_unref (priv->receive_cancellable);
+      priv->receive_cancellable = NULL;
+    }
+
+  priv->remote_closed = TRUE;
+  g_object_unref (self);
+}
+
+static void
 stanza_received_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
   WockyPorter *self = WOCKY_PORTER (user_data);
-  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GError *error = NULL;
-
-  /* Completing a close operation, firing the remote-error signal or handling
-   * a stanza could make the user unref the porter. Ref it so, in such case, it
-   * would stay alive until we have finished to threat the error/stanza. */
-  g_object_ref (self);
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), res, &error);
@@ -765,50 +808,29 @@ stanza_received_cb (GObject *source,
       if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
         {
-          if (priv->close_result != NULL && priv->local_closed)
-            {
-              /* Close completed */
-              complete_close (self);
-            }
-
           DEBUG ("Remote connection has been closed");
-          g_signal_emit (self, signals[REMOTE_CLOSED], 0);
         }
       else
         {
           DEBUG ("Error receiving stanza: %s\n", error->message);
-          g_signal_emit (self, signals[REMOTE_ERROR], 0, error->domain,
-              error->code, error->message);
-
-          if (priv->close_result != NULL && priv->local_closed)
-            {
-              /* We sent our close but something went wrong with the connection
-               * so we won't be able to receive close from the other side.
-               * Complete the close operation. */
-              g_simple_async_result_set_from_error (priv->close_result, error);
-              complete_close (self);
-            }
         }
 
-      if (priv->receive_cancellable != NULL)
-        {
-          g_object_unref (priv->receive_cancellable);
-          priv->receive_cancellable = NULL;
-        }
-
-      priv->remote_closed = TRUE;
+      remote_connection_closed (self, error);
       g_error_free (error);
-      g_object_unref (self);
       return;
     }
 
-  handle_stanza (self, stanza);
+  /* Handling a stanza could make the user unref the porter.
+   * Ref it so, in such case, it would stay alive until we have finished to
+   * threat the stanza. */
+  g_object_ref (self);
 
+  handle_stanza (self, stanza);
   g_object_unref (stanza);
+  g_object_unref (self);
 
   /* wait for next stanza */
   receive_stanza (self);
-  g_object_unref (self);
 }
 
 static void
