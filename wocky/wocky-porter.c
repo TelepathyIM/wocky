@@ -39,6 +39,7 @@
 #include "wocky-porter.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
+#include "wocky-namespaces.h"
 
 #define DEBUG_FLAG DEBUG_PORTER
 #include "wocky-debug.h"
@@ -259,6 +260,9 @@ static gboolean handle_iq_reply (WockyPorter *self,
     WockyXmppStanza *reply,
     gpointer user_data);
 
+static void remote_connection_closed (WockyPorter *self,
+    GError *error);
+
 static void
 wocky_porter_init (WockyPorter *obj)
 {
@@ -323,6 +327,20 @@ wocky_porter_get_property (GObject *object,
     }
 }
 
+static gboolean
+handle_stream_error (WockyPorter *self,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  GError *error = NULL;
+
+  DEBUG ("Received stream error; consider the remote connection as closed");
+  error = wocky_xmpp_stanza_to_gerror (stanza);
+  remote_connection_closed (self, error);
+  g_error_free (error);
+  return TRUE;
+}
+
 static void
 wocky_porter_constructed (GObject *object)
 {
@@ -341,6 +359,12 @@ wocky_porter_constructed (GObject *object)
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       handle_iq_reply, self, WOCKY_STANZA_END);
+
+  /* Register the stream error handler */
+  wocky_porter_register_handler (self,
+      WOCKY_STANZA_TYPE_STREAM_ERROR, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      handle_stream_error, self, WOCKY_STANZA_END);
 }
 
 static void
