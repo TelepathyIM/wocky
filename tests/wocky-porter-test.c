@@ -6,6 +6,7 @@
 
 #include <wocky/wocky-porter.h>
 #include <wocky/wocky-utils.h>
+#include <wocky/wocky-namespaces.h>
 
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
@@ -1895,6 +1896,56 @@ test_cancel_iq_closing (void)
   teardown_test (test);
 }
 
+/* test stream errors */
+static void
+test_stream_error_cb (WockyPorter *porter,
+    GQuark domain,
+    guint code,
+    const gchar *message,
+    test_data_t *test)
+{
+  GError *err = g_error_new_literal (domain, code, message);
+
+  g_assert_error (err, WOCKY_XMPP_STREAM_ERROR,
+      WOCKY_XMPP_STREAM_ERROR_CONFLICT);
+  g_error_free (err);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_stream_error (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *error;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+
+  g_signal_connect (test->sched_out, "remote-error",
+      G_CALLBACK (test_stream_error_cb), test);
+  test->outstanding++;
+
+  /* Try to send a stanza using the closing porter */
+  error = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+    WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+    WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAM,
+    WOCKY_NODE, "conflict",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAMS,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_async (test->sched_in, error, NULL, send_stanza_cb,
+      test);
+  test->outstanding++;
+
+  test_wait_pending (test);
+
+  g_object_unref (error);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1935,5 +1986,6 @@ main (int argc, char **argv)
       test_close_simultanously);
   g_test_add_func ("/xmpp-porter/close-error", test_close_error);
   g_test_add_func ("/xmpp-porter/cancel-iq-closing", test_cancel_iq_closing);
+  g_test_add_func ("/xmpp-porter/stream-error", test_stream_error);
   return g_test_run ();
 }
