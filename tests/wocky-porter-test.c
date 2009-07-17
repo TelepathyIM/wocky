@@ -396,6 +396,14 @@ test_close_sched_close_cb (GObject *source,
 }
 
 static void
+closing_cb (WockyPorter *porter,
+    test_data_t *test)
+{
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
 test_close_flush (void)
 {
   test_data_t *test = setup_test ();
@@ -415,10 +423,13 @@ test_close_flush (void)
   wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
       test_close_stanza_received_cb, test);
 
+  g_signal_connect (test->sched_in, "closing",
+      G_CALLBACK (closing_cb), test);
+
   wocky_porter_close_async (test->sched_in, NULL,
       test_close_sched_close_cb, test);
 
-  test->outstanding += 2;
+  test->outstanding += 3;
   test_wait_pending (test);
 
   teardown_test (test);
