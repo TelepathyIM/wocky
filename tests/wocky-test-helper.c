@@ -69,7 +69,7 @@ send_received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
   test_data_t *d = (test_data_t *) user_data;
 
   g_assert (wocky_xmpp_connection_recv_open_finish (conn, res,
-      NULL, NULL, NULL, NULL, NULL));
+      NULL, NULL, NULL, NULL, NULL, NULL));
 
   d->outstanding--;
   g_main_loop_quit (d->loop);

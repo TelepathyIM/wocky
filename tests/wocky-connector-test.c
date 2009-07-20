@@ -55,7 +55,7 @@ static GMainLoop *mainloop;
 typedef struct {
   gchar *desc;
   gboolean quiet;
-  struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; gchar *jid; } result;
+  struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; gchar *jid; gchar *sid; } result;
   struct {
     struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
     struct { ServerProblem sasl; ConnectorProblem conn; } problem;
@@ -827,10 +827,23 @@ test_t tests[] =
 
     /* ********************************************************************* *
      * XMPP errors                                                           */
-    { "/connector/problem/xmpp/version",
+    { "/connector/problem/xmpp/version/0.x",
       NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER },
-      { { TLS, NULL, "3.1415" },
+      { { TLS, NULL, "0.9" },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
+    /* we actually tolerate > 1.0 versions */
+    { "/connector/problem/xmpp/version/1.x",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL, "1.1" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_NO_PROBLEM },
         { "moose", "something" },
         PORT_XMPP },
@@ -1300,7 +1313,8 @@ test_done (GObject *source,
   WockyXmppConnection *conn = NULL;
 
   error = NULL;
-  conn = wocky_connector_connect_finish (wcon, res, &error, &test->result.jid);
+  conn = wocky_connector_connect_finish (wcon, res, &error,
+      &test->result.jid, &test->result.sid);
   if (conn != NULL)
     test->result.xmpp = g_object_ref (conn);
 
@@ -1387,6 +1401,11 @@ run_test (gpointer data)
       g_assert (test->result.jid != NULL);
       g_assert (*test->result.jid != '\0');
       g_free (test->result.jid);
+
+      /* we got a SID back, I hope */
+      g_assert (test->result.sid != NULL);
+      g_assert (*test->result.sid != '\0');
+      g_free (test->result.sid);
 
       /* property get/set functionality */
       if (!strcmp (test->desc, CONNECTOR_INTERNALS_TEST))

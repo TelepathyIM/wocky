@@ -106,7 +106,8 @@ GType wocky_connector_get_type (void);
 WockyXmppConnection *wocky_connector_connect_finish (WockyConnector *connector,
     GAsyncResult *res,
     GError **error,
-    gchar **jid);
+    gchar **jid,
+    gchar **sid);
 
 void wocky_connector_connect_async (WockyConnector *self,
     GAsyncReadyCallback cb,

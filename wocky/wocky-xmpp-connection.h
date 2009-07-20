@@ -118,6 +118,7 @@ gboolean wocky_xmpp_connection_recv_open_finish (
     gchar **from,
     gchar **version,
     gchar **lang,
+    gchar **id,
     GError **error);
 
 void wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,

@@ -137,6 +137,7 @@ enum
   PROP_XMPP_HOST,
   PROP_IDENTITY,
   PROP_FEATURES,
+  PROP_SESSION_ID,
 };
 
 typedef enum
@@ -172,6 +173,7 @@ struct _WockyConnectorPrivate
   gchar *domain;   /* the @[...]/ part of the initial JID */
   /* volatile/derived property: identity = jid, but may be updated by server: */
   gchar *identity; /* if the server hands us a new JID (not handled yet) */
+  gchar *session_id;
 
   /* XMPP connection data */
   WockyXmppStanza *features;
@@ -359,6 +361,10 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->xmpp_host);
         priv->xmpp_host = g_value_dup_string (value);
         break;
+      case PROP_SESSION_ID:
+        g_free (priv->session_id);
+        priv->session_id = g_value_dup_string (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -408,6 +414,9 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_FEATURES:
         g_value_set_object (value, priv->features);
+        break;
+      case PROP_SESSION_ID:
+        g_value_set_string (value, priv->session_id);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -482,6 +491,11 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "Last XMPP Feature Stanza advertised by server", WOCKY_TYPE_XMPP_STANZA,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_FEATURES, spec);
+
+  spec = g_param_spec_string ("session-id", "XMPP Session ID",
+      "XMPP Session ID", NULL,
+      (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
@@ -622,6 +636,9 @@ tcp_host_connected (GObject *source,
     }
 }
 
+
+/* ************************************************************************* */
+/* standard XMPP stanza handling                                             */
 static void
 xmpp_init (WockyConnector *connector, gboolean new_conn)
 {
@@ -671,9 +688,11 @@ xmpp_init_recv_cb (GObject *source,
   gchar *debug = NULL;
   gchar *version = NULL;
   gchar *from = NULL;
+  gchar *id = NULL;
+  gdouble ver = 0;
 
   if (!wocky_xmpp_connection_recv_open_finish (priv->conn, result, NULL,
-          &from, &version, NULL, &error))
+          &from, &version, NULL, &id, &error))
     {
       char *msg = state_message (priv, error->message);
       abort_connect_error (self, &error, msg);
@@ -682,11 +701,15 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
+  priv->session_id = g_strdup (id);
+
   debug = state_message (priv, "");
   DEBUG ("%s: received XMPP v%s stream open from server", debug, version);
   g_free (debug);
 
-  if (wocky_strdiff (version, "1.0"))
+  ver = (version != NULL) ? atof (version) : -1;
+
+  if (ver < 1.0)
     {
       abort_connect_code (self, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
           "Server not XMPP 1.0 Compliant");
@@ -700,6 +723,7 @@ xmpp_init_recv_cb (GObject *source,
  out:
   g_free (version);
   g_free (from);
+  g_free (id);
 }
 
 /* ************************************************************************* */
@@ -1226,7 +1250,8 @@ WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error,
-    gchar **jid)
+    gchar **jid,
+    gchar **sid)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
@@ -1243,8 +1268,15 @@ wocky_connector_connect_finish (WockyConnector *self,
   if (jid != NULL)
     {
       if (*jid != NULL)
-        g_warning ("overwriting non-NULL gchar * pointer arg");
+        g_warning ("overwriting non-NULL gchar * pointer arg (JID)");
       *jid = g_strdup (priv->identity);
+    }
+
+  if (sid != NULL)
+    {
+      if (*sid != NULL)
+        g_warning ("overwriting non-NULL gchar * pointer arg (Session ID)");
+      *sid = g_strdup (priv->identity);
     }
 
   return priv->conn;

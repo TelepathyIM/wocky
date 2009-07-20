@@ -68,7 +68,7 @@ received_open_cb (GObject *source, GAsyncResult *res, gpointer user_data)
   WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
 
   if (!wocky_xmpp_connection_recv_open_finish (conn, res,
-      NULL, NULL, NULL, NULL, NULL))
+          NULL, NULL, NULL, NULL, NULL, NULL))
     g_assert_not_reached ();
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
@@ -193,7 +193,7 @@ error_pending_open_received_cb (GObject *source,
 
   g_assert (wocky_xmpp_connection_recv_open_finish (
       WOCKY_XMPP_CONNECTION (source), result,
-      NULL, NULL, NULL, NULL, NULL));
+      NULL, NULL, NULL, NULL, NULL, NULL));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -206,9 +206,10 @@ error_pending_recv_open_pending_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
 
   g_assert (!wocky_xmpp_connection_recv_open_finish (
-      WOCKY_XMPP_CONNECTION (source), result, NULL, NULL, NULL, NULL, &error));
+      conn, result, NULL, NULL, NULL, NULL, NULL, &error));
 
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_PENDING);
 
@@ -568,7 +569,7 @@ error_is_open_recv_open_cb (GObject *source,
 
   g_assert (!wocky_xmpp_connection_recv_open_finish (
       WOCKY_XMPP_CONNECTION (source), result,
-      NULL, NULL, NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL,
       &error));
 
   g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
@@ -584,8 +585,10 @@ is_open_recv_open_cb (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+
   g_assert (wocky_xmpp_connection_recv_open_finish (
-      WOCKY_XMPP_CONNECTION (source), result, NULL, NULL, NULL, NULL, NULL));
+      conn, result, NULL, NULL, NULL, NULL, NULL, NULL));
 
   wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (source),
     NULL, error_is_open_recv_open_cb, user_data);
@@ -693,7 +696,7 @@ error_is_closed_recv_open_cb (GObject *source,
 
   g_assert (!wocky_xmpp_connection_recv_open_finish (
       WOCKY_XMPP_CONNECTION (source), result,
-      NULL, NULL, NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL,
       &error));
 
   g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,

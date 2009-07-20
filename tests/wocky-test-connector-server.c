@@ -729,7 +729,7 @@ xmpp_init (GObject *source,
       DEBUG ("SERVER_STATE_CLIENT_OPENED\n");
       priv->state = SERVER_STATE_SERVER_OPENED;
       wocky_xmpp_connection_recv_open_finish (conn, result,
-          NULL, NULL, NULL, NULL, NULL);
+          NULL, NULL, NULL, NULL, NULL, NULL);
       wocky_xmpp_connection_send_open_async (conn, NULL, "testserver",
           priv->version, NULL, NULL, xmpp_init, self);
       if (priv->problem.connector & CONNECTOR_PROBLEM_DIE_CLIENT_OPEN)

@@ -596,11 +596,13 @@ is_open:
  *  stanza will be stored (free after usage).
  * @lang: Optional location to store the lang attribute in the XMPP open
  *  stanza will be stored (free after usage).
+ * @id: Optional location to store the Session ID of the XMPP stream
+ *  (free after usage)
  * @error: a GError location to store the error occuring, or NULL to ignore.
  *
  * Finishes receiving a stream opening.
  *
- * Returns: TRUE if the opening was succesfully sent, FALSE on error.
+ * Returns: TRUE if the opening was succesfully received, FALSE on error.
  */
 gboolean
 wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
@@ -609,6 +611,7 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
     gchar **from,
     gchar **version,
     gchar **lang,
+    gchar **id,
     GError **error)
 {
   WockyXmppConnectionPrivate *priv;
@@ -634,6 +637,9 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
 
   if (lang != NULL)
     g_object_get (priv->reader, "lang", lang, NULL);
+
+  if (id != NULL)
+    g_object_get (priv->reader, "id", id, NULL);
 
   return TRUE;
 }

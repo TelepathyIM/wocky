@@ -213,7 +213,7 @@ stream_open_received (GObject *source,
 
   g_assert (wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), res,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     NULL));
 
   wocky_xmpp_connection_send_open_async (priv->conn,
@@ -304,7 +304,7 @@ post_auth_open_received (GObject *source,
 {
   g_assert (wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), result,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     user_data));
 
   wocky_xmpp_connection_send_open_async ( WOCKY_XMPP_CONNECTION (source),

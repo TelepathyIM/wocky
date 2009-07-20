@@ -49,6 +49,7 @@ enum {
   PROP_FROM,
   PROP_VERSION,
   PROP_LANG,
+  PROP_ID,
 };
 
 G_DEFINE_TYPE (WockyXmppReader, wocky_xmpp_reader, G_TYPE_OBJECT)
@@ -88,6 +89,7 @@ struct _WockyXmppReaderPrivate
   gchar *from;
   gchar *version;
   gchar *lang;
+  gchar *id;
   gboolean dispose_has_run;
   GError *error /* defeat the coding style checker... */;
   gboolean stream_mode;
@@ -143,6 +145,9 @@ wocky_init_xml_parser (WockyXmppReader *obj)
 
   g_free (priv->version);
   priv->version = NULL;
+
+  g_free (priv->id);
+  priv->id = NULL;
 }
 
 static void
@@ -223,6 +228,12 @@ wocky_xmpp_reader_class_init (WockyXmppReaderClass *wocky_xmpp_reader_class)
     NULL,
     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_LANG, param_spec);
+
+  param_spec = g_param_spec_string ("id", "ID",
+    "id attribute in the xml stream opening",
+    NULL,
+    G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_ID, param_spec);
 }
 
 void
@@ -275,6 +286,7 @@ wocky_xmpp_reader_finalize (GObject *object)
   g_free (priv->from);
   g_free (priv->version);
   g_free (priv->lang);
+  g_free (priv->id);
   if (priv->error != NULL)
     g_error_free (priv->error);
 
@@ -326,6 +338,9 @@ wocky_xmpp_reader_get_property (GObject *object,
         break;
       case PROP_VERSION:
         g_value_set_string (value, priv->version);
+        break;
+      case PROP_ID:
+        g_value_set_string (value, priv->id);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -404,26 +419,30 @@ _start_element_ns (void *user_data, const xmlChar *localname,
               priv->to = g_strndup ((gchar *) attributes[i+3],
                            (gsize) (attributes[i+4] - attributes[i+3]));
             }
-
-          if (!strcmp ((gchar *) attributes[i], "from"))
+          else if (!strcmp ((gchar *) attributes[i], "from"))
             {
               g_free (priv->from);
               priv->from = g_strndup ((gchar *) attributes[i+3],
                          (gsize) (attributes[i+4] - attributes[i+3]));
             }
-
-          if (!strcmp ((gchar *) attributes[i], "version"))
+          else if (!strcmp ((gchar *) attributes[i], "version"))
             {
               g_free (priv->version);
               priv->version = g_strndup ((gchar *) attributes[i+3],
                   (gsize) (attributes[i+4] - attributes[i+3]));
             }
-          if (!strcmp ((gchar *) attributes[i], "lang") &&
+          else if (!strcmp ((gchar *) attributes[i], "lang") &&
               !strcmp ((gchar *) attributes[i + 1], "xml"))
             {
               g_free (priv->lang);
               priv->lang = g_strndup ((gchar *) attributes[i+3],
                   (gsize) (attributes[i+4] - attributes[i+3]));
+            }
+          else if (!strcmp ((gchar *) attributes[i], "id"))
+            {
+              gsize len = attributes[i+4] - attributes[i+3];
+              g_free (priv->id);
+              priv->id = g_strndup ((gchar *) attributes[i+3], len);
             }
         }
       priv->depth++;

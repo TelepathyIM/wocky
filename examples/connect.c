@@ -93,9 +93,10 @@ ssl_received_open_cb (GObject *source,
 {
   gchar *version;
   gchar *from;
+  gchar *sid;
 
   if (!wocky_xmpp_connection_recv_open_finish (conn, result,
-      NULL, &from, &version, NULL, NULL))
+          NULL, &from, &version, NULL, &sid, NULL))
     {
       printf ("Didn't receive open\n");
       g_main_loop_quit (mainloop);
@@ -103,6 +104,8 @@ ssl_received_open_cb (GObject *source,
     }
 
   printf ("Stream opened -- from: %s version: %s\n", from, version);
+  printf ("  Session ID: %s\n", sid);
+
   if (version == NULL || strcmp (version, "1.0"))
     {
       printf ("Server is not xmpp compliant\n");
@@ -226,9 +229,10 @@ tcp_received_open_cb (GObject *source,
 {
   gchar *version;
   gchar *from;
+  gchar *sid;
 
   if (!wocky_xmpp_connection_recv_open_finish (conn, result,
-      NULL, &from, &version, NULL, NULL))
+          NULL, &from, &version, NULL, &sid, NULL))
     {
       printf ("Didn't receive open\n");
       g_main_loop_quit (mainloop);
@@ -236,6 +240,7 @@ tcp_received_open_cb (GObject *source,
     }
 
   printf ("Stream opened -- from: %s version: %s\n", from, version);
+  printf ("  Session ID: %s\n", sid);
 
   if (version == NULL || strcmp (version, "1.0"))
     {
@@ -249,6 +254,7 @@ tcp_received_open_cb (GObject *source,
 
   g_free (version);
   g_free (from);
+  g_free (sid);
 }
 
 static void
@@ -338,13 +344,16 @@ connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
   gchar *jid = NULL;
+  gchar *sid = NULL;
   WockyConnector *wcon = WOCKY_CONNECTOR (source);
   WockyXmppConnection *connection =
-    wocky_connector_connect_finish (wcon, res, &error, &jid);
+    wocky_connector_connect_finish (wcon, res, &error, &jid, &sid);
 
   if (connection != NULL)
     {
-      printf ("connected (%s)!\n", jid);
+      printf ("connected (%s) [%s]!\n", jid, sid);
+      g_free (sid);
+      g_free (jid);
     }
   else
     {

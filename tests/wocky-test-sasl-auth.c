@@ -82,7 +82,7 @@ post_auth_open_received (GObject *source,
 {
   g_assert (wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), result,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     NULL));
 
   wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (source),
@@ -163,7 +163,7 @@ stream_open_received (GObject *source,
 {
   g_assert (wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), res,
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     NULL));
 
   /* Get the features stanza and wait for the connection closing*/
