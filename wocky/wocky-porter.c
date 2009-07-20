@@ -78,6 +78,8 @@ struct _WockyPorterPrivate
   gboolean remote_closed;
   gboolean local_closed;
   GCancellable *close_cancellable;
+  GSimpleAsyncResult *force_close_result;
+  GCancellable *force_close_cancellable;
 
   /* guint => owned (StanzaHandler *) */
   GHashTable *handlers_by_id;
@@ -442,6 +444,12 @@ wocky_porter_dispose (GObject *object)
       priv->close_result = NULL;
     }
 
+  if (priv->force_close_result != NULL)
+    {
+      g_object_unref (priv->force_close_result);
+      priv->force_close_result = NULL;
+    }
+
   if (G_OBJECT_CLASS (wocky_porter_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_porter_parent_class)->dispose (object);
 }
@@ -540,7 +548,12 @@ send_stanza_cb (GObject *source,
     }
   else
     {
-      g_assert (elem != NULL);
+      if (elem == NULL)
+        /* The elem could have been removed from the queue if its sending
+         * operation has already been completed (for example by forcing to
+         * close the connection). */
+        return;
+
       g_simple_async_result_complete (elem->result);
 
       sending_queue_elem_free (elem);
@@ -587,7 +600,7 @@ wocky_porter_send_async (WockyPorter *self,
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   sending_queue_elem *elem;
 
-  if (priv->close_result != NULL)
+  if (priv->close_result != NULL || priv->force_close_result != NULL)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_PORTER_ERROR,
@@ -817,6 +830,30 @@ remote_connection_closed (WockyPorter *self,
 }
 
 static void
+connection_force_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyPorter *self = WOCKY_PORTER (user_data);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
+  GSimpleAsyncResult *r = priv->force_close_result;
+  GError *error = NULL;
+
+  priv->local_closed = TRUE;
+
+  if (!wocky_xmpp_connection_force_close_finish (WOCKY_XMPP_CONNECTION (source),
+        res, &error))
+    {
+      g_simple_async_result_set_from_error (priv->force_close_result, error);
+      g_error_free (error);
+    }
+
+  priv->force_close_result = NULL;
+  g_simple_async_result_complete (r);
+  g_object_unref (r);
+}
+
+static void
 stanza_received_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
@@ -840,7 +877,17 @@ stanza_received_cb (GObject *source,
           DEBUG ("Error receiving stanza: %s\n", error->message);
         }
 
-      remote_connection_closed (self, error);
+      if (priv->force_close_result)
+        {
+          /* We are forcing the closing. Actually close the connection. */
+          wocky_xmpp_connection_force_close_async (priv->connection,
+             priv->force_close_cancellable, connection_force_close_cb, self);
+        }
+      else
+        {
+          remote_connection_closed (self, error);
+        }
+
       g_error_free (error);
       return;
     }
@@ -1146,7 +1193,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
-  if (priv->close_result != NULL)
+  if (priv->close_result != NULL || priv->force_close_result != NULL)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_PORTER_ERROR,
@@ -1219,4 +1266,93 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
       G_SIMPLE_ASYNC_RESULT (result));
 
   return g_object_ref (reply);
+}
+
+void
+wocky_porter_force_close_async (WockyPorter *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
+  sending_queue_elem *elem;
+
+  if (priv->force_close_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, G_IO_ERROR_PENDING, G_IO_ERROR_PENDING,
+          "Another force close operation is pending");
+      return;
+    }
+
+  if (priv->local_closed)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_CLOSED,
+          "Porter has already been closed");
+      return;
+    }
+
+  if (priv->receive_cancellable == NULL && !priv->remote_closed)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_NOT_STARTED,
+          "Porter has not been started");
+      return;
+    }
+
+  /* Ensure to keep us alive during the closing */
+  g_object_ref (self);
+
+  g_signal_emit (self, signals[CLOSING], 0);
+
+  if (priv->close_result != NULL)
+    {
+      /* Finish pending close operation */
+      g_simple_async_result_set_error (priv->close_result, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_CLOSING, "Force closing of the Porter");
+      g_simple_async_result_complete_in_idle (priv->close_result);
+      g_object_unref (priv->close_result);
+      priv->close_result = NULL;
+    }
+
+  priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
+    callback, user_data, wocky_porter_force_close_finish);
+  priv->force_close_cancellable = cancellable;
+
+  /* Terminate all the pending sending operations */
+  elem = g_queue_pop_head (priv->sending_queue);
+  while (elem != NULL)
+    {
+      g_simple_async_result_set_error (elem->result, WOCKY_PORTER_ERROR,
+          WOCKY_PORTER_ERROR_CLOSING, "Force closing of the Porter");
+      g_simple_async_result_complete_in_idle (elem->result);
+      sending_queue_elem_free (elem);
+      elem = g_queue_pop_head (priv->sending_queue);
+    }
+
+  /* The operation will be completed when:
+   * - the receive operation has been cancelled
+   * - the XMPP connection has been closed
+   */
+
+  g_cancellable_cancel (priv->receive_cancellable);
+}
+
+gboolean
+wocky_porter_force_close_finish (
+    WockyPorter *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_porter_force_close_finish), FALSE);
+
+  return TRUE;
 }

@@ -136,6 +136,16 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_porter_force_close_async (WockyPorter *porter,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_porter_force_close_finish (
+    WockyPorter *porter,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_PORTER_H__*/
