@@ -178,7 +178,7 @@ test_to_gerror (void)
     WOCKY_STANZA_END);
 
   check_error (stanza, WOCKY_XMPP_STREAM_ERROR,
-      WOCKY_XMPP_STREAM_ERROR_CONFLICT, "");
+      WOCKY_XMPP_STREAM_ERROR_CONFLICT, "a stream error occurred");
   g_object_unref (stanza);
 
   /* Valid error with message */
@@ -207,7 +207,7 @@ test_to_gerror (void)
     WOCKY_STANZA_END);
 
   check_error (stanza, WOCKY_XMPP_STREAM_ERROR,
-     WOCKY_XMPP_STREAM_ERROR_UNKNOWN, "");
+     WOCKY_XMPP_STREAM_ERROR_UNKNOWN, "a stream error occurred");
   g_object_unref (stanza);
 
   /* Not an error */

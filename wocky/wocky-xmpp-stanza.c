@@ -609,5 +609,5 @@ wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
   text = wocky_xmpp_node_get_child (stanza->node, "text");
 
   return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code,
-      (text != NULL) ? text->content: "");
+      (text != NULL) ? text->content: "a stream error occurred");
 }
