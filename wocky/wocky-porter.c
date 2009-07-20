@@ -822,6 +822,7 @@ stanza_received_cb (GObject *source,
     gpointer user_data)
 {
   WockyPorter *self = WOCKY_PORTER (user_data);
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
@@ -853,8 +854,11 @@ stanza_received_cb (GObject *source,
   g_object_unref (stanza);
   g_object_unref (self);
 
-  /* wait for next stanza */
-  receive_stanza (self);
+  if (!priv->remote_closed)
+    {
+      /* We didn't detect any error on the stream, wait for next stanza */
+      receive_stanza (self);
+    }
 }
 
 static void
