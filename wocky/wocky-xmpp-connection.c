@@ -84,6 +84,8 @@ struct _WockyXmppConnectionPrivate
   gsize offset;
   gsize length;
 
+  GSimpleAsyncResult *force_close_result;
+
   guint last_id;
 };
 
@@ -1019,4 +1021,66 @@ wocky_xmpp_connection_new_id (WockyXmppConnection *self)
   val = (tv.tv_sec & tv.tv_usec) + priv->last_id++;
 
   return g_strdup_printf ("%ld%ld", val, tv.tv_usec);
+}
+
+static void
+stream_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (user_data);
+  WockyXmppConnectionPrivate *priv =
+    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+  GError *error = NULL;
+  GSimpleAsyncResult *r = priv->force_close_result;
+
+  if (!g_io_stream_close_finish (G_IO_STREAM (source), res, &error))
+    {
+      g_simple_async_result_set_from_error (priv->force_close_result, error);
+      g_error_free (error);
+    }
+
+  priv->force_close_result = NULL;
+  g_simple_async_result_complete (r);
+  g_object_unref (r);
+}
+
+void
+wocky_xmpp_connection_force_close_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyXmppConnectionPrivate *priv =
+    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+
+  if (G_UNLIKELY (priv->force_close_result != NULL))
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (connection),
+          callback, user_data,
+          G_IO_ERROR, G_IO_ERROR_PENDING, "Another close operation is pending");
+      return;
+    }
+
+  priv->force_close_result = g_simple_async_result_new (G_OBJECT (connection),
+    callback, user_data, wocky_xmpp_connection_force_close_finish);
+
+  g_io_stream_close_async (priv->stream, G_PRIORITY_HIGH, cancellable,
+      stream_close_cb, connection);
+}
+
+gboolean
+wocky_xmpp_connection_force_close_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (connection), wocky_xmpp_connection_force_close_finish), FALSE);
+
+  return TRUE;
 }
