@@ -858,6 +858,46 @@ test_recv_simple_message_in_one_chunk (void)
   g_object_unref (connection);
 }
 
+/* test force close */
+static void
+force_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  test_data_t *data = (test_data_t *) user_data;
+
+  g_assert (wocky_xmpp_connection_force_close_finish (conn, res, NULL));
+  g_main_loop_quit (data->loop);
+}
+
+static void
+test_force_close (void)
+{
+  WockyXmppConnection *connection;
+  WockyTestStream *stream;
+  GMainLoop *loop = NULL;
+  test_data_t data = { NULL, FALSE };
+
+  loop = g_main_loop_new (NULL, FALSE);
+
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  connection = wocky_xmpp_connection_new (stream->stream0);
+
+  g_timeout_add (1000, test_timeout_cb, NULL);
+
+  data.loop = loop;
+
+  wocky_xmpp_connection_force_close_async (connection,
+      NULL, force_close_cb, &data);
+
+  g_main_loop_run (loop);
+  g_main_loop_unref (loop);
+
+  g_object_unref (stream);
+  g_object_unref (connection);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -878,5 +918,6 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-connection/recv-cancel", test_recv_cancel);
   g_test_add_func ("/xmpp-connection/recv-simple-message-in-one-chunk",
     test_recv_simple_message_in_one_chunk);
+  g_test_add_func ("/xmpp-connection/force-close", test_force_close);
   return g_test_run ();
 }
