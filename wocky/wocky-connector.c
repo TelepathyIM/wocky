@@ -697,45 +697,21 @@ xmpp_init_recv_cb (GObject *source,
 /* ************************************************************************* */
 /* handle stream errors                                                      */
 static gboolean
-stream_error_abort (WockyConnector *connector, WockyXmppStanza *stanza)
+stream_error_abort (WockyConnector *connector,
+    WockyXmppStanza *stanza)
 {
-  WockyStanzaType type;
-  WockyXmppNode *xmpp = stanza->node;
-  GSList *item = NULL;
-  const gchar *msg = NULL;
-  const gchar *err = NULL;
-  WockyXmppNode *cond = NULL;
-  WockyXmppNode *text = NULL;
+  GError *error = NULL;
 
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
-
-  if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
+  error = wocky_xmpp_stanza_to_gerror (stanza);
+  if (error == NULL)
     return FALSE;
 
-  for (item = xmpp->children; item != NULL; item = g_slist_next (item))
-    {
-      WockyXmppNode *child = item->data;
-      const gchar *cns = wocky_xmpp_node_get_ns (child);
+  DEBUG ("Received stream error: %s", error->message);
 
-      if (wocky_strdiff (cns, WOCKY_XMPP_NS_STREAMS))
-        continue;
-
-      if (!wocky_strdiff (child->name, "text"))
-        text = child;
-      else
-        cond = child;
-    }
-
-  if (text != NULL)
-    msg = text->content;
-  else if (cond != NULL)
-    msg = cond->name;
-  else
-    msg = "-";
-
-  err = (cond != NULL) ? cond->name : "unknown-error";
   abort_connect_code (connector, WOCKY_CONNECTOR_ERROR_STREAM,
-      "%s: %s", err, msg);
+      "%s", error->message);
+
+  g_error_free (error);
   return TRUE;
 }
 
