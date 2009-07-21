@@ -42,6 +42,7 @@
 #define DOMAIN_XCON "wocky-xmpp-connection-error"
 #define DOMAIN_GIO  "g-io-error-quark"
 #define DOMAIN_RES  "g-resolver-error-quark"
+#define DOMAIN_STREAM "wocky-xmpp-stream-error"
 
 #define CONNECTOR_INTERNALS_TEST "/connector/basic/internals"
 
@@ -840,7 +841,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/host-unknown",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_OTHER_HOST },
         { "moose", "something" },
@@ -852,7 +853,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/tls-load",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_TLS_LOAD },
         { "moose", "something" },
@@ -864,7 +865,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/bind-conflict",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_BIND_CLASH },
         { "moose", "something" },
@@ -876,7 +877,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/session-fail",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_STREAM },
+      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_XMPP_NO_SESSION },
         { "moose", "something" },

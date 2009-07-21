@@ -716,8 +716,7 @@ stream_error_abort (WockyConnector *connector,
 
   DEBUG ("Received stream error: %s", error->message);
 
-  abort_connect_code (connector, WOCKY_CONNECTOR_ERROR_STREAM,
-      "%s", error->message);
+  abort_connect (connector, error);
 
   g_error_free (error);
   return TRUE;
