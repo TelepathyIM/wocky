@@ -23,6 +23,7 @@
 
 #include "wocky-xmpp-node.h"
 #include "wocky-utils.h"
+#include "wocky-namespaces.h"
 
 typedef struct {
   gchar *key;
@@ -243,6 +244,58 @@ wocky_xmpp_node_get_first_child (WockyXmppNode *node)
   return (WockyXmppNode *) node->children->data;
 }
 
+const gchar *
+wocky_xmpp_node_unpack_error (WockyXmppNode *node,
+    const gchar **type,
+    WockyXmppNode **text,
+    WockyXmppNode **orig,
+    WockyXmppNode **extra)
+{
+  WockyXmppNode *error = NULL;
+  WockyXmppNode *mesg = NULL;
+  WockyXmppNode *xtra = NULL;
+  const gchar *cond = NULL;
+  GSList *child = NULL;
+  GQuark stanza = g_quark_from_string (WOCKY_XMPP_NS_STANZAS);
+
+  g_assert (node != NULL);
+
+  error = wocky_xmpp_node_get_child (node, "error");
+
+  /* not an error? weird, in any case */
+  if (error == NULL)
+    return NULL;
+
+  for (child = error->children; child != NULL; child = g_slist_next (child))
+    {
+      WockyXmppNode *c = child->data;
+      if (c->ns != stanza)
+        xtra = c;
+      else if (wocky_strdiff (c->name, "text"))
+        {
+          cond = c->name;
+          if (type != NULL)
+            *type = wocky_xmpp_node_get_attribute (c, "type");
+        }
+      else
+        mesg = c;
+    }
+
+  if (text != NULL)
+    *text = mesg;
+
+  if (extra != NULL)
+    *extra = xtra;
+
+  if (orig != NULL)
+    {
+      WockyXmppNode *first = wocky_xmpp_node_get_first_child (node);
+      if (first != error)
+        *orig = first;
+    }
+
+  return cond;
+}
 
 WockyXmppNode *
 wocky_xmpp_node_add_child (WockyXmppNode *node, const gchar *name)
