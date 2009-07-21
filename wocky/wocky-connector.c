@@ -76,6 +76,8 @@
 G_DEFINE_TYPE (WockyConnector, wocky_connector, G_TYPE_OBJECT);
 
 static void wocky_connector_class_init (WockyConnectorClass *klass);
+
+/* XMPP connect/auth/etc handlers */
 static void tcp_srv_connected (GObject *source,
     GAsyncResult *result,
     gpointer connector);
@@ -121,6 +123,37 @@ static void establish_session_recv_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
 
+/* old-style jabber auth handlers */
+static void
+jabber_auth_init (WockyConnector *connector);
+
+static void
+jabber_auth_init_sent (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+
+static void
+jabber_auth_fields (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+
+static void
+jabber_auth_try_digest (WockyConnector *self);
+
+static void
+jabber_auth_try_passwd (WockyConnector *self);
+
+static void
+jabber_auth_query (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+
+static void
+jabber_auth_reply (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+
+/* private methods */
 static void wocky_connector_dispose (GObject *object);
 static void wocky_connector_finalize (GObject *object);
 
@@ -137,6 +170,8 @@ enum
   PROP_XMPP_HOST,
   PROP_IDENTITY,
   PROP_FEATURES,
+  PROP_LEGACY,
+  PROP_LEGACY_SSL,
   PROP_SESSION_ID,
 };
 
@@ -173,6 +208,8 @@ struct _WockyConnectorPrivate
   gchar *domain;   /* the @[...]/ part of the initial JID */
   /* volatile/derived property: identity = jid, but may be updated by server: */
   gchar *identity; /* if the server hands us a new JID (not handled yet) */
+  gboolean legacy_support;
+  gboolean legacy_ssl;
   gchar *session_id;
 
   /* XMPP connection data */
@@ -361,6 +398,12 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->xmpp_host);
         priv->xmpp_host = g_value_dup_string (value);
         break;
+      case PROP_LEGACY:
+        priv->legacy_support = g_value_get_boolean (value);
+        break;
+      case PROP_LEGACY_SSL:
+        priv->legacy_ssl = g_value_get_boolean (value);
+        break;
       case PROP_SESSION_ID:
         g_free (priv->session_id);
         priv->session_id = g_value_dup_string (value);
@@ -414,6 +457,12 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_FEATURES:
         g_value_set_object (value, priv->features);
+        break;
+      case PROP_LEGACY:
+        g_value_set_boolean (value, priv->legacy_support);
+        break;
+      case PROP_LEGACY_SSL:
+        g_value_set_boolean (value, priv->legacy_ssl);
         break;
       case PROP_SESSION_ID:
         g_value_set_string (value, priv->session_id);
@@ -491,6 +540,16 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "Last XMPP Feature Stanza advertised by server", WOCKY_TYPE_XMPP_STANZA,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_FEATURES, spec);
+
+  spec = g_param_spec_boolean ("legacy", "Legacy Jabber Support",
+      "Old style Jabber (Auth) support", FALSE,
+      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_LEGACY, spec);
+
+  spec = g_param_spec_boolean ("old-ssl", "Legacy SSL Support",
+      "Old style SSL support", FALSE,
+      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_LEGACY_SSL, spec);
 
   spec = g_param_spec_string ("session-id", "XMPP Session ID",
       "XMPP Session ID", NULL,
@@ -636,6 +695,279 @@ tcp_host_connected (GObject *source,
     }
 }
 
+/* ************************************************************************* */
+/* legacy jabber support                                                     */
+static void
+jabber_auth_init (WockyConnector *connector)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  WockyXmppConnection *conn = priv->conn;
+  gchar *id = wocky_xmpp_connection_new_id (priv->conn);
+  WockyXmppStanza *iq = NULL;
+
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, priv->domain,
+      WOCKY_NODE_ATTRIBUTE, "id", id,
+      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
+      jabber_auth_init_sent, connector);
+
+  g_free (id);
+  g_object_unref (iq);
+}
+
+static void
+jabber_auth_init_sent (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  GError *error = NULL;
+
+  if (!wocky_xmpp_connection_send_stanza_finish (conn, res, &error))
+    {
+      abort_connect_error (self, &error, "Jabber Auth Init");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (conn, NULL,
+      jabber_auth_fields, data);
+}
+
+static void
+jabber_auth_fields (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  GError *error = NULL;
+  WockyXmppStanza *fields = NULL;
+  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
+
+  fields = wocky_xmpp_connection_recv_stanza_finish (conn, res, &error);
+
+  if (fields == NULL)
+    {
+      abort_connect_error (self, &error, "Jabber Auth Fields");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_stanza_get_type_info (fields, &type, &sub);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED,
+          "Jabber Auth Init: Response Invalid");
+      return;
+    }
+
+  switch (sub)
+    {
+      WockyXmppNode *node = fields->node;
+      WockyXmppNode *text = NULL;
+      const gchar *tag = NULL;
+      const gchar *msg = NULL;
+      WockyConnectorError code;
+      gboolean passwd = FALSE;
+      gboolean digest = FALSE;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        tag = wocky_xmpp_node_unpack_error (node, NULL, &text, NULL, NULL);
+        if (tag == NULL)
+          tag = "unknown-error";
+        msg = (text != NULL) ? text->content : "";
+
+        if (!wocky_strdiff ("service-unavailable", tag))
+          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE;
+        else
+          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED;
+
+        abort_connect_code (self, code, "Jabber Auth: %s %s", tag, msg);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        node = wocky_xmpp_node_get_child_ns (node, "query",
+            WOCKY_JABBER_NS_AUTH);
+        if ((node != NULL) &&
+            (wocky_xmpp_node_get_child (node, "resource") != NULL) &&
+            (wocky_xmpp_node_get_child (node, "username") != NULL))
+          {
+            passwd = wocky_xmpp_node_get_child (node, "password") != NULL;
+            digest = wocky_xmpp_node_get_child (node, "digest") != NULL;
+          }
+
+        if (digest)
+          jabber_auth_try_digest (self);
+        else if (passwd)
+          jabber_auth_try_passwd (self);
+        else
+          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS,
+              "Jabber Auth: No Known Mechanisms");
+        break;
+
+      default:
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED,
+            "Bizarre response to Jabber Auth request");
+        break;
+    }
+
+  g_object_unref (fields);
+}
+
+static void
+jabber_auth_try_digest (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  gchar *hsrc = g_strconcat (priv->session_id, priv->pass, NULL);
+  gchar *sha1 = g_compute_checksum_for_string (G_CHECKSUM_SHA1, hsrc, -1);
+  gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
+  WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
+      WOCKY_NODE, "username", WOCKY_NODE_TEXT, priv->user, WOCKY_NODE_END,
+      WOCKY_NODE, "digest", WOCKY_NODE_TEXT, sha1, WOCKY_NODE_END,
+      WOCKY_NODE, "resource", WOCKY_NODE_TEXT, priv->resource, WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
+      jabber_auth_query, self);
+
+  g_object_unref (iq);
+  g_free (iqid);
+  g_free (hsrc);
+  g_free (sha1);
+}
+
+static void
+jabber_auth_try_passwd (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
+  WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
+      WOCKY_NODE, "username", WOCKY_NODE_TEXT, priv->user, WOCKY_NODE_END,
+      WOCKY_NODE, "password", WOCKY_NODE_TEXT, priv->pass, WOCKY_NODE_END,
+      WOCKY_NODE, "resource", WOCKY_NODE_TEXT, priv->resource, WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
+      jabber_auth_query, self);
+
+  g_object_unref (iq);
+  g_free (iqid);
+}
+
+static void
+jabber_auth_query (GObject *source, GAsyncResult *res, gpointer data)
+{
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  GError *error = NULL;
+
+  if (!wocky_xmpp_connection_send_stanza_finish (conn, res, &error))
+    {
+      abort_connect_error (self, &error, "Jabber Auth IQ Set");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (conn, NULL,
+      jabber_auth_reply, data);
+}
+
+static void
+jabber_auth_reply (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  GError *error = NULL;
+  WockyXmppStanza *reply = NULL;
+  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
+
+  reply = wocky_xmpp_connection_recv_stanza_finish (conn, res, &error);
+
+  if (reply == NULL)
+    {
+      abort_connect_error (self, &error, "Jabber Auth Reply");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_stanza_get_type_info (reply, &type, &sub);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED,
+          "Jabber Auth Reply: Response Invalid");
+      return;
+    }
+
+  switch (sub)
+    {
+      WockyXmppNode *node = reply->node;
+      WockyXmppNode *text = NULL;
+      const gchar *tag = NULL;
+      const gchar *msg = NULL;
+      WockyConnectorError code;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        tag = wocky_xmpp_node_unpack_error (node, NULL, &text, NULL, NULL);
+        if (tag == NULL)
+          tag = "unknown-error";
+        msg = (text != NULL) ? text->content : "";
+
+        if (!wocky_strdiff ("not-authorized", tag))
+          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED;
+        else if (!wocky_strdiff ("conflict", tag))
+          code = WOCKY_CONNECTOR_ERROR_BIND_CONFLICT;
+        else if (!wocky_strdiff ("not-acceptable", tag))
+          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE;
+        else
+          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED;
+
+        abort_connect_code (self, code, "Jabber Auth: %s %s", tag, msg);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        g_free (priv->identity);
+        priv->state = WCON_XMPP_BOUND;
+        priv->authed = TRUE;
+        priv->mech = WOCKY_SASL_AUTH_NR_MECHANISMS;
+        priv->identity = g_strdup_printf ("%s@%s/%s",
+            priv->user, priv->domain, priv->resource);
+        establish_session (self);
+        break;
+
+      default:
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED,
+            "Bizarre response to Jabber Auth request");
+        break;
+    }
+
+  g_object_unref (reply);
+
+}
+
 
 /* ************************************************************************* */
 /* standard XMPP stanza handling                                             */
@@ -653,7 +985,7 @@ xmpp_init (WockyConnector *connector, gboolean new_conn)
 
   DEBUG ("sending XMPP stream open to server");
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
-      "1.0", NULL, NULL, xmpp_init_sent_cb, connector);
+      "1.0", NULL, NULL, NULL, xmpp_init_sent_cb, connector);
 }
 
 static void
@@ -711,8 +1043,11 @@ xmpp_init_recv_cb (GObject *source,
 
   if (ver < 1.0)
     {
-      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
-          "Server not XMPP 1.0 Compliant");
+      if (!priv->legacy_support)
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
+            "Server not XMPP 1.0 Compliant");
+      else
+        jabber_auth_init (self);
       goto out;
     }
 
@@ -1276,7 +1611,7 @@ wocky_connector_connect_finish (WockyConnector *self,
     {
       if (*sid != NULL)
         g_warning ("overwriting non-NULL gchar * pointer arg (Session ID)");
-      *sid = g_strdup (priv->identity);
+      *sid = g_strdup (priv->session_id);
     }
 
   return priv->conn;

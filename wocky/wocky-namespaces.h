@@ -74,4 +74,8 @@
 #define WOCKY_TELEPATHY_NS_CLIQUE \
   "http://telepathy.freedesktop.org/xmpp/clique"
 
+/* legacy namespaces */
+#define WOCKY_JABBER_NS_AUTH \
+  "jabber:iq:auth"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
