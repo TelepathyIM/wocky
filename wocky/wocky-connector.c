@@ -253,19 +253,11 @@ abort_connect_error (WockyConnector *connector,
 }
 
 static void
-abort_connect_code (WockyConnector *connector,
-    int code,
-    const char *fmt,
-    ...)
+abort_connect (WockyConnector *connector,
+    GError *error)
 {
-  GError *err = NULL;
   GSimpleAsyncResult *tmp = NULL;
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
-  va_list args;
-
-  va_start (args, fmt);
-  err = g_error_new_valist (WOCKY_CONNECTOR_ERROR, code, fmt, args);
-  va_end (args);
 
   if (priv->sock != NULL)
     {
@@ -276,9 +268,25 @@ abort_connect_code (WockyConnector *connector,
 
   tmp = priv->result;
   priv->result = NULL;
-  g_simple_async_result_set_from_error (tmp, err);
+  g_simple_async_result_set_from_error (tmp, error);
   g_simple_async_result_complete (tmp);
   g_object_unref (tmp);
+}
+
+static void
+abort_connect_code (WockyConnector *connector,
+    int code,
+    const char *fmt,
+    ...)
+{
+  GError *err = NULL;
+  va_list args;
+
+  va_start (args, fmt);
+  err = g_error_new_valist (WOCKY_CONNECTOR_ERROR, code, fmt, args);
+  va_end (args);
+
+  abort_connect (connector, err);
   g_error_free (err);
 }
 
