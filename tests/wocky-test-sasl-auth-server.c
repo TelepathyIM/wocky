@@ -217,7 +217,7 @@ stream_open_received (GObject *source,
     NULL));
 
   wocky_xmpp_connection_send_open_async (priv->conn,
-    NULL, "testserver", "1.0", NULL,
+    NULL, "testserver", "1.0", NULL, "0-HA2",
     NULL, stream_open_sent, self);
 }
 
@@ -308,7 +308,7 @@ post_auth_open_received (GObject *source,
     user_data));
 
   wocky_xmpp_connection_send_open_async ( WOCKY_XMPP_CONNECTION (source),
-    NULL, "testserver", "1.0", NULL,
+    NULL, "testserver", "1.0", NULL, "0-HA1",
     NULL, post_auth_open_sent, user_data);
 }
 

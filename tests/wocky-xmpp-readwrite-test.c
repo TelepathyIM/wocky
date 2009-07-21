@@ -47,7 +47,7 @@ test_readwrite (void)
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_INITIAL);
 
-  wocky_xmpp_writer_stream_open (writer, TO, FROM, VERSION, LANG,
+  wocky_xmpp_writer_stream_open (writer, TO, FROM, VERSION, LANG, NULL,
       &data, &length);
   wocky_xmpp_reader_push (reader, data, length);
 

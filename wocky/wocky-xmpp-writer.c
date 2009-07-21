@@ -215,6 +215,7 @@ wocky_xmpp_writer_new_no_stream (void)
  * @from: the sender of the stream opening (usually the jid of the client)
  * @version: XMPP version
  * @lang: default XMPP stream language
+ * @id: XMPP Stream ID, if any, or NULL
  * @data: location to store a pointer to the data buffer
  * @length: length of the data buffer
  *
@@ -230,6 +231,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
     const gchar *from,
     const gchar *version,
     const gchar *lang,
+    const gchar *id,
     const guint8 **data,
     gsize *length)
 {
@@ -275,6 +277,14 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
       xmlTextWriterFlush (priv->xmlwriter);
       xmlAttrSerializeTxtContent (priv->buffer, NULL,
         NULL, (xmlChar *) lang);
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\"");
+    }
+
+  if (id != NULL)
+    {
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\n  id=\"");
+      xmlTextWriterFlush (priv->xmlwriter);
+      xmlAttrSerializeTxtContent (priv->buffer, NULL, NULL, (xmlChar *) id);
       xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\"");
     }
 

@@ -344,6 +344,7 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     const gchar *from,
     const gchar *version,
     const gchar *lang,
+    const gchar *id,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -371,7 +372,7 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   priv->length = 0;
 
   wocky_xmpp_writer_stream_open (priv->writer,
-    to, from, version, lang, &priv->output_buffer, &priv->length);
+      to, from, version, lang, id, &priv->output_buffer, &priv->length);
 
   wocky_xmpp_connection_do_write (connection);
 

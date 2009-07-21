@@ -358,7 +358,7 @@ test_error_pending_send_pending (test_data_t *test)
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
 
   /* should get a _PENDING error */
-  wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL,
+  wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL, NULL,
     NULL, error_pending_open_pending_cb, test);
 
   /* should get a _PENDING error */
@@ -400,7 +400,7 @@ test_error_pending (void)
   g_main_loop_run (test->loop);
 
   /* Should succeed */
-  wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL,
+  wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL, NULL,
     NULL, error_pending_open_sent_cb, test);
   test->outstanding++;
 
@@ -555,7 +555,7 @@ is_open_send_open_cb (GObject *source,
       WOCKY_XMPP_CONNECTION (source), result, NULL));
 
   wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (source),
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     NULL, error_is_open_send_open_cb, user_data);
 }
 
@@ -738,7 +738,7 @@ test_error_is_open_or_closed (void)
 
 
   wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (test->in),
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     NULL, is_open_send_open_cb, test);
 
   wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (test->out),
@@ -758,7 +758,7 @@ test_error_is_open_or_closed (void)
 
   /* both sides are closed, all calls should yield _IS_CLOSED errors */
   wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (test->in),
-    NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, NULL,
     NULL, error_is_closed_send_open_cb, test);
 
   wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (test->in),

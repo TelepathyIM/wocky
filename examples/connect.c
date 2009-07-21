@@ -56,7 +56,7 @@ auth_done_cb (GObject *source,
   /* Reopen the connection */
   wocky_xmpp_connection_reset (conn);
   wocky_xmpp_connection_send_open_async (conn,
-      server, NULL, "1.0", NULL,
+      server, NULL, "1.0", NULL, NULL,
       NULL, post_auth_open_sent_cb, NULL);
 }
 
@@ -167,7 +167,7 @@ tcp_start_tls_recv_cb (GObject *source,
 
   conn = wocky_xmpp_connection_new (G_IO_STREAM (ssl));
   wocky_xmpp_connection_send_open_async (conn,
-      server, NULL, "1.0", NULL,
+      server, NULL, "1.0", NULL, NULL,
       NULL, ssl_open_sent_cb, NULL);
 }
 
@@ -283,7 +283,7 @@ tcp_do_connect (void)
   conn = wocky_xmpp_connection_new (G_IO_STREAM (tcp));
 
   wocky_xmpp_connection_send_open_async (conn,
-      server, NULL, "1.0", NULL,
+      server, NULL, "1.0", NULL, NULL,
       NULL, tcp_sent_open_cb, NULL);
 }
 

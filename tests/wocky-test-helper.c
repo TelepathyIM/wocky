@@ -99,7 +99,7 @@ open_connection (test_data_t *test,
     WockyXmppConnection *connection)
 {
   wocky_xmpp_connection_send_open_async (connection,
-      NULL, NULL, NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL,
       NULL, send_open_cb, test);
 
   test->outstanding++;

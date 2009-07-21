@@ -97,6 +97,7 @@ void wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     const gchar *from,
     const gchar *version,
     const gchar *lang,
+    const gchar *id,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);

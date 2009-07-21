@@ -117,7 +117,7 @@ sasl_auth_finished_cb (GObject *source,
       wocky_xmpp_connection_reset (conn);
 
       wocky_xmpp_connection_send_open_async (conn,
-        test->servername, NULL, "1.0", NULL,
+        test->servername, NULL, "1.0", NULL, NULL,
         NULL, post_auth_open_sent, NULL);
     }
   else
@@ -203,7 +203,7 @@ run_test (gconstpointer user_data)
   conn = wocky_xmpp_connection_new (xmpp_connection);
 
   wocky_xmpp_connection_send_open_async (conn,
-    test->servername, NULL, "1.0", NULL,
+    test->servername, NULL, "1.0", NULL, NULL,
     NULL, stream_open_sent, test);
 
   if (!run_done)

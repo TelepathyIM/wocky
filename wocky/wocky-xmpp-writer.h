@@ -66,6 +66,7 @@ void wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
     const gchar *from,
     const gchar *version,
     const gchar *lang,
+    const gchar *id,
     const guint8 **data,
     gsize *length);
 
