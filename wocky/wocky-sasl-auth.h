@@ -40,9 +40,9 @@ typedef enum
   WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
   /* Server doesn't support any mechanisms that we support */
   WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-  /* Couldn't send our stanza's to the server */
+  /* Couldn't send our stanzas to the server */
   WOCKY_SASL_AUTH_ERROR_NETWORK,
-  /* Server send an invalid reply */
+  /* Server sent an invalid reply */
   WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
   /* Failure to provide user credentials */
   WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
