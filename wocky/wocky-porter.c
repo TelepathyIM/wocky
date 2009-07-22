@@ -1358,6 +1358,15 @@ wocky_porter_force_close_async (WockyPorter *self,
       elem = g_queue_pop_head (priv->sending_queue);
     }
 
+  if (priv->remote_closed)
+    {
+      /* No need to wait, close connection right now */
+      DEBUG ("remote is already closed, close the XMPP connection");
+      wocky_xmpp_connection_force_close_async (priv->connection,
+          priv->force_close_cancellable, connection_force_close_cb, self);
+      return;
+    }
+
   /* The operation will be completed when:
    * - the receive operation has been cancelled
    * - the XMPP connection has been closed
