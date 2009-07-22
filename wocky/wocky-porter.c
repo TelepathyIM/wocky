@@ -850,6 +850,12 @@ connection_force_close_cb (GObject *source,
       g_error_free (error);
     }
 
+  if (priv->receive_cancellable != NULL)
+    {
+      g_object_unref (priv->receive_cancellable);
+      priv->receive_cancellable = NULL;
+    }
+
   DEBUG ("XMPP connection has been closed; complete the force close operation");
   priv->force_close_result = NULL;
   g_simple_async_result_complete (r);
