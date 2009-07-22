@@ -1353,6 +1353,8 @@ wocky_porter_force_close_async (WockyPorter *self,
     callback, user_data, wocky_porter_force_close_finish);
   priv->force_close_cancellable = cancellable;
 
+  g_object_unref (self);
+
   /* Terminate all the pending sending operations */
   elem = g_queue_pop_head (priv->sending_queue);
   while (elem != NULL)
