@@ -245,6 +245,27 @@ test_unpack_error (void)
         }
 }
 
+static void
+test_append_content_n (void)
+{
+  WockyXmppStanza *a;
+  const gchar *content = "badger badger badger";
+  guint i;
+  size_t l;
+
+  a = wocky_xmpp_stanza_new ("message");
+
+  l = strlen (content);
+  /* Append content byte by byte */
+  for (i = 0; i < l; i++)
+    {
+      wocky_xmpp_node_append_content_n (a->node, content + i, 1);
+    }
+  g_assert (!wocky_strdiff (a->node->content, content));
+
+  g_object_unref (a);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -255,6 +276,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-node/node-equal", test_node_equal);
   g_test_add_func ("/xmpp-node/set-attribute", test_set_attribute);
   g_test_add_func ("/xmpp-node/unpack-error", test_unpack_error);
+  g_test_add_func ("/xmpp-node/append-content-n", test_append_content_n);
 
   result = g_test_run ();
   test_deinit ();
