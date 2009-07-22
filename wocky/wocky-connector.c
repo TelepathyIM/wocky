@@ -765,6 +765,8 @@ xmpp_features_cb (GObject *source,
   /* cache the current feature set: according to the RFC, we should forget
    * any previous feature set as soon as we open a new stream, so that
    * happens elsewhere */
+  if (priv->features != NULL)
+    g_object_unref (priv->features);
   priv->features = g_object_ref (stanza);
 
   can_encrypt =
