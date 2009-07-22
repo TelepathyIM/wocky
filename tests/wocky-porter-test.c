@@ -2040,7 +2040,7 @@ test_close_force (void)
   wocky_porter_force_close_async (test->sched_in, NULL,
         test_close_force_force_closed_cb, test);
 
-  test->outstanding += 2;
+  test->outstanding += 3;
   test_wait_pending (test);
 
   g_object_unref (s);
