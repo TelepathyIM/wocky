@@ -461,6 +461,8 @@ wocky_porter_finalize (GObject *object)
   WockyPorterPrivate *priv =
       WOCKY_PORTER_GET_PRIVATE (self);
 
+  DEBUG ("finalize porter %p", self);
+
   /* sending_queue_elem keeps a ref on the Porter (through the
    * GSimpleAsyncResult) so it shouldn't be destroyed while there are
    * elements in the queue. */
@@ -848,6 +850,7 @@ connection_force_close_cb (GObject *source,
       g_error_free (error);
     }
 
+  DEBUG ("XMPP connection has been closed; complete the force close operation");
   priv->force_close_result = NULL;
   g_simple_async_result_complete (r);
   g_object_unref (r);
@@ -880,6 +883,8 @@ stanza_received_cb (GObject *source,
       if (priv->force_close_result)
         {
           /* We are forcing the closing. Actually close the connection. */
+          DEBUG ("Receive operation has been cancelled; "
+              "force closing of the XMPP connection");
           wocky_xmpp_connection_force_close_async (priv->connection,
              priv->force_close_cancellable, connection_force_close_cb, self);
         }
@@ -905,6 +910,10 @@ stanza_received_cb (GObject *source,
     {
       /* We didn't detect any error on the stream, wait for next stanza */
       receive_stanza (self);
+    }
+  else
+    {
+      DEBUG ("Remote connection has been closed, don't wait for next stanza");
     }
 }
 
