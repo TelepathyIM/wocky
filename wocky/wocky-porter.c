@@ -914,6 +914,14 @@ stanza_received_cb (GObject *source,
   else
     {
       DEBUG ("Remote connection has been closed, don't wait for next stanza");
+
+      if (priv->force_close_result)
+        {
+          DEBUG ("Remote connection has been closed; "
+              "force closing of the XMPP connection");
+          wocky_xmpp_connection_force_close_async (priv->connection,
+             priv->force_close_cancellable, connection_force_close_cb, self);
+        }
     }
 }
 
