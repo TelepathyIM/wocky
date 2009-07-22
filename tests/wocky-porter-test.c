@@ -1898,6 +1898,22 @@ test_cancel_iq_closing (void)
 
 /* test stream errors */
 static void
+test_stream_error_force_close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  wocky_porter_force_close_finish (
+      WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
 test_stream_error_cb (WockyPorter *porter,
     GQuark domain,
     guint code,
@@ -1910,8 +1926,9 @@ test_stream_error_cb (WockyPorter *porter,
       WOCKY_XMPP_STREAM_ERROR_CONFLICT);
   g_error_free (err);
 
-  test->outstanding--;
-  g_main_loop_quit (test->loop);
+  /* force closing of the porter */
+  wocky_porter_force_close_async (porter, NULL,
+        test_stream_error_force_close_cb, test);
 }
 
 static void
