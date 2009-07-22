@@ -1021,6 +1021,14 @@ wocky_porter_close_async (WockyPorter *self,
       return;
     }
 
+  if (priv->force_close_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, G_IO_ERROR, G_IO_ERROR_PENDING,
+          "A force close operation is pending");
+      return;
+    }
+
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_porter_close_finish);
 
