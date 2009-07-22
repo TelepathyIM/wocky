@@ -955,6 +955,11 @@ jabber_auth_reply (GObject *source,
         priv->mech = WOCKY_SASL_AUTH_NR_MECHANISMS;
         priv->identity = g_strdup_printf ("%s@%s/%s",
             priv->user, priv->domain, priv->resource);
+        /* if there has been no features stanza, this will just finish up *
+         * if there has been a feature stanza, we are in an XMPP 1.x      *
+         * server that _only_ supports old style auth (no SASL). In this  *
+         * bizarre situation, we would then proceed as if we were in a    *
+         * normal XMPP server after a successful bind.                    */
         establish_session (self);
         break;
 
