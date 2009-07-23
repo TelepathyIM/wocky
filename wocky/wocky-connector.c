@@ -594,6 +594,7 @@ wocky_connector_finalize (GObject *object)
   GFREE_AND_FORGET (priv->identity);
   GFREE_AND_FORGET (priv->xmpp_host);
   GFREE_AND_FORGET (priv->pass);
+  GFREE_AND_FORGET (priv->session_id);
 
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
@@ -705,6 +706,7 @@ jabber_auth_init (WockyConnector *connector)
   gchar *id = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = NULL;
 
+  DEBUG ("");
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, priv->domain,
       WOCKY_NODE_ATTRIBUTE, "id", id,
@@ -729,6 +731,7 @@ jabber_auth_init_sent (GObject *source,
   WockyXmppConnection *conn = priv->conn;
   GError *error = NULL;
 
+  DEBUG ("");
   if (!wocky_xmpp_connection_send_stanza_finish (conn, res, &error))
     {
       abort_connect_error (self, &error, "Jabber Auth Init");
@@ -753,6 +756,7 @@ jabber_auth_fields (GObject *source,
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
   WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
 
+  DEBUG ("");
   fields = wocky_xmpp_connection_recv_stanza_finish (conn, res, &error);
 
   if (fields == NULL)
@@ -773,15 +777,16 @@ jabber_auth_fields (GObject *source,
 
   switch (sub)
     {
-      WockyXmppNode *node = fields->node;
+      WockyXmppNode *node = NULL;
       WockyXmppNode *text = NULL;
       const gchar *tag = NULL;
       const gchar *msg = NULL;
       WockyConnectorError code;
-      gboolean passwd = FALSE;
-      gboolean digest = FALSE;
+      gboolean passwd;
+      gboolean digest;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
+        node = fields->node;
         tag = wocky_xmpp_node_unpack_error (node, NULL, &text, NULL, NULL);
         if (tag == NULL)
           tag = "unknown-error";
@@ -796,6 +801,9 @@ jabber_auth_fields (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
+        passwd = FALSE;
+        digest = FALSE;
+        node = fields->node;
         node = wocky_xmpp_node_get_child_ns (node, "query",
             WOCKY_JABBER_NS_AUTH);
         if ((node != NULL) &&
@@ -834,6 +842,7 @@ jabber_auth_try_digest (WockyConnector *self)
   gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", iqid,
       WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
       WOCKY_NODE, "username", WOCKY_NODE_TEXT, priv->user, WOCKY_NODE_END,
       WOCKY_NODE, "digest", WOCKY_NODE_TEXT, sha1, WOCKY_NODE_END,
@@ -841,6 +850,7 @@ jabber_auth_try_digest (WockyConnector *self)
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  DEBUG ("checksum: %s", sha1);
   wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
       jabber_auth_query, self);
 
@@ -858,6 +868,7 @@ jabber_auth_try_passwd (WockyConnector *self)
   gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", iqid,
       WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
       WOCKY_NODE, "username", WOCKY_NODE_TEXT, priv->user, WOCKY_NODE_END,
       WOCKY_NODE, "password", WOCKY_NODE_TEXT, priv->pass, WOCKY_NODE_END,
@@ -865,6 +876,7 @@ jabber_auth_try_passwd (WockyConnector *self)
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  DEBUG ("");
   wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
       jabber_auth_query, self);
 
@@ -880,6 +892,7 @@ jabber_auth_query (GObject *source, GAsyncResult *res, gpointer data)
   WockyXmppConnection *conn = priv->conn;
   GError *error = NULL;
 
+  DEBUG ("");
   if (!wocky_xmpp_connection_send_stanza_finish (conn, res, &error))
     {
       abort_connect_error (self, &error, "Jabber Auth IQ Set");
@@ -904,6 +917,7 @@ jabber_auth_reply (GObject *source,
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
   WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
 
+  DEBUG ("");
   reply = wocky_xmpp_connection_recv_stanza_finish (conn, res, &error);
 
   if (reply == NULL)
@@ -924,13 +938,14 @@ jabber_auth_reply (GObject *source,
 
   switch (sub)
     {
-      WockyXmppNode *node = reply->node;
+      WockyXmppNode *node = NULL;
       WockyXmppNode *text = NULL;
       const gchar *tag = NULL;
       const gchar *msg = NULL;
       WockyConnectorError code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
+        node = reply->node;
         tag = wocky_xmpp_node_unpack_error (node, NULL, &text, NULL, NULL);
         if (tag == NULL)
           tag = "unknown-error";
@@ -1298,7 +1313,17 @@ auth_done (GObject *source,
     {
       /* nothing to add, the SASL error should be informative enough */
       DEBUG ("SASL complete (failure)");
-      abort_connect_error (self, &error, "");
+
+      /* except: if there's no SASL and Jabber auth is available, we *
+       * are allowed to attempt that instead                         */
+      if ((error->domain == WOCKY_SASL_AUTH_ERROR) &&
+          (error->code == WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED) &&
+          (wocky_xmpp_node_get_child_ns (priv->features->node, "auth",
+              WOCKY_JABBER_NS_AUTH_FEATURE) != NULL))
+        jabber_auth_init (self);
+      else
+        abort_connect_error (self, &error, "");
+
       g_error_free (error);
       goto out;
     }
