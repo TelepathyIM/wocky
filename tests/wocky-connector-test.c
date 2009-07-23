@@ -23,6 +23,9 @@
 #define UNREACHABLE    "127.255.255.255"
 #define DUFF_H0ST      "no_such_host.at.all"
 
+#define OLD_JABBER TRUE
+#define XMPP_V1    FALSE
+
 #define QUIET TRUE
 #define NOISY FALSE
 
@@ -66,7 +69,7 @@ typedef struct {
   struct {
     gboolean require_tls;
     struct { gchar *jid; gchar *pass; gboolean secure; gboolean tls; } auth;
-    struct { gchar *host; guint port; } options;
+    struct { gchar *host; guint port; gboolean jabber; } options;
   } client;
   pid_t  server_pid;
   WockyConnector *connector;
@@ -100,6 +103,7 @@ test_t tests[] =
 
     /* simple connection, followed by checks on all the internal state *
      * and get/set property methods to make sure they work             */
+
     { CONNECTOR_INTERNALS_TEST,
       NOISY,
       { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -1138,6 +1142,147 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    /* old school jabber tests (pre XMPP 1.0)*/
+    { "/connector/jabber/no-ssl/auth/digest",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_OLD_SERVER },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/reject",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_OLD_SERVER },
+        { "moose", "blerg" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/unavailable",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_NIH },
+        { "moose", "blerg" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/bind-error",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_CONFLICT },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_BIND },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/incomplete",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_PARTIAL },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/failure",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_FAILED },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/bizarre",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_STRANGE },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/no-mechs",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS },
+      { { TLS, "none" },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_OLD_SERVER },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/plain",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, "password" },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_PROBLEM_OLD_SERVER },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/plain/rejected",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { { TLS, "password" },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_REJECT },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/digest/rejected",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { { TLS, "digest" },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          CONNECTOR_PROBLEM_OLD_SERVER|CONNECTOR_PROBLEM_OLD_AUTH_REJECT },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+
     /* we are done, cap the list: */
     { NULL }
   };
@@ -1370,6 +1515,7 @@ run_test (gpointer data)
       "encrypted-plain-auth-ok" , !test->client.auth.secure,
       /* this refers to PLAINTEXT vs CRYPT, not PLAIN vs DIGEST */
       "plaintext-auth-allowed"  , !test->client.auth.tls,
+      "legacy"                  , test->client.options.jabber,
       /* insecure tls cert/etc not yet implemented */
       "ignore-ssl-errors"       , FALSE,
       NULL);
