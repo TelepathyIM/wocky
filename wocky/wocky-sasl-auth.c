@@ -944,7 +944,7 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   return TRUE;
 }
 
-/* Initiate sasl auth. features should containt the stream features stanza as
+/* Initiate sasl auth. features should contain the stream features stanza as
  * receiver from the server */
 void
 wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
