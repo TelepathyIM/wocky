@@ -1009,6 +1009,19 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
+    { "/connector/problem/xmpp/bind/failed",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, BIND_PROBLEM_NONSENSE, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 } } },
+
     { "/connector/problem/xmpp/bind/no-jid",
       NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
@@ -1263,6 +1276,20 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
+    { "/connector/jabber/no-ssl/auth/nonsense",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK,
+            JABBER_PROBLEM_AUTH_NONSENSE } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
     { "/connector/jabber/no-ssl/auth/no-mechs",
       NOISY,
       { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS },
@@ -1314,6 +1341,33 @@ test_t tests[] =
       { FALSE,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
         { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/old+sasl",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
+    { "/connector/jabber/no-ssl/auth/old-sasl",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_SASL,
+          { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { FALSE,
+        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0, OLD_JABBER } } },
+
 
     /* we are done, cap the list: */
     { NULL }
@@ -1590,6 +1644,9 @@ run_test (gpointer data)
           gchar *identity = NULL;
           WockyConnector *tmp = wocky_connector_new ("foo@bar.org","abc","xyz");
           WockyXmppStanza *feat = NULL;
+          gboolean jabber;
+          gboolean oldssl;
+          XmppProblem xproblem = test->server.problem.conn.xmpp;
           const gchar *prop = NULL;
           const gchar *str_prop[] = { "jid", "password", "xmpp-server", NULL };
           const gchar *str_vals[] = { "abc", "PASSWORD", "xmpp.server", NULL };
@@ -1608,10 +1665,19 @@ run_test (gpointer data)
           g_object_unref (feat);
           identity = NULL;
 
+          g_object_get (wcon, "session-id", &identity, NULL);
+          g_assert (identity != NULL);
+          g_assert (*identity != '\0');
+          g_free (identity);
+
           g_object_get (wcon, "resource", &identity, NULL);
           g_assert (identity != NULL);
           g_assert (*identity |= '\0');
           g_free (identity);
+
+          g_object_get (wcon, "legacy", &jabber, "old-ssl", &oldssl, NULL);
+          g_assert (jabber == (gboolean)(xproblem & XMPP_PROBLEM_OLD_SERVER));
+          g_assert (oldssl == (gboolean)(xproblem & XMPP_PROBLEM_OLD_SSL));
 
           for (i = 0, prop = str_prop[0]; prop; prop = str_prop[++i])
             {

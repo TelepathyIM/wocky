@@ -395,6 +395,16 @@ iq_set_query (TestConnectorServer *self,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
+  else if (problems & JABBER_PROBLEM_AUTH_NONSENSE)
+    {
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+          WOCKY_STANZA_SUB_TYPE_NONE,
+          NULL, NULL,
+          WOCKY_NODE_ATTRIBUTE, "id", id,
+          WOCKY_NODE, "surstromming", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+          WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+    }
   else
     {
       DEBUG ("auth OK");
@@ -461,6 +471,16 @@ iq_set_bind (TestConnectorServer *self,
       /* deliberately nonsensical response */
       iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
           WOCKY_STANZA_SUB_TYPE_SET,
+          NULL, NULL,
+          WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
+          WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+    }
+  else if (problems & BIND_PROBLEM_NONSENSE)
+    {
+      /* deliberately nonsensical response */
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+          WOCKY_STANZA_SUB_TYPE_NONE,
           NULL, NULL,
           WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
           WOCKY_NODE_END,
