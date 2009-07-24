@@ -1053,6 +1053,7 @@ xmpp_init_recv_cb (GObject *source,
       goto out;
     }
 
+  g_free (priv->session_id);
   priv->session_id = g_strdup (id);
 
   debug = state_message (priv, "");
