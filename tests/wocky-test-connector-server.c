@@ -748,6 +748,8 @@ starttls (GObject *source,
       exit (0);
     }
 
+  if (priv->conn != NULL)
+    g_object_unref (priv->conn);
   priv->state = SERVER_STATE_START;
   priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
   priv->tls_started = TRUE;
@@ -927,6 +929,40 @@ xmpp_closed (GObject *source,
   wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
 }
 
+static void startssl (TestConnectorServer *self)
+{
+  GError *error = NULL;
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  WockyXmppConnection *conn = priv->conn;
+  ConnectorProblem *problem = priv->problem.connector;
+
+  if (priv->tls_started)
+    return;
+
+  DEBUG ("creating SSL Session [server]");
+  if (problem->death & SERVER_DEATH_TLS_NEG)
+    priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
+        NULL, NULL, NULL, NULL);
+  else
+    priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
+        TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE, NULL);
+
+  DEBUG ("starting server SSL handshake");
+  priv->tls_conn = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+  if (priv->tls_conn == NULL)
+    {
+      g_error ("SSL Server Setup failed: %p %s\n",
+          priv->tls_sess, error->message);
+      exit (0);
+    }
+  DEBUG ("server SSL handshake complete");
+
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
+  priv->tls_started = TRUE;
+  if (conn != NULL)
+    g_object_unref (conn);
+
+}
 
 static void
 xmpp_init (GObject *source,
@@ -942,21 +978,26 @@ xmpp_init (GObject *source,
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   conn = priv->conn;
 
-  DEBUG ("test_connector_server:xmpp_init %d\n", priv->state);
+  DEBUG ("test_connector_server:xmpp_init %d", priv->state);
   DEBUG ("connection: %p", conn);
 
   switch (priv->state)
     {
       /* wait for <stream:stream… from the client */
     case SERVER_STATE_START:
-      DEBUG ("SERVER_STATE_START\n");
+      DEBUG ("SERVER_STATE_START");
+
+      if (priv->problem.connector->xmpp & XMPP_PROBLEM_OLD_SSL)
+        {
+          startssl (self);
+          conn = priv->conn;
+        }
+      DEBUG ("SERVER_STATE_START: SSL");
       priv->state = SERVER_STATE_CLIENT_OPENED;
+
       wocky_xmpp_connection_recv_open_async (conn, NULL, xmpp_init, self);
       if (priv->problem.connector->death & SERVER_DEATH_SERVER_START)
-        {
-          sleep (1);
           exit (0);
-        }
       break;
 
       /* send our own <stream:stream… */
