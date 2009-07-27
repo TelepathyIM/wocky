@@ -30,30 +30,42 @@
  */
 
 /*
- * tcp_srv_connected
- * ├→ tcp_host_connected
- * │  ↓
- * └→ xmpp_init ←───────────┬──┐
- *    ↓                     │  │
- *    xmpp_init_sent_cb     │  │
- *    ↓                     │  │
- *    xmpp_init_recv_cb     │  │
- *    ↓                     │  │
- *    xmpp_features_cb      │  │
- *    │ │ ↓                 │  │
- *    │ │ starttls_sent_cb  │  │
- *    │ │ ↓                 │  │
- *    │ │ starttls_recv_cb ─┘  │
- *    │ ↓                      │
- *    │ request-auth           │
- *    │ ↓                      │
- *    │ auth_done ─────────────┘
+ * tcp_srv_connected                           ①
+ * │                                           ↑
+ * ├→ tcp_host_connected                       jabber_auth_reply
+ * │  ↓                                        ↑
+ * └→ xmpp_init ←─────────────┬──┐             jabber_auth_query
+ *    ↓                       │  │             ↑
+ *    xmpp_init_sent_cb       │  │             ├──────────────────────┐
+ *    ↓                       │  │             │                      │
+ *    xmpp_init_recv_cb       │  │             │ jabber_auth_try_passwd
+ *    │ ↓                     │  │             │                      ↑
+ *    │ xmpp_features_cb      │  │             jabber_auth_try_digest │
+ *    │ │ │ ↓                 │  │             ↑                      │
+ *    │ │ │ starttls_sent_cb  │  │             ├──────────────────────┘
+ *    │ │ │ ↓                 │  │             │
+ *    │ │ │ starttls_recv_cb ─┘  │             jabber_auth_fields
+ *    │ │ ↓                      │             ↑
+ *    │ │ request-auth           │             jabber_auth_init_sent
+ *    │ │ ↓                      │             ↑
+ *    │ │ auth_done ─────────────┴─[no sasl]─→ jabber_auth_init
+ *    │ ↓                                      ↑
+ *    │ iq_bind_resource                       │
+ *    │ ↓                                      │
+ *    │ iq_bind_resource_sent_cb               │
+ *    │ ↓                                      │
+ *    │ iq_bind_resource_recv_cb               │
+ *    │ ↓                                      │
+ *    │ ①                                      │
+ *    └──────────[old auth]────────────────────┘
+ *
+ *    ①
  *    ↓
- *    iq_bind_resource
- *    ↓
- *    iq_bind_resource_sent_cb
- *    ↓
- *    iq_bind_resource_recv_cb → success
+ *    establish_session ─────────→ success
+ *    ↓                              ↑
+ *    establish_session_sent_cb      │
+ *    ↓                              │
+ *    establish_session_recv_cb ─────┘
  */
 
 #include <stdio.h>
