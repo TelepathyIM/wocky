@@ -30,11 +30,13 @@
  */
 
 /*
- * tcp_srv_connected                           ①
- * │                                           ↑
- * ├→ tcp_host_connected                       jabber_auth_reply
+ * tcp_srv_connected
+ * │
+ * ├→ tcp_host_connected                       ①
  * │  ↓                                        ↑
- * └→ xmpp_init ←─────────────┬──┐             jabber_auth_query
+ * └→ maybe_old_ssl                            jabber_auth_reply
+ *    ↓                                        ↑
+ *    xmpp_init ←─────────────┬──┐             jabber_auth_query
  *    ↓                       │  │             ↑
  *    xmpp_init_sent_cb       │  │             ├──────────────────────┐
  *    ↓                       │  │             │                      │
@@ -96,6 +98,9 @@ static void tcp_srv_connected (GObject *source,
 static void tcp_host_connected (GObject *source,
     GAsyncResult *result,
     gpointer connector);
+
+static void maybe_old_ssl (WockyConnector *self);
+
 static void xmpp_init (WockyConnector *connector, gboolean new_conn);
 static void xmpp_init_sent_cb (GObject *source,
     GAsyncResult *result,
@@ -257,7 +262,12 @@ state_message (WockyConnectorPrivate *priv, const char *str)
   if (priv->authed)
     state = "Authentication Completed";
   else if (priv->encrypted)
-    state = "TLS Negotiated";
+    {
+      if (priv->legacy_ssl)
+        state = "SSL Negotiated";
+      else
+        state = "TLS Negotiated";
+    }
   else if (priv->connected)
     state = "TCP Connection Established";
   else
@@ -273,9 +283,12 @@ abort_connect_error (WockyConnector *connector,
     const char *fmt,
     ...)
 {
-  GSimpleAsyncResult *tmp;
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  GSimpleAsyncResult *tmp = NULL;
+  WockyConnectorPrivate *priv = NULL;
   va_list args;
+
+  DEBUG ("connector: %p", connector);
+  priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
 
   g_assert (error != NULL);
   g_assert (*error != NULL);
@@ -677,7 +690,7 @@ tcp_srv_connected (GObject *source,
       DEBUG ("SRV connection succeeded");
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
-      xmpp_init (self, TRUE);
+      maybe_old_ssl (self);
     }
 }
 
@@ -704,7 +717,7 @@ tcp_host_connected (GObject *source,
       DEBUG ("HOST connection succeeded");
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
-      xmpp_init (self, TRUE);
+      maybe_old_ssl (self);
     }
 }
 
@@ -1000,6 +1013,50 @@ jabber_auth_reply (GObject *source,
 
 }
 
+/* ************************************************************************* */
+/* old-style SSL                                                             */
+static void
+maybe_old_ssl (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  if (priv->legacy_ssl && !priv->encrypted)
+    {
+      GError *error = NULL;
+
+      g_assert (priv->conn == NULL);
+      g_assert (priv->sock != NULL);
+
+      DEBUG ("creating SSL session");
+      priv->tls_sess = g_tls_session_new (G_IO_STREAM (priv->sock));
+      if (priv->tls_sess == NULL)
+        {
+          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
+              "SSL Session Failed");
+          return;
+        }
+
+      DEBUG ("beginning SSL handshake");
+      priv->tls = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+      DEBUG ("completed SSL handshake");
+
+      if (priv->tls == NULL)
+        {
+          abort_connect_error (self, &error, "SSL Handshake Error");
+          g_error_free (error);
+          return;
+        }
+
+      priv->encrypted = TRUE;
+      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
+
+      xmpp_init (self, FALSE);
+    }
+  else
+    {
+      xmpp_init (self, TRUE);
+    }
+}
 
 /* ************************************************************************* */
 /* standard XMPP stanza handling                                             */
