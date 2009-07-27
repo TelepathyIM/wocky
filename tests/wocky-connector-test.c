@@ -101,8 +101,8 @@ test_t tests[] =
 
       // Client Details
       { TLS_REQUIRED,
-        { BARE_JID, PASSWORD, MUST_BE_SECURE, MUST_BE_DIGEST_AUTH },
-        { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO } }
+        { BARE_JID, PASSWORD, MUST_BE_DIGEST_AUTH, MUST_BE_SECURE },
+        { XMPP_HOSTNAME_OR_NULL, XMPP_PORT_OR_ZERO, OLD_JABBER, OLD_SSL } }
         SERVER_PROCESS_ID }, */
 
     /* simple connection, followed by checks on all the internal state *
@@ -130,7 +130,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     /* No SRV or connect host specified, connect port specified */
@@ -143,7 +143,7 @@ test_t tests[] =
         8222 },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 8222 } } },
 
     /* No SRV or connect host specified, bad port specified: FAIL */
@@ -156,7 +156,7 @@ test_t tests[] =
         8222 },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 8221 } } },
 
     /* No SRV record, connect host specified */
@@ -169,7 +169,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "schadenfreude.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { "schadenfreude.org", 0 } } },
 
     /* No SRV record, connect host and port specified */
@@ -182,7 +182,7 @@ test_t tests[] =
         5555 },
       { NULL, 0, "meerkats.net", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { "meerkats.net", 5555 } } },
 
     /* No SRV record, connect host and bad port specified: FAIL */
@@ -195,7 +195,7 @@ test_t tests[] =
         5555 },
       { NULL, 0, "meerkats.net", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { "meerkats.net", 5554 } } },
 
     /* No SRV record, bad connect host: FAIL */
@@ -208,7 +208,7 @@ test_t tests[] =
         PORT_NONE },
       { NULL, 0, NULL, NULL, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { DUFF_H0ST, 0 } } },
 
     /* No SRV record, bad connect host, port specified: FAIL */
@@ -221,7 +221,7 @@ test_t tests[] =
         PORT_NONE },
       { NULL, 0, NULL, NULL, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { "still.no_such_host.at.all", 23 } } },
 
     /* SRV record specified */
@@ -234,7 +234,7 @@ test_t tests[] =
         5050 },
       { "weasel-juice.org", 5050, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     /* SRV record specified, port specified: ignore SRV and connect */
@@ -247,7 +247,7 @@ test_t tests[] =
         5051 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 5051 } } },
 
     /* SRV record specified, bad port: ignore SRV and FAIL */
@@ -260,7 +260,7 @@ test_t tests[] =
         5051 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 5050 } } },
 
     /* SRV record, connect host specified: use connect host */
@@ -273,7 +273,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { VISIBLE_HOST, 0 } } },
 
     /* SRV, connect host and port specified: use host and port */
@@ -286,7 +286,7 @@ test_t tests[] =
         5656 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { VISIBLE_HOST, 5656 } } },
 
     /* SRV record, connect host, bad port: ignore SRV, FAIL */
@@ -299,7 +299,7 @@ test_t tests[] =
         5656 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { VISIBLE_HOST, 5655 } } },
 
     /* SRV record, bad connect host: use bad host and FAIL */
@@ -312,7 +312,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { DUFF_H0ST, 0 } } },
 
     /* SRV record, bad connect host, connect port: use bad host and FAIL */
@@ -325,7 +325,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { DUFF_H0ST, PORT_XMPP } } },
 
     /* Bad SRV record: use it and FAIL */
@@ -338,7 +338,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     /* Bad SRV record, port specified, ignore SRV and connect to domain host */
@@ -351,7 +351,7 @@ test_t tests[] =
         5050 },
       { "weasel-juice.org", PORT_XMPP, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 5050 } } },
 
     /* Bad SRV record, bad port specified, ignore SRV and FAIL */
@@ -364,7 +364,7 @@ test_t tests[] =
         5050 },
       { "weasel-juice.org", PORT_XMPP, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 5049 } } },
 
     /* Bad SRV record, connect host specified, ignore SRV */
@@ -377,7 +377,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { VISIBLE_HOST, 0 } } },
 
     /* Bad SRV record, connect host and port given: ignore SRV */
@@ -390,7 +390,7 @@ test_t tests[] =
         5151 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { VISIBLE_HOST, 5151 } } },
 
     /* Bad SRV record, connect host and bad port, ignore SRV and FAIL */
@@ -403,7 +403,7 @@ test_t tests[] =
         5151 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { VISIBLE_HOST, 5149 } } },
 
     /* Bad SRV record, bad host and bad port: Just FAIL */
@@ -416,7 +416,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { INVISIBLE_HOST, 0 } } },
 
     /*Bad SRV and connect host, ignore SRV and FAIL */
@@ -429,7 +429,7 @@ test_t tests[] =
         5151 },
       { "weasel-juice.org", 5050, "thud.org", UNREACHABLE, REACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { INVISIBLE_HOST, 5151 } } },
 
     /* ******************************************************************* *
@@ -480,7 +480,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     /* *************************************************************** *
@@ -494,7 +494,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { TRUE,
-        { "moose@weasel-juice.org", "something", FALSE, TLS },
+        { "moose@weasel-juice.org", "something", PLAIN, TLS },
         { NULL, 0 } } },
 
     { "/connector/auth/insecure/tlsplain/notls/any",
@@ -506,7 +506,7 @@ test_t tests[] =
         PORT_XMPP },
       { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
       { TRUE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     { "/connector/auth/secure/no-tlsplain/notls/any",
@@ -1194,7 +1194,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/reject",
@@ -1207,7 +1207,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/unavailable",
@@ -1220,7 +1220,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/bind-error",
@@ -1233,7 +1233,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/incomplete",
@@ -1247,7 +1247,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/failure",
@@ -1260,7 +1260,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/bizarre",
@@ -1274,7 +1274,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/nonsense",
@@ -1288,7 +1288,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/no-mechs",
@@ -1301,7 +1301,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/plain",
@@ -1314,7 +1314,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/plain/rejected",
@@ -1327,7 +1327,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/digest/rejected",
@@ -1340,7 +1340,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/old+sasl",
@@ -1353,7 +1353,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     { "/connector/jabber/no-ssl/auth/old-sasl",
@@ -1366,7 +1366,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER } } },
 
     /* ******************************************************************** */
@@ -1381,7 +1381,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/reject",
@@ -1394,7 +1394,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/unavailable",
@@ -1408,7 +1408,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/bind-error",
@@ -1422,7 +1422,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/incomplete",
@@ -1436,7 +1436,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/failure",
@@ -1450,7 +1450,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/bizarre",
@@ -1464,7 +1464,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/nonsense",
@@ -1478,7 +1478,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/no-mechs",
@@ -1491,7 +1491,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/plain",
@@ -1504,7 +1504,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/plain/rejected",
@@ -1518,7 +1518,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/digest/rejected",
@@ -1532,7 +1532,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/old+sasl",
@@ -1546,7 +1546,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     { "/connector/jabber/ssl/auth/old-sasl",
@@ -1560,7 +1560,7 @@ test_t tests[] =
         PORT_XMPP },
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { FALSE,
-        { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0, OLD_JABBER, OLD_SSL } } },
 
     /* we are done, cap the list: */
