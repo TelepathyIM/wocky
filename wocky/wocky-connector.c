@@ -578,7 +578,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
 
   spec = g_param_spec_string ("session-id", "XMPP Session ID",
       "XMPP Session ID", NULL,
-      (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
 }
 
