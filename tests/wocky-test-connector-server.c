@@ -249,7 +249,6 @@ iq_get_query (TestConnectorServer *self,
   const gchar *id = wocky_xmpp_node_get_attribute (env, "id");
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   if (priv->problem.connector->jabber & JABBER_PROBLEM_AUTH_NIH)
     {
       iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -315,7 +314,6 @@ iq_set_query (TestConnectorServer *self,
   const gchar *id = wocky_xmpp_node_get_attribute (env, "id");
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   if (username == NULL || resource == NULL)
     problems |= JABBER_PROBLEM_AUTH_PARTIAL;
   else if (password != NULL)
@@ -397,6 +395,7 @@ iq_set_query (TestConnectorServer *self,
     }
   else if (problems & JABBER_PROBLEM_AUTH_NONSENSE)
     {
+      DEBUG ("auth NONSENSE");
       iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
           WOCKY_STANZA_SUB_TYPE_NONE,
           NULL, NULL,
@@ -541,7 +540,6 @@ iq_set_session (TestConnectorServer *self,
   SessionProblem sp = SESSION_PROBLEM_NONE;
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   if ((sp = problems & SESSION_PROBLEM_FAILED)   ||
       (sp = problems & SESSION_PROBLEM_DENIED)   ||
       (sp = problems & SESSION_PROBLEM_CONFLICT) ||
@@ -637,7 +635,6 @@ handle_auth (TestConnectorServer *self,
   GObject *sasl = G_OBJECT (priv->sasl);
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   /* after this the sasl auth server object is in charge:
      control should return to us after the auth stages, at the point
      when we need to send our final feature stanza:
@@ -653,7 +650,6 @@ handle_starttls (TestConnectorServer *self,
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   if (!priv->tls_started)
     {
       WockyXmppConnection *conn = priv->conn;
@@ -701,7 +697,6 @@ finished (GObject *source,
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   wocky_xmpp_connection_send_close_async (priv->conn, NULL, quit, data);
 }
 
@@ -715,7 +710,6 @@ quit (GObject *source,
   GError *error = NULL;
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
   g_object_unref (self);
   exit (0);
@@ -733,7 +727,6 @@ starttls (GObject *source,
   WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   if (!wocky_xmpp_connection_send_stanza_finish (conn, result, &error))
     {
       DEBUG ("Sending starttls '<proceed...>' failed: %s", error->message);
@@ -779,7 +772,6 @@ xmpp_handler (GObject *source,
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   conn = priv->conn;
   xml  = wocky_xmpp_connection_recv_stanza_finish (conn, result, &error);
-  DEBUG ("connection: %p", priv->conn);
 
   /* A real XMPP server would need to do some error handling here, but if
    * we got this far, we can just exit: The client (ie the test) will
@@ -843,7 +835,6 @@ after_auth (GObject *source,
   WockyXmppConnection *conn = priv->conn;
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   if (!test_sasl_auth_server_auth_finish (tsas, res, &error))
     {
       wocky_xmpp_connection_send_close_async (conn, NULL, xmpp_close, data);
@@ -912,7 +903,6 @@ xmpp_close (GObject *source,
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
 
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   wocky_xmpp_connection_send_close_async (priv->conn, NULL, xmpp_closed, self);
 }
 
@@ -925,7 +915,6 @@ xmpp_closed (GObject *source,
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   DEBUG ("");
-  DEBUG ("connection: %p", priv->conn);
   wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
 }
 
