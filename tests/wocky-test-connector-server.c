@@ -1009,10 +1009,7 @@ xmpp_init (GObject *source,
       wocky_xmpp_connection_send_open_async (conn, NULL, "testserver",
           priv->version, NULL, INITIAL_STREAM_ID, NULL, xmpp_init, self);
       if (priv->problem.connector->death & SERVER_DEATH_CLIENT_OPEN)
-        {
-          sleep (1);
           exit (0);
-        }
       break;
 
       /* send our feature set */
@@ -1020,6 +1017,10 @@ xmpp_init (GObject *source,
       DEBUG ("SERVER_STATE_SERVER_OPENED\n");
       priv->state = SERVER_STATE_FEATURES_SENT;
       wocky_xmpp_connection_send_open_finish (conn, result, NULL);
+
+      if (priv->problem.connector->death & SERVER_DEATH_SERVER_OPEN)
+          exit (0);
+
       if (priv->problem.connector->xmpp & XMPP_PROBLEM_OLD_SERVER)
         {
           DEBUG ("diverting to old-jabber-auth");
@@ -1032,11 +1033,6 @@ xmpp_init (GObject *source,
           wocky_xmpp_connection_send_stanza_async (conn, xml,
               NULL, xmpp_init, self);
           g_object_unref (xml);
-        }
-      if (priv->problem.connector->death & SERVER_DEATH_SERVER_OPEN)
-        {
-          sleep (1);
-          exit (0);
         }
       break;
 
