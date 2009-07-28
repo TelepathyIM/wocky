@@ -84,4 +84,7 @@
 #define WOCKY_JABBER_NS_AUTH_FEATURE \
   "http://jabber.org/features/iq-auth"
 
+#define WOCKY_GOOGLE_NS_AUTH \
+  "http://www.google.com/talk/protocol/auth"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */

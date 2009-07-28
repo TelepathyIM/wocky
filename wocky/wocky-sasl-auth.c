@@ -39,7 +39,8 @@ enum
     PROP_SERVER = 1,
     PROP_USERNAME,
     PROP_PASSWORD,
-    PROP_CONNECTION
+    PROP_CONNECTION,
+    PROP_GOOGLE_JDD,
 };
 
 typedef enum {
@@ -67,6 +68,7 @@ struct _WockySaslAuthPrivate
   WockySaslAuthMechanism mech;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
+  gboolean google_jdd;
 };
 
 #define WOCKY_SASL_AUTH_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_SASL_AUTH, WockySaslAuthPrivate))
@@ -119,6 +121,9 @@ wocky_sasl_auth_set_property (GObject *object,
       case PROP_CONNECTION:
         priv->connection = g_value_dup_object (value);
         break;
+      case PROP_GOOGLE_JDD:
+        priv->google_jdd = g_value_get_boolean (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -141,6 +146,9 @@ wocky_sasl_auth_get_property (GObject *object,
         break;
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
+        break;
+      case PROP_GOOGLE_JDD:
+        g_value_set_boolean (value, priv->google_jdd);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -187,6 +195,13 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
     WOCKY_TYPE_XMPP_CONNECTION,
     G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
+
+  spec = g_param_spec_boolean ("google-domain-discovery",
+      "Google Domain Discovery",
+      "Enable Google JID domain discovery (bind JID != login JID)",
+      FALSE,
+      G_PARAM_READWRITE|G_PARAM_CONSTRUCT);
+  g_object_class_install_property (object_class, PROP_GOOGLE_JDD, spec);
 
   object_class->dispose = wocky_sasl_auth_dispose;
   object_class->finalize = wocky_sasl_auth_finalize;
@@ -870,6 +885,11 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
   stanza = wocky_xmpp_stanza_new ("auth");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
+
+  if (priv->google_jdd)
+    wocky_xmpp_node_set_attribute_ns (stanza->node,
+        "client-uses-full-bind-result", "true", "ga", WOCKY_GOOGLE_NS_AUTH);
+
   switch (mech) {
     case WOCKY_SASL_AUTH_PLAIN:
       {
