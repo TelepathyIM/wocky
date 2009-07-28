@@ -332,7 +332,8 @@ static void
 _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node);
 
 static gboolean
-_write_attr (const gchar *key, const gchar *value, const gchar *ns,
+_write_attr (const gchar *key, const gchar *value,
+    const gchar *prefix, const gchar *ns,
     gpointer user_data)
 {
   WockyXmppWriter *self = WOCKY_XMPP_WRITER (user_data);
@@ -359,7 +360,7 @@ _write_attr (const gchar *key, const gchar *value, const gchar *ns,
   else
     {
       xmlTextWriterWriteAttributeNS (priv->xmlwriter,
-          (const xmlChar *)key, (const xmlChar *)key, (const xmlChar *)ns,
+          (const xmlChar *)prefix, (const xmlChar *)key, (const xmlChar *)ns,
           (const xmlChar *)value);
     }
   return TRUE;

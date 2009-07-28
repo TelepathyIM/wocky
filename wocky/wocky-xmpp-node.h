@@ -39,7 +39,7 @@ struct _WockyXmppNode {
 };
 
 typedef gboolean (*wocky_xmpp_node_each_attr_func )(const gchar *key,
-    const gchar *value, const gchar *ns, gpointer user_data);
+    const gchar *value, const gchar *pref, const gchar *ns, gpointer user_data);
 
 typedef gboolean (*wocky_xmpp_node_each_child_func) (WockyXmppNode *node,
     gpointer user_data);
@@ -60,7 +60,7 @@ void  wocky_xmpp_node_set_attribute (WockyXmppNode *node, const gchar *key,
     const gchar *value);
 
 void  wocky_xmpp_node_set_attribute_ns (WockyXmppNode *node,
-    const gchar *key, const gchar *value, const gchar *ns);
+    const gchar *key, const gchar *value, const gchar *prefix, const gchar *ns);
 
 /* Set attribute with the given size for the value */
 void wocky_xmpp_node_set_attribute_n (WockyXmppNode *node, const gchar *key,
@@ -68,7 +68,7 @@ void wocky_xmpp_node_set_attribute_n (WockyXmppNode *node, const gchar *key,
 
 void wocky_xmpp_node_set_attribute_n_ns (WockyXmppNode *node,
     const gchar *key, const gchar *value, gsize value_size,
-                                         const gchar *ns);
+    const gchar *prefix, const gchar *ns);
 
 /* Getting children */
 WockyXmppNode *wocky_xmpp_node_get_child (WockyXmppNode *node,

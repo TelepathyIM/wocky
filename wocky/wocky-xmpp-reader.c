@@ -474,9 +474,11 @@ _start_element_ns (void *user_data, const xmlChar *localname,
       else
         {
           wocky_xmpp_node_set_attribute_n_ns (priv->node,
-              (gchar *) attributes[i], (gchar *) attributes[i+3],
-              (gsize)(attributes[i+4] - attributes[i+3]),
-              (gchar *) attributes[i+2]);
+              (gchar *) attributes[i],                      /* key    */
+              (gchar *) attributes[i+3],                    /* value  */
+              (gsize)(attributes[i+4] - attributes[i+3]),   /* length */
+              (gchar *) attributes[i+1],                    /* prefix */
+              (gchar *) attributes[i+2]);                   /* NS URI */
         }
      }
   priv->depth++;

@@ -28,6 +28,7 @@
 typedef struct {
   gchar *key;
   gchar *value;
+  gchar *prefix;
   GQuark ns;
 } Attribute;
 
@@ -51,6 +52,7 @@ attribute_free (Attribute *a)
 {
   g_free (a->key);
   g_free (a->value);
+  g_free (a->prefix);
   g_slice_free (Attribute, a);
 }
 
@@ -94,7 +96,8 @@ wocky_xmpp_node_each_attribute (WockyXmppNode *node,
   for (l = node->attributes; l != NULL ; l = l->next)
     {
       Attribute *a = (Attribute *) l->data;
-      if (!func (a->key, a->value, g_quark_to_string (a->ns), user_data))
+      const gchar *ns = g_quark_to_string (a->ns);
+      if (!func (a->key, a->value, a->prefix, ns, user_data))
         {
           return;
         }
@@ -131,7 +134,6 @@ attribute_compare (gconstpointer a, gconstpointer b)
   return strcmp (attr->key, target->key);
 }
 
-
 const gchar *
 wocky_xmpp_node_get_attribute_ns (WockyXmppNode *node,
     const gchar *key, const gchar *ns)
@@ -158,19 +160,21 @@ wocky_xmpp_node_set_attribute (WockyXmppNode *node,
     const gchar *key, const gchar *value)
 {
   g_assert (value != NULL);
-  wocky_xmpp_node_set_attribute_n_ns (node, key, value, strlen (value), NULL);
+  wocky_xmpp_node_set_attribute_n_ns (node, key, value, strlen (value),
+      NULL, NULL);
 }
 
 void
 wocky_xmpp_node_set_attribute_ns (WockyXmppNode *node, const gchar *key,
-    const gchar *value, const gchar *ns)
+    const gchar *value, const gchar *prefix, const gchar *ns)
 {
-  wocky_xmpp_node_set_attribute_n_ns (node, key, value, strlen (value), ns);
+  wocky_xmpp_node_set_attribute_n_ns (node,
+      key, value, strlen (value), prefix, ns);
 }
 
 void
 wocky_xmpp_node_set_attribute_n_ns (WockyXmppNode *node, const gchar *key,
-    const gchar *value, gsize value_size, const gchar *ns)
+    const gchar *value, gsize value_size, const gchar *prefix, const gchar *ns)
 {
   Attribute *a = g_slice_new0 (Attribute);
   GSList *link;
@@ -178,6 +182,7 @@ wocky_xmpp_node_set_attribute_n_ns (WockyXmppNode *node, const gchar *key,
 
   a->key = g_strdup (key);
   a->value = g_strndup (value, value_size);
+  a->prefix = g_strdup (prefix);
   a->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
 
   /* Remove the old attribute if needed */
@@ -198,7 +203,7 @@ void
 wocky_xmpp_node_set_attribute_n (WockyXmppNode *node, const gchar *key,
     const gchar *value, gsize value_size)
 {
-  wocky_xmpp_node_set_attribute_n_ns (node, key, value, value_size, NULL);
+  wocky_xmpp_node_set_attribute_n_ns (node, key, value, value_size, NULL, NULL);
 }
 
 static gint
@@ -427,16 +432,23 @@ typedef struct
   gchar *indent;
 } _NodeToStringData;
 
+#include <stdio.h>
 static gboolean
-attribute_to_string (const gchar *key, const gchar *value, const gchar *ns,
+attribute_to_string (const gchar *key, const gchar *value,
+    const gchar *prefix, const gchar *ns,
     gpointer user_data)
 {
   _NodeToStringData *data = user_data;
 
+  //fprintf (stderr, "\n\n-- %s.%s = '%s' --\n", ns, key, value);
+
   g_string_append_c (data->string, ' ');
   if (ns != NULL)
+    g_string_append_printf (data->string, "xmlns:%s='%s' ", prefix, ns);
+
+  if (prefix != NULL)
     {
-      g_string_append (data->string, ns);
+      g_string_append (data->string, prefix);
       g_string_append_c (data->string, ':');
     }
   g_string_append_printf (data->string, "%s='%s'", key, value);
