@@ -118,6 +118,7 @@ ssl_received_open_cb (GObject *source,
 
   g_free (version);
   g_free (from);
+  g_free (sid);
 }
 
 static void
