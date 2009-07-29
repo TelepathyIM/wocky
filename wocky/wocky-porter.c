@@ -1338,8 +1338,6 @@ wocky_porter_force_close_async (WockyPorter *self,
   /* Ensure to keep us alive during the closing */
   g_object_ref (self);
 
-  g_signal_emit (self, signals[CLOSING], 0);
-
   if (priv->close_result != NULL)
     {
       /* Finish pending close operation */
@@ -1348,6 +1346,12 @@ wocky_porter_force_close_async (WockyPorter *self,
       g_simple_async_result_complete_in_idle (priv->close_result);
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
+    }
+  else
+    {
+      /* the "closing" signal has already been fired when _close_async has
+       * been called */
+      g_signal_emit (self, signals[CLOSING], 0);
     }
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
