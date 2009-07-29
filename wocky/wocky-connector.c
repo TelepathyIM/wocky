@@ -244,8 +244,8 @@ struct _WockyConnectorPrivate
   /* socket/tls/etc structures */
   GSocketClient *client;
   GSocketConnection *sock;
-  GTLSSession *tls_sess;
-  GTLSConnection *tls;
+  WockyTLSSession *tls_sess;
+  WockyTLSConnection *tls;
   WockyXmppConnection *conn;
 };
 
@@ -1030,7 +1030,7 @@ maybe_old_ssl (WockyConnector *self)
       g_assert (priv->sock != NULL);
 
       DEBUG ("creating SSL session");
-      priv->tls_sess = g_tls_session_new (G_IO_STREAM (priv->sock));
+      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
       if (priv->tls_sess == NULL)
         {
           abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
@@ -1039,7 +1039,7 @@ maybe_old_ssl (WockyConnector *self)
         }
 
       DEBUG ("beginning SSL handshake");
-      priv->tls = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+      priv->tls = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
       DEBUG ("completed SSL handshake");
 
       if (priv->tls == NULL)
@@ -1327,8 +1327,8 @@ starttls_recv_cb (GObject *source,
   else
     {
       DEBUG ("starting client TLS handshake");
-      priv->tls_sess = g_tls_session_new (G_IO_STREAM (priv->sock));
-      priv->tls = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
+      priv->tls = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
       DEBUG ("completed TLS handshake");
 
       if (priv->tls == NULL)

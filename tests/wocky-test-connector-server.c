@@ -23,7 +23,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <glib.h>
-#include <gio/gnio.h>
+#include <gio/gio.h>
 
 #include "wocky-test-connector-server.h"
 
@@ -33,6 +33,7 @@
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-debug.h>
 #include <wocky/wocky-utils.h>
+#include <wocky/wocky-tls.h>
 
 #include <sasl/sasl.h>
 
@@ -89,8 +90,8 @@ struct _TestConnectorServerPrivate
   gchar *pass;
   gchar *version;
 
-  GTLSSession *tls_sess;
-  GTLSConnection *tls_conn;
+  WockyTLSSession *tls_sess;
+  WockyTLSConnection *tls_conn;
 
   struct { ServerProblem sasl; ConnectorProblem *connector; } problem;
 };
@@ -675,10 +676,10 @@ handle_starttls (TestConnectorServer *self,
           /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
            * gnutls_global_set_log_level (10); */
           if (problem->death & SERVER_DEATH_TLS_NEG)
-            priv->tls_sess = g_tls_session_server_new (priv->stream,
+            priv->tls_sess = wocky_tls_session_server_new (priv->stream,
                 1024, NULL, NULL, NULL, NULL);
           else
-            priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
+            priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
                 TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE,
                 NULL);
 
@@ -733,7 +734,7 @@ starttls (GObject *source,
       return;
     }
 
-  priv->tls_conn = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+  priv->tls_conn = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
 
   if (priv->tls_conn == NULL)
     {
@@ -930,14 +931,14 @@ static void startssl (TestConnectorServer *self)
 
   DEBUG ("creating SSL Session [server]");
   if (problem->death & SERVER_DEATH_TLS_NEG)
-    priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
+    priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
         NULL, NULL, NULL, NULL);
   else
-    priv->tls_sess = g_tls_session_server_new (priv->stream, 1024,
+    priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
         TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE, NULL);
 
   DEBUG ("starting server SSL handshake");
-  priv->tls_conn = g_tls_session_handshake (priv->tls_sess, NULL, &error);
+  priv->tls_conn = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
   if (priv->tls_conn == NULL)
     {
       g_error ("SSL Server Setup failed: %p %s\n",

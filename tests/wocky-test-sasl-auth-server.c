@@ -24,7 +24,7 @@
 #include <string.h>
 
 #include <glib.h>
-#include <gio/gnio.h>
+#include <gio/gio.h>
 
 #include "wocky-test-sasl-auth-server.h"
 

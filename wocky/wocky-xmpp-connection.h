@@ -22,8 +22,7 @@
 #define __WOCKY_XMPP_CONNECTION_H__
 
 #include <glib-object.h>
-#include <gio/gnio.h>
-
+#include <gio/gio.h>
 #include "wocky-xmpp-stanza.h"
 
 G_BEGIN_DECLS

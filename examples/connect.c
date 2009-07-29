@@ -5,7 +5,7 @@
 
 #include <glib.h>
 
-#include <gio/gnio.h>
+#include <gio/gio.h>
 #include <wocky/wocky-connector.h>
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-namespaces.h>
@@ -20,8 +20,8 @@ WockySaslAuth *sasl = NULL;
 GSocketConnection *tcp;
 
 GSocketClient *client;
-GTLSConnection *ssl;
-GTLSSession *ssl_session;
+WockyTLSConnection *ssl;
+WockyTLSSession *ssl_session;
 
 static void
 post_auth_open_sent_cb (GObject *source,
@@ -159,8 +159,8 @@ tcp_start_tls_recv_cb (GObject *source,
 
   g_object_unref (conn);
 
-  ssl_session = g_tls_session_new (G_IO_STREAM (tcp));
-  ssl = g_tls_session_handshake (ssl_session, NULL, &error);
+  ssl_session = wocky_tls_session_new (G_IO_STREAM (tcp));
+  ssl = wocky_tls_session_handshake (ssl_session, NULL, &error);
 
   if (ssl == NULL)
     g_error ("connect: %s: %d, %s", g_quark_to_string (error->domain),

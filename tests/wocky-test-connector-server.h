@@ -22,7 +22,7 @@
 #define __TEST_CONNECTOR_SERVER_H__
 
 #include <glib-object.h>
-#include <gio/gnio.h>
+#include <gio/gio.h>
 
 #include "wocky-test-sasl-auth-server.h"
 

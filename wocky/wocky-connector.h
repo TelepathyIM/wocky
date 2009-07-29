@@ -22,11 +22,11 @@
 #define __WOCKY_CONNECTOR_H__
 
 #include <glib-object.h>
-#include <gio/gnio.h>
 
 #include "wocky-sasl-auth.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-stanza.h"
+#include "wocky-tls.h"
 
 G_BEGIN_DECLS
 

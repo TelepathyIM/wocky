@@ -23,7 +23,7 @@
 
 #include <glib-object.h>
 
-#include <gio/gnio.h>
+#include <gio/gio.h>
 
 #include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-xmpp-connection.h>
