@@ -288,6 +288,9 @@ wocky_xmpp_node_unpack_error (WockyXmppNode *node,
   if (error == NULL)
     return NULL;
 
+  if (type != NULL)
+    *type = wocky_xmpp_node_get_attribute (error, "type");
+
   for (child = error->children; child != NULL; child = g_slist_next (child))
     {
       WockyXmppNode *c = child->data;
@@ -296,8 +299,6 @@ wocky_xmpp_node_unpack_error (WockyXmppNode *node,
       else if (wocky_strdiff (c->name, "text"))
         {
           cond = c->name;
-          if (type != NULL)
-            *type = wocky_xmpp_node_get_attribute (c, "type");
         }
       else
         mesg = c;
@@ -314,6 +315,8 @@ wocky_xmpp_node_unpack_error (WockyXmppNode *node,
       WockyXmppNode *first = wocky_xmpp_node_get_first_child (node);
       if (first != error)
         *orig = first;
+      else
+        *orig = NULL;
     }
 
   return cond;
