@@ -1991,7 +1991,7 @@ test_close_force_closed_cb (GObject *source,
 
   g_assert (!wocky_porter_close_finish (
       WOCKY_PORTER (source), res, &error));
-  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSING);
+  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCE_CLOSING);
 
   test->outstanding--;
   g_error_free (error);

@@ -1344,7 +1344,7 @@ wocky_porter_force_close_async (WockyPorter *self,
     {
       /* Finish pending close operation */
       g_simple_async_result_set_error (priv->close_result, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_CLOSING, "Force closing of the Porter");
+          WOCKY_PORTER_ERROR_FORCE_CLOSING, "Force closing of the Porter");
       g_simple_async_result_complete_in_idle (priv->close_result);
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
