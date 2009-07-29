@@ -1353,6 +1353,8 @@ wocky_porter_force_close_async (WockyPorter *self,
     callback, user_data, wocky_porter_force_close_finish);
   priv->force_close_cancellable = cancellable;
 
+  /* force_close_result now keeps a ref on ourself so we can release the ref
+   * without risking to destroy the object */
   g_object_unref (self);
 
   /* Terminate all the pending sending operations */
