@@ -216,6 +216,7 @@ enum
   PROP_LEGACY_SSL,
   PROP_SESSION_ID,
   PROP_EMAIL,
+  PROP_GOOGLE_JDD,
 };
 
 /* this tracks which XEP 0077 operation (register account, cancel account)  *
@@ -266,6 +267,7 @@ struct _WockyConnectorPrivate
   gboolean legacy_support;
   gboolean legacy_ssl;
   gchar *session_id;
+  gboolean google_jdd;
 
   /* XMPP connection data */
   WockyXmppStanza *features;
@@ -477,6 +479,9 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->session_id);
         priv->session_id = g_value_dup_string (value);
         break;
+      case PROP_GOOGLE_JDD:
+        priv->google_jdd = g_value_get_boolean (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -538,6 +543,9 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_SESSION_ID:
         g_value_set_string (value, priv->session_id);
+        break;
+      case PROP_GOOGLE_JDD:
+        g_value_set_boolean (value, priv->google_jdd);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -631,6 +639,13 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "XMPP Session ID", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
+
+  spec = g_param_spec_boolean ("google-domain-discovery",
+      "Google JID Domain Discovery",
+      "Google XMPP Auth Stanza JID Domain Disovery extension",
+      FALSE,
+      (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_GOOGLE_JDD, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
@@ -1424,6 +1439,9 @@ request_auth (WockyConnector *object,
   WockySaslAuth *s =
     wocky_sasl_auth_new (priv->domain, priv->user, priv->pass, priv->conn);
   gboolean clear = FALSE;
+
+  if (priv->google_jdd)
+    g_object_set (G_OBJECT (s), "google-domain-discovery", TRUE, NULL);
 
   if (priv->auth_insecure_ok ||
       (priv->encrypted && priv->encrypted_plain_auth_ok))
