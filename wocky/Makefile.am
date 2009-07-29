@@ -13,6 +13,8 @@ BUILT_SOURCES = \
 HANDWRITTEN_SOURCES =            \
   wocky-connector.c              \
   wocky-connector.h              \
+  wocky-tls.c					 \
+  wocky-tls.h					 \
   wocky-xmpp-connection.c        \
   wocky-xmpp-connection.h        \
   wocky-debug.c                  \
@@ -36,8 +38,7 @@ HANDWRITTEN_SOURCES =            \
 libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES) $(BUILT_SOURCES)
 
 # Coding style checks
-check_c_sources = \
-    $(HANDWRITTEN_SOURCES)
+check_c_sources = $(filter-out wocky-tls.%, $(HANDWRITTEN_SOURCES))
 
 include $(top_srcdir)/tools/check-coding-style.mk
 check-local: check-coding-style
