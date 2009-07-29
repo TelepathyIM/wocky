@@ -411,6 +411,8 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   unsigned challenge_len;
   gsize response_len = 0;
   int ret;
+  WockyXmppNode *auth = stanza->node;
+  const gchar *gjdd = NULL;
 
   if (stanza->node->content != NULL)
     {
@@ -418,6 +420,28 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
     }
 
   g_assert (priv->state == AUTH_STATE_STARTED);
+  gjdd = wocky_xmpp_node_get_attribute_ns (auth, "client-uses-full-bind-result",
+      WOCKY_GOOGLE_NS_AUTH);
+  switch (priv->problem)
+    {
+      case SERVER_PROBLEM_REQUIRE_GOOGLE_JDD:
+        if ((gjdd == NULL) || strcmp ("true", gjdd))
+          {
+            not_authorized (self);
+            goto out;
+          }
+        break;
+      case SERVER_PROBLEM_DISLIKE_GOOGLE_JDD:
+        if (gjdd && !strcmp ("true", gjdd))
+          {
+            not_authorized (self);
+            goto out;
+          }
+        break;
+      default:
+        break;
+    }
+
   priv->state = AUTH_STATE_CHALLENGE;
 
   ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
