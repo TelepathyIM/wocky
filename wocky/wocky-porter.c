@@ -910,7 +910,6 @@ stanza_received_cb (GObject *source,
 
   handle_stanza (self, stanza);
   g_object_unref (stanza);
-  g_object_unref (self);
 
   if (!priv->remote_closed)
     {
@@ -929,6 +928,8 @@ stanza_received_cb (GObject *source,
              priv->force_close_cancellable, connection_force_close_cb, self);
         }
     }
+
+  g_object_unref (self);
 }
 
 static void
