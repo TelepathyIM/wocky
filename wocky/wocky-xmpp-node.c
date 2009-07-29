@@ -251,11 +251,11 @@ wocky_xmpp_node_get_first_child (WockyXmppNode *node)
  * @type: gchar ** into which to write the XMPP Stanza error type
  * @text: #WockyXmppNode ** to hold the node containing the error description
  * @orig: #WockyXmppNode ** to hold the original XMPP Stanza that triggered
- *        the error. XMPP does not require this to be provided in the error.
+ *        the error: XMPP does not require this to be provided in the error
  * @extra: #WockyXmppNode ** to hold any extra domain-specific XML tags
  *         for the error received.
  *
- * The above parameters are all optional, pass NULL to ignore them
+ * The above parameters are all optional, pass NULL to ignore them.
  *
  * The above data are all optional in XMPP, except for @type, which
  * the XMPP spec requires in all stanza errors. See RFC 3920 [9.3.2].
