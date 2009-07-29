@@ -2015,6 +2015,18 @@ test_close_force_force_closed_cb (GObject *source,
 }
 
 static void
+test_close_force_closing_cb (WockyPorter *porter,
+    test_data_t *test)
+{
+  static gboolean fired = FALSE;
+
+  g_assert (!fired);
+  fired = TRUE;
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
 test_close_force (void)
 {
   test_data_t *test = setup_test ();
@@ -2028,6 +2040,9 @@ test_close_force (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     WOCKY_STANZA_END);
 
+  g_signal_connect (test->sched_in, "closing",
+      G_CALLBACK (test_close_force_closing_cb), test);
+
   wocky_porter_send_async (test->sched_in, s, NULL,
       test_close_force_stanza_sent_cb, test);
 
@@ -2040,7 +2055,7 @@ test_close_force (void)
   wocky_porter_force_close_async (test->sched_in, NULL,
         test_close_force_force_closed_cb, test);
 
-  test->outstanding += 3;
+  test->outstanding += 4;
   test_wait_pending (test);
 
   g_object_unref (s);
