@@ -1204,7 +1204,6 @@ test_t tests[] =
         { NULL, 0 } } },
     /* ******************************************************************** */
     /* quirks                                                               */
-
     { "/connector/google/domain-discovery/require",
       QUIET,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
@@ -2751,7 +2750,6 @@ run_test (gpointer data)
   struct stat dummy;
   gchar base[PATH_MAX + 1];
   char *path;
-  gboolean google_jdd;
 
   /* clean up any leftover messes from previous tests     */
   /* unlink the sasl db tmpfile, it will cause a deadlock */
@@ -2764,16 +2762,6 @@ run_test (gpointer data)
   start_dummy_xmpp_server (test);
   setup_dummy_dns_entries (test);
 
-  switch (test->server.problem.sasl)
-    {
-      case SERVER_PROBLEM_REQUIRE_GOOGLE_JDD:
-      case SERVER_PROBLEM_DISLIKE_GOOGLE_JDD:
-        google_jdd = TRUE;
-        break;
-      default:
-        google_jdd = FALSE;
-    }
-
   wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
       "jid"                     , test->client.auth.jid,
       "password"                , test->client.auth.pass,
@@ -2785,7 +2773,6 @@ run_test (gpointer data)
       "plaintext-auth-allowed"  , !test->client.auth.tls,
       "legacy"                  , test->client.options.jabber,
       "old-ssl"                 , test->client.options.ssl,
-      "google-domain-discovery" , google_jdd,
       /* insecure tls cert/etc not yet implemented */
       "ignore-ssl-errors"       , FALSE,
       NULL);
@@ -2843,7 +2830,6 @@ run_test (gpointer data)
           WockyXmppStanza *feat = NULL;
           gboolean jabber;
           gboolean oldssl;
-          gboolean gjdd;
           XmppProblem xproblem = test->server.problem.conn.xmpp;
           const gchar *prop = NULL;
           const gchar *str_prop[] = { "jid", "password",
@@ -2874,9 +2860,6 @@ run_test (gpointer data)
           g_assert (identity != NULL);
           g_assert (*identity |= '\0');
           g_free (identity);
-
-          g_object_get (wcon, "google-domain-discovery", &gjdd, NULL);
-          g_assert (gjdd == google_jdd);
 
           g_object_get (wcon, "legacy", &jabber, "old-ssl", &oldssl, NULL);
           g_assert (jabber == (gboolean)(xproblem & XMPP_PROBLEM_OLD_SERVER));
