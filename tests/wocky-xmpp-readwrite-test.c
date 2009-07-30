@@ -14,11 +14,14 @@
 #define FROM "julliet@example.com"
 #define VERSION "1.0"
 #define LANG "en"
+#define DUMMY_NS "urn:wocky:test:blah:blah:blah"
 
 static WockyXmppStanza *
 create_stanza (void)
 {
   WockyXmppStanza *stanza;
+  WockyXmppNode *html;
+  WockyXmppNode *head;
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
@@ -28,6 +31,10 @@ create_stanza (void)
         WOCKY_NODE_END,
       WOCKY_NODE_END,
     WOCKY_STANZA_END);
+
+  html = wocky_xmpp_node_get_child (stanza->node, "html");
+  head = wocky_xmpp_node_add_child (html, "head");
+  wocky_xmpp_node_set_attribute_ns (head, "rev", "0xbad1dea", "id", DUMMY_NS);
 
   return stanza;
 }
@@ -77,6 +84,12 @@ test_readwrite (void)
 
   for (i = 0; i < 3 ; i++)
     {
+      WockyXmppNode *html;
+      WockyXmppNode *head;
+      const gchar *attr_recv = NULL;
+      const gchar *attr_send = NULL;
+      const gchar *attr_none = NULL;
+
       g_assert (wocky_xmpp_reader_get_state (reader)
         == WOCKY_XMPP_READER_STATE_OPENED);
 
@@ -87,6 +100,21 @@ test_readwrite (void)
 
       g_assert (received != NULL);
       g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+
+      html = wocky_xmpp_node_get_child (received->node, "html");
+      head = wocky_xmpp_node_get_child (html, "head");
+      attr_recv = wocky_xmpp_node_get_attribute_ns (head, "rev", DUMMY_NS);
+      attr_none = wocky_xmpp_node_get_attribute_ns (head, "rev", DUMMY_NS ":x");
+
+      html = wocky_xmpp_node_get_child (sent->node, "html");
+      head = wocky_xmpp_node_get_child (html, "head");
+      attr_send = wocky_xmpp_node_get_attribute_ns (head, "rev", DUMMY_NS);
+
+      g_assert (attr_none == NULL);
+      g_assert (attr_recv != NULL);
+      g_assert (attr_send != NULL);
+      g_assert (!strcmp (attr_send, attr_recv));
+
 
       g_object_unref (received);
 

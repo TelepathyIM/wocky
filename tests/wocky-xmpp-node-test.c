@@ -10,6 +10,9 @@
 
 #include "wocky-test-helper.h"
 
+#define DUMMY_NS_A "urn:wocky:test:dummy:namespace:a"
+#define DUMMY_NS_B "urn:wocky:test:dummy:namespace:b"
+
 static void
 test_node_equal (void)
 {
@@ -266,6 +269,104 @@ test_append_content_n (void)
   g_object_unref (a);
 }
 
+test_set_attribute_ns (void)
+{
+  WockyXmppStanza *sa;
+  WockyXmppStanza *sb;
+  WockyXmppNode *na;
+  WockyXmppNode *nb;
+  const gchar *ca;
+  const gchar *cb;
+  const gchar *cx;
+  const gchar *cy;
+
+  sa = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
+  sb = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
+  na = sa->node;
+  nb = sb->node;
+
+  g_assert (wocky_xmpp_node_equal (na, nb));
+
+  /* *********************************************************************** */
+  wocky_xmpp_node_set_attribute_ns (na, "one", "1", "a", DUMMY_NS_A);
+  ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
+  cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
+  cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
+  cy = wocky_xmpp_node_get_attribute (na, "one");
+
+  g_assert (!wocky_xmpp_node_equal (na, nb));
+  g_assert (ca != NULL);
+  g_assert (cb == NULL);
+  g_assert (cx == NULL);
+  g_assert (cy != NULL);
+  g_assert (!strcmp (ca, "1"));
+
+  /* *********************************************************************** */
+  /* set the attribute in the second node to make them equal again           */
+  wocky_xmpp_node_set_attribute_ns (nb, "one", "1", "b", DUMMY_NS_A);
+  ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
+  cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
+  cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
+  cy = wocky_xmpp_node_get_attribute (na, "one");
+
+  g_assert (wocky_xmpp_node_equal (na, nb));
+  g_assert (ca != NULL);
+  g_assert (cb != NULL);
+  g_assert (cx == NULL);
+  g_assert (cy != NULL);
+  g_assert (!strcmp (ca, "1"));
+  g_assert (!strcmp (ca, cb));
+
+  wocky_xmpp_node_set_attribute_ns (nb, "one", "1", "a", DUMMY_NS_A);
+  cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
+
+  g_assert (wocky_xmpp_node_equal (na, nb));
+  g_assert (cb != NULL);
+  g_assert (!strcmp (ca, cb));
+
+  /* *********************************************************************** */
+  /* change the namespaced atttribute                                        */
+  wocky_xmpp_node_set_attribute_ns (na, "one", "2", "a", DUMMY_NS_A);
+  ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
+  cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
+  cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
+  cy = wocky_xmpp_node_get_attribute (na, "one");
+
+  g_assert (!wocky_xmpp_node_equal (na, nb));
+  g_assert (ca != NULL);
+  g_assert (cb != NULL);
+  g_assert (cx == NULL);
+  g_assert (cy != NULL);
+  g_assert (!strcmp (ca, "2"));
+  g_assert (strcmp (ca, cb));
+
+  /* *********************************************************************** */
+  /* add another attribute in a different namespace                          */
+  wocky_xmpp_node_set_attribute_ns (na, "one", "3", "b", DUMMY_NS_B);
+  ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
+  cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
+  cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
+  cy = wocky_xmpp_node_get_attribute (na, "one");
+
+  g_assert (!wocky_xmpp_node_equal (na, nb));
+  g_assert (ca != NULL);
+  g_assert (cb != NULL);
+  g_assert (cx != NULL);
+  g_assert (cy != NULL);
+  g_assert (!strcmp (ca, "2"));
+  g_assert (!strcmp (cx, "3"));
+  g_assert (strcmp (ca, cb));
+
+  /* *********************************************************************** */
+  /* swap out the prefix for another one                                     */
+  wocky_xmpp_node_set_attribute_ns (na, "one", "4", "c", DUMMY_NS_B);
+  cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
+  g_assert (cx != NULL);
+  g_assert (!strcmp (cx, "4"));
+}
+
 int
 main (int argc, char **argv)
 {
@@ -277,6 +378,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-node/set-attribute", test_set_attribute);
   g_test_add_func ("/xmpp-node/unpack-error", test_unpack_error);
   g_test_add_func ("/xmpp-node/append-content-n", test_append_content_n);
+  g_test_add_func ("/xmpp-node/set-attribute-ns", test_set_attribute_ns);
 
   result = g_test_run ();
   test_deinit ();
