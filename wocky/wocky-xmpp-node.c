@@ -440,8 +440,6 @@ attribute_to_string (const gchar *key, const gchar *value,
 {
   _NodeToStringData *data = user_data;
 
-  //fprintf (stderr, "\n\n-- %s.%s = '%s' --\n", ns, key, value);
-
   g_string_append_c (data->string, ' ');
   if (ns != NULL)
     g_string_append_printf (data->string, "xmlns:%s='%s' ", prefix, ns);
