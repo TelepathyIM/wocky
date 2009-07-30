@@ -238,7 +238,6 @@ test_unpack_error (void)
           if (mstanza != NULL)
             g_object_unref (mstanza);
 
-          if (mstanza != NULL)
           g_free (etext);
           g_free (label);
         }
