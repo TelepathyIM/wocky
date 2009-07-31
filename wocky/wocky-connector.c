@@ -797,7 +797,7 @@ jabber_auth_fields (GObject *source,
     {
       abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED,
           "Jabber Auth Init: Response Invalid");
-      return;
+      goto out;
     }
 
   switch (sub)
@@ -854,6 +854,7 @@ jabber_auth_fields (GObject *source,
         break;
     }
 
+ out:
   g_object_unref (fields);
 }
 
@@ -958,7 +959,7 @@ jabber_auth_reply (GObject *source,
     {
       abort_connect_code (self, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED,
           "Jabber Auth Reply: Response Invalid");
-      return;
+      goto out;
     }
 
   switch (sub)
@@ -1009,7 +1010,8 @@ jabber_auth_reply (GObject *source,
         break;
     }
 
-  g_object_unref (reply);
+  goto out:
+    g_object_unref (reply);
 
 }
 
