@@ -1010,7 +1010,7 @@ jabber_auth_reply (GObject *source,
         break;
     }
 
-  goto out:
+  out:
     g_object_unref (reply);
 
 }
