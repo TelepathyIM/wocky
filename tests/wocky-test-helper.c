@@ -1,3 +1,4 @@
+#include <wocky/wocky.h>
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-porter.h>
 #include "wocky-test-helper.h"
@@ -252,4 +253,20 @@ test_close_both_porters (test_data_t *test)
 
   test->outstanding += 2;
   test_wait_pending (test);
+}
+
+void
+test_init (int argc,
+    char **argv)
+{
+  g_thread_init (NULL);
+  g_test_init (&argc, &argv, NULL);
+  g_type_init ();
+  wocky_init ();
+}
+
+void
+test_deinit (void)
+{
+  wocky_deinit ();
 }

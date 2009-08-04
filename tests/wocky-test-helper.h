@@ -41,6 +41,11 @@ void test_expected_stanza_received (test_data_t *test,
 
 void test_close_both_porters (test_data_t *test);
 
+void test_init (int argc,
+    char **argv);
+
+void test_deinit (void);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_HELPER_H__*/
