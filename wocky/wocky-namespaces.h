@@ -74,11 +74,16 @@
 #define WOCKY_TELEPATHY_NS_CLIQUE \
   "http://telepathy.freedesktop.org/xmpp/clique"
 
+#define WOCKY_NS_REGISTER \
+  "jabber:iq:register"
+
 /* legacy namespaces */
 #define WOCKY_JABBER_NS_AUTH \
   "jabber:iq:auth"
 
 #define WOCKY_JABBER_NS_AUTH_FEATURE \
   "http://jabber.org/features/iq-auth"
+
+
 
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */

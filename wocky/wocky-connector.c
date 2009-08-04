@@ -124,6 +124,31 @@ static void auth_done (GObject *source,
     GAsyncResult *result,
     gpointer data);
 
+static void xep77_begin (WockyConnector *self);
+static void xep77_begin_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+static void xep77_begin_recv (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+
+static void xep77_cancel_send (WockyConnector *self);
+static void xep77_cancel_sent (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+static void xep77_cancel_recv (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
+
+static void xep77_signup_send (WockyConnector *self,
+    WockyXmppNode *req);
+static void xep77_signup_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+static void xep77_signup_recv (GObject *source,
+    GAsyncResult *result,
+    gpointer data);
+
 static void iq_bind_resource (WockyConnector *self);
 static void iq_bind_resource_sent_cb (GObject *source,
     GAsyncResult *result,
@@ -194,6 +219,13 @@ enum
 
 typedef enum
 {
+  XEP77_NONE,
+  XEP77_SIGNUP,
+  XEP77_CANCEL,
+} WockyConnectorXEP77Op;
+
+typedef enum
+{
   WCON_DISCONNECTED,
   WCON_TCP_CONNECTING,
   WCON_TCP_CONNECTED,
@@ -219,6 +251,7 @@ struct _WockyConnectorPrivate
   guint xmpp_port;
   gchar *xmpp_host;
   gchar *pass;
+  gchar *email;
   gchar *jid;
   gchar *resource; /* the /[...] part of the jid, if any */
   gchar *user;     /* the [...]@ part of the initial JID */
@@ -238,6 +271,7 @@ struct _WockyConnectorPrivate
   gboolean authed;
   gboolean encrypted;
   gboolean connected;
+  WockyConnectorXEP77Op reg_op;
   GSimpleAsyncResult *result;
   WockySaslAuthMechanism mech;
 
@@ -620,6 +654,7 @@ wocky_connector_finalize (GObject *object)
   GFREE_AND_FORGET (priv->xmpp_host);
   GFREE_AND_FORGET (priv->pass);
   GFREE_AND_FORGET (priv->session_id);
+  GFREE_AND_FORGET (priv->email);
 
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
@@ -1216,9 +1251,12 @@ xmpp_features_cb (GObject *source,
   /* cache the current feature set: according to the RFC, we should forget
    * any previous feature set as soon as we open a new stream, so that
    * happens elsewhere */
-  if (priv->features != NULL)
-    g_object_unref (priv->features);
-  priv->features = g_object_ref (stanza);
+  if (stanza != NULL)
+    {
+      if (priv->features != NULL)
+        g_object_unref (priv->features);
+      priv->features = g_object_ref (stanza);
+    }
 
   can_encrypt =
     wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) != NULL;
@@ -1227,8 +1265,9 @@ xmpp_features_cb (GObject *source,
 
   /* conditions:
    * not encrypted, not encryptable, require encryption → ABORT
-   * encryptable                                        → STARTTLS
-   * encrypted || not encryptable                       → AUTH
+   * !encrypted && encryptable                          → STARTTLS
+   * !authed    && xep77_reg                            → XEP77 REGISTRATION
+   * !authed                                            → AUTH
    * not bound && can bind                              → BIND
    */
 
@@ -1247,6 +1286,12 @@ xmpp_features_cb (GObject *source,
       wocky_xmpp_connection_send_stanza_async (priv->conn, starttls,
           NULL, starttls_sent_cb, data);
       g_object_unref (starttls);
+      goto out;
+    }
+
+  if (!priv->authed && priv->reg_op == XEP77_SIGNUP)
+    {
+      xep77_begin (self);
       goto out;
     }
 
@@ -1408,6 +1453,457 @@ auth_done (GObject *source,
   xmpp_init (self, FALSE);
  out:
   g_object_unref (sasl);
+}
+
+/* ************************************************************************* */
+/* XEP 0077 register/cancel calls                                            */
+static void
+xep77_cancel_send (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *iqs = NULL;
+  gchar *iid = NULL;
+
+  iid = wocky_xmpp_connection_new_id (priv->conn);
+  iqs = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET,
+      /* It is debatable (XEP0077 section 3.2) whether we should  *
+       * include our JID here. The examples include it, the text  *
+       * indicates that we SHOULD NOT, at least in some use cases */
+      NULL /* priv->identity */,
+      priv->domain,
+      WOCKY_NODE_ATTRIBUTE, "id", iid,
+      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_NS_REGISTER,
+      WOCKY_NODE, "remove", WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, NULL,
+      xep77_cancel_sent, self);
+
+  g_free (iid);
+  g_object_unref (iqs);
+}
+
+static void
+xep77_cancel_sent (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, res, &error))
+    {
+      abort_connect_error (self, &error, "Failed to send unregister iq set");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      xep77_cancel_recv, self);
+}
+
+static void
+xep77_cancel_recv (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *iq = NULL;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+
+  iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, res, &error);
+  g_simple_async_result_set_op_res_gboolean (priv->result, FALSE);
+
+  if (iq == NULL)
+    {
+      g_simple_async_result_set_from_error (priv->result, error);
+      g_error_free (error);
+      goto out;
+    }
+
+  wocky_xmpp_stanza_get_type_info (iq, &type, &sub_type);
+
+  if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
+    {
+      error = wocky_xmpp_stanza_to_gerror (iq);
+
+      if ((error != NULL) &&
+          (error->code == WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED))
+        g_simple_async_result_set_op_res_gboolean (priv->result, TRUE);
+      else
+        g_simple_async_result_set_from_error (priv->result, error);
+
+      g_error_free (error);
+      goto out;
+    }
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      g_simple_async_result_set_error (priv->result,
+          WOCKY_CONNECTOR_ERROR,
+          WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED,
+          "Unregister: Invalid response");
+      goto out;
+    }
+
+  switch (sub_type)
+    {
+      WockyXmppNode *txt;
+      const gchar *err;
+      const gchar *msg;
+      int code;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
+
+        if (err == NULL)
+          err = "unknown-error";
+        msg = (txt != NULL) ? txt->content : "";
+
+        if (!wocky_strdiff ("forbidden", err) ||
+            !wocky_strdiff ("not-allowed", err))
+          code = WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED;
+        else
+          code = WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED;
+
+        g_simple_async_result_set_error (priv->result,
+            WOCKY_CONNECTOR_ERROR, code, "Unregister: %s", msg);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        g_simple_async_result_set_op_res_gboolean (priv->result, TRUE);
+        break;
+
+      default:
+        g_simple_async_result_set_error (priv->result,
+            WOCKY_CONNECTOR_ERROR,
+            WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED,
+            "Unregister: Malformed Response");
+        break;
+    }
+
+ out:
+  if (iq != NULL)
+    g_object_unref (iq);
+  if (priv->sock != NULL)
+    {
+      g_object_unref (priv->sock);
+      priv->sock = NULL;
+    }
+  g_simple_async_result_complete (priv->result);
+  priv->state = WCON_DISCONNECTED;
+}
+
+static void
+xep77_begin (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *iqs = NULL;
+  gchar *iid = NULL;
+  gchar *jid = NULL;
+
+  if (!priv->encrypted && !priv->auth_insecure_ok)
+    {
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_INSECURE,
+          "Cannot register account without encryption");
+      return;
+    }
+
+  jid = g_strdup_printf ("%s@%s", priv->user, priv->domain);
+  iid = wocky_xmpp_connection_new_id (priv->conn);
+  iqs = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET,
+      jid, priv->domain,
+      WOCKY_NODE_ATTRIBUTE, "id", iid,
+      WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_NS_REGISTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, NULL,
+      xep77_begin_sent, self);
+
+  g_free (jid);
+  g_free (iid);
+  g_object_unref (iqs);
+}
+
+static void
+xep77_begin_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
+    {
+      abort_connect_error (self, &error, "Failed to send register iq get");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      xep77_begin_recv, self);
+}
+
+static void
+xep77_begin_recv (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *iq = NULL;
+  WockyXmppNode *query = NULL;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+
+  iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
+
+  if (iq == NULL)
+    {
+      abort_connect_error (self, &error, "Failed to receive register iq set");
+      g_error_free (error);
+      goto out;
+    }
+
+  wocky_xmpp_stanza_get_type_info (iq, &type, &sub_type);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+          "Register: Response Invalid");
+      goto out;
+    }
+
+  switch (sub_type)
+    {
+      WockyXmppNode *txt;
+      const gchar *err;
+      const gchar *msg;
+      int code;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
+
+        if (err == NULL)
+          err = "unknown-error";
+        msg = (txt != NULL) ? txt->content : "";
+
+        if (!wocky_strdiff ("service-unavailable", err))
+          code = WOCKY_CONNECTOR_ERROR_REGISTRATION_UNAVAILABLE;
+        else
+          code = WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED;
+
+        abort_connect_code (self, code, "Registration: %s", msg);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        query = wocky_xmpp_node_get_child_ns (iq->node, "query",
+            WOCKY_NS_REGISTER);
+
+        if (query == NULL)
+          {
+            abort_connect_code (self,
+                WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+                "Malformed response to register iq");
+            goto out;
+          }
+
+        /* already registered. woo hoo. proceed to auth stage */
+        if (wocky_xmpp_node_get_child (query, "registered") != NULL)
+          {
+            priv->reg_op = XEP77_NONE;
+            request_auth (self, priv->features);
+            goto out;
+          }
+
+        if (wocky_xmpp_node_get_child (query, "instructions") == NULL)
+          {
+            abort_connect_code (self,
+                WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+                "Malformed response to register iq");
+            goto out;
+          }
+
+        switch (priv->reg_op)
+          {
+            case XEP77_SIGNUP:
+              xep77_signup_send (self, query);
+              break;
+            case XEP77_CANCEL:
+              xep77_cancel_send (self);
+              break;
+            default:
+              abort_connect_code (self, WOCKY_CONNECTOR_ERROR_UNKNOWN,
+                  "This should never happen: broken logic in connctor");
+          }
+        break;
+
+      default:
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+            "Register: Response Invalid");
+        break;
+    }
+
+ out:
+  if (iq != NULL)
+    g_object_unref (iq);
+}
+
+static void
+xep77_signup_send (WockyConnector *self,
+    WockyXmppNode *req)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *riq = NULL;
+  WockyXmppNode *reg = NULL;
+  GSList *arg = NULL;
+  gchar *jid = g_strdup_printf ("%s@%s", priv->user, priv->domain);
+  gchar *iid = wocky_xmpp_connection_new_id (priv->conn);
+  guint args = 0;
+
+  riq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET,
+      jid, priv->domain,
+      WOCKY_NODE_ATTRIBUTE, "id", iid, WOCKY_STANZA_END);
+  reg = wocky_xmpp_node_add_child_ns (riq->node, "query", WOCKY_NS_REGISTER);
+
+  for (arg = req->children; arg != NULL; arg = g_slist_next (arg))
+    {
+      gchar *value = NULL;
+      WockyXmppNode *a = (WockyXmppNode *) arg->data;
+
+      if (!wocky_strdiff ("instructions", a->name))
+        continue;
+      else if (!wocky_strdiff ("username", a->name))
+        value = priv->user;
+      else if (!wocky_strdiff ("password", a->name))
+        value = priv->pass;
+      else if (!wocky_strdiff ("email", a->name))
+        value = priv->email;
+      else
+        {
+          abort_connect_code (self,
+              WOCKY_CONNECTOR_ERROR_REGISTRATION_UNSUPPORTED,
+              "Did not understand '%s' registration parameter", a->name);
+          break;
+        }
+      DEBUG ("%s := %s", a->name, value);
+      wocky_xmpp_node_add_child_with_content (reg, a->name, value);
+      args++;
+    }
+
+  /* we understood all args, and there was at least one of them: */
+  if (args > 0)
+    wocky_xmpp_connection_send_stanza_async (priv->conn, riq, NULL,
+        xep77_signup_sent, self);
+  else
+    abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY,
+        "Registration without parameters makes no sense");
+
+  g_object_unref (riq);
+  g_free (jid);
+  g_free (iid);
+}
+
+static void
+xep77_signup_sent (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
+    {
+      abort_connect_error (self, &error, "Failed to send registration");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+      xep77_signup_recv, self);
+}
+
+static void
+xep77_signup_recv (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyXmppStanza *iq = NULL;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+
+  iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
+
+  if (iq == NULL)
+    {
+      abort_connect_error (self, &error, "Failed to receive register result");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_stanza_get_type_info (iq, &type, &sub_type);
+
+  if (type != WOCKY_STANZA_TYPE_IQ)
+    {
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+          "Register: Response Invalid");
+      goto out;
+    }
+
+    switch (sub_type)
+    {
+      WockyXmppNode *txt;
+      const gchar *err;
+      const gchar *msg;
+      int code;
+
+      case WOCKY_STANZA_SUB_TYPE_ERROR:
+        err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
+
+        if (err == NULL)
+          err = "unknown-error";
+        msg = (txt != NULL) ? txt->content : "";
+
+        if (!wocky_strdiff ("conflict", err))
+            code = WOCKY_CONNECTOR_ERROR_REGISTRATION_CONFLICT;
+        else if (!wocky_strdiff ("not-acceptable", err))
+          code = WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED;
+        else
+          code = WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED;
+
+        abort_connect_code (self, code, "Registration: %s %s", err, msg);
+        break;
+
+      case WOCKY_STANZA_SUB_TYPE_RESULT:
+        /* successfully registered. woo hoo. proceed to auth stage */
+        priv->reg_op = XEP77_NONE;
+        request_auth (self, priv->features);
+        break;
+
+      default:
+        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+            "Register: Response Invalid");
+        break;
+    }
+
+ out:
+  g_object_unref (iq);
 }
 
 /* ************************************************************************* */
@@ -1576,6 +2072,12 @@ establish_session (WockyConnector *self)
       g_object_unref (session);
       g_free (id);
     }
+  else if (priv->reg_op == XEP77_CANCEL)
+    {
+      /* sessions unavailable and we are cancelling our registration: *
+       * enter the xep77 code instead of completing the _async call   */
+      xep77_begin (self);
+    }
   else
     {
       GSimpleAsyncResult *tmp = priv->result;
@@ -1665,9 +2167,18 @@ establish_session_recv_cb (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        tmp = priv->result;
-        g_simple_async_result_complete (tmp);
-        g_object_unref (tmp);
+        if (priv->reg_op == XEP77_CANCEL)
+          {
+            /* session initialised: if we were cancelling our account *
+             * we can now start the xep77 cancellation process        */
+            xep77_begin (self);
+          }
+        else
+          {
+            tmp = priv->result;
+            g_simple_async_result_complete (tmp);
+            g_object_unref (tmp);
+          }
         break;
 
       default:
@@ -1719,6 +2230,24 @@ wocky_connector_connect_finish (WockyConnector *self,
   return priv->conn;
 }
 
+gboolean
+wocky_connector_unregister_finish (WockyConnector *self,
+    GAsyncResult *res,
+    GError **error)
+{
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
+  GObject *obj = G_OBJECT (self);
+  gboolean ok = FALSE;
+  gpointer tag = wocky_connector_unregister_finish;
+
+  g_simple_async_result_propagate_error (result, error);
+
+  if (g_simple_async_result_is_valid (res, obj, tag))
+    ok = g_simple_async_result_get_op_res_gboolean (result);
+
+  return ok;
+}
+
 WockySaslAuthMechanism
 wocky_connector_auth_mechanism (WockyConnector *self)
 {
@@ -1743,6 +2272,7 @@ wocky_connector_connect_async (WockyConnector *self,
   gchar *node = NULL;  /* username   */ /* @ */
   gchar *host = NULL;  /* domain.tld */ /* / */
   gchar *uniq = NULL;  /* uniquifier */
+  gpointer rc = wocky_connector_connect_finish;
 
   if (priv->result != NULL)
     {
@@ -1752,10 +2282,13 @@ wocky_connector_connect_async (WockyConnector *self,
       return;
     }
 
-  priv->result = g_simple_async_result_new (G_OBJECT (self),
-      cb,
-      user_data,
-      wocky_connector_connect_finish);
+  if (priv->reg_op == XEP77_CANCEL)
+    rc = wocky_connector_unregister_finish;
+
+  priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data, rc);
+
+  if (priv->reg_op == XEP77_CANCEL)
+    g_simple_async_result_set_op_res_gboolean (priv->result, FALSE);
 
   wocky_decode_jid (priv->jid, &node, &host, &uniq);
 
@@ -1808,6 +2341,32 @@ wocky_connector_connect_async (WockyConnector *self,
   g_free (node);
   g_free (uniq);
   return;
+}
+
+void
+wocky_connector_unregister_async (WockyConnector *self,
+    GAsyncReadyCallback cb,
+    gpointer user_data)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  priv->reg_op = XEP77_CANCEL;
+  wocky_connector_connect_async (self, cb, user_data);
+}
+
+void
+wocky_connector_register_async (WockyConnector *self,
+    const gchar *email,
+    GAsyncReadyCallback cb,
+    gpointer user_data)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  g_free (priv->email);
+  priv->email = g_strdup (email);
+  priv->reg_op = XEP77_SIGNUP;
+
+  wocky_connector_connect_async (self, cb, user_data);
 }
 
 WockyConnector *

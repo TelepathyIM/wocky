@@ -70,6 +70,15 @@ typedef enum {
   WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS,
   WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED,
   WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE,
+  WOCKY_CONNECTOR_ERROR_INSECURE,
+  WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
+  WOCKY_CONNECTOR_ERROR_REGISTRATION_UNAVAILABLE,
+  WOCKY_CONNECTOR_ERROR_REGISTRATION_UNSUPPORTED,
+  WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY,
+  WOCKY_CONNECTOR_ERROR_REGISTRATION_CONFLICT,
+  WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED,
+  WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED,
+  WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED,
 } WockyConnectorError;
 
 GQuark wocky_connector_error_quark (void);
@@ -122,6 +131,19 @@ void wocky_connector_connect_async (WockyConnector *self,
 WockyConnector *wocky_connector_new (const gchar *jid,
     const gchar *pass,
     const gchar *resource);
+
+void wocky_connector_register_async (WockyConnector *self,
+    const gchar *email,
+    GAsyncReadyCallback cb,
+    gpointer user_data);
+
+void wocky_connector_unregister_async (WockyConnector *self,
+    GAsyncReadyCallback cb,
+    gpointer user_data);
+
+gboolean wocky_connector_unregister_finish (WockyConnector *self,
+    GAsyncResult *res,
+    GError **error);
 
 WockySaslAuthMechanism wocky_connector_auth_mechanism (WockyConnector *self);
 
