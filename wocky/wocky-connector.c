@@ -568,12 +568,12 @@ wocky_connector_class_init (WockyConnectorClass *klass)
 
   spec = g_param_spec_boolean ("legacy", "Legacy Jabber Support",
       "Old style Jabber (Auth) support", FALSE,
-      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_LEGACY, spec);
 
   spec = g_param_spec_boolean ("old-ssl", "Legacy SSL Support",
       "Old style SSL support", FALSE,
-      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_LEGACY_SSL, spec);
 
   spec = g_param_spec_string ("session-id", "XMPP Session ID",
