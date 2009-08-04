@@ -557,7 +557,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   g_object_class_install_property (oclass, PROP_XMPP_HOST, spec);
 
   spec = g_param_spec_uint ("xmpp-port", "XMPP port",
-      "XMPP port", 0, 65535, 5222,
+      "XMPP port", 0, 65535, 0,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_XMPP_PORT, spec);
 
