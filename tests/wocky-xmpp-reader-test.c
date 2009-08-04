@@ -4,8 +4,11 @@
 
 #include <glib.h>
 
+#include <wocky/wocky.h>
 #include <wocky/wocky-xmpp-reader.h>
 #include <wocky/wocky-utils.h>
+
+#include "wocky-test-helper.h"
 
 #define HEADER \
 "<?xml version='1.0' encoding='UTF-8'?>                                    " \
@@ -218,10 +221,9 @@ int
 main (int argc,
     char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   g_test_add_func ("/xmpp-reader/stream-no-stanzas", test_stream_no_stanzas);
   g_test_add_func ("/xmpp-reader/stream-open-error", test_stream_open_error);
@@ -229,5 +231,7 @@ main (int argc,
   g_test_add_func ("/xmpp-reader/no-stream-hunks", test_no_stream_hunks);
   g_test_add_func ("/xmpp-reader/vcard-namespace", test_vcard_namespace);
 
-  return g_test_run ();
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }

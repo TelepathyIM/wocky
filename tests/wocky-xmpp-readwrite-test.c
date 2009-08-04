@@ -8,6 +8,8 @@
 #include <wocky/wocky-xmpp-writer.h>
 #include <wocky/wocky-utils.h>
 
+#include "wocky-test-helper.h"
+
 #define TO "example.net"
 #define FROM "julliet@example.com"
 #define VERSION "1.0"
@@ -171,14 +173,15 @@ int
 main (int argc,
     char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   g_test_add_func ("/xmpp-readwrite/readwrite", test_readwrite);
   g_test_add_func ("/xmpp-readwrite/readwrite-nostream",
     test_readwrite_nostream);
 
-  return g_test_run ();
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }

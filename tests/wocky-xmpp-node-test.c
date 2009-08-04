@@ -8,6 +8,8 @@
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 
+#include "wocky-test-helper.h"
+
 static void
 test_node_equal (void)
 {
@@ -246,14 +248,15 @@ test_unpack_error (void)
 int
 main (int argc, char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   g_test_add_func ("/xmpp-node/node-equal", test_node_equal);
   g_test_add_func ("/xmpp-node/set-attribute", test_set_attribute);
   g_test_add_func ("/xmpp-node/unpack-error", test_unpack_error);
 
-  return g_test_run ();
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }

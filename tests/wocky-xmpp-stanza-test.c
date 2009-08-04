@@ -8,6 +8,8 @@
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 
+#include "wocky-test-helper.h"
+
 static void
 test_build_iq_result (void)
 {
@@ -224,13 +226,14 @@ test_to_gerror (void)
 int
 main (int argc, char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
-
+  test_init (argc, argv);
   g_test_add_func ("/xmpp-stanza/build-iq-result", test_build_iq_result);
   g_test_add_func ("/xmpp-stanza/build-iq-error", test_build_iq_error);
   g_test_add_func ("/xmpp-stanza/to-gerror", test_to_gerror);
-  return g_test_run ();
+
+  result =  g_test_run ();
+  test_deinit ();
+  return result;
 }

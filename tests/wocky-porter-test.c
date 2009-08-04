@@ -2104,10 +2104,9 @@ test_close_force_after_error (void)
 int
 main (int argc, char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   g_test_add_func ("/xmpp-porter/initiation", test_instantiation);
   g_test_add_func ("/xmpp-porter/send", test_send);
@@ -2145,5 +2144,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/close-force", test_close_force);
   g_test_add_func ("/xmpp-porter/close-force-after-error",
       test_close_force_after_error);
-  return g_test_run ();
+
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }

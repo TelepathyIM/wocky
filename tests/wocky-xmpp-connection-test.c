@@ -904,10 +904,9 @@ test_force_close (void)
 int
 main (int argc, char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   g_test_add_func ("/xmpp-connection/initiation", test_instantiation);
   g_test_add_func ("/xmpp-connection/recv-simple-message",
@@ -922,5 +921,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-connection/recv-simple-message-in-one-chunk",
     test_recv_simple_message_in_one_chunk);
   g_test_add_func ("/xmpp-connection/force-close", test_force_close);
-  return g_test_run ();
+
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }

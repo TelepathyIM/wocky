@@ -2,6 +2,7 @@
 
 #include "wocky-test-sasl-auth-server.h"
 #include "wocky-test-stream.h"
+#include "wocky-test-helper.h"
 
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-sasl-auth.h>
@@ -246,6 +247,7 @@ int
 main (int argc,
     char **argv)
 {
+  int result;
   test_t tests[NUMBER_OF_TEST] = {
     SUCCESS("/xmpp-sasl/normal-auth", NULL, TRUE),
     SUCCESS("/xmpp-sasl/no-plain", NULL, FALSE),
@@ -285,10 +287,7 @@ main (int argc,
        "moose", "something", "cass-x200s" },
   };
 
-  g_thread_init (NULL);
-
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
@@ -296,5 +295,7 @@ main (int argc,
     g_test_add_data_func (tests[i].description,
       &tests[i], run_test);
 
-  return g_test_run ();
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }

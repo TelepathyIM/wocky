@@ -14,6 +14,7 @@
 
 #include "wocky-test-connector-server.h"
 #include "test-resolver.h"
+#include "wocky-test-helper.h"
 
 #define SASL_DB_NAME "sasl-test.db"
 
@@ -2592,10 +2593,9 @@ main (int argc,
   gchar base[PATH_MAX + 1];
   gchar *path = NULL;
   struct stat dummy;
+  int result;
 
-  g_thread_init (NULL);
-  g_type_init ();
-  g_test_init (&argc, &argv, NULL);
+  test_init (argc, argv);
 
   /* hook up the fake DNS resolver that lets us divert A and SRV queries *
    * into our local cache before asking the real DNS                     */
@@ -2613,5 +2613,7 @@ main (int argc,
   for (i = 0; tests[i].desc != NULL; i++)
     g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
 
-  return g_test_run ();
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }
