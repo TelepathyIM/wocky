@@ -85,7 +85,7 @@ tests/*report.xml
 
 tests/certs/*.pem
 
-examples/wocky-connect
+examples/wocky-*
 
 coverage/
 
