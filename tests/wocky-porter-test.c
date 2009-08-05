@@ -2116,6 +2116,60 @@ test_close_force_after_error (void)
   teardown_test (test);
 }
 
+/* Test calling force_close after close has been called and the close stream
+ * stanza has been sent */
+static void
+test_close_force_after_close_sent_stanza_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyXmppStanza *s;
+  GError *error = NULL;
+
+  s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
+
+  g_assert (s == NULL);
+  /* connection has been disconnected */
+  g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_close_force_after_close_sent (void)
+{
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+
+  wocky_xmpp_connection_recv_stanza_async (test->out, NULL,
+      test_close_force_after_close_sent_stanza_cb, test);
+
+  /* Try to properly close the connection; we'll give up before it has been
+   * done */
+  wocky_porter_close_async (test->sched_in, NULL,
+      test_close_force_closed_cb, test);
+
+  /* Wait for the close stanza */
+  test->outstanding++;
+  test_wait_pending (test);
+
+  /* force closing */
+  wocky_porter_force_close_async (test->sched_in, NULL,
+        test_close_force_force_closed_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2159,6 +2213,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/close-force", test_close_force);
   g_test_add_func ("/xmpp-porter/close-force-after-error",
       test_close_force_after_error);
+  g_test_add_func ("/xmpp-porter/close-force-after-close-sent",
+      test_close_force_after_close_sent);
 
   result = g_test_run ();
   test_deinit ();
