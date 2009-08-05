@@ -118,6 +118,9 @@ static void starttls_sent_cb (GObject *source,
 static void starttls_recv_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
+static void starttls_handshake_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer data);
 
 static void request_auth (WockyConnector *object,
     WockyXmppStanza *stanza);
@@ -1398,26 +1401,40 @@ starttls_recv_cb (GObject *source,
     {
       DEBUG ("starting client TLS handshake");
       priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
-      priv->tls = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
-      DEBUG ("completed TLS handshake");
-
-      if (priv->tls == NULL)
-        {
-          abort_connect_error (data, &error, "TLS Handshake Error");
-          g_error_free (error);
-          goto out;
-        }
-
-      priv->encrypted = TRUE;
-      /* throw away the old connection object, we're in TLS land now */
-      g_object_unref (priv->conn);
-      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
-      xmpp_init (self, FALSE);
+      wocky_tls_session_handshake_async (priv->tls_sess,
+          G_PRIORITY_DEFAULT, NULL, starttls_handshake_cb, self);
     }
 
  out:
   if (stanza != NULL)
     g_object_unref (stanza);
+}
+
+static void
+starttls_handshake_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer data)
+{
+  GError *error = NULL;
+  WockyConnector *self = WOCKY_CONNECTOR (data);
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyTLSSession *sess = priv->tls_sess;
+
+  priv->tls = wocky_tls_session_handshake_finish (sess, res, &error);
+  DEBUG ("completed TLS handshake");
+
+  if (priv->tls == NULL)
+    {
+      abort_connect_error (data, &error, "TLS Handshake Error");
+      g_error_free (error);
+      return;
+    }
+
+  priv->encrypted = TRUE;
+  /* throw away the old connection object, we're in TLS land now */
+  g_object_unref (priv->conn);
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
+  xmpp_init (self, FALSE);
 }
 
 /* ************************************************************************* */
