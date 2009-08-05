@@ -1727,14 +1727,6 @@ xep77_begin_recv (GObject *source,
             goto out;
           }
 
-        if (wocky_xmpp_node_get_child (query, "instructions") == NULL)
-          {
-            abort_connect_code (self,
-                WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
-                "Malformed response to register iq");
-            goto out;
-          }
-
         switch (priv->reg_op)
           {
             case XEP77_SIGNUP:
