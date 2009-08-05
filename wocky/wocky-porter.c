@@ -1317,7 +1317,7 @@ wocky_porter_force_close_async (WockyPorter *self,
       return;
     }
 
-  if (priv->local_closed)
+  if (priv->receive_cancellable == NULL && priv->local_closed)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_PORTER_ERROR,
