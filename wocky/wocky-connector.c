@@ -215,6 +215,7 @@ enum
   PROP_LEGACY,
   PROP_LEGACY_SSL,
   PROP_SESSION_ID,
+  PROP_EMAIL,
 };
 
 typedef enum
@@ -431,6 +432,10 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->jid);
         priv->jid = g_value_dup_string (value);
         break;
+      case PROP_EMAIL:
+        g_free (priv->email);
+        priv->email = g_value_dup_string (value);
+        break;
       case PROP_PASS:
         g_free (priv->pass);
         if (g_value_get_string (value) != NULL)
@@ -502,6 +507,9 @@ wocky_connector_get_property (GObject *object,
       case PROP_PASS:
         g_value_set_string (value, priv->pass);
         break;
+      case PROP_EMAIL:
+        g_value_set_string (value, priv->email);
+        break;
       case PROP_RESOURCE:
         g_value_set_string (value, priv->resource);
         break;
@@ -570,6 +578,10 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   spec = g_param_spec_string ("jid", "jid", "The XMPP jid", NULL,
       (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_JID, spec);
+
+  spec = g_param_spec_string ("email", "email", "user's email adddress", NULL,
+      (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_EMAIL, spec);
 
   spec = g_param_spec_string ("password", "pass", "Password", NULL,
       (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
@@ -1782,7 +1794,15 @@ xep77_signup_send (WockyConnector *self,
       else if (!wocky_strdiff ("password", a->name))
         value = priv->pass;
       else if (!wocky_strdiff ("email", a->name))
-        value = priv->email;
+        if ((priv->email != NULL) && *(priv->email) != '0')
+          value = priv->email;
+        else
+          {
+            abort_connect_code (self,
+                WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED,
+                "Regisration parameter %s missing", a->name);
+            break;
+          }
       else
         {
           abort_connect_code (self,
@@ -2222,6 +2242,17 @@ wocky_connector_connect_finish (WockyConnector *self,
   return priv->conn;
 }
 
+WockyXmppConnection *
+wocky_connector_register_finish (WockyConnector *self,
+    GAsyncResult *res,
+    GError **error,
+    gchar **jid,
+    gchar **sid)
+{
+  return wocky_connector_connect_finish (self, res, error, jid, sid);
+}
+
+
 gboolean
 wocky_connector_unregister_finish (WockyConnector *self,
     GAsyncResult *res,
@@ -2348,16 +2379,12 @@ wocky_connector_unregister_async (WockyConnector *self,
 
 void
 wocky_connector_register_async (WockyConnector *self,
-    const gchar *email,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
-  g_free (priv->email);
-  priv->email = g_strdup (email);
   priv->reg_op = XEP77_SIGNUP;
-
   wocky_connector_connect_async (self, cb, user_data);
 }
 

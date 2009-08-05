@@ -124,6 +124,12 @@ WockyXmppConnection *wocky_connector_connect_finish (WockyConnector *connector,
     gchar **jid,
     gchar **sid);
 
+WockyXmppConnection *wocky_connector_register_finish (WockyConnector *connector,
+    GAsyncResult *res,
+    GError **error,
+    gchar **jid,
+    gchar **sid);
+
 void wocky_connector_connect_async (WockyConnector *self,
     GAsyncReadyCallback cb,
     gpointer user_data);
@@ -133,7 +139,6 @@ WockyConnector *wocky_connector_new (const gchar *jid,
     const gchar *resource);
 
 void wocky_connector_register_async (WockyConnector *self,
-    const gchar *email,
     GAsyncReadyCallback cb,
     gpointer user_data);
 

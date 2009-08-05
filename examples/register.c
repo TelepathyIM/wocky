@@ -19,7 +19,7 @@ connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
   gchar *sid = NULL;
   WockyConnector *wcon = WOCKY_CONNECTOR (source);
   WockyXmppConnection *connection =
-    wocky_connector_connect_finish (wcon, res, &error, &jid, &sid);
+    wocky_connector_register_finish (wcon, res, &error, &jid, &sid);
 
   if (connection != NULL)
     {
@@ -73,7 +73,8 @@ main (int argc,
         "password"   , pass,
         "xmpp-server", host, NULL);
 
-  wocky_connector_register_async (wcon, email, connector_callback, NULL);
+  g_object_set (G_OBJECT (wcon), "email", email, NULL);
+  wocky_connector_register_async (wcon, connector_callback, NULL);
   g_main_loop_run (mainloop);
 
   return 0;
