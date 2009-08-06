@@ -1080,7 +1080,7 @@ maybe_old_ssl (WockyConnector *self)
 
   if (priv->legacy_ssl && !priv->encrypted)
     {
-      GError *error = NULL;
+      GError *error;
 
       g_assert (priv->conn == NULL);
       g_assert (priv->sock != NULL);
@@ -1419,21 +1419,25 @@ starttls_handshake_cb (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   WockyTLSSession *sess = priv->tls_sess;
+  const gchar *tla = priv->legacy_ssl ? "SSL" : "TLS";
+
 
   priv->tls = wocky_tls_session_handshake_finish (sess, res, &error);
-  DEBUG ("completed TLS handshake");
+  DEBUG ("completed %s handshake", tla);
 
   if (priv->tls == NULL)
     {
-      abort_connect_error (data, &error, "TLS Handshake Error");
+      abort_connect_error (data, &error, "%s Handshake Error", tla);
       g_error_free (error);
       return;
     }
 
   priv->encrypted = TRUE;
   /* throw away the old connection object, we're in TLS land now */
-  g_object_unref (priv->conn);
+  if (priv->conn)
+    g_object_unref (priv->conn);
   priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
+
   xmpp_init (self, FALSE);
 }
 
