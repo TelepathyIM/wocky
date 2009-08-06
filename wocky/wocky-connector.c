@@ -1800,15 +1800,15 @@ xep77_signup_send (WockyConnector *self,
           {
             abort_connect_code (self,
                 WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED,
-                "Regisration parameter %s missing", a->name);
-            break;
+                "Registration parameter %s missing", a->name);
+            goto out;
           }
       else
         {
           abort_connect_code (self,
               WOCKY_CONNECTOR_ERROR_REGISTRATION_UNSUPPORTED,
               "Did not understand '%s' registration parameter", a->name);
-          break;
+          goto out;
         }
       DEBUG ("%s := %s", a->name, value);
       wocky_xmpp_node_add_child_with_content (reg, a->name, value);
@@ -1823,6 +1823,7 @@ xep77_signup_send (WockyConnector *self,
     abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY,
         "Registration without parameters makes no sense");
 
+out:
   g_object_unref (riq);
   g_free (jid);
   g_free (iid);
