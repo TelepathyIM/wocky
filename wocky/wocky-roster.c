@@ -155,10 +155,12 @@ roster_update (WockyRoster *self,
   GSList *j;
 
   /* Check for google roster support */
-  if (FALSE /* can support google */)
+  if (FALSE /* FIXME: can support google */)
     {
       const gchar *gr_ext;
 
+      /* FIXME: this is wrong, we should use _get_attribute_ns instead of
+       * assuming the prefix */
       gr_ext = wocky_xmpp_node_get_attribute (stanza->node, "gr:ext");
 
       if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
@@ -298,7 +300,7 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       return TRUE;
     }
 
-  /* now ack roster */
+  /* TODO: now ack roster */
 
   return TRUE;
 }
