@@ -189,7 +189,7 @@ roster_update (WockyRoster *self,
       const gchar *subscription;
       WockyRosterSubscriptionFlags subscription_type;
       WockyXmppNode *group_node;
-      gchar **groups = { NULL };
+      GStrv groups = { NULL };
 
       if (wocky_strdiff (n->name, "item"))
         {
@@ -227,20 +227,23 @@ roster_update (WockyRoster *self,
 
       if (group_node != NULL)
         {
-          GSList *tmp;
-          guint i = 0;
+          GSList *l;
+          guint len;
+          GPtrArray *groups_arr;
 
-          i = g_slist_length (group_node->children) + 1;
+          len = g_slist_length (group_node->children) + 1;
 
-          groups = g_slice_alloc0 (sizeof (gchar *) *  i);
+          groups_arr = g_ptr_array_sized_new (len + 1);
 
-          for (i = 0, tmp = group_node->children; tmp; tmp = tmp->next)
+          for (l = group_node->children; l != NULL; l = g_slist_next (l))
             {
-              groups[i++] = g_strdup (
-                  ((WockyXmppNode *) tmp->data)->content);
+              g_ptr_array_add (groups_arr, g_strdup (
+                  ((WockyXmppNode *) l->data)->content));
             }
 
-          groups[i] = NULL;
+          /* Add trailing NULL */
+          g_ptr_array_add (groups_arr, NULL);
+          groups = (GStrv) g_ptr_array_free (groups_arr, FALSE);
         }
 
       contact = g_hash_table_lookup (priv->items, jid);
@@ -269,6 +272,7 @@ roster_update (WockyRoster *self,
           g_hash_table_insert (priv->items, g_strdup (jid), contact);
         }
 
+      g_strfreev (groups);
     }
 
   return TRUE;
