@@ -419,6 +419,9 @@ out:
       g_error_free (error);
     }
 
+  if (iq != NULL)
+    g_object_unref (iq);
+
   g_simple_async_result_complete (priv->fetch_result);
   g_object_unref (priv->fetch_result);
   priv->fetch_result = NULL;
