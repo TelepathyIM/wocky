@@ -453,6 +453,7 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, roster_fetch_roster_cb, self);
+  g_object_unref (iq);
 }
 
 gboolean
