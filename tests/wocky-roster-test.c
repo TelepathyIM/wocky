@@ -12,6 +12,7 @@
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
+/* Test to instantiate a WockyRoster object */
 static void
 test_instantiation (void)
 {
@@ -34,6 +35,7 @@ test_instantiation (void)
   g_object_unref (stream);
 }
 
+/* Test if the Roster sends the right IQ query when fetching the roster */
 static gboolean
 fetch_roster_send_iq_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
@@ -88,6 +90,8 @@ test_fetch_roster_send_iq (void)
   teardown_test (test);
 }
 
+/* Test if the Roster object is properly populated when receiving its fetch
+ * reply */
 static void
 fetch_roster_reply_roster_cb (GObject *source_object,
     GAsyncResult *res,
