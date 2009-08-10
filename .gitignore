@@ -59,6 +59,7 @@ ltmain.sh
 missing
 stamp-h1
 depcomp
+sasl-test.db
 
 m4/gtk-doc.m4
 m4/libtool.m4
