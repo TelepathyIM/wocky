@@ -87,8 +87,7 @@ GQuark wocky_roster_error_quark (void);
  */
 #define WOCKY_ROSTER_ERROR (wocky_roster_error_quark ())
 
-WockyRoster * wocky_roster_new (WockyXmppConnection *conn,
-    WockyPorter *porter);
+WockyRoster * wocky_roster_new (WockyPorter *porter);
 
 void wocky_roster_fetch_roster_async (WockyRoster *self,
     GCancellable *cancellable, GAsyncReadyCallback callback,

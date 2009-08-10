@@ -47,8 +47,7 @@ G_DEFINE_TYPE (WockyRoster, wocky_roster, G_TYPE_OBJECT)
 /* properties */
 enum
 {
-  PROP_CONNECTION = 1,
-  PROP_PORTER,
+  PROP_PORTER = 1,
 };
 
 /* signal enum */
@@ -66,7 +65,6 @@ typedef struct _WockyRosterPrivate WockyRosterPrivate;
 
 struct _WockyRosterPrivate
 {
-  WockyXmppConnection *conn;
   WockyPorter *porter;
   GHashTable *items;
   guint iq_cb;
@@ -115,9 +113,6 @@ wocky_roster_set_property (GObject *object,
 
   switch (property_id)
     {
-    case PROP_CONNECTION:
-      priv->conn = g_value_dup_object (value);
-      break;
     case PROP_PORTER:
       priv->porter = g_value_dup_object (value);
       break;
@@ -137,9 +132,6 @@ wocky_roster_get_property (GObject *object,
 
   switch (property_id)
     {
-    case PROP_CONNECTION:
-      g_value_set_object (value, priv->conn);
-      break;
     case PROP_PORTER:
       g_value_set_object (value, priv->porter);
       break;
@@ -336,9 +328,6 @@ wocky_roster_dispose (GObject *object)
 
   priv->dispose_has_run = TRUE;
 
-  if (priv->conn != NULL)
-    g_object_unref (priv->conn);
-
   if (priv->porter != NULL)
     g_object_unref (priv->porter);
 
@@ -372,13 +361,6 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
   object_class->dispose = wocky_roster_dispose;
   object_class->finalize = wocky_roster_finalize;
 
-  spec = g_param_spec_object ("connection", "XMPP connection",
-    "the XMPP connection used by this roster",
-    WOCKY_TYPE_XMPP_CONNECTION,
-    G_PARAM_READWRITE |
-    G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_CONNECTION, spec);
-
   spec = g_param_spec_object ("porter", "Wocky porter",
     "the wocky porter used by this roster",
     WOCKY_TYPE_PORTER,
@@ -388,14 +370,11 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
 }
 
 WockyRoster *
-wocky_roster_new (WockyXmppConnection *conn,
-    WockyPorter *porter)
+wocky_roster_new (WockyPorter *porter)
 {
-  g_return_val_if_fail (WOCKY_IS_XMPP_CONNECTION (conn), NULL);
   g_return_val_if_fail (WOCKY_IS_PORTER (porter), NULL);
 
   return g_object_new (WOCKY_TYPE_ROSTER,
-      "connection", conn,
       "porter", porter,
       NULL);
 }

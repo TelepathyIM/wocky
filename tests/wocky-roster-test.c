@@ -24,7 +24,7 @@ test_instantiation (void)
   connection = wocky_xmpp_connection_new (stream->stream0);
   porter = wocky_porter_new (connection);
 
-  roster = wocky_roster_new (connection, porter);
+  roster = wocky_roster_new (porter);
 
   g_assert (roster != NULL);
 
@@ -77,7 +77,7 @@ test_fetch_roster_send_iq (void)
   wocky_porter_start (test->sched_out);
   wocky_porter_start (test->sched_in);
 
-  roster = wocky_roster_new (test->in, test->sched_in);
+  roster = wocky_roster_new (test->sched_in);
 
   wocky_roster_fetch_roster_async (roster, NULL, NULL, NULL);
   test->outstanding++;
@@ -157,7 +157,7 @@ test_fetch_roster_reply (void)
   wocky_porter_start (test->sched_out);
   wocky_porter_start (test->sched_in);
 
-  roster = wocky_roster_new (test->in, test->sched_in);
+  roster = wocky_roster_new (test->sched_in);
 
   wocky_roster_fetch_roster_async (roster, NULL,
       fetch_roster_reply_roster_cb, test);
