@@ -329,6 +329,12 @@ wocky_roster_dispose (GObject *object)
 
   priv->dispose_has_run = TRUE;
 
+  if (priv->iq_cb != 0)
+    {
+      wocky_porter_unregister_handler (priv->porter, priv->iq_cb);
+      priv->iq_cb = 0;
+    }
+
   if (priv->porter != NULL)
     g_object_unref (priv->porter);
 
