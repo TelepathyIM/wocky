@@ -63,11 +63,11 @@ const gchar *wocky_contact_get_name (WockyContact *contact);
 gboolean wocky_contact_set_name (WockyContact *contact,
     const gchar *name, GError **error);
 
-WockyRosterSubscriptionType wocky_contact_get_subscription (
+WockyRosterSubscriptionFlags wocky_contact_get_subscription (
     WockyContact *contact);
 
 gboolean wocky_contact_set_subscription (WockyContact *contact,
-    WockyRosterSubscriptionType subscription, GError **error);
+    WockyRosterSubscriptionFlags subscription, GError **error);
 
 const gchar * const *wocky_contact_get_groups (WockyContact *contact);
 

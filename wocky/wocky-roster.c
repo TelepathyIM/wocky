@@ -183,7 +183,7 @@ roster_update (WockyRoster *self,
       WockyXmppNode *n = (WockyXmppNode *) j->data;
       WockyContact *contact = NULL;
       const gchar *subscription;
-      WockyRosterSubscriptionType subscription_type;
+      WockyRosterSubscriptionFlags subscription_type;
       WockyXmppNode *group_node;
       gchar **groups = { NULL };
 

@@ -72,7 +72,7 @@ struct _WockyContactPrivate
 
   gchar *jid;
   gchar *name;
-  WockyRosterSubscriptionType subscription;
+  WockyRosterSubscriptionFlags subscription;
   gchar **groups;
 };
 
@@ -236,9 +236,9 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
    */
   spec = g_param_spec_uint ("subscription", "Contact Subscription",
       "Contact Subscription",
-      1,
+      0,
       LAST_WOCKY_ROSTER_SUBSCRIPTION_TYPE,
-      1,
+      WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE,
       G_PARAM_READWRITE |
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_SUBSCRIPTION, spec);
@@ -335,7 +335,7 @@ wocky_contact_set_name (WockyContact *contact,
  *
  * Returns: @contact's subscription.
  */
-WockyRosterSubscriptionType
+WockyRosterSubscriptionFlags
 wocky_contact_get_subscription (WockyContact *contact)
 {
   WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (contact);
@@ -358,7 +358,7 @@ wocky_contact_get_subscription (WockyContact *contact)
  */
 gboolean
 wocky_contact_set_subscription (WockyContact *contact,
-    WockyRosterSubscriptionType subscription,
+    WockyRosterSubscriptionFlags subscription,
     GError **error)
 {
   WockyContactPrivate *priv;
