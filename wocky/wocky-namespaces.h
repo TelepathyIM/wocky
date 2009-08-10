@@ -74,7 +74,7 @@
 #define WOCKY_TELEPATHY_NS_CLIQUE \
   "http://telepathy.freedesktop.org/xmpp/clique"
 
-#define WOCKY_NS_REGISTER \
+#define WOCKY_XEP77_NS_REGISTER \
   "jabber:iq:register"
 
 /* legacy namespaces */

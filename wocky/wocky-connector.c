@@ -1476,6 +1476,8 @@ xep77_cancel_send (WockyConnector *self)
   WockyXmppStanza *iqs = NULL;
   gchar *iid = NULL;
 
+  DEBUG ("");
+
   iid = wocky_xmpp_connection_new_id (priv->conn);
   iqs = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET,
@@ -1485,7 +1487,7 @@ xep77_cancel_send (WockyConnector *self)
       NULL /* priv->identity */,
       priv->domain,
       WOCKY_NODE_ATTRIBUTE, "id", iid,
-      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_NS_REGISTER,
+      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_XEP77_NS_REGISTER,
       WOCKY_NODE, "remove", WOCKY_NODE_END,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
@@ -1505,6 +1507,8 @@ xep77_cancel_sent (GObject *source,
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+
+  DEBUG ("");
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, res, &error))
     {
@@ -1529,6 +1533,7 @@ xep77_cancel_recv (GObject *source,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
+  DEBUG ("");
   iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, res, &error);
   g_simple_async_result_set_op_res_gboolean (priv->result, FALSE);
 
@@ -1540,6 +1545,8 @@ xep77_cancel_recv (GObject *source,
     }
 
   wocky_xmpp_stanza_get_type_info (iq, &type, &sub_type);
+
+  DEBUG ("type == %d; sub_type: %d", type, sub_type);
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
@@ -1634,7 +1641,7 @@ xep77_begin (WockyConnector *self)
       jid, priv->domain,
       WOCKY_NODE_ATTRIBUTE, "id", iid,
       WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_NS_REGISTER,
+      WOCKY_NODE_XMLNS, WOCKY_XEP77_NS_REGISTER,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
@@ -1721,7 +1728,7 @@ xep77_begin_recv (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         query = wocky_xmpp_node_get_child_ns (iq->node, "query",
-            WOCKY_NS_REGISTER);
+            WOCKY_XEP77_NS_REGISTER);
 
         if (query == NULL)
           {
@@ -1780,7 +1787,8 @@ xep77_signup_send (WockyConnector *self,
       WOCKY_STANZA_SUB_TYPE_SET,
       jid, priv->domain,
       WOCKY_NODE_ATTRIBUTE, "id", iid, WOCKY_STANZA_END);
-  reg = wocky_xmpp_node_add_child_ns (riq->node, "query", WOCKY_NS_REGISTER);
+  reg = wocky_xmpp_node_add_child_ns (riq->node, "query",
+      WOCKY_XEP77_NS_REGISTER);
 
   for (arg = req->children; arg != NULL; arg = g_slist_next (arg))
     {
@@ -2331,7 +2339,7 @@ wocky_connector_connect_async (WockyConnector *self,
     }
 
   if (priv->resource == NULL)
-      priv->resource = uniq;
+    priv->resource = uniq;
   else
     g_free (uniq);
 
