@@ -87,6 +87,7 @@ test_fetch_roster_send_iq (void)
   test_wait_pending (test);
 
   test_close_both_porters (test);
+  g_object_unref (roster);
   teardown_test (test);
 }
 
@@ -170,6 +171,7 @@ test_fetch_roster_reply (void)
   test_wait_pending (test);
 
   test_close_both_porters (test);
+  g_object_unref (roster);
   teardown_test (test);
 }
 
