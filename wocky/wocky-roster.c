@@ -66,6 +66,7 @@ typedef struct _WockyRosterPrivate WockyRosterPrivate;
 struct _WockyRosterPrivate
 {
   WockyPorter *porter;
+  /* owned (gchar *) => reffed (WockyContact *) */
   GHashTable *items;
   guint iq_cb;
 
