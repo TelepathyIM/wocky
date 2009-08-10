@@ -111,7 +111,7 @@ wocky_contact_set_property (GObject *object,
       priv->subscription = g_value_get_uint (value);
       break;
     case PROP_GROUPS:
-      priv->groups = g_value_get_boxed (value);
+      priv->groups = g_value_dup_boxed (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
