@@ -70,6 +70,8 @@ struct _WockyRosterPrivate
   GHashTable *items;
   guint iq_cb;
 
+  GSimpleAsyncResult *fetch_result;
+
   gboolean dispose_has_run;
 };
 
@@ -393,9 +395,8 @@ roster_fetch_roster_cb (GObject *source_object,
 {
   GError *error = NULL;
   WockyXmppStanza *iq;
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyRoster *self = WOCKY_ROSTER (
-      g_async_result_get_source_object (G_ASYNC_RESULT (result)));
+  WockyRoster *self = WOCKY_ROSTER (user_data);
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
 
   iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
 
@@ -408,11 +409,13 @@ roster_fetch_roster_cb (GObject *source_object,
 out:
   if (error != NULL)
     {
-      g_simple_async_result_set_from_error (result, error);
+      g_simple_async_result_set_from_error (priv->fetch_result, error);
       g_error_free (error);
     }
 
-  g_simple_async_result_complete (result);
+  g_simple_async_result_complete (priv->fetch_result);
+  g_object_unref (priv->fetch_result);
+  priv->fetch_result = NULL;
 }
 
 void
@@ -423,11 +426,18 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
 {
   WockyRosterPrivate *priv;
   WockyXmppStanza *iq;
-  GSimpleAsyncResult *result;
 
   g_return_if_fail (WOCKY_IS_ROSTER (self));
 
   priv = WOCKY_ROSTER_GET_PRIVATE (self);
+
+  if (priv->fetch_result != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, G_IO_ERROR, G_IO_ERROR_PENDING,
+          "Another fetch operation is pending");
+      return;
+    }
 
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET, NULL, NULL,
@@ -436,11 +446,11 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
+  priv->fetch_result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_fetch_roster_finish);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, roster_fetch_roster_cb, result);
+      iq, cancellable, roster_fetch_roster_cb, self);
 }
 
 gboolean
