@@ -176,15 +176,16 @@ test_fetch_roster_reply (void)
 int
 main (int argc, char **argv)
 {
-  g_thread_init (NULL);
+  int result;
 
-  g_test_init (&argc, &argv, NULL);
-  g_type_init ();
+  test_init (argc, argv);
 
   g_test_add_func ("/xmpp-roster/instantiation", test_instantiation);
   g_test_add_func ("/xmpp-roster/fetch-roster-send-iq",
       test_fetch_roster_send_iq);
   g_test_add_func ("/xmpp-roster/fetch-roster-reply", test_fetch_roster_reply);
 
-  return g_test_run ();
+  result = g_test_run ();
+  test_deinit ();
+  return result;
 }
