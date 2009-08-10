@@ -45,6 +45,8 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
+  WockyXmppStanza *reply;
+  const char *id;
 
   /* Make sure stanza is as expected. */
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
@@ -58,9 +60,46 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_ns (node),
           "jabber:iq:roster"));
 
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (id != NULL);
+
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", id,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, "jabber:iq:roster",
+        WOCKY_NODE, "item",
+          WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
+          WOCKY_NODE_ATTRIBUTE, "name", "Romeo",
+          WOCKY_NODE_ATTRIBUTE, "subscription", "both",
+          WOCKY_NODE, "group",
+            WOCKY_NODE_TEXT, "Friends",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
   test->outstanding--;
   g_main_loop_quit (test->loop);
   return TRUE;
+}
+
+static void
+fetch_roster_fetched_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_return_if_fail (wocky_roster_fetch_roster_finish (
+          WOCKY_ROSTER (source_object), res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
 }
 
 static void
@@ -81,9 +120,9 @@ test_fetch_roster_send_iq (void)
 
   roster = wocky_roster_new (test->sched_in);
 
-  wocky_roster_fetch_roster_async (roster, NULL, NULL, NULL);
-  test->outstanding++;
+  wocky_roster_fetch_roster_async (roster, NULL, fetch_roster_fetched_cb, test);
 
+  test->outstanding += 2;
   test_wait_pending (test);
 
   test_close_both_porters (test);
