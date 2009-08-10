@@ -55,13 +55,21 @@
 #define CONNECTOR_INTERNALS_TEST "/connector/basic/internals"
 
 #define OK 0
-#define CONNECTOR_OK { OK, OK, OK, OK, OK }
+#define CONNECTOR_OK { OK, OK, OK, OK, OK, OK }
 
 gboolean running_test = FALSE;
 static GError *error = NULL;
 static GResolver *original;
 static GResolver *kludged;
 static GMainLoop *mainloop;
+
+enum {
+  OP_CONNECT = 0,
+  OP_REGISTER,
+  OP_CANCEL,
+};
+
+typedef void (*test_setup) (gpointer);
 
 typedef struct {
   gchar *desc;
@@ -78,10 +86,18 @@ typedef struct {
     gboolean require_tls;
     struct { gchar *jid; gchar *pass; gboolean secure; gboolean tls; } auth;
     struct { gchar *host; guint port; gboolean jabber; gboolean ssl; } options;
+    int op;
+    test_setup setup;
   } client;
   pid_t  server_pid;
   WockyConnector *connector;
+  gboolean ok;
 } test_t;
+
+static void _set_connector_email_prop (test_t *test)
+{
+  g_object_set (G_OBJECT (test->connector), "email", "foo@bar.org", NULL);
+}
 
 test_t tests[] =
   { /* basic connection test, no SRV record, no host or port supplied: */
@@ -1187,7 +1203,264 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
-    /* old school jabber tests (pre XMPP 1.0)*/
+    /* ******************************************************************** */
+    /* XEP 0077                                                             */
+    { "/connector/xep77/register/ok",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/no-args",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_NO_ARGS } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/email-missing",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_EMAIL_ARG } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/unknown-arg",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_UNSUPPORTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_STRANGE_ARG } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/unknown+email-args",
+      NOISY,
+      { DOMAIN_ANY, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK,
+            XEP77_PROBLEM_STRANGE_ARG|XEP77_PROBLEM_EMAIL_ARG } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/email-arg-ok",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_EMAIL_ARG } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER,
+        (test_setup)_set_connector_email_prop } },
+
+    { "/connector/xep77/register/email-arg-ok/unknown-arg",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_UNSUPPORTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK,
+            XEP77_PROBLEM_EMAIL_ARG|XEP77_PROBLEM_STRANGE_ARG } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER,
+        (test_setup)_set_connector_email_prop } },
+
+    { "/connector/xep77/register/fail/conflict",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_CONFLICT },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_FAIL_CONFLICT } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/fail/other",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_FAIL_REJECTED } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/nonsense",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_QUERY_NONSENSE } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/already/get",
+      NOISY,
+      { DOMAIN_NONE, 0 , WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_QUERY_ALREADY } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/already/set",
+      NOISY,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_ALREADY } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+
+    { "/connector/xep77/register/not-available",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_REGISTRATION_UNAVAILABLE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_NOT_AVAILABLE } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_REGISTER } },
+    /* ******************************************************************** */
+    { "/connector/xep77/cancel/ok",
+      NOISY,
+      { DOMAIN_NONE, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_CANCEL } },
+
+    { "/connector/xep77/cancel/denied",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_CANCEL_FAILED } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_CANCEL } },
+
+    { "/connector/xep77/cancel/disabled",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_CANCEL_DISABLED } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_CANCEL } },
+
+    { "/connector/xep77/cancel/rejected",
+      NOISY,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_CANCEL_REJECTED } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_CANCEL } },
+
+    { "/connector/xep77/cancel/stream-closed",
+      NOISY,
+      { DOMAIN_NONE, 0 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { OK, OK, OK, OK, OK, XEP77_PROBLEM_CANCEL_STREAM } },
+        { "moose", "something" },
+        PORT_XMPP },
+      { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
+        { NULL, 0 },
+        OP_CANCEL } },
+
+    /* ******************************************************************** */
+    /* old school jabber tests (pre XMPP 1.0)                               */
     { "/connector/jabber/no-ssl/auth/digest",
       NOISY,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -2385,8 +2658,24 @@ test_done (GObject *source,
   WockyXmppConnection *conn = NULL;
 
   error = NULL;
-  conn = wocky_connector_connect_finish (wcon, res, &error,
-      &test->result.jid, &test->result.sid);
+
+  switch (test->client.op)
+    {
+      case OP_CONNECT:
+        conn = wocky_connector_connect_finish (wcon, res, &error,
+            &test->result.jid, &test->result.sid);
+        test->ok = (conn != NULL);
+        break;
+      case OP_REGISTER:
+        conn = wocky_connector_register_finish (wcon, res, &error,
+            &test->result.jid, &test->result.sid);
+        test->ok = (conn != NULL);
+        break;
+      case OP_CANCEL:
+        test->ok = wocky_connector_unregister_finish (wcon, res, &error);
+        break;
+    }
+
   if (conn != NULL)
     test->result.xmpp = g_object_ref (conn);
 
@@ -2409,7 +2698,22 @@ static gboolean
 start_test (gpointer data)
 {
   test_t *test = data;
-  wocky_connector_connect_async (test->connector, test_done, data);
+
+  if (test->client.setup != NULL)
+    (test->client.setup) (test);
+
+  switch (test->client.op)
+    {
+      case OP_CONNECT:
+        wocky_connector_connect_async (test->connector, test_done, data);
+        break;
+      case OP_REGISTER:
+        wocky_connector_register_async (test->connector, test_done, data);
+        break;
+      case OP_CANCEL:
+        wocky_connector_unregister_async (test->connector, test_done, data);
+        break;
+    }
   return FALSE;
 }
 
@@ -2462,31 +2766,42 @@ run_test (gpointer data)
             error->code,
             error->message);
       g_assert (error == NULL);
-      g_assert (test->result.xmpp != NULL);
 
-      /* make sure we selected the right auth mechanism */
-      if (test->result.mech < WOCKY_SASL_AUTH_NR_MECHANISMS)
+      if (test->client.op == OP_CANCEL)
         {
-          WockySaslAuthMechanism mech = wocky_connector_auth_mechanism (wcon);
-          g_assert (test->result.mech == mech);
+          g_assert (test->ok == TRUE);
+          g_assert (test->result.xmpp == NULL);
         }
+      else
+        {
+          g_assert (test->result.xmpp != NULL);
 
-      /* we got a JID back, I hope */
-      g_assert (test->result.jid != NULL);
-      g_assert (*test->result.jid != '\0');
-      g_free (test->result.jid);
+          /* make sure we selected the right auth mechanism */
+          if (test->result.mech < WOCKY_SASL_AUTH_NR_MECHANISMS)
+            {
+              WockySaslAuthMechanism mech =
+                wocky_connector_auth_mechanism (wcon);
+              g_assert (test->result.mech == mech);
+            }
 
-      /* we got a SID back, I hope */
-      g_assert (test->result.sid != NULL);
-      g_assert (*test->result.sid != '\0');
-      g_free (test->result.sid);
+          /* we got a JID back, I hope */
+          g_assert (test->result.jid != NULL);
+          g_assert (*test->result.jid != '\0');
+          g_free (test->result.jid);
+
+          /* we got a SID back, I hope */
+          g_assert (test->result.sid != NULL);
+          g_assert (*test->result.sid != '\0');
+          g_free (test->result.sid);
+        }
 
       /* property get/set functionality */
       if (!strcmp (test->desc, CONNECTOR_INTERNALS_TEST))
         {
           int i;
           gchar *identity = NULL;
-          WockyConnector *tmp = wocky_connector_new ("foo@bar.org","abc","xyz");
+          WockyConnector *tmp =
+            wocky_connector_new ("foo@bar.org","abc","xyz");
           WockyXmppStanza *feat = NULL;
           gboolean jabber;
           gboolean oldssl;
