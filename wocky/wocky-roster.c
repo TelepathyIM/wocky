@@ -169,7 +169,7 @@ roster_update (WockyRoster *self,
 
   if (query_node == NULL)
     {
-      *error = g_error_new_literal (WOCKY_ROSTER_ERROR,
+      g_set_error_literal (error, WOCKY_ROSTER_ERROR,
           WOCKY_ROSTER_INVALID_STANZA,
           "IQ does not have query node");
 
