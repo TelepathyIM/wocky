@@ -8,6 +8,7 @@
 #include <wocky/wocky-porter.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-xmpp-connection.h>
+#include <wocky/wocky-contact.h>
 
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
@@ -138,11 +139,22 @@ fetch_roster_reply_roster_cb (GObject *source_object,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
+  WockyContact *contact;
+  WockyRoster *roster = WOCKY_ROSTER (source_object);
+  const gchar * const *groups;
 
-  g_return_if_fail (wocky_roster_fetch_roster_finish (
-          WOCKY_ROSTER (source_object), res, NULL));
+  g_return_if_fail (wocky_roster_fetch_roster_finish (roster, res, NULL));
 
-  /* TODO: Check whether the contacts added are correct. */
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+  g_assert (!wocky_strdiff (wocky_contact_get_jid (contact),
+        "romeo@example.net"));
+  g_assert (!wocky_strdiff (wocky_contact_get_name (contact), "Romeo"));
+  g_assert (wocky_contact_get_subscription (contact) ==
+      WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH);
+  groups = wocky_contact_get_groups (contact);
+  g_assert (!strcmp (groups[0], "Friends"));
+  g_assert (groups[1] == NULL);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
