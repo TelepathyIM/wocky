@@ -2807,8 +2807,10 @@ run_test (gpointer data)
           gboolean oldssl;
           XmppProblem xproblem = test->server.problem.conn.xmpp;
           const gchar *prop = NULL;
-          const gchar *str_prop[] = { "jid", "password", "xmpp-server", NULL };
-          const gchar *str_vals[] = { "abc", "PASSWORD", "xmpp.server", NULL };
+          const gchar *str_prop[] = { "jid", "password",
+                                      "xmpp-server", "email", NULL };
+          const gchar *str_vals[] = { "abc", "PASSWORD",
+                                      "xmpp.server", "e@org", NULL };
           const gchar *boolprop[] = { "ignore-ssl-errors",
                                       "plaintext-auth-allowed",
                                       "encrypted-plain-auth-ok",
