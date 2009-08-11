@@ -147,6 +147,19 @@ create_romeo (void)
       NULL);
 }
 
+static WockyContact *
+create_juliet (void)
+{
+  const gchar *groups[] = { "Friends", "Girlz", NULL };
+
+  return g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "juliet@example.net",
+      "name", "Juliet",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO,
+      "groups", groups,
+      NULL);
+}
+
 static void
 fetch_roster_reply_roster_cb (GObject *source_object,
     GAsyncResult *res,
@@ -155,7 +168,7 @@ fetch_roster_reply_roster_cb (GObject *source_object,
   test_data_t *test = (test_data_t *) user_data;
   WockyContact *contact;
   WockyRoster *roster = WOCKY_ROSTER (source_object);
-  WockyContact *romeo;
+  WockyContact *romeo, *juliet;
 
   g_return_if_fail (wocky_roster_fetch_roster_finish (roster, res, NULL));
 
@@ -163,6 +176,11 @@ fetch_roster_reply_roster_cb (GObject *source_object,
   romeo = create_romeo ();
   g_assert (wocky_contact_equal (contact, romeo));
   g_object_unref (romeo);
+
+  contact = wocky_roster_get_contact (roster, "juliet@example.net");
+  juliet = create_juliet ();
+  g_assert (wocky_contact_equal (contact, juliet));
+  g_object_unref (juliet);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -187,12 +205,25 @@ fetch_roster_reply_cb (WockyPorter *porter,
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, "jabber:iq:roster",
+        /* Romeo */
         WOCKY_NODE, "item",
           WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
           WOCKY_NODE_ATTRIBUTE, "name", "Romeo",
           WOCKY_NODE_ATTRIBUTE, "subscription", "both",
           WOCKY_NODE, "group",
             WOCKY_NODE_TEXT, "Friends",
+          WOCKY_NODE_END,
+        /* Juliet */
+        WOCKY_NODE_END,
+        WOCKY_NODE, "item",
+          WOCKY_NODE_ATTRIBUTE, "jid", "juliet@example.net",
+          WOCKY_NODE_ATTRIBUTE, "name", "Juliet",
+          WOCKY_NODE_ATTRIBUTE, "subscription", "to",
+          WOCKY_NODE, "group",
+            WOCKY_NODE_TEXT, "Friends",
+          WOCKY_NODE_END,
+          WOCKY_NODE, "group",
+            WOCKY_NODE_TEXT, "Girlz",
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
