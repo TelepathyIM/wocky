@@ -74,6 +74,9 @@ const gchar * const *wocky_contact_get_groups (WockyContact *contact);
 gboolean wocky_contact_set_groups (WockyContact *contact,
     gchar **groups, GError **error);
 
+gboolean wocky_contact_equal (WockyContact *a,
+    WockyContact *b);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_H__*/
