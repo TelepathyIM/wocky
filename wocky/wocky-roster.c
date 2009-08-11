@@ -147,6 +147,7 @@ wocky_roster_get_property (GObject *object,
 static gboolean
 roster_update (WockyRoster *self,
     WockyXmppStanza *stanza,
+    gboolean fire_signals,
     GError **error)
 {
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
@@ -264,7 +265,9 @@ roster_update (WockyRoster *self,
               NULL);
 
           g_hash_table_insert (priv->items, g_strdup (jid), contact);
-          g_signal_emit (self, signals[ADDED], 0, contact);
+
+          if (fire_signals)
+            g_signal_emit (self, signals[ADDED], 0, contact);
         }
 
       g_strfreev (groups);
@@ -292,7 +295,7 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       return TRUE;
     }
 
-  if (!roster_update (self, stanza, &error))
+  if (!roster_update (self, stanza, TRUE, &error))
     {
       DEBUG ("Failed to update roster: %s",
           error ? error->message : "no message");
@@ -417,7 +420,7 @@ roster_fetch_roster_cb (GObject *source_object,
   if (iq == NULL)
     goto out;
 
-  if (!roster_update (self, iq, &error))
+  if (!roster_update (self, iq, FALSE, &error))
     goto out;
 
 out:
