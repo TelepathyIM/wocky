@@ -55,6 +55,7 @@ enum
 enum
 {
   ADDED,
+  REMOVED,
   LAST_SIGNAL,
 };
 
@@ -144,6 +145,29 @@ wocky_roster_get_property (GObject *object,
     }
 }
 
+static void
+remove_item (WockyRoster *self,
+    const gchar *jid)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyContact *contact;
+
+  contact = g_hash_table_lookup (priv->items, jid);
+  if (contact == NULL)
+    {
+      DEBUG ("%s is not in the roster; can't remove it", jid);
+      return;
+    }
+
+  /* Removing the contact from the hash table will unref it. Keep it a ref
+   * while firing the 'removed' signal. */
+  g_object_ref (contact);
+  g_hash_table_remove (priv->items, jid);
+
+  g_signal_emit (self, signals[REMOVED], 0, contact);
+  g_object_unref (contact);
+}
+
 static gboolean
 roster_update (WockyRoster *self,
     WockyXmppStanza *stanza,
@@ -222,8 +246,18 @@ roster_update (WockyRoster *self,
         subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM;
       else if (!wocky_strdiff (subscription, "both"))
         subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH;
-      else
+      else if (!wocky_strdiff (subscription, "none"))
         subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE;
+      else if (!wocky_strdiff (subscription, "remove"))
+        {
+          remove_item (self, jid);
+          continue;
+        }
+      else
+        {
+          DEBUG ("Unknown subscription: %s; ignoring", subscription);
+          continue;
+        }
 
       groups_arr = g_ptr_array_new ();
 
@@ -389,6 +423,12 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
   g_object_class_install_property (object_class, PROP_PORTER, spec);
 
   signals[ADDED] = g_signal_new ("added",
+      G_OBJECT_CLASS_TYPE (wocky_roster_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT,
+      G_TYPE_NONE, 1, G_TYPE_OBJECT);
+
+  signals[REMOVED] = g_signal_new ("removed",
       G_OBJECT_CLASS_TYPE (wocky_roster_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT,
