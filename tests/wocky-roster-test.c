@@ -452,6 +452,129 @@ test_roster_upgrade_remove (void)
   teardown_test (test);
 }
 
+/* Test if WockyContact objects are properly upgraded */
+static void
+contact_notify_cb (WockyContact *contact,
+    GParamSpec *pspec,
+    test_data_t *test)
+{
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_roster_upgrade_change (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+  GSList *contacts, *l;
+  WockyContact *romeo, *contact;
+  const gchar *groups[] = { "Badger", NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+  romeo = create_romeo ();
+
+  contacts = wocky_roster_get_all_contacts (roster);
+  for (l = contacts; l != NULL; l = g_slist_next (l))
+    {
+      g_signal_connect (l->data, "notify", G_CALLBACK (contact_notify_cb),
+          test);
+    }
+  g_slist_free (contacts);
+
+  /* change name */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+    WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE, "item",
+        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
+        WOCKY_NODE_ATTRIBUTE, "name", "Romeooo",
+        WOCKY_NODE_ATTRIBUTE, "subscription", "both",
+        WOCKY_NODE, "group",
+          WOCKY_NODE_TEXT, "Friends",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
+      roster_update_reply_cb, test);
+  g_object_unref (iq);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* Name has been changed */
+  wocky_contact_set_name (romeo, "Romeooo");
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  /* change subscription */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+    WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE, "item",
+        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
+        WOCKY_NODE_ATTRIBUTE, "name", "Romeooo",
+        WOCKY_NODE_ATTRIBUTE, "subscription", "to",
+        WOCKY_NODE, "group",
+          WOCKY_NODE_TEXT, "Friends",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
+      roster_update_reply_cb, test);
+  g_object_unref (iq);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* Subscription has been changed */
+  wocky_contact_set_subscription (romeo, WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  /* change groups */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+    WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE, "item",
+        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
+        WOCKY_NODE_ATTRIBUTE, "name", "Romeooo",
+        WOCKY_NODE_ATTRIBUTE, "subscription", "to",
+        WOCKY_NODE, "group",
+          WOCKY_NODE_TEXT, "Badger",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
+      roster_update_reply_cb, test);
+  g_object_unref (iq);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* Groups have been changed */
+  wocky_contact_set_groups (romeo, (gchar **) groups);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  g_object_unref (romeo);
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -466,6 +589,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/roster-upgrade-add", test_roster_upgrade_add);
   g_test_add_func ("/xmpp-roster/roster-upgrade-remove",
       test_roster_upgrade_remove);
+  g_test_add_func ("/xmpp-roster/roster-upgrade-change",
+      test_roster_upgrade_change);
 
   result = g_test_run ();
   test_deinit ();
