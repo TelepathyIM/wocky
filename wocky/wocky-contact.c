@@ -380,6 +380,46 @@ wocky_contact_get_groups (WockyContact *contact)
   return (const gchar * const *) priv->groups;
 }
 
+static gint
+cmp_gchar (gchar *a,
+    gchar *b)
+{
+  return *a - *b;
+}
+
+static gboolean
+groups_equal (const gchar * const * groups_a,
+  const gchar * const * groups_b)
+{
+  gchar *joined_a, *joined_b;
+  gboolean result;
+  GArray *arr_a, *arr_b;
+
+  if (g_strv_length ((GStrv) groups_a) != g_strv_length ((GStrv) groups_b))
+    return FALSE;
+
+  /* check if groups are the same by concatenating them and sorting the result
+   * alphabetically */
+  joined_a = g_strjoinv ("/", (gchar **) groups_a);
+  joined_b = g_strjoinv ("/", (gchar **) groups_b);
+
+  arr_a = g_array_sized_new (TRUE, FALSE, sizeof (gchar), strlen (joined_a));
+  g_array_append_vals (arr_a, joined_a, strlen (joined_a));
+  arr_b = g_array_sized_new (TRUE, FALSE, sizeof (gchar), strlen (joined_b));
+  g_array_append_vals (arr_b, joined_b, strlen (joined_b));
+
+  g_array_sort (arr_a, (GCompareFunc) cmp_gchar);
+  g_array_sort (arr_b, (GCompareFunc) cmp_gchar);
+
+  result = !wocky_strdiff (arr_a->data, arr_b->data);
+
+  g_array_free (arr_a, TRUE);
+  g_array_free (arr_b, TRUE);
+  g_free (joined_a);
+  g_free (joined_b);
+  return result;
+}
+
 /**
  * wocky_contact_set_groups:
  * @contact: a #WockyContact instance
@@ -417,9 +457,6 @@ wocky_contact_equal (WockyContact *a,
 {
   const gchar * const * groups_a;
   const gchar * const * groups_b;
-  gchar *joined_a, *joined_b;
-  gboolean result;
-  GArray *arr_a, *arr_b;
 
   g_assert (a != NULL || b != NULL);
 
@@ -438,27 +475,5 @@ wocky_contact_equal (WockyContact *a,
   groups_a = wocky_contact_get_groups (a);
   groups_b = wocky_contact_get_groups (b);
 
-  if (g_strv_length ((GStrv) groups_a) != g_strv_length ((GStrv) groups_b))
-    return FALSE;
-
-  /* check if groups are the same by concatenating them and sorting the result
-   * alphabetically */
-  joined_a = g_strjoinv ("/", (gchar **) groups_a);
-  joined_b = g_strjoinv ("/", (gchar **) groups_b);
-
-  arr_a = g_array_sized_new (TRUE, FALSE, sizeof (gchar), strlen (joined_a));
-  g_array_append_vals (arr_a, joined_a, strlen (joined_a));
-  arr_b = g_array_sized_new (TRUE, FALSE, sizeof (gchar), strlen (joined_b));
-  g_array_append_vals (arr_b, joined_b, strlen (joined_b));
-
-  g_array_sort (arr_a, (GCompareFunc) cmp_gchar);
-  g_array_sort (arr_b, (GCompareFunc) cmp_gchar);
-
-  result = !wocky_strdiff (arr_a->data, arr_b->data);
-
-  g_array_free (arr_a, TRUE);
-  g_array_free (arr_b, TRUE);
-  g_free (joined_a);
-  g_free (joined_b);
-  return result;
+  return groups_equal (groups_a, groups_b);
 }
