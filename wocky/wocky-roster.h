@@ -23,6 +23,7 @@
 
 #include <glib-object.h>
 
+#include "wocky-types.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-porter.h"
 
@@ -96,6 +97,9 @@ void wocky_roster_fetch_roster_async (WockyRoster *self,
 
 gboolean wocky_roster_fetch_roster_finish (WockyRoster *self,
     GAsyncResult *result, GError **error);
+
+WockyContact * wocky_roster_get_contact (WockyRoster *self,
+    const gchar *jid);
 
 G_END_DECLS
 

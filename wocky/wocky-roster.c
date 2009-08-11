@@ -477,3 +477,12 @@ wocky_roster_fetch_roster_finish (WockyRoster *self,
 
   return TRUE;
 }
+
+WockyContact *
+wocky_roster_get_contact (WockyRoster *self,
+    const gchar *jid)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+
+  return g_hash_table_lookup (priv->items, jid);
+}
