@@ -160,6 +160,16 @@ create_juliet (void)
       NULL);
 }
 
+static int
+find_contact (gconstpointer a,
+    gconstpointer b)
+{
+  if (wocky_contact_equal (WOCKY_CONTACT (a), WOCKY_CONTACT (b)))
+    return 0;
+
+  return 1;
+}
+
 static void
 fetch_roster_reply_roster_cb (GObject *source_object,
     GAsyncResult *res,
@@ -169,19 +179,26 @@ fetch_roster_reply_roster_cb (GObject *source_object,
   WockyContact *contact;
   WockyRoster *roster = WOCKY_ROSTER (source_object);
   WockyContact *romeo, *juliet;
+  GSList *contacts;
 
   g_return_if_fail (wocky_roster_fetch_roster_finish (roster, res, NULL));
+
+  contacts = wocky_roster_get_all_contacts (roster);
+  g_assert_cmpuint (g_slist_length (contacts), ==, 2);
 
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
   romeo = create_romeo ();
   g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (g_slist_find_custom (contacts, romeo, find_contact) != NULL);
   g_object_unref (romeo);
 
   contact = wocky_roster_get_contact (roster, "juliet@example.net");
   juliet = create_juliet ();
   g_assert (wocky_contact_equal (contact, juliet));
+  g_assert (g_slist_find_custom (contacts, juliet, find_contact) != NULL);
   g_object_unref (juliet);
 
+  g_slist_free (contacts);
   test->outstanding--;
   g_main_loop_quit (test->loop);
 }
