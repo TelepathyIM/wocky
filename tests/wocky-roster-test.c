@@ -390,6 +390,68 @@ test_roster_upgrade_add (void)
   teardown_test (test);
 }
 
+/* Test if roster is properly upgraded when a contact is removed from it */
+static void
+roster_removed_cb (WockyRoster *roster,
+    WockyContact *contact,
+    test_data_t *test)
+{
+  WockyContact *romeo;
+  GSList *contacts;
+
+  /* Is that the right contact? */
+  romeo = create_romeo ();
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  /* Check if the contact has been removed from the roster */
+  g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
+  contacts = wocky_roster_get_all_contacts (roster);
+  g_assert (g_slist_find_custom (contacts, romeo, (GCompareFunc) find_contact)
+      == NULL);
+
+  g_object_unref (romeo);
+  g_slist_free (contacts);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_roster_upgrade_remove (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  g_signal_connect (roster, "removed", G_CALLBACK (roster_removed_cb), test);
+
+  /* server sends a roster update */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+    WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE, "item",
+        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
+        WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
+      WOCKY_NODE_END,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
+      roster_update_reply_cb, test);
+  g_object_unref (iq);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -402,6 +464,8 @@ main (int argc, char **argv)
       test_fetch_roster_send_iq);
   g_test_add_func ("/xmpp-roster/fetch-roster-reply", test_fetch_roster_reply);
   g_test_add_func ("/xmpp-roster/roster-upgrade-add", test_roster_upgrade_add);
+  g_test_add_func ("/xmpp-roster/roster-upgrade-remove",
+      test_roster_upgrade_remove);
 
   result = g_test_run ();
   test_deinit ();
