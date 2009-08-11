@@ -105,7 +105,7 @@ wocky_contact_set_property (GObject *object,
       break;
     case PROP_NAME:
       wocky_contact_set_name (WOCKY_CONTACT (object),
-          g_value_get_string (value), NULL);
+          g_value_get_string (value));
       break;
     case PROP_SUBSCRIPTION:
       priv->subscription = g_value_get_uint (value);
@@ -296,35 +296,30 @@ wocky_contact_get_name (WockyContact *contact)
   return priv->name;
 }
 
+/* FIXME: document that wocky_contact_set_* shouldn't be used by users */
+
 /**
  * wocky_contact_set_name:
  * @contact: a #WockyContact instance
  * @name: the name to set @contact
- * @error: a #GError to fill on failure
  *
  * Sets @contact's name to @name.
  *
- * Returns: %TRUE on success, %FALSE on failure.
  */
-gboolean
+void
 wocky_contact_set_name (WockyContact *contact,
-    const gchar *name,
-    GError **error)
+    const gchar *name)
 {
   WockyContactPrivate *priv;
 
-  /* TODO */
-  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), FALSE);
+  g_return_if_fail (WOCKY_IS_CONTACT (contact));
 
   priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
-  /* TODO */
   if (priv->name != NULL)
     g_free (priv->name);
 
   priv->name = g_strdup (name);
-
-  return TRUE;
 }
 
 /**
@@ -350,28 +345,21 @@ wocky_contact_get_subscription (WockyContact *contact)
  * wocky_contact_set_subscription:
  * @contact: a #WockyContact instance
  * @subscription: the new subscription type
- * @error: a #GError to fill on failure
  *
  * Sets the subscription of @contact.
  *
- * Returns: %TRUE on success, %FALSE on failure.
  */
-gboolean
+void
 wocky_contact_set_subscription (WockyContact *contact,
-    WockyRosterSubscriptionFlags subscription,
-    GError **error)
+    WockyRosterSubscriptionFlags subscription)
 {
   WockyContactPrivate *priv;
 
-  /* TODO */
-  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), FALSE);
+  g_return_if_fail (WOCKY_IS_CONTACT (contact));
 
   priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
-  /* TODO */
   priv->subscription = subscription;
-
-  return TRUE;
 }
 
 /**
@@ -396,31 +384,24 @@ wocky_contact_get_groups (WockyContact *contact)
  * wocky_contact_set_groups:
  * @contact: a #WockyContact instance
  * @groups: a list of groups
- * @error: a #GError to fill on failure
  *
  * Sets @contact's groups.
  *
- * Returns: %TRUE on success, %FALSE on failure
  */
-gboolean
+void
 wocky_contact_set_groups (WockyContact *contact,
-    gchar **groups,
-    GError **error)
+    gchar **groups)
 {
   WockyContactPrivate *priv;
 
-  /* TODO */
-  g_return_val_if_fail (WOCKY_IS_CONTACT (contact), FALSE);
+  g_return_if_fail (WOCKY_IS_CONTACT (contact));
 
   priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
   if (priv->groups != NULL)
     g_strfreev (priv->groups);
 
-  /* TODO */
   priv->groups = g_strdupv (groups);
-
-  return TRUE;
 }
 
 static gint

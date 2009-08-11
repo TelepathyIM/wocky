@@ -281,12 +281,11 @@ roster_update (WockyRoster *self,
         {
           /* Contact already exists; update. */
           wocky_contact_set_name (contact,
-              wocky_xmpp_node_get_attribute (n, "name"), NULL);
+              wocky_xmpp_node_get_attribute (n, "name"));
 
-          wocky_contact_set_subscription (contact,
-              subscription_type, NULL);
+          wocky_contact_set_subscription (contact, subscription_type);
 
-          wocky_contact_set_groups (contact, groups, NULL);
+          wocky_contact_set_groups (contact, groups);
         }
       else
         {

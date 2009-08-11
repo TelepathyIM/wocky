@@ -60,19 +60,17 @@ const gchar *wocky_contact_get_jid (WockyContact *contact);
 
 const gchar *wocky_contact_get_name (WockyContact *contact);
 
-gboolean wocky_contact_set_name (WockyContact *contact,
-    const gchar *name, GError **error);
+void wocky_contact_set_name (WockyContact *contact, const gchar *name);
 
 WockyRosterSubscriptionFlags wocky_contact_get_subscription (
     WockyContact *contact);
 
-gboolean wocky_contact_set_subscription (WockyContact *contact,
-    WockyRosterSubscriptionFlags subscription, GError **error);
+void wocky_contact_set_subscription (WockyContact *contact,
+    WockyRosterSubscriptionFlags subscription);
 
 const gchar * const *wocky_contact_get_groups (WockyContact *contact);
 
-gboolean wocky_contact_set_groups (WockyContact *contact,
-    gchar **groups, GError **error);
+void wocky_contact_set_groups (WockyContact *contact, gchar **groups);
 
 gboolean wocky_contact_equal (WockyContact *a,
     WockyContact *b);
