@@ -480,3 +480,20 @@ wocky_roster_get_contact (WockyRoster *self,
 
   return g_hash_table_lookup (priv->items, jid);
 }
+
+GSList *
+wocky_roster_get_all_contacts (WockyRoster *self)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  GSList *result = NULL;
+  GHashTableIter iter;
+  gpointer value;
+
+  g_hash_table_iter_init (&iter, priv->items);
+  while (g_hash_table_iter_next (&iter, NULL, &value))
+    {
+      result = g_slist_prepend (result, value);
+    }
+
+  return result;
+}

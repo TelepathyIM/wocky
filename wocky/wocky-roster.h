@@ -101,6 +101,8 @@ gboolean wocky_roster_fetch_roster_finish (WockyRoster *self,
 WockyContact * wocky_roster_get_contact (WockyRoster *self,
     const gchar *jid);
 
+GSList * wocky_roster_get_all_contacts (WockyRoster *self);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_ROSTER_H__*/
