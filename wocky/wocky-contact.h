@@ -23,11 +23,11 @@
 
 #include <glib-object.h>
 
+#include "wocky-types.h"
 #include "wocky-roster.h"
 
 G_BEGIN_DECLS
 
-typedef struct _WockyContact WockyContact;
 typedef struct _WockyContactClass WockyContactClass;
 
 struct _WockyContactClass {
