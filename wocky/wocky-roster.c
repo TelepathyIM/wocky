@@ -36,6 +36,7 @@
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-stanza.h"
 #include "wocky-utils.h"
+#include "wocky-signals-marshal.h"
 
 #define DEBUG_FLAG DEBUG_ROSTER
 #include "wocky-debug.h"
@@ -53,12 +54,11 @@ enum
 /* signal enum */
 enum
 {
+  ADDED,
   LAST_SIGNAL,
 };
 
-/*
 static guint signals[LAST_SIGNAL] = {0};
-*/
 
 /* private structure */
 typedef struct _WockyRosterPrivate WockyRosterPrivate;
@@ -264,6 +264,7 @@ roster_update (WockyRoster *self,
               NULL);
 
           g_hash_table_insert (priv->items, g_strdup (jid), contact);
+          g_signal_emit (self, signals[ADDED], 0, contact);
         }
 
       g_strfreev (groups);
@@ -383,6 +384,12 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
     G_PARAM_READWRITE |
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_PORTER, spec);
+
+  signals[ADDED] = g_signal_new ("added",
+      G_OBJECT_CLASS_TYPE (wocky_roster_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT,
+      G_TYPE_NONE, 1, G_TYPE_OBJECT);
 }
 
 WockyRoster *
