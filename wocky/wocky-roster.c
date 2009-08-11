@@ -188,8 +188,9 @@ roster_update (WockyRoster *self,
       WockyContact *contact = NULL;
       const gchar *subscription;
       WockyRosterSubscriptionFlags subscription_type;
-      WockyXmppNode *group_node;
+      GPtrArray *groups_arr;
       GStrv groups = { NULL };
+      GSList *l;
 
       if (wocky_strdiff (n->name, "item"))
         {
@@ -223,31 +224,24 @@ roster_update (WockyRoster *self,
       else
         subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE;
 
-      group_node = wocky_xmpp_node_get_child (n, "group");
+      groups_arr = g_ptr_array_new ();
 
-      if (group_node != NULL)
+      /* Look for "group" nodes */
+      for (l = n->children; l != NULL; l = g_slist_next (l))
         {
-          GSList *l;
-          guint len;
-          GPtrArray *groups_arr;
+          WockyXmppNode *node = (WockyXmppNode *) l->data;
 
-          len = g_slist_length (group_node->children) + 1;
+          if (wocky_strdiff (node->name, "group"))
+            continue;
 
-          groups_arr = g_ptr_array_sized_new (len + 1);
-
-          for (l = group_node->children; l != NULL; l = g_slist_next (l))
-            {
-              g_ptr_array_add (groups_arr, g_strdup (
-                  ((WockyXmppNode *) l->data)->content));
-            }
-
-          /* Add trailing NULL */
-          g_ptr_array_add (groups_arr, NULL);
-          groups = (GStrv) g_ptr_array_free (groups_arr, FALSE);
+          g_ptr_array_add (groups_arr, g_strdup (node->content));
         }
 
-      contact = g_hash_table_lookup (priv->items, jid);
+      /* Add trailing NULL */
+      g_ptr_array_add (groups_arr, NULL);
+      groups = (GStrv) g_ptr_array_free (groups_arr, FALSE);
 
+      contact = g_hash_table_lookup (priv->items, jid);
       if (contact != NULL)
         {
           /* Contact already exists; update. */
