@@ -280,6 +280,7 @@ roster_iq_handler_set_cb (WockyPorter *porter,
   WockyRoster *self = WOCKY_ROSTER (user_data);
   const gchar *from;
   GError *error = NULL;
+  WockyXmppStanza *reply;
 
   from = wocky_xmpp_node_get_attribute (stanza->node, "from");
 
@@ -295,10 +296,16 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       DEBUG ("Failed to update roster: %s",
           error ? error->message : "no message");
       g_error_free (error);
-      return TRUE;
+      reply = wocky_xmpp_stanza_build_iq_error (stanza, WOCKY_STANZA_END);
+    }
+  else
+    {
+      /* ack */
+      reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
     }
 
-  /* TODO: now ack roster */
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
 
   return TRUE;
 }
