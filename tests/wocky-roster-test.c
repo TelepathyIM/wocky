@@ -133,6 +133,20 @@ test_fetch_roster_send_iq (void)
 
 /* Test if the Roster object is properly populated when receiving its fetch
  * reply */
+
+static WockyContact *
+create_romeo (void)
+{
+  const gchar *groups[] = { "Friends", NULL };
+
+  return g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      "groups", groups,
+      NULL);
+}
+
 static void
 fetch_roster_reply_roster_cb (GObject *source_object,
     GAsyncResult *res,
@@ -141,20 +155,14 @@ fetch_roster_reply_roster_cb (GObject *source_object,
   test_data_t *test = (test_data_t *) user_data;
   WockyContact *contact;
   WockyRoster *roster = WOCKY_ROSTER (source_object);
-  const gchar * const *groups;
+  WockyContact *romeo;
 
   g_return_if_fail (wocky_roster_fetch_roster_finish (roster, res, NULL));
 
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
-  g_assert (contact != NULL);
-  g_assert (!wocky_strdiff (wocky_contact_get_jid (contact),
-        "romeo@example.net"));
-  g_assert (!wocky_strdiff (wocky_contact_get_name (contact), "Romeo"));
-  g_assert (wocky_contact_get_subscription (contact) ==
-      WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH);
-  groups = wocky_contact_get_groups (contact);
-  g_assert (!strcmp (groups[0], "Friends"));
-  g_assert (groups[1] == NULL);
+  romeo = create_romeo ();
+  g_assert (wocky_contact_equal (contact, romeo));
+  g_object_unref (romeo);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
