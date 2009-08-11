@@ -34,7 +34,7 @@ create_stanza (void)
 
   html = wocky_xmpp_node_get_child (stanza->node, "html");
   head = wocky_xmpp_node_add_child (html, "head");
-  wocky_xmpp_node_set_attribute_ns (head, "rev", "0xbad1dea", "id", DUMMY_NS);
+  wocky_xmpp_node_set_attribute_ns (head, "rev", "0xbad1dea", DUMMY_NS);
 
   return stanza;
 }

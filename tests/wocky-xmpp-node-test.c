@@ -290,7 +290,7 @@ test_set_attribute_ns (void)
   g_assert (wocky_xmpp_node_equal (na, nb));
 
   /* *********************************************************************** */
-  wocky_xmpp_node_set_attribute_ns (na, "one", "1", "a", DUMMY_NS_A);
+  wocky_xmpp_node_set_attribute_ns (na, "one", "1", DUMMY_NS_A);
   ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
   cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
   cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
@@ -305,7 +305,7 @@ test_set_attribute_ns (void)
 
   /* *********************************************************************** */
   /* set the attribute in the second node to make them equal again           */
-  wocky_xmpp_node_set_attribute_ns (nb, "one", "1", "b", DUMMY_NS_A);
+  wocky_xmpp_node_set_attribute_ns (nb, "one", "1", DUMMY_NS_A);
   ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
   cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
   cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
@@ -319,7 +319,7 @@ test_set_attribute_ns (void)
   g_assert (!strcmp (ca, "1"));
   g_assert (!strcmp (ca, cb));
 
-  wocky_xmpp_node_set_attribute_ns (nb, "one", "1", "a", DUMMY_NS_A);
+  wocky_xmpp_node_set_attribute_ns (nb, "one", "1", DUMMY_NS_A);
   cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
 
   g_assert (wocky_xmpp_node_equal (na, nb));
@@ -328,7 +328,7 @@ test_set_attribute_ns (void)
 
   /* *********************************************************************** */
   /* change the namespaced atttribute                                        */
-  wocky_xmpp_node_set_attribute_ns (na, "one", "2", "a", DUMMY_NS_A);
+  wocky_xmpp_node_set_attribute_ns (na, "one", "2", DUMMY_NS_A);
   ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
   cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
   cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
@@ -344,7 +344,7 @@ test_set_attribute_ns (void)
 
   /* *********************************************************************** */
   /* add another attribute in a different namespace                          */
-  wocky_xmpp_node_set_attribute_ns (na, "one", "3", "b", DUMMY_NS_B);
+  wocky_xmpp_node_set_attribute_ns (na, "one", "3", DUMMY_NS_B);
   ca = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_A);
   cb = wocky_xmpp_node_get_attribute_ns (nb, "one", DUMMY_NS_A);
   cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
@@ -361,10 +361,16 @@ test_set_attribute_ns (void)
 
   /* *********************************************************************** */
   /* swap out the prefix for another one                                     */
-  wocky_xmpp_node_set_attribute_ns (na, "one", "4", "c", DUMMY_NS_B);
+  wocky_xmpp_node_attribute_ns_set_prefix (g_quark_from_string (DUMMY_NS_B), 
+      "moose");
+
+  wocky_xmpp_node_set_attribute_ns (na, "one", "4", DUMMY_NS_B);
   cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
   g_assert (cx != NULL);
   g_assert (!strcmp (cx, "4"));
+
+  g_object_unref (sa);
+  g_object_unref (sb);
 }
 
 int

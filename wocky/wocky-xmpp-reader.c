@@ -473,11 +473,19 @@ _start_element_ns (void *user_data, const xmlChar *localname,
         }
       else
         {
+          /* preserve the prefix, if any was received */
+          if (attributes[i+1] != NULL)
+            {
+              const gchar *urn = (gchar *) attributes[i+2];
+              const gchar *pre = (gchar *) attributes[i+1];
+              GQuark ns = g_quark_from_string (urn);
+              wocky_xmpp_node_attribute_ns_set_prefix (ns, pre);
+            }
+
           wocky_xmpp_node_set_attribute_n_ns (priv->node,
               (gchar *) attributes[i],                      /* key    */
               (gchar *) attributes[i+3],                    /* value  */
               (gsize)(attributes[i+4] - attributes[i+3]),   /* length */
-              (gchar *) attributes[i+1],                    /* prefix */
               (gchar *) attributes[i+2]);                   /* NS URI */
         }
      }

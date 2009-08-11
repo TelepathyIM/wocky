@@ -873,7 +873,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
   /* google JID domain discovery - client sets a namespaced attribute */
   wocky_xmpp_node_set_attribute_ns (stanza->node,
-      "client-uses-full-bind-result", "true", "ga", WOCKY_GOOGLE_NS_AUTH);
+      "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
   switch (mech) {
     case WOCKY_SASL_AUTH_PLAIN:
