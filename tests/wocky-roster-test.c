@@ -9,6 +9,7 @@
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-contact.h>
+#include <wocky/wocky-namespaces.h>
 
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
@@ -253,13 +254,10 @@ fetch_roster_reply_cb (WockyPorter *porter,
   return TRUE;
 }
 
-static void
-test_fetch_roster_reply (void)
+static WockyRoster *
+create_initial_roster (test_data_t *test)
 {
   WockyRoster *roster;
-  test_data_t *test = setup_test ();
-
-  test_open_both_connections (test);
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
@@ -275,6 +273,116 @@ test_fetch_roster_reply (void)
       fetch_roster_reply_roster_cb, test);
 
   test->outstanding++;
+  test_wait_pending (test);
+
+  return roster;
+}
+
+static void
+test_fetch_roster_reply (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
+/* Test if roster is properly upgraded when a contact is added to it */
+static WockyContact *
+create_nurse (void)
+{
+  const gchar *groups[] = { NULL };
+
+  return g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "nurse@example.net",
+      "name", "Nurse",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE,
+      "groups", groups,
+      NULL);
+}
+
+static void
+roster_added_cb (WockyRoster *roster,
+    WockyContact *contact,
+    test_data_t *test)
+{
+  WockyContact *nurse;
+  GSList *contacts;
+
+  /* Is that the right contact? */
+  nurse = create_nurse ();
+  g_assert (wocky_contact_equal (contact, nurse));
+
+  /* Check if the contact has been added to the roster */
+  g_assert (wocky_roster_get_contact (roster, "nurse@example.net") == contact);
+  contacts = wocky_roster_get_all_contacts (roster);
+  g_assert (g_slist_find_custom (contacts, nurse, (GCompareFunc) find_contact));
+
+  g_object_unref (nurse);
+  g_slist_free (contacts);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+roster_update_reply_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, NULL);
+  g_assert (reply != NULL);
+
+  wocky_xmpp_stanza_get_type_info (reply, &type, &sub_type);
+  g_assert (type == WOCKY_STANZA_TYPE_IQ);
+  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_RESULT);
+
+  g_object_unref (reply);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_roster_upgrade_add (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  g_signal_connect (roster, "added", G_CALLBACK (roster_added_cb), test);
+
+  /* server sends a roster update */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+    WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE, "item",
+        WOCKY_NODE_ATTRIBUTE, "jid", "nurse@example.net",
+        WOCKY_NODE_ATTRIBUTE, "name", "Nurse",
+        WOCKY_NODE_ATTRIBUTE, "subscription", "none",
+      WOCKY_NODE_END,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
+      roster_update_reply_cb, test);
+  g_object_unref (iq);
+
+  test->outstanding += 2;
   test_wait_pending (test);
 
   test_close_both_porters (test);
@@ -293,6 +401,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/fetch-roster-send-iq",
       test_fetch_roster_send_iq);
   g_test_add_func ("/xmpp-roster/fetch-roster-reply", test_fetch_roster_reply);
+  g_test_add_func ("/xmpp-roster/roster-upgrade-add", test_roster_upgrade_add);
 
   result = g_test_run ();
   test_deinit ();
