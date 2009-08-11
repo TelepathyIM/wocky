@@ -316,10 +316,12 @@ wocky_contact_set_name (WockyContact *contact,
 
   priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
-  if (priv->name != NULL)
-    g_free (priv->name);
+  if (!wocky_strdiff (priv->name, name))
+    return;
 
+  g_free (priv->name);
   priv->name = g_strdup (name);
+  g_object_notify (G_OBJECT (contact), "name");
 }
 
 /**
@@ -359,7 +361,11 @@ wocky_contact_set_subscription (WockyContact *contact,
 
   priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
+  if (priv->subscription == subscription)
+    return;
+
   priv->subscription = subscription;
+  g_object_notify (G_OBJECT (contact), "subscription");
 }
 
 /**
@@ -438,17 +444,15 @@ wocky_contact_set_groups (WockyContact *contact,
 
   priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
+  if (groups_equal ((const gchar * const *) groups,
+        (const gchar * const *) priv->groups))
+    return;
+
   if (priv->groups != NULL)
     g_strfreev (priv->groups);
 
   priv->groups = g_strdupv (groups);
-}
-
-static gint
-cmp_gchar (gchar *a,
-    gchar *b)
-{
-  return *a - *b;
+  g_object_notify (G_OBJECT (contact), "groups");
 }
 
 gboolean
