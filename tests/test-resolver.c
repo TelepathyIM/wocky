@@ -143,7 +143,8 @@ lookup_service_async (GResolver *resolver,
       res = g_simple_async_result_new_from_error (source, cb, data, error);
 
   g_simple_async_result_set_op_res_gpointer (res, addr, NULL);
-  g_simple_async_result_complete_in_idle (res);
+  g_simple_async_result_complete (res);
+  g_object_unref (res);
 }
 
 static GList *
