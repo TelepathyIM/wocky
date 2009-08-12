@@ -353,36 +353,65 @@ roster_update_reply_cb (GObject *source,
 }
 
 static void
+send_roster_update (test_data_t *test,
+    const gchar *jid,
+    const gchar *name,
+    const gchar *subscription,
+    const gchar **groups)
+{
+  WockyXmppStanza *iq;
+  WockyXmppNode *item;
+  guint i;
+
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+    WOCKY_NODE, "query",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE, "item",
+        WOCKY_NODE_ASSIGN_TO, &item,
+      WOCKY_NODE_END,
+    WOCKY_NODE_END,
+    WOCKY_STANZA_END);
+
+  if (jid != NULL)
+    wocky_xmpp_node_set_attribute (item, "jid", jid);
+
+  if (name != NULL)
+    wocky_xmpp_node_set_attribute (item, "name", name);
+
+  if (subscription != NULL)
+    wocky_xmpp_node_set_attribute (item, "subscription", subscription);
+
+  for (i = 0; groups[i] != NULL; i++)
+    {
+      WockyXmppNode *node;
+
+      node = wocky_xmpp_node_add_child (item, "group");
+      wocky_xmpp_node_set_content (node, groups[i]);
+    }
+
+  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
+      roster_update_reply_cb, test);
+  g_object_unref (iq);
+
+  test->outstanding++;
+}
+
+static void
 test_roster_upgrade_add (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  const gchar *no_group[] = { NULL };
 
   test_open_both_connections (test);
 
   roster = create_initial_roster (test);
 
   g_signal_connect (roster, "added", G_CALLBACK (roster_added_cb), test);
+  test->outstanding++;
 
-  /* server sends a roster update */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-    WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-      WOCKY_NODE, "item",
-        WOCKY_NODE_ATTRIBUTE, "jid", "nurse@example.net",
-        WOCKY_NODE_ATTRIBUTE, "name", "Nurse",
-        WOCKY_NODE_ATTRIBUTE, "subscription", "none",
-      WOCKY_NODE_END,
-    WOCKY_NODE_END,
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
-      roster_update_reply_cb, test);
-  g_object_unref (iq);
-
-  test->outstanding += 2;
+  send_roster_update (test, "nurse@example.net", "Nurse", "none", no_group);
   test_wait_pending (test);
 
   test_close_both_porters (test);
@@ -420,31 +449,16 @@ test_roster_upgrade_remove (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  const gchar *no_group[] = { NULL };
 
   test_open_both_connections (test);
 
   roster = create_initial_roster (test);
 
   g_signal_connect (roster, "removed", G_CALLBACK (roster_removed_cb), test);
+  test->outstanding++;
 
-  /* server sends a roster update */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-    WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-      WOCKY_NODE, "item",
-        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
-        WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
-      WOCKY_NODE_END,
-    WOCKY_NODE_END,
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
-      roster_update_reply_cb, test);
-  g_object_unref (iq);
-
-  test->outstanding += 2;
+  send_roster_update (test, "romeo@example.net", NULL, "remove", no_group);
   test_wait_pending (test);
 
   test_close_both_porters (test);
@@ -467,9 +481,9 @@ test_roster_upgrade_change (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
   GSList *contacts, *l;
   WockyContact *romeo, *contact;
+  const gchar *groups_init[] = { "Friends", NULL };
   const gchar *groups[] = { "Badger", NULL };
 
   test_open_both_connections (test);
@@ -489,26 +503,9 @@ test_roster_upgrade_change (void)
   g_slist_free (contacts);
 
   /* change name */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-    WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-      WOCKY_NODE, "item",
-        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
-        WOCKY_NODE_ATTRIBUTE, "name", "Romeooo",
-        WOCKY_NODE_ATTRIBUTE, "subscription", "both",
-        WOCKY_NODE, "group",
-          WOCKY_NODE_TEXT, "Friends",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-    WOCKY_NODE_END,
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
-      roster_update_reply_cb, test);
-  g_object_unref (iq);
-
-  test->outstanding += 2;
+  test->outstanding++;
+  send_roster_update (test, "romeo@example.net", "Romeooo",  "both",
+      groups_init);
   test_wait_pending (test);
 
   /* Name has been changed */
@@ -516,26 +513,9 @@ test_roster_upgrade_change (void)
   g_assert (wocky_contact_equal (contact, romeo));
 
   /* change subscription */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-    WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-      WOCKY_NODE, "item",
-        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
-        WOCKY_NODE_ATTRIBUTE, "name", "Romeooo",
-        WOCKY_NODE_ATTRIBUTE, "subscription", "to",
-        WOCKY_NODE, "group",
-          WOCKY_NODE_TEXT, "Friends",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-    WOCKY_NODE_END,
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
-      roster_update_reply_cb, test);
-  g_object_unref (iq);
-
-  test->outstanding += 2;
+  test->outstanding++;
+  send_roster_update (test, "romeo@example.net", "Romeooo",  "to",
+      groups_init);
   test_wait_pending (test);
 
   /* Subscription has been changed */
@@ -543,26 +523,9 @@ test_roster_upgrade_change (void)
   g_assert (wocky_contact_equal (contact, romeo));
 
   /* change groups */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-    WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-      WOCKY_NODE, "item",
-        WOCKY_NODE_ATTRIBUTE, "jid", "romeo@example.net",
-        WOCKY_NODE_ATTRIBUTE, "name", "Romeooo",
-        WOCKY_NODE_ATTRIBUTE, "subscription", "to",
-        WOCKY_NODE, "group",
-          WOCKY_NODE_TEXT, "Badger",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-    WOCKY_NODE_END,
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_out, iq, NULL,
-      roster_update_reply_cb, test);
-  g_object_unref (iq);
-
-  test->outstanding += 2;
+  test->outstanding++;
+  send_roster_update (test, "romeo@example.net", "Romeooo",  "to",
+      groups);
   test_wait_pending (test);
 
   /* Groups have been changed */
