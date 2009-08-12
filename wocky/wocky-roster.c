@@ -553,3 +553,126 @@ wocky_roster_get_all_contacts (WockyRoster *self)
 
   return result;
 }
+
+static void
+roster_add_contact_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GError *error = NULL;
+  WockyXmppStanza *reply;
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res,
+      &error);
+  if (reply == NULL)
+    goto out;
+
+  error = wocky_xmpp_stanza_to_gerror (reply);
+
+  /* According to the XMPP RFC, the server has to send a roster upgrade to
+   * each client (including the one which requested the change) before
+   * replying to the 'set' stanza. We upgraded our list of contacts when this
+   * notification has been received.
+   * FIXME: Should we check if this upgrade has actually be received and raise
+   * en error if it has not? */
+
+out:
+  if (error != NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+    }
+
+  if (reply != NULL)
+    g_object_unref (reply);
+
+  g_simple_async_result_complete (result);
+  g_object_unref (result);
+}
+
+void
+wocky_roster_add_contact_async (WockyRoster *self,
+    WockyContact *contact,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  const gchar *jid, *name;
+  WockyXmppStanza *iq;
+  WockyXmppNode *item = NULL;
+  const gchar * const *groups;
+  guint i;
+  GSimpleAsyncResult *result;
+
+  g_return_if_fail (contact != NULL);
+
+  jid = wocky_contact_get_jid (contact);
+  if (jid == NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NO_JID,
+          "Contact doesn't have a jid");
+      return;
+    }
+
+  if (g_hash_table_lookup (priv->items, jid) != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_ALREADY_PRESENT,
+          "Contact %s is already present in the roster", jid);
+      return;
+    }
+
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+        WOCKY_NODE, "query",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+          WOCKY_NODE, "item",
+            WOCKY_NODE_ASSIGN_TO, &item,
+            WOCKY_NODE_ATTRIBUTE, "jid", jid,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  g_assert (item != NULL);
+
+  name = wocky_contact_get_name (contact);
+  if (name != NULL)
+    {
+      wocky_xmpp_node_set_attribute (item, "name", name);
+    }
+
+  groups = wocky_contact_get_groups (contact);
+  for (i = 0; groups[i] != NULL; i++)
+    {
+      WockyXmppNode *group;
+
+      group = wocky_xmpp_node_add_child (item, "group");
+      wocky_xmpp_node_set_content (group, groups[i]);
+    }
+
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_add_contact_finish);
+
+  wocky_porter_send_iq_async (priv->porter,
+      iq, cancellable, roster_add_contact_cb, result);
+
+  g_object_unref (iq);
+}
+
+gboolean
+wocky_roster_add_contact_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+          error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+          G_OBJECT (self), wocky_roster_add_contact_finish), FALSE);
+
+  return TRUE;
+}
