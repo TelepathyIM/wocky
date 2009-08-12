@@ -189,7 +189,7 @@ ns_prefix_new (const gchar *urn,
     GQuark ns,
     gchar *prefix)
 {
-  NSPrefix *nsp = g_new0 (NSPrefix, 1);
+  NSPrefix *nsp = g_slice_new0 (NSPrefix);
   nsp->ns_urn = urn;
   nsp->prefix = prefix;
   nsp->ns = ns;
