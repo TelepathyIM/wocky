@@ -2334,6 +2334,8 @@ wocky_connector_connect_async (WockyConnector *self,
 
   if (priv->reg_op == XEP77_CANCEL)
     rc = wocky_connector_unregister_finish;
+  else if (priv->reg_op == XEP77_SIGNUP)
+    rc = wocky_connector_register_finish;
 
   priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data, rc);
 
