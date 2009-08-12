@@ -248,6 +248,27 @@ test_unpack_error (void)
         }
 }
 
+static gboolean
+_check_attr_prefix (const gchar *urn,
+    const gchar *prefix,
+    const gchar *attr,
+    const gchar *xml)
+{
+  gboolean rval = FALSE;
+  gchar *ns_str_a = g_strdup_printf (" xmlns:%s='%s'", prefix, urn);
+  gchar *ns_str_b = g_strdup_printf (" xmlns:%s=\"%s\"", prefix, urn);
+  gchar *attr_str = g_strdup_printf (" %s:%s=", prefix, attr);
+
+  rval = ((strstr (xml, ns_str_a) != NULL) ||
+          (strstr (xml, ns_str_a) != NULL)) && (strstr (xml, attr_str) != NULL);
+
+  g_free (ns_str_a);
+  g_free (ns_str_b);
+  g_free (attr_str);
+
+  return rval;
+}
+
 static void
 test_append_content_n (void)
 {
@@ -279,6 +300,11 @@ test_set_attribute_ns (void)
   const gchar *cb;
   const gchar *cx;
   const gchar *cy;
+  gchar *xml_a;
+  gchar *xml_b;
+  gchar *pa;
+  gchar *pb;
+  GQuark qa;
 
   sa = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
@@ -361,9 +387,32 @@ test_set_attribute_ns (void)
 
   /* *********************************************************************** */
   /* swap out the prefix for another one                                     */
-  wocky_xmpp_node_attribute_ns_set_prefix (g_quark_from_string (DUMMY_NS_B), 
-      "moose");
+  /* then check to see the right prefixes were assigned                      */
+  qa = g_quark_from_string (DUMMY_NS_B);
 
+  xml_a = wocky_xmpp_node_to_string (na);
+  pa = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (DUMMY_NS_B, 0));
+  pb = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (NULL, qa));
+
+  g_assert (!strcmp (pa, pb));
+  g_free (pb);
+
+  /* change the prefix and re-write the attribute */
+  wocky_xmpp_node_attribute_ns_set_prefix (qa, "moose");
+  wocky_xmpp_node_set_attribute_ns (na, "one", "1", DUMMY_NS_B);
+  xml_b = wocky_xmpp_node_to_string (na);
+  pb = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (NULL, qa));
+
+  g_assert (strcmp (pa, pb));
+  g_assert (_check_attr_prefix (DUMMY_NS_B, pa, "one", xml_a));
+  g_assert (_check_attr_prefix (DUMMY_NS_B, pb, "one", xml_b));
+
+  g_free (pa);
+  g_free (pb);
+  g_free (xml_a);
+  g_free (xml_b);
+
+  /* *********************************************************************** */
   wocky_xmpp_node_set_attribute_ns (na, "one", "4", DUMMY_NS_B);
   cx = wocky_xmpp_node_get_attribute_ns (na, "one", DUMMY_NS_B);
   g_assert (cx != NULL);
