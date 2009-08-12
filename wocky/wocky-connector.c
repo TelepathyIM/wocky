@@ -83,6 +83,7 @@
 #include "wocky-sasl-auth.h"
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-connection.h"
+#include "wocky-xmpp-error.h"
 #include "wocky-connector.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"

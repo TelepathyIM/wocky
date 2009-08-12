@@ -529,24 +529,6 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
   return reply;
 }
 
-/**
- * wocky_xmpp_stream_error_quark
- *
- * Get the error quark used for stream errors
- *
- * Returns: the quark for stream errors.
- */
-GQuark
-wocky_xmpp_stream_error_quark (void)
-{
-  static GQuark quark = 0;
-
-  if (quark == 0)
-    quark = g_quark_from_static_string ("wocky-xmpp-stream-error");
-
-  return quark;
-}
-
 typedef struct
 {
   const gchar *name;
