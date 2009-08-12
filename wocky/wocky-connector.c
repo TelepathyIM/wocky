@@ -1481,9 +1481,9 @@ xep77_cancel_send (WockyConnector *self)
   iid = wocky_xmpp_connection_new_id (priv->conn);
   iqs = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET,
-      /* It is debatable (XEP0077 section 3.2) whether we should  *
-       * include our JID here. The examples include it, the text  *
-       * indicates that we SHOULD NOT, at least in some use cases */
+      /* FIXME: It is debatable (XEP0077 section 3.2) whether we should *
+       * include our JID here. The examples include it, the text states *
+       * that we SHOULD NOT, at least in some use cases                 */
       NULL /* priv->identity */,
       priv->domain,
       WOCKY_NODE_ATTRIBUTE, "id", iid,
