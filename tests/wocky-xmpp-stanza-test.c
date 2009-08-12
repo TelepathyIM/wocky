@@ -165,12 +165,12 @@ check_error (WockyXmppStanza *stanza,
 }
 
 static void
-test_to_gerror (void)
+test_stream_error_to_gerror (void)
 {
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
-  /* Valid error without message */
+  /* Valid stream error without message */
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAM,
@@ -183,7 +183,7 @@ test_to_gerror (void)
       WOCKY_XMPP_STREAM_ERROR_CONFLICT, "a stream error occurred");
   g_object_unref (stanza);
 
-  /* Valid error with message */
+  /* Valid stream error with message */
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAM,
@@ -199,7 +199,7 @@ test_to_gerror (void)
      WOCKY_XMPP_STREAM_ERROR_SYSTEM_SHUTDOWN, "bye bye");
   g_object_unref (stanza);
 
-  /* Unknown error */
+  /* Unknown stream error */
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAM,
@@ -231,7 +231,8 @@ main (int argc, char **argv)
   test_init (argc, argv);
   g_test_add_func ("/xmpp-stanza/build-iq-result", test_build_iq_result);
   g_test_add_func ("/xmpp-stanza/build-iq-error", test_build_iq_error);
-  g_test_add_func ("/xmpp-stanza/to-gerror", test_to_gerror);
+  g_test_add_func ("/xmpp-stanza/stream-error-to-gerror",
+      test_stream_error_to_gerror);
 
   result =  g_test_run ();
   test_deinit ();
