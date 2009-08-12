@@ -218,6 +218,10 @@ enum
   PROP_EMAIL,
 };
 
+/* this tracks which XEP 0077 operation (register account, cancel account)  *
+ * we are attempting (if any). There is at leats one other XEP77 operation, *
+ * password change - but we don't deal with that here as it's not really a  *
+ * connector operation:                                                     */
 typedef enum
 {
   XEP77_NONE,
@@ -272,6 +276,7 @@ struct _WockyConnectorPrivate
   gboolean authed;
   gboolean encrypted;
   gboolean connected;
+  /* register/cancel account, or normal login */
   WockyConnectorXEP77Op reg_op;
   GSimpleAsyncResult *result;
   WockySaslAuthMechanism mech;
