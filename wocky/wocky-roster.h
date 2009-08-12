@@ -77,7 +77,7 @@ typedef enum
  * The different errors that can occur while reading a stream
  */
 typedef enum {
-  WOCKY_ROSTER_INVALID_STANZA,
+  WOCKY_ROSTER_ERROR_INVALID_STANZA,
 } WockyRosterError;
 
 GQuark wocky_roster_error_quark (void);
