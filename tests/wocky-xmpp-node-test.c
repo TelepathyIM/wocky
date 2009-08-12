@@ -290,6 +290,7 @@ test_append_content_n (void)
   g_object_unref (a);
 }
 
+static void
 test_set_attribute_ns (void)
 {
   WockyXmppStanza *sa;
