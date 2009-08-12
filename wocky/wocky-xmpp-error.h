@@ -78,7 +78,8 @@ GQuark wocky_xmpp_error_quark (void);
 
 WockyXmppError wocky_xmpp_error_from_node (WockyXmppNode *error_node);
 WockyXmppNode *wocky_xmpp_error_to_node (WockyXmppError error,
-    WockyXmppNode *parent_node, const gchar *errmsg);
+    WockyXmppNode *parent_node,
+    const gchar *errmsg);
 const gchar *wocky_xmpp_error_string (WockyXmppError error);
 const gchar *wocky_xmpp_error_description (WockyXmppError error);
 

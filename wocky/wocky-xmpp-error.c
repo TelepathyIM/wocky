@@ -374,8 +374,8 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
  */
 WockyXmppNode *
 wocky_xmpp_error_to_node (WockyXmppError error,
-                           WockyXmppNode *parent_node,
-                           const gchar *errmsg)
+    WockyXmppNode *parent_node,
+    const gchar *errmsg)
 {
   const XmppErrorSpec *spec, *extra;
   WockyXmppNode *error_node, *node;
