@@ -583,17 +583,12 @@ static const StreamErrorName stream_errors[] =
     { NULL, WOCKY_XMPP_STREAM_ERROR_UNKNOWN },
 };
 
-GError *
-wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
+static GError *
+stream_error_to_gerror (WockyXmppStanza *stanza)
 {
   WockyXmppStreamError code = WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
   WockyXmppNode *text;
   guint i;
-  WockyStanzaType type;
-
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
-  if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
-    return NULL;
 
   for (i = 0; stream_errors[i].name != NULL; i++)
     {
@@ -609,4 +604,17 @@ wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
 
   return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code,
       (text != NULL) ? text->content: "a stream error occurred");
+}
+
+GError *
+wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
+{
+  WockyStanzaType type;
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+
+  if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
+    return stream_error_to_gerror (stanza);
+
+  return NULL;
 }
