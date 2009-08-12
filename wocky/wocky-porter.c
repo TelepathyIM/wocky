@@ -1312,12 +1312,12 @@ wocky_porter_force_close_async (WockyPorter *self,
   if (priv->force_close_result != NULL)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, G_IO_ERROR_PENDING, G_IO_ERROR_PENDING,
+          user_data, G_IO_ERROR, G_IO_ERROR_PENDING,
           "Another force close operation is pending");
       return;
     }
 
-  if (priv->local_closed)
+  if (priv->receive_cancellable == NULL && priv->local_closed)
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_PORTER_ERROR,
@@ -1338,16 +1338,20 @@ wocky_porter_force_close_async (WockyPorter *self,
   /* Ensure to keep us alive during the closing */
   g_object_ref (self);
 
-  g_signal_emit (self, signals[CLOSING], 0);
-
   if (priv->close_result != NULL)
     {
       /* Finish pending close operation */
       g_simple_async_result_set_error (priv->close_result, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_CLOSING, "Force closing of the Porter");
+          WOCKY_PORTER_ERROR_FORCE_CLOSING, "Force closing of the Porter");
       g_simple_async_result_complete_in_idle (priv->close_result);
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
+    }
+  else
+    {
+      /* the "closing" signal has already been fired when _close_async has
+       * been called */
+      g_signal_emit (self, signals[CLOSING], 0);
     }
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
