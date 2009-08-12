@@ -5,6 +5,7 @@
 #include <glib.h>
 
 #include <wocky/wocky-xmpp-stanza.h>
+#include <wocky/wocky-xmpp-error.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 
@@ -223,6 +224,32 @@ test_stream_error_to_gerror (void)
   g_object_unref (stanza);
 }
 
+static void
+test_xmpp_error_to_gerror (void)
+{
+  WockyXmppError xmpp_error;
+
+  for (xmpp_error = 1; xmpp_error < NUM_XMPP_ERRORS; xmpp_error++)
+    {
+      WockyXmppStanza *stanza;
+      GError *error = NULL;
+
+      stanza = wocky_xmpp_stanza_build (
+          WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+          "from", "to",
+          WOCKY_STANZA_END);
+      wocky_xmpp_error_to_node (xmpp_error, stanza->node, NULL);
+
+      error = wocky_xmpp_stanza_to_gerror (stanza);
+      g_assert_error (error, WOCKY_XMPP_ERROR, (gint) xmpp_error);
+      g_assert (!wocky_strdiff (error->message,
+            wocky_xmpp_error_description (xmpp_error)));
+
+      g_object_unref (stanza);
+      g_error_free (error);
+    }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -233,6 +260,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-stanza/build-iq-error", test_build_iq_error);
   g_test_add_func ("/xmpp-stanza/stream-error-to-gerror",
       test_stream_error_to_gerror);
+  g_test_add_func ("/xmpp-stanza/xmpp-error-to-gerror",
+      test_xmpp_error_to_gerror);
 
   result =  g_test_run ();
   test_deinit ();
