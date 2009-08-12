@@ -32,6 +32,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-xmpp-stanza.h            \
   wocky-xmpp-writer.c            \
   wocky-xmpp-writer.h            \
+  wocky-xmpp-error.c             \
+  wocky-xmpp-error.h             \
   wocky-sasl-auth.c              \
   wocky-sasl-auth.h              \
   wocky-porter.c                 \
