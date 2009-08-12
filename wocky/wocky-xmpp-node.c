@@ -519,7 +519,6 @@ typedef struct
   gchar *indent;
 } _NodeToStringData;
 
-#include <stdio.h>
 static gboolean
 attribute_to_string (const gchar *key, const gchar *value,
     const gchar *prefix, const gchar *ns,
