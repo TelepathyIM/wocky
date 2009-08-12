@@ -81,6 +81,5 @@ WockyXmppNode *wocky_xmpp_error_to_node (WockyXmppError error,
     WockyXmppNode *parent_node, const gchar *errmsg);
 const gchar *wocky_xmpp_error_string (WockyXmppError error);
 const gchar *wocky_xmpp_error_description (WockyXmppError error);
-GError *wocky_message_get_xmpp_error (WockyXmppStanza *msg);
 
 #endif /* __WOCKY_XMPP_ERROR_H__ */

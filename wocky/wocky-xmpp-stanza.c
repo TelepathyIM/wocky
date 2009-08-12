@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "wocky-xmpp-stanza.h"
+#include "wocky-xmpp-error.h"
 #include "wocky-namespaces.h"
 #include "wocky-debug.h"
 
@@ -606,15 +607,36 @@ stream_error_to_gerror (WockyXmppStanza *stanza)
       (text != NULL) ? text->content: "a stream error occurred");
 }
 
+static GError *
+xmpp_error_to_gerror (WockyXmppStanza *stanza)
+{
+  WockyXmppNode *error_node;
+
+  error_node = wocky_xmpp_node_get_child (stanza->node, "error");
+  if (error_node != NULL)
+    {
+      WockyXmppError error = wocky_xmpp_error_from_node (error_node);
+
+      return g_error_new_literal (WOCKY_XMPP_ERROR, error,
+          wocky_xmpp_error_description (error));
+    }
+
+  return g_error_new_literal (WOCKY_XMPP_ERROR, XMPP_ERROR_UNDEFINED_CONDITION,
+      "Unknown or invalid XMPP error");
+}
+
 GError *
 wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
 {
   WockyStanzaType type;
+  WockyStanzaSubType sub_type;
 
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     return stream_error_to_gerror (stanza);
+  else if (sub_type == WOCKY_STANZA_SUB_TYPE_ERROR)
+    return xmpp_error_to_gerror (stanza);
 
   return NULL;
 }

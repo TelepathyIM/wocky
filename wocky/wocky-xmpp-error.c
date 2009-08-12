@@ -368,17 +368,6 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
   return XMPP_ERROR_UNDEFINED_CONDITION;
 }
 
-static GError *
-wocky_xmpp_error_to_g_error (WockyXmppError error)
-{
-  if (error >= NUM_XMPP_ERRORS)
-      return g_error_new (WOCKY_XMPP_ERROR, XMPP_ERROR_UNDEFINED_CONDITION,
-          "Unknown or invalid XMPP error");
-
-  return g_error_new_literal (WOCKY_XMPP_ERROR, error,
-      xmpp_errors[error].description);
-}
-
 /*
  * See RFC 3920: 4.7 Stream Errors, 9.3 Stanza Errors.
  */
@@ -449,33 +438,4 @@ wocky_xmpp_error_description (WockyXmppError error)
     return xmpp_errors[error].description;
   else
     return NULL;
-}
-
-GError *
-wocky_message_get_xmpp_error (WockyXmppStanza *msg)
-{
-  WockyStanzaSubType sub_type;
-  g_return_val_if_fail (msg != NULL, NULL);
-
-  wocky_xmpp_stanza_get_type_info (msg, NULL, &sub_type);
-
-  if (sub_type == WOCKY_STANZA_SUB_TYPE_ERROR)
-    {
-      WockyXmppNode *error_node = wocky_xmpp_node_get_child (msg->node,
-          "error");
-
-      if (error_node != NULL)
-        {
-          return wocky_xmpp_error_to_g_error
-              (wocky_xmpp_error_from_node (error_node));
-        }
-      else
-        {
-          return g_error_new (WOCKY_XMPP_ERROR,
-              XMPP_ERROR_UNDEFINED_CONDITION, "Unknown or invalid XMPP error");
-        }
-    }
-
-  /* no error */
-  return NULL;
 }
