@@ -529,60 +529,13 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
   return reply;
 }
 
-typedef struct
-{
-  const gchar *name;
-  WockyXmppStreamError error;
-} StreamErrorName;
-
-static const StreamErrorName stream_errors[] =
-{
-    { "bad-format", WOCKY_XMPP_STREAM_ERROR_BAD_FORMAT },
-    { "bad-namespace-prefix", WOCKY_XMPP_STREAM_ERROR_BAD_NAMESPACE_PREFIX },
-    { "conflict", WOCKY_XMPP_STREAM_ERROR_CONFLICT },
-    { "connection-timeout", WOCKY_XMPP_STREAM_ERROR_CONNECTION_TIMEOUT },
-    { "host-gone", WOCKY_XMPP_STREAM_ERROR_HOST_GONE },
-    { "host-unknown", WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
-    { "improper-addressing", WOCKY_XMPP_STREAM_ERROR_IMPROPER_ADDRESSING },
-    { "internal-server-error", WOCKY_XMPP_STREAM_ERROR_INTERNAL_SERVER_ERROR },
-    { "invalid-from", WOCKY_XMPP_STREAM_ERROR_INVALID_FROM },
-    { "invalid-id", WOCKY_XMPP_STREAM_ERROR_INVALID_ID },
-    { "invalid-namespace", WOCKY_XMPP_STREAM_ERROR_INVALID_NAMESPACE },
-    { "invalid-xml", WOCKY_XMPP_STREAM_ERROR_INVALID_XML },
-    { "not-authorized", WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED },
-    { "policy-violation", WOCKY_XMPP_STREAM_ERROR_POLICY_VIOLATION },
-    { "remote-connection-failed",
-      WOCKY_XMPP_STREAM_ERROR_REMOTE_CONNECTION_FAILED },
-    { "resource-constraint", WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
-    { "restricted-xml", WOCKY_XMPP_STREAM_ERROR_RESTRICTED_XML },
-    { "see-other-host", WOCKY_XMPP_STREAM_ERROR_SEE_OTHER_HOST },
-    { "system-shutdown", WOCKY_XMPP_STREAM_ERROR_SYSTEM_SHUTDOWN },
-    { "undefined-condition", WOCKY_XMPP_STREAM_ERROR_UNDEFINED_CONDITION },
-    { "unsupported-encoding", WOCKY_XMPP_STREAM_ERROR_UNSUPPORTED_ENCODING },
-    { "unsupported-stanza-type",
-      WOCKY_XMPP_STREAM_ERROR_UNSUPPORTED_STANZA_TYPE },
-    { "unsupported-version", WOCKY_XMPP_STREAM_ERROR_UNSUPPORTED_VERSION },
-    { "xml-not-well-formed", WOCKY_XMPP_STREAM_ERROR_XML_NOT_WELL_FORMED },
-    { NULL, WOCKY_XMPP_STREAM_ERROR_UNKNOWN },
-};
-
 static GError *
 stream_error_to_gerror (WockyXmppStanza *stanza)
 {
-  WockyXmppStreamError code = WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+  WockyXmppStreamError code;
   WockyXmppNode *text;
-  guint i;
 
-  for (i = 0; stream_errors[i].name != NULL; i++)
-    {
-      if (wocky_xmpp_node_get_child_ns (stanza->node, stream_errors[i].name,
-            WOCKY_XMPP_NS_STREAMS) != NULL)
-        {
-          code = stream_errors[i].error;
-          break;
-        }
-    }
-
+  code = wocky_xmpp_stream_error_from_node (stanza->node);
   text = wocky_xmpp_node_get_child (stanza->node, "text");
 
   return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code,
