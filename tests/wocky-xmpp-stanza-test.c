@@ -229,7 +229,7 @@ test_xmpp_error_to_gerror (void)
 {
   WockyXmppError xmpp_error;
 
-  for (xmpp_error = 1; xmpp_error < NUM_XMPP_ERRORS; xmpp_error++)
+  for (xmpp_error = 1; xmpp_error < NUM_WOCKY_XMPP_ERRORS; xmpp_error++)
     {
       WockyXmppStanza *stanza;
       GError *error = NULL;

@@ -621,8 +621,8 @@ xmpp_error_to_gerror (WockyXmppStanza *stanza)
           wocky_xmpp_error_description (error));
     }
 
-  return g_error_new_literal (WOCKY_XMPP_ERROR, XMPP_ERROR_UNDEFINED_CONDITION,
-      "Unknown or invalid XMPP error");
+  return g_error_new_literal (WOCKY_XMPP_ERROR,
+      WOCKY_XMPP_ERROR_UNDEFINED_CONDITION, "Unknown or invalid XMPP error");
 }
 
 GError *

@@ -36,7 +36,7 @@ typedef struct {
     const guint16 legacy_errors[MAX_LEGACY_ERRORS];
 } XmppErrorSpec;
 
-static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
+static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
 {
     {
       "undefined-condition",
@@ -253,7 +253,7 @@ static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
       "out-of-order",
       "the request cannot occur at this point in the state machine",
       "cancel",
-      XMPP_ERROR_UNEXPECTED_REQUEST,
+      WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
       WOCKY_XMPP_NS_JINGLE_ERRORS,
       { 0, },
     },
@@ -263,7 +263,7 @@ static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
       "the 'sid' attribute specifies a session that is unknown to the "
       "recipient",
       "cancel",
-      XMPP_ERROR_BAD_REQUEST,
+      WOCKY_XMPP_ERROR_BAD_REQUEST,
       WOCKY_XMPP_NS_JINGLE_ERRORS,
       { 0, },
     },
@@ -273,7 +273,7 @@ static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
       "the recipient does not support any of the desired content transport "
       "methods",
       "cancel",
-      XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+      WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
       WOCKY_XMPP_NS_JINGLE_ERRORS,
       { 0, },
     },
@@ -283,7 +283,7 @@ static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
       "the recipient does not support any of the desired content description"
       "formats",
       "cancel",
-      XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+      WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
       WOCKY_XMPP_NS_JINGLE_ERRORS,
       { 0, },
     },
@@ -292,7 +292,7 @@ static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
       "no-valid-streams",
       "None of the available streams are acceptable.",
       "cancel",
-      XMPP_ERROR_BAD_REQUEST,
+      WOCKY_XMPP_ERROR_BAD_REQUEST,
       WOCKY_XMPP_NS_SI,
       { 400, 0 },
     },
@@ -301,7 +301,7 @@ static const XmppErrorSpec xmpp_errors[NUM_XMPP_ERRORS] =
       "bad-profile",
       "The profile is not understood or invalid.",
       "modify",
-      XMPP_ERROR_BAD_REQUEST,
+      WOCKY_XMPP_ERROR_BAD_REQUEST,
       WOCKY_XMPP_NS_SI,
       { 400, 0 },
     },
@@ -322,14 +322,15 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
   gint i, j;
   const gchar *error_code_str;
 
-  g_return_val_if_fail (error_node != NULL, XMPP_ERROR_UNDEFINED_CONDITION);
+  g_return_val_if_fail (error_node != NULL,
+      WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
 
   /* First, try to look it up the modern way */
   if (error_node->children)
     {
       /* we loop backwards because the most specific errors are the larger
        * numbers; the >= 0 test is OK because i is signed */
-      for (i = NUM_XMPP_ERRORS - 1; i >= 0; i--)
+      for (i = NUM_WOCKY_XMPP_ERRORS - 1; i >= 0; i--)
         {
           if (wocky_xmpp_node_get_child_ns (error_node, xmpp_errors[i].name,
                 xmpp_errors[i].namespace))
@@ -349,7 +350,7 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
 
       /* skip UNDEFINED_CONDITION, we want code 500 to be translated
        * to INTERNAL_SERVER_ERROR */
-      for (i = 1; i < NUM_XMPP_ERRORS; i++)
+      for (i = 1; i < NUM_WOCKY_XMPP_ERRORS; i++)
         {
           const XmppErrorSpec *spec = &xmpp_errors[i];
 
@@ -365,7 +366,7 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
         }
     }
 
-  return XMPP_ERROR_UNDEFINED_CONDITION;
+  return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
 }
 
 /*
@@ -380,8 +381,8 @@ wocky_xmpp_error_to_node (WockyXmppError error,
   WockyXmppNode *error_node, *node;
   gchar str[6];
 
-  g_return_val_if_fail (error != XMPP_ERROR_UNDEFINED_CONDITION &&
-      error < NUM_XMPP_ERRORS, NULL);
+  g_return_val_if_fail (error != WOCKY_XMPP_ERROR_UNDEFINED_CONDITION &&
+      error < NUM_WOCKY_XMPP_ERRORS, NULL);
 
   if (xmpp_errors[error].specialises)
     {
@@ -425,7 +426,7 @@ wocky_xmpp_error_to_node (WockyXmppError error,
 const gchar *
 wocky_xmpp_error_string (WockyXmppError error)
 {
-  if (error < NUM_XMPP_ERRORS)
+  if (error < NUM_WOCKY_XMPP_ERRORS)
     return xmpp_errors[error].name;
   else
     return NULL;
@@ -434,7 +435,7 @@ wocky_xmpp_error_string (WockyXmppError error)
 const gchar *
 wocky_xmpp_error_description (WockyXmppError error)
 {
-  if (error < NUM_XMPP_ERRORS)
+  if (error < NUM_WOCKY_XMPP_ERRORS)
     return xmpp_errors[error].description;
   else
     return NULL;
