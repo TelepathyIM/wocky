@@ -1627,6 +1627,8 @@ xep77_begin (WockyConnector *self)
   gchar *iid = NULL;
   gchar *jid = NULL;
 
+  DEBUG ("");
+
   if (!priv->encrypted && !priv->auth_insecure_ok)
     {
       abort_connect_code (self, WOCKY_CONNECTOR_ERROR_INSECURE,
@@ -1662,6 +1664,8 @@ xep77_begin_sent (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
+  DEBUG ("");
+
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
     {
       abort_connect_error (self, &error, "Failed to send register iq get");
@@ -1685,6 +1689,8 @@ xep77_begin_recv (GObject *source,
   WockyXmppNode *query = NULL;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
+
+  DEBUG ("");
 
   iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
 
@@ -1712,6 +1718,7 @@ xep77_begin_recv (GObject *source,
       int code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
+        DEBUG ("WOCKY_STANZA_SUB_TYPE_ERROR");
         err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
 
         if (err == NULL)
@@ -1727,6 +1734,7 @@ xep77_begin_recv (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
+        DEBUG ("WOCKY_STANZA_SUB_TYPE_RESULT");
         query = wocky_xmpp_node_get_child_ns (iq->node, "query",
             WOCKY_XEP77_NS_REGISTER);
 
@@ -1761,6 +1769,7 @@ xep77_begin_recv (GObject *source,
         break;
 
       default:
+        DEBUG ("WOCKY_STANZA_SUB_TYPE_*");
         abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
             "Register: Response Invalid");
         break;
@@ -1782,6 +1791,8 @@ xep77_signup_send (WockyConnector *self,
   gchar *jid = g_strdup_printf ("%s@%s", priv->user, priv->domain);
   gchar *iid = wocky_xmpp_connection_new_id (priv->conn);
   guint args = 0;
+
+  DEBUG ("");
 
   riq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET,
@@ -1846,6 +1857,8 @@ xep77_signup_sent (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
 
+  DEBUG ("");
+
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
     {
       abort_connect_error (self, &error, "Failed to send registration");
@@ -1868,6 +1881,8 @@ xep77_signup_recv (GObject *source,
   WockyXmppStanza *iq = NULL;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
+
+  DEBUG ("");
 
   iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
 
@@ -1895,6 +1910,7 @@ xep77_signup_recv (GObject *source,
       int code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
+        DEBUG ("WOCKY_STANZA_SUB_TYPE_ERROR");
         err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
 
         if (err == NULL)
@@ -1912,12 +1928,14 @@ xep77_signup_recv (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
+        DEBUG ("WOCKY_STANZA_SUB_TYPE_RESULT");
         /* successfully registered. woo hoo. proceed to auth stage */
         priv->reg_op = XEP77_NONE;
         request_auth (self, priv->features);
         break;
 
       default:
+        DEBUG ("WOCKY_STANZA_SUB_TYPE_*");
         abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED,
             "Register: Response Invalid");
         break;
