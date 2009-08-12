@@ -391,8 +391,8 @@ test_set_attribute_ns (void)
   qa = g_quark_from_string (DUMMY_NS_B);
 
   xml_a = wocky_xmpp_node_to_string (na);
-  pa = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (DUMMY_NS_B, 0));
-  pb = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (NULL, qa));
+  pa = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix_from_urn (DUMMY_NS_B));
+  pb = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix_from_quark (qa));
 
   g_assert (!strcmp (pa, pb));
   g_free (pb);
@@ -401,7 +401,7 @@ test_set_attribute_ns (void)
   wocky_xmpp_node_attribute_ns_set_prefix (qa, "moose");
   wocky_xmpp_node_set_attribute_ns (na, "one", "1", DUMMY_NS_B);
   xml_b = wocky_xmpp_node_to_string (na);
-  pb = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (NULL, qa));
+  pb = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix_from_quark (qa));
 
   g_assert (strcmp (pa, pb));
   g_assert (_check_attr_prefix (DUMMY_NS_B, pa, "one", xml_a));
