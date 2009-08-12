@@ -183,9 +183,24 @@ wocky_xmpp_node_set_attribute_ns (WockyXmppNode *node, const gchar *key,
       key, value, strlen (value), ns);
 }
 
-static gchar *
-_attr_ns_prefix (GQuark ns)
+/* this takes posession of the gchar *prefix passed in */
+static NSPrefix *
+ns_prefix_new (const gchar *urn,
+    GQuark ns,
+    gchar *prefix)
 {
+  NSPrefix *nsp = g_new0 (NSPrefix, 1);
+  nsp->ns_urn = urn;
+  nsp->prefix = prefix;
+  nsp->ns = ns;
+
+  return nsp;
+}
+
+static const gchar *
+_generate_ns_prefix (const gchar *urn, GQuark ns)
+{
+  NSPrefix *nsp = NULL;
   GString *prefix = g_string_new ("wocky-");
   int p = ns;
 
@@ -198,40 +213,60 @@ _attr_ns_prefix (GQuark ns)
       g_string_append_c (prefix, x);
     }
 
-  return g_string_free (prefix, FALSE);
+  nsp = ns_prefix_new (urn, ns, g_string_free (prefix, FALSE));
+  attr_ns_prefixes = g_slist_prepend (attr_ns_prefixes, nsp);
+
+  return nsp->prefix;
 }
 
-const gchar *
-wocky_xmpp_node_attribute_ns_get_prefix (const gchar *urn, GQuark ns)
+static const gchar *
+_attribute_ns_get_prefix (GQuark ns, const gchar *urn)
 {
   int i;
   GSList *ap = NULL;
-  NSPrefix *nsp = NULL;
 
-  if (urn == NULL && ns == 0)
-    return NULL;
-
-  if (urn != NULL)
-    ns = g_quark_from_string (urn);
-
+  /* check user-registered explicit prefixes for this namespace */
   for (ap = attr_ns_prefixes; ap != NULL; ap = g_slist_next (ap))
     if (((NSPrefix *) ap->data)->ns == ns)
       return ((NSPrefix *) ap->data)->prefix;
 
-  if (urn == NULL)
-    urn = g_quark_to_string (ns);
-
+  /* check any built-in explicit prefixes for this namespace */
   for (i = 0; default_attr_ns_prefixes[i].ns_urn != NULL; i++)
     if (!wocky_strdiff (default_attr_ns_prefixes[i].ns_urn, urn))
       return default_attr_ns_prefixes[i].prefix;
 
-  nsp = g_new0 (NSPrefix, 1);
-  nsp->ns_urn = urn;
-  nsp->prefix = _attr_ns_prefix (ns);
-  nsp->ns = ns;
+  /* ok, there was no registered prefix - generate and register a prefix */
+  return _generate_ns_prefix (urn, ns);
+}
 
-  attr_ns_prefixes = g_slist_prepend (attr_ns_prefixes, nsp);
-  return nsp->prefix;
+const gchar *
+wocky_xmpp_node_attribute_ns_get_prefix_from_quark (GQuark ns)
+{
+  const gchar *urn;
+
+  if (ns == 0)
+    return NULL;
+
+  urn = g_quark_to_string (ns);
+
+  /* fetch an existing prefix, a default prefix, or a newly allocated one *
+   * in that order of preference                                          */
+  return _attribute_ns_get_prefix (ns, urn);
+}
+
+const gchar *
+wocky_xmpp_node_attribute_ns_get_prefix_from_urn (const gchar *urn)
+{
+  GQuark ns;
+
+  if ((urn == NULL) || (*urn == '\0'))
+    return NULL;
+
+  ns = g_quark_from_string (urn);
+
+  /* fetch an existing prefix, a default prefix, or a newly allocated one *
+   * in that order of preference                                          */
+  return _attribute_ns_get_prefix (ns, urn);
 }
 
 void
@@ -240,6 +275,7 @@ wocky_xmpp_node_attribute_ns_set_prefix (GQuark ns, const gchar *prefix)
   GSList *ap;
   NSPrefix *nsp = NULL;
 
+  /* find any existing entry and replace it */
   for (ap = attr_ns_prefixes; ap != NULL; ap = g_slist_next (ap))
     {
       NSPrefix *entry = ap->data;
@@ -251,11 +287,8 @@ wocky_xmpp_node_attribute_ns_set_prefix (GQuark ns, const gchar *prefix)
         }
     }
 
-  nsp = g_new0 (NSPrefix, 1);
-  nsp->ns_urn = g_quark_to_string (ns);
-  nsp->prefix = g_strdup (prefix);
-  nsp->ns = ns;
-
+  /* no existing entries: create a new one and slot it into the list */
+  nsp = ns_prefix_new (g_quark_to_string (ns), ns, g_strdup (prefix));
   attr_ns_prefixes = g_slist_prepend (attr_ns_prefixes, nsp);
 }
 
@@ -269,7 +302,7 @@ wocky_xmpp_node_set_attribute_n_ns (WockyXmppNode *node, const gchar *key,
 
   a->key = g_strdup (key);
   a->value = g_strndup (value, value_size);
-  a->prefix = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix (ns, 0));
+  a->prefix = g_strdup (wocky_xmpp_node_attribute_ns_get_prefix_from_urn (ns));
   a->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
 
   /* Remove the old attribute if needed */
