@@ -631,7 +631,6 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "XMPP Session ID", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
-
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
