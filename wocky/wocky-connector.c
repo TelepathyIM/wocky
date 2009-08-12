@@ -2337,12 +2337,16 @@ wocky_connector_connect_async (WockyConnector *self,
       return;
     }
 
+  /* *********************************************************************** *
+   * setting up the async result with callback held in rc:                   *
+   * wocky_connector_register_finish is a thin wrapper around                *
+   * wocky_connector_connect_finish, so we don't actually want               *
+   * to change rc for XEP77_SIGNUP, only for XEP77_CANCEL                    */
   if (priv->reg_op == XEP77_CANCEL)
     rc = wocky_connector_unregister_finish;
-  else if (priv->reg_op == XEP77_SIGNUP)
-    rc = wocky_connector_register_finish;
 
   priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data, rc);
+  /* *********************************************************************** */
 
   if (priv->reg_op == XEP77_CANCEL)
     g_simple_async_result_set_op_res_gboolean (priv->result, FALSE);
