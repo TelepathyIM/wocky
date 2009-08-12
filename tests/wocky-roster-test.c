@@ -542,6 +542,139 @@ test_roster_upgrade_change (void)
   teardown_test (test);
 }
 
+/* Test adding a contact to the roster */
+static gboolean
+add_contact_send_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyXmppNode *node;
+  GSList *l;
+  gboolean group_friend = FALSE, group_badger = FALSE;
+  const gchar *id;
+  WockyXmppStanza *reply;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+
+  /* Make sure stanza is as expected. */
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+
+  g_assert (type == WOCKY_STANZA_TYPE_IQ);
+  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
+      WOCKY_XMPP_NS_ROSTER);
+  g_assert (node != NULL);
+
+  node = wocky_xmpp_node_get_child (node, "item");
+  g_assert (node != NULL);
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
+      "mercutio@example.net"));
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+      "Mercutio"));
+  g_assert_cmpuint (g_slist_length (node->children), ==, 2);
+
+  for (l = node->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *group = (WockyXmppNode *) l->data;
+
+      g_assert (!wocky_strdiff (group->name, "group"));
+
+      if (!wocky_strdiff (group->content, "Friends"))
+        group_friend = TRUE;
+      else if (!wocky_strdiff (group->content, "Badger"))
+        group_badger = TRUE;
+      else
+        g_assert_not_reached ();
+    }
+  g_assert (group_friend && group_badger);
+
+  send_roster_update (test, "mercutio@example.net", "Mercutio", "none", groups);
+
+  /* Ack the IQ */
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (id != NULL);
+
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", id,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+contact_added_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyRoster *roster = WOCKY_ROSTER (source);
+
+  g_assert (wocky_roster_add_contact_finish (roster, res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static WockyContact *
+create_mercutio (void)
+{
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+
+  return g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "mercutio@example.net",
+      "name", "Mercutio",
+      "groups", groups,
+      NULL);
+}
+
+static void
+test_roster_add_contact (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *mercutio, *contact;
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      add_contact_send_iq_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  mercutio = create_mercutio ();
+  /* Add the Mercutio to our roster */
+  wocky_roster_add_contact_async (roster, mercutio, NULL,
+      contact_added_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* check if the contact has been actually added */
+  contact = wocky_roster_get_contact (roster, "mercutio@example.net");
+  g_assert (wocky_contact_equal (contact, mercutio));
+
+  test_close_both_porters (test);
+  g_object_unref (mercutio);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -558,6 +691,7 @@ main (int argc, char **argv)
       test_roster_upgrade_remove);
   g_test_add_func ("/xmpp-roster/roster-upgrade-change",
       test_roster_upgrade_change);
+  g_test_add_func ("/xmpp-roster/roster-add-contact", test_roster_add_contact);
 
   result = g_test_run ();
   test_deinit ();
