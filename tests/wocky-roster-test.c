@@ -675,6 +675,109 @@ test_roster_add_contact (void)
   teardown_test (test);
 }
 
+/* Test removing a contact from the roster */
+static gboolean
+remove_contact_send_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyXmppNode *node;
+  const gchar *id;
+  WockyXmppStanza *reply;
+  const gchar *no_group[] = { NULL };
+
+  /* Make sure stanza is as expected. */
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+
+  g_assert (type == WOCKY_STANZA_TYPE_IQ);
+  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
+      WOCKY_XMPP_NS_ROSTER);
+  g_assert (node != NULL);
+
+  node = wocky_xmpp_node_get_child (node, "item");
+  g_assert (node != NULL);
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
+      "romeo@example.net"));
+
+  /* item node is not supposed to have any child */
+  g_assert_cmpuint (g_slist_length (node->children), == , 0);
+
+  send_roster_update (test, "romeo@example.net", NULL, "remove", no_group);
+
+  /* Ack the IQ */
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (id != NULL);
+
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", id,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+contact_removed_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyRoster *roster = WOCKY_ROSTER (source);
+
+  g_assert (wocky_roster_remove_contact_finish (roster, res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_roster_remove_contact (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact;
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      remove_contact_send_iq_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_roster_remove_contact_async (roster, contact, NULL,
+      contact_removed_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* check if the contact has actually been removed */
+  g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -692,6 +795,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/roster-upgrade-change",
       test_roster_upgrade_change);
   g_test_add_func ("/xmpp-roster/roster-add-contact", test_roster_add_contact);
+  g_test_add_func ("/xmpp-roster/roster-remove-contact",
+      test_roster_remove_contact);
 
   result = g_test_run ();
   test_deinit ();
