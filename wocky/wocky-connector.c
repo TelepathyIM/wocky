@@ -1218,6 +1218,13 @@ stream_error_abort (WockyConnector *connector,
   if (error == NULL)
     return FALSE;
 
+  if (error->domain != WOCKY_XMPP_STREAM_ERROR)
+    {
+      /* Not a stream error; ignore it */
+      g_error_free (error);
+      return FALSE;
+    }
+
   DEBUG ("Received stream error: %s", error->message);
 
   abort_connect (connector, error);
@@ -2042,6 +2049,8 @@ iq_bind_resource_recv_cb (GObject *source,
       WockyConnectorError code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
+        /* FIXME: wocky_xmpp_stanza_to_gerror now supports generic XMPP errors
+         * as well. This code should be refactored to use it */
         node = wocky_xmpp_node_get_child (reply->node, "error");
         if (node != NULL)
             node = wocky_xmpp_node_get_first_child (node);
