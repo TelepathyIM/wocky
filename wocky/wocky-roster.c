@@ -555,16 +555,14 @@ wocky_roster_get_all_contacts (WockyRoster *self)
 }
 
 static void
-roster_add_contact_cb (GObject *source_object,
-    GAsyncResult *res,
-    gpointer user_data)
+change_roster_operation_complete (GAsyncResult *send_iq_res,
+    WockyPorter *porter,
+    GSimpleAsyncResult *result)
 {
-  GError *error = NULL;
   WockyXmppStanza *reply;
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  GError *error = NULL;
 
-  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res,
-      &error);
+  reply = wocky_porter_send_iq_finish (porter, send_iq_res, &error);
   if (reply == NULL)
     goto out;
 
@@ -589,6 +587,17 @@ out:
 
   g_simple_async_result_complete (result);
   g_object_unref (result);
+}
+
+static void
+roster_add_contact_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyPorter *porter = WOCKY_PORTER (source_object);
+
+  change_roster_operation_complete (res, porter, result);
 }
 
 void
