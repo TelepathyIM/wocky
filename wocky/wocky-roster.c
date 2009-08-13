@@ -555,14 +555,16 @@ wocky_roster_get_all_contacts (WockyRoster *self)
 }
 
 static void
-change_roster_operation_complete (GAsyncResult *send_iq_res,
-    WockyPorter *porter,
-    GSimpleAsyncResult *result)
+change_roster_iq_cb (GObject *source_object,
+    GAsyncResult *send_iq_res,
+    gpointer user_data)
 {
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyXmppStanza *reply;
   GError *error = NULL;
 
-  reply = wocky_porter_send_iq_finish (porter, send_iq_res, &error);
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object),
+      send_iq_res, &error);
   if (reply == NULL)
     goto out;
 
@@ -587,17 +589,6 @@ out:
 
   g_simple_async_result_complete (result);
   g_object_unref (result);
-}
-
-static void
-roster_add_contact_cb (GObject *source_object,
-    GAsyncResult *res,
-    gpointer user_data)
-{
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyPorter *porter = WOCKY_PORTER (source_object);
-
-  change_roster_operation_complete (res, porter, result);
 }
 
 /* Build an IQ set stanza containing the current state of the contact.
@@ -686,7 +677,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
   iq = build_iq_for_contact (contact, NULL);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, roster_add_contact_cb, result);
+      iq, cancellable, change_roster_iq_cb, result);
 
   g_object_unref (iq);
 }
@@ -704,17 +695,6 @@ wocky_roster_add_contact_finish (WockyRoster *self,
           G_OBJECT (self), wocky_roster_add_contact_finish), FALSE);
 
   return TRUE;
-}
-
-static void
-roster_remove_contact_cb (GObject *source_object,
-    GAsyncResult *res,
-    gpointer user_data)
-{
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyPorter *porter = WOCKY_PORTER (source_object);
-
-  change_roster_operation_complete (res, porter, result);
 }
 
 static gboolean
@@ -770,7 +750,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
       callback, user_data, wocky_roster_remove_contact_finish);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, roster_remove_contact_cb, result);
+      iq, cancellable, change_roster_iq_cb, result);
 
   g_object_unref (iq);
 }
