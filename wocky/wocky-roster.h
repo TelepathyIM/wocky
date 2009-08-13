@@ -126,6 +126,17 @@ gboolean wocky_roster_remove_contact_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error);
 
+void wocky_roster_change_contact_name_async (WockyRoster *self,
+    WockyContact *contact,
+    const gchar *name,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_roster_change_contact_name_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_ROSTER_H__*/
