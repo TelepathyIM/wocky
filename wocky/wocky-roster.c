@@ -600,39 +600,20 @@ roster_add_contact_cb (GObject *source_object,
   change_roster_operation_complete (res, porter, result);
 }
 
-void
-wocky_roster_add_contact_async (WockyRoster *self,
-    WockyContact *contact,
-    GCancellable *cancellable,
-    GAsyncReadyCallback callback,
-    gpointer user_data)
+/* Build an IQ set stanza containing the current state of the contact.
+ * If not NULL, item_node will contain a pointer on the "item" node */
+static WockyXmppStanza *
+build_iq_for_contact (WockyContact *contact,
+    WockyXmppNode **item_node)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-  const gchar *jid, *name;
   WockyXmppStanza *iq;
   WockyXmppNode *item = NULL;
+  const gchar *jid, *name;
   const gchar * const *groups;
   guint i;
-  GSimpleAsyncResult *result;
-
-  g_return_if_fail (contact != NULL);
 
   jid = wocky_contact_get_jid (contact);
-  if (jid == NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NO_JID,
-          "Contact doesn't have a jid");
-      return;
-    }
-
-  if (g_hash_table_lookup (priv->items, jid) != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_ALREADY_PRESENT,
-          "Contact %s is already present in the roster", jid);
-      return;
-    }
+  g_return_val_if_fail (jid != NULL, NULL);
 
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
@@ -662,8 +643,47 @@ wocky_roster_add_contact_async (WockyRoster *self,
       wocky_xmpp_node_set_content (group, groups[i]);
     }
 
+  if (item_node != NULL)
+    *item_node = item;
+
+  return iq;
+}
+
+void
+wocky_roster_add_contact_async (WockyRoster *self,
+    WockyContact *contact,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  const gchar *jid;
+  WockyXmppStanza *iq;
+  GSimpleAsyncResult *result;
+
+  g_return_if_fail (contact != NULL);
+
+  jid = wocky_contact_get_jid (contact);
+  if (jid == NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NO_JID,
+          "Contact doesn't have a jid");
+      return;
+    }
+
+  if (g_hash_table_lookup (priv->items, jid) != NULL)
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_ALREADY_PRESENT,
+          "Contact %s is already present in the roster", jid);
+      return;
+    }
+
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_add_contact_finish);
+
+  iq = build_iq_for_contact (contact, NULL);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, roster_add_contact_cb, result);
