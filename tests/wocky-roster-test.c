@@ -574,6 +574,7 @@ add_contact_send_iq_cb (WockyPorter *porter,
       "mercutio@example.net"));
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
       "Mercutio"));
+  g_assert (wocky_xmpp_node_get_attribute (node, "subscription") == NULL);
   g_assert_cmpuint (g_slist_length (node->children), ==, 2);
 
   for (l = node->children; l != NULL; l = g_slist_next (l))
