@@ -731,7 +731,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
-          "Contact %s is no in the roster", wocky_contact_get_jid (contact));
+          "Contact %s is not in the roster", wocky_contact_get_jid (contact));
       return;
     }
 
