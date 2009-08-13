@@ -21,6 +21,7 @@
 #include <libxml/parser.h>
 
 #include "wocky.h"
+#include "wocky-xmpp-node.h"
 
 /**
  * wocky_init:
@@ -33,6 +34,7 @@ void
 wocky_init (void)
 {
   xmlInitParser ();
+  wocky_xmpp_node_init ();
 }
 
 /**
@@ -51,4 +53,5 @@ void
 wocky_deinit (void)
 {
   xmlCleanupParser ();
+  wocky_xmpp_node_deinit ();
 }

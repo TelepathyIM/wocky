@@ -47,7 +47,8 @@ static NSPrefix default_attr_ns_prefixes[] =
   { { WOCKY_GOOGLE_NS_AUTH, "ga" },
     { NULL, NULL } };
 
-static GSList *attr_ns_prefixes;
+static GHashTable *user_ns_prefixes = NULL;
+static GHashTable *default_ns_prefixes = NULL;
 
 WockyXmppNode *
 wocky_xmpp_node_new (const char *name)
@@ -183,27 +184,48 @@ wocky_xmpp_node_set_attribute_ns (WockyXmppNode *node, const gchar *key,
       key, value, strlen (value), ns);
 }
 
-/* this takes posession of the gchar *prefix passed in */
 static NSPrefix *
 ns_prefix_new (const gchar *urn,
     GQuark ns,
-    gchar *prefix)
+    const gchar *prefix)
 {
   NSPrefix *nsp = g_slice_new0 (NSPrefix);
   nsp->ns_urn = urn;
-  nsp->prefix = prefix;
+  nsp->prefix = g_strdup (prefix);
   nsp->ns = ns;
 
   return nsp;
 }
 
-static const gchar *
-_generate_ns_prefix (const gchar *urn, GQuark ns)
+static void
+ns_prefix_free (NSPrefix *nsp)
 {
-  NSPrefix *nsp = NULL;
+  g_free (nsp->prefix);
+  g_slice_free (NSPrefix, nsp);
+}
+
+static GHashTable *
+_init_prefix_table (void)
+{
+  /* do NOT use the astonishingly poorly named g_int_hash here */
+  /* it most emphatically does NOT do what it says on the tin  */
+  return g_hash_table_new_full (g_direct_hash, /* quarks are uint32s */
+      g_direct_equal,                          /* ibid               */
+      NULL,                                    /* cannot free quarks */
+      (GDestroyNotify)ns_prefix_free);
+}
+
+/* convert the NS URN Quark to a base-26 number represented as a *
+ * lowercase a-z digit string (aa, ab, ac, ad ... etc)           *
+ * then prepend a string ("wocky-") to make the attr ns prefix   */
+static gchar *
+_generate_ns_prefix (GQuark ns)
+{
   GString *prefix = g_string_new ("wocky-");
   int p = ns;
 
+  /* actually, I think we might end up with the digits in le order *
+   * having re-read the code, but that doesn't actually matter.    */
   while (p > 0)
     {
       guchar x = (p % 26);
@@ -213,30 +235,70 @@ _generate_ns_prefix (const gchar *urn, GQuark ns)
       g_string_append_c (prefix, x);
     }
 
-  nsp = ns_prefix_new (urn, ns, g_string_free (prefix, FALSE));
-  attr_ns_prefixes = g_slist_prepend (attr_ns_prefixes, nsp);
+  return g_string_free (prefix, FALSE);
+}
 
-  return nsp->prefix;
+static void
+_init_user_prefix_table (void)
+{
+  if (user_ns_prefixes == NULL)
+    user_ns_prefixes = _init_prefix_table ();
+}
+
+static const NSPrefix *
+_add_prefix_to_table (GHashTable *table,
+    GQuark ns,
+    const gchar *urn,
+    const gchar *prefix)
+{
+  NSPrefix *nsp = ns_prefix_new (urn, ns, prefix);
+  g_hash_table_insert (table, GINT_TO_POINTER (ns), nsp);
+  return nsp;
+}
+
+static void
+_init_default_prefix_table (void)
+{
+  int i;
+
+  if (default_ns_prefixes != NULL)
+    return;
+
+  default_ns_prefixes = _init_prefix_table ();
+
+  for (i = 0; default_attr_ns_prefixes[i].ns_urn != NULL; i++)
+    {
+      const gchar *urn = default_attr_ns_prefixes[i].ns_urn;
+      GQuark ns = g_quark_from_string (urn);
+      gchar *prefix = _generate_ns_prefix (ns);
+      _add_prefix_to_table (default_ns_prefixes, ns, urn, prefix);
+      g_free (prefix);
+    }
 }
 
 static const gchar *
-_attribute_ns_get_prefix (GQuark ns, const gchar *urn)
+_attribute_ns_get_prefix (GQuark ns,
+    const gchar *urn)
 {
-  int i;
-  GSList *ap = NULL;
+  const NSPrefix *nsp = NULL;
+  gchar *prefix;
 
   /* check user-registered explicit prefixes for this namespace */
-  for (ap = attr_ns_prefixes; ap != NULL; ap = g_slist_next (ap))
-    if (((NSPrefix *) ap->data)->ns == ns)
-      return ((NSPrefix *) ap->data)->prefix;
+  nsp = g_hash_table_lookup (user_ns_prefixes, GINT_TO_POINTER (ns));
+  if (nsp != NULL)
+    return nsp->prefix;
 
   /* check any built-in explicit prefixes for this namespace */
-  for (i = 0; default_attr_ns_prefixes[i].ns_urn != NULL; i++)
-    if (!wocky_strdiff (default_attr_ns_prefixes[i].ns_urn, urn))
-      return default_attr_ns_prefixes[i].prefix;
+  nsp = g_hash_table_lookup (default_ns_prefixes, GINT_TO_POINTER (ns));
+  if (nsp != NULL)
+    return nsp->prefix;
 
   /* ok, there was no registered prefix - generate and register a prefix */
-  return _generate_ns_prefix (urn, ns);
+  /* initialise the user prefix table here if we need to                 */
+  prefix = _generate_ns_prefix (ns);
+  nsp = _add_prefix_to_table (user_ns_prefixes, ns, urn, prefix);
+  g_free (prefix);
+  return nsp->prefix;
 }
 
 const gchar *
@@ -272,24 +334,10 @@ wocky_xmpp_node_attribute_ns_get_prefix_from_urn (const gchar *urn)
 void
 wocky_xmpp_node_attribute_ns_set_prefix (GQuark ns, const gchar *prefix)
 {
-  GSList *ap;
-  NSPrefix *nsp = NULL;
+  const gchar *urn = g_quark_to_string (ns);
 
-  /* find any existing entry and replace it */
-  for (ap = attr_ns_prefixes; ap != NULL; ap = g_slist_next (ap))
-    {
-      NSPrefix *entry = ap->data;
-      if (entry->ns == ns)
-        {
-          g_free (entry->prefix);
-          entry->prefix = g_strdup (prefix);
-          return;
-        }
-    }
-
-  /* no existing entries: create a new one and slot it into the list */
-  nsp = ns_prefix_new (g_quark_to_string (ns), ns, g_strdup (prefix));
-  attr_ns_prefixes = g_slist_prepend (attr_ns_prefixes, nsp);
+  /* add/replace user prefix table entry */
+  _add_prefix_to_table (user_ns_prefixes, ns, urn, prefix);
 }
 
 void
@@ -737,4 +785,18 @@ wocky_xmpp_node_is_superset (WockyXmppNode *node,
     }
 
   return TRUE;
+}
+
+void
+wocky_xmpp_node_init ()
+{
+  _init_user_prefix_table ();
+  _init_default_prefix_table ();
+}
+
+void
+wocky_xmpp_node_deinit ()
+{
+  g_hash_table_unref (user_ns_prefixes);
+  g_hash_table_unref (default_ns_prefixes);
 }

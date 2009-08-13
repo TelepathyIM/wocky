@@ -141,6 +141,9 @@ gboolean wocky_xmpp_node_equal (WockyXmppNode *node0,
 gboolean wocky_xmpp_node_is_superset (WockyXmppNode *node,
     WockyXmppNode *pattern);
 
+void wocky_xmpp_node_init (void);
+void wocky_xmpp_node_deinit (void);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_NODE_H__*/
