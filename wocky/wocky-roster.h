@@ -80,6 +80,7 @@ typedef enum {
   WOCKY_ROSTER_ERROR_INVALID_STANZA,
   WOCKY_ROSTER_ERROR_NO_JID,
   WOCKY_ROSTER_ERROR_ALREADY_PRESENT,
+  WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
 } WockyRosterError;
 
 GQuark wocky_roster_error_quark (void);
@@ -112,6 +113,16 @@ void wocky_roster_add_contact_async (WockyRoster *self,
     gpointer user_data);
 
 gboolean wocky_roster_add_contact_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error);
+
+void wocky_roster_remove_contact_async (WockyRoster *self,
+    WockyContact *contact,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_roster_remove_contact_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error);
 

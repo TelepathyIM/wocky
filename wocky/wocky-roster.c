@@ -685,3 +685,87 @@ wocky_roster_add_contact_finish (WockyRoster *self,
 
   return TRUE;
 }
+
+static void
+roster_remove_contact_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyPorter *porter = WOCKY_PORTER (source_object);
+
+  change_roster_operation_complete (res, porter, result);
+}
+
+static gboolean
+is_contact (gpointer key,
+    gpointer value,
+    gpointer contact)
+{
+  return value == contact;
+}
+
+static gboolean
+contact_in_roster (WockyRoster *self,
+    WockyContact *contact)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+
+  return g_hash_table_find (priv->items, is_contact, contact) != NULL;
+}
+
+void
+wocky_roster_remove_contact_async (WockyRoster *self,
+    WockyContact *contact,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyXmppStanza *iq;
+  GSimpleAsyncResult *result;
+
+  g_return_if_fail (contact != NULL);
+
+  if (!contact_in_roster (self, contact))
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
+          "Contact %s is no in the roster", wocky_contact_get_jid (contact));
+      return;
+    }
+
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+        WOCKY_NODE, "query",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+          WOCKY_NODE, "item",
+            WOCKY_NODE_ATTRIBUTE, "jid", wocky_contact_get_jid (contact),
+            WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_remove_contact_finish);
+
+  wocky_porter_send_iq_async (priv->porter,
+      iq, cancellable, roster_remove_contact_cb, result);
+
+  g_object_unref (iq);
+}
+
+gboolean
+wocky_roster_remove_contact_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+          error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+          G_OBJECT (self), wocky_roster_remove_contact_finish), FALSE);
+
+  return TRUE;
+}
