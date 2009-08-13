@@ -145,6 +145,25 @@ wocky_roster_get_property (GObject *object,
     }
 }
 
+static const gchar *
+subscription_to_string (WockyRosterSubscriptionFlags subscription)
+{
+  switch (subscription)
+    {
+      case WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE:
+        return "none";
+      case WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO:
+        return "to";
+      case WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM:
+        return "from";
+      case WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH:
+        return "both";
+      default:
+        g_assert_not_reached ();
+        return NULL;
+    }
+}
+
 static void
 remove_item (WockyRoster *self,
     const gchar *jid)
@@ -602,6 +621,7 @@ build_iq_for_contact (WockyContact *contact,
   const gchar *jid, *name;
   const gchar * const *groups;
   guint i;
+  WockyRosterSubscriptionFlags subscription;
 
   jid = wocky_contact_get_jid (contact);
   g_return_val_if_fail (jid != NULL, NULL);
@@ -623,6 +643,13 @@ build_iq_for_contact (WockyContact *contact,
   if (name != NULL)
     {
       wocky_xmpp_node_set_attribute (item, "name", name);
+    }
+
+  subscription = wocky_contact_get_subscription (contact);
+  if (subscription != WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE)
+    {
+      wocky_xmpp_node_set_attribute (item, "subscription",
+          subscription_to_string (subscription));
     }
 
   groups = wocky_contact_get_groups (contact);
