@@ -542,3 +542,22 @@ wocky_contact_add_group (WockyContact *self,
 
   priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
 }
+
+gboolean
+wocky_contact_in_group (WockyContact *self,
+    const gchar *group)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  guint i;
+
+  if (priv->groups == NULL)
+    return FALSE;
+
+  for (i = 0; priv->groups[i] != NULL; i++)
+    {
+      if (!wocky_strdiff (priv->groups[i], group))
+        return TRUE;
+    }
+
+  return FALSE;
+}

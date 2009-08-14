@@ -78,6 +78,9 @@ gboolean wocky_contact_equal (WockyContact *a,
 void wocky_contact_add_group (WockyContact *contact,
     const gchar *group);
 
+gboolean wocky_contact_in_group (WockyContact *contact,
+    const gchar *group);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_H__*/
