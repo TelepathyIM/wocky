@@ -772,6 +772,10 @@ test_roster_remove_contact (void)
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  /* Keep a ref on the contact as the roster will release its ref when
+   * removing it */
+  g_object_ref (contact);
+
   wocky_roster_remove_contact_async (roster, contact, NULL,
       contact_removed_cb, test);
 
@@ -781,8 +785,16 @@ test_roster_remove_contact (void)
   /* check if the contact has actually been removed */
   g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
 
+  /* try to re-remove the same contact. Operation succeeds immediately */
+  wocky_roster_remove_contact_async (roster, contact, NULL,
+      contact_removed_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
   test_close_both_porters (test);
   g_object_unref (roster);
+  g_object_unref (contact);
   teardown_test (test);
 }
 
