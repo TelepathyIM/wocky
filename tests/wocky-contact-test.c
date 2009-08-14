@@ -164,6 +164,42 @@ test_in_group (void)
   g_object_unref (a);
 }
 
+/* test wocky_contact_remove_group */
+static void
+test_remove_group (void)
+{
+  WockyContact *a, *b;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+  const gchar *groups2[] = { "Badger", NULL };
+
+  a = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      "groups", groups,
+      NULL);
+
+  /* same as 'a' but with one more group */
+  b = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      "groups", groups2,
+      NULL);
+
+  g_assert (!wocky_contact_equal (a, b));
+
+  wocky_contact_remove_group (a, "Friends");
+  g_assert (wocky_contact_equal (a, b));
+
+  /* try to remove an already not present group is no-op */
+  wocky_contact_remove_group (a, "Friends");
+  g_assert (wocky_contact_equal (a, b));
+
+  g_object_unref (a);
+  g_object_unref (b);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -174,6 +210,7 @@ main (int argc, char **argv)
   g_test_add_func ("/contact/contact-equal", test_contact_equal);
   g_test_add_func ("/contact/add-group", test_add_group);
   g_test_add_func ("/contact/in-group", test_in_group);
+  g_test_add_func ("/contact/remove-group", test_remove_group);
 
   result = g_test_run ();
   test_deinit ();
