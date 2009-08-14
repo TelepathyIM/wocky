@@ -502,3 +502,43 @@ wocky_contact_equal (WockyContact *a,
 
   return groups_equal (groups_a, groups_b);
 }
+
+void
+wocky_contact_add_group (WockyContact *self,
+    const gchar *group)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  GPtrArray *arr;
+  gboolean group_already_present = FALSE;
+
+  if (priv->groups != NULL)
+    {
+      guint len, i;
+
+      len = g_strv_length (priv->groups);
+      arr = g_ptr_array_sized_new (len + 2);
+
+      for (i = 0; priv->groups[i] != NULL; i++)
+        {
+          g_ptr_array_add (arr, g_strdup (priv->groups[i]));
+
+          if (!wocky_strdiff (priv->groups[i], group))
+            /* Don't add the group twice */
+            group_already_present = TRUE;
+        }
+
+      g_strfreev (priv->groups);
+    }
+  else
+    {
+      arr = g_ptr_array_sized_new (2);
+    }
+
+  if (!group_already_present)
+    g_ptr_array_add (arr, g_strdup (group));
+
+  /* Add trailing NULL */
+  g_ptr_array_add (arr, NULL);
+
+  priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
+}
