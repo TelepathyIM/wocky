@@ -857,3 +857,66 @@ wocky_roster_change_contact_name_finish (WockyRoster *self,
 
   return TRUE;
 }
+
+void
+wocky_roster_contact_add_group_async (WockyRoster *self,
+    WockyContact *contact,
+    const gchar *group,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyXmppStanza *iq;
+  WockyXmppNode *item, *group_node;
+  GSimpleAsyncResult *result;
+
+  g_return_if_fail (contact != NULL);
+
+  if (!contact_in_roster (self, contact))
+    {
+      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
+          "Contact %s is not in the roster", wocky_contact_get_jid (contact));
+      return;
+    }
+
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_contact_add_group_finish);
+
+  if (wocky_contact_in_group (contact, group))
+    {
+      DEBUG ("Contact %s in already in group %s; complete immediately",
+          wocky_contact_get_jid (contact), group);
+      g_simple_async_result_complete_in_idle (result);
+      g_object_unref (result);
+      return;
+    }
+
+  iq = build_iq_for_contact (contact, &item);
+
+  /* add new group */
+  group_node = wocky_xmpp_node_add_child (item, "group");
+  wocky_xmpp_node_set_content (group_node, group);
+
+  wocky_porter_send_iq_async (priv->porter,
+      iq, cancellable, change_roster_iq_cb, result);
+
+  g_object_unref (iq);
+}
+
+gboolean
+wocky_roster_contact_add_group_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+          error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+        G_OBJECT (self), wocky_roster_contact_add_group_finish),
+      FALSE);
+
+  return TRUE;
+}
