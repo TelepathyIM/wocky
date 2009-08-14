@@ -143,6 +143,27 @@ test_add_group (void)
   g_object_unref (b);
 }
 
+/* test wocky_contact_in_group */
+static void
+test_in_group (void)
+{
+  WockyContact *a;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+
+  a = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      "groups", groups,
+      NULL);
+
+  g_assert (wocky_contact_in_group (a, "Friends"));
+  g_assert (wocky_contact_in_group (a, "Badger"));
+  g_assert (!wocky_contact_in_group (a, "Snake"));
+
+  g_object_unref (a);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -152,6 +173,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/contact/contact-equal", test_contact_equal);
   g_test_add_func ("/contact/add-group", test_add_group);
+  g_test_add_func ("/contact/in-group", test_in_group);
 
   result = g_test_run ();
   test_deinit ();
