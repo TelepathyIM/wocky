@@ -151,10 +151,10 @@ wocky_contact_get_property (GObject *object,
 static void
 wocky_contact_constructed (GObject *object)
 {
-  /*
   WockyContact *self = WOCKY_CONTACT (object);
   WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
-  */
+
+  g_assert (priv->jid != NULL);
 }
 
 static void
