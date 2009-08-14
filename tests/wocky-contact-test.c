@@ -200,7 +200,7 @@ test_in_group (void)
 static void
 test_remove_group (void)
 {
-  WockyContact *a, *b;
+  WockyContact *a, *b, *c;
   const gchar *groups[] = { "Friends", "Badger", NULL };
   const gchar *groups2[] = { "Badger", NULL };
 
@@ -228,8 +228,20 @@ test_remove_group (void)
   wocky_contact_remove_group (a, "Friends");
   g_assert (wocky_contact_equal (a, b));
 
+  /* no group defined */
+  c = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      NULL);
+
+  g_assert (wocky_contact_equal (c, c));
+  wocky_contact_remove_group (c, "Misc");
+  g_assert (wocky_contact_equal (c, c));
+
   g_object_unref (a);
   g_object_unref (b);
+  g_object_unref (c);
 }
 
 int
