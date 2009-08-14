@@ -670,6 +670,13 @@ test_roster_add_contact (void)
   contact = wocky_roster_get_contact (roster, "mercutio@example.net");
   g_assert (wocky_contact_equal (contact, mercutio));
 
+  /* try to re-add the same contact. Operation succeeds immediately */
+  wocky_roster_add_contact_async (roster, mercutio, NULL,
+      contact_added_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
   test_close_both_porters (test);
   g_object_unref (mercutio);
   g_object_unref (roster);
