@@ -335,10 +335,11 @@ wocky_contact_set_name (WockyContact *contact,
 WockyRosterSubscriptionFlags
 wocky_contact_get_subscription (WockyContact *contact)
 {
-  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+  WockyContactPrivate *priv;
 
   g_return_val_if_fail (WOCKY_IS_CONTACT (contact),
       WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE);
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
   return priv->subscription;
 }
