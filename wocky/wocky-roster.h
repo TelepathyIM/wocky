@@ -105,7 +105,9 @@ WockyContact * wocky_roster_get_contact (WockyRoster *self,
 GSList * wocky_roster_get_all_contacts (WockyRoster *self);
 
 void wocky_roster_add_contact_async (WockyRoster *self,
-    WockyContact *contact,
+    const gchar *jid,
+    const gchar *name,
+    const gchar * const * groups,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);

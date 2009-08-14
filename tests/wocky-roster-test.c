@@ -644,6 +644,7 @@ test_roster_add_contact (void)
   WockyRoster *roster;
   test_data_t *test = setup_test ();
   WockyContact *mercutio, *contact;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
 
   test_open_both_connections (test);
 
@@ -660,8 +661,8 @@ test_roster_add_contact (void)
 
   mercutio = create_mercutio ();
   /* Add the Mercutio to our roster */
-  wocky_roster_add_contact_async (roster, mercutio, NULL,
-      contact_added_cb, test);
+  wocky_roster_add_contact_async (roster, "mercutio@example.net", "Mercutio",
+      groups, NULL, contact_added_cb, test);
 
   test->outstanding += 2;
   test_wait_pending (test);
@@ -671,8 +672,8 @@ test_roster_add_contact (void)
   g_assert (wocky_contact_equal (contact, mercutio));
 
   /* try to re-add the same contact. Operation succeeds immediately */
-  wocky_roster_add_contact_async (roster, mercutio, NULL,
-      contact_added_cb, test);
+  wocky_roster_add_contact_async (roster, "mercutio@example.net", "Mercutio",
+      groups, NULL, contact_added_cb, test);
 
   test->outstanding += 1;
   test_wait_pending (test);

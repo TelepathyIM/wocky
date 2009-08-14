@@ -669,38 +669,49 @@ build_iq_for_contact (WockyContact *contact,
 
 void
 wocky_roster_add_contact_async (WockyRoster *self,
-    WockyContact *contact,
+    const gchar *jid,
+    const gchar *name,
+    const gchar * const * groups,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-  const gchar *jid;
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
+  WockyContact *contact;
 
-  g_return_if_fail (contact != NULL);
-
-  jid = wocky_contact_get_jid (contact);
-  g_assert (jid != NULL);
+  g_return_if_fail (jid != NULL);
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_add_contact_finish);
 
   if (g_hash_table_lookup (priv->items, jid) != NULL)
     {
-
       DEBUG ("Contact %s is already present in the roster", jid);
       g_simple_async_result_complete_in_idle (result);
       g_object_unref (result);
       return;
     }
 
+  contact = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", jid,
+      NULL);
+
+  if (name != NULL)
+    wocky_contact_set_name (contact, name);
+
+  if (groups != NULL)
+    wocky_contact_set_groups (contact, (gchar **) groups);
+
   iq = build_iq_for_contact (contact, NULL);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, result);
 
+  /* A new contact object will be created and added when we'll receive the
+   * server push notification. */
+  g_object_unref (contact);
   g_object_unref (iq);
 }
 
