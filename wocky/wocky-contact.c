@@ -380,9 +380,10 @@ wocky_contact_set_subscription (WockyContact *contact,
 const gchar * const *
 wocky_contact_get_groups (WockyContact *contact)
 {
-  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (contact);
+  WockyContactPrivate *priv;
 
   g_return_val_if_fail (WOCKY_IS_CONTACT (contact), NULL);
+  priv = WOCKY_CONTACT_GET_PRIVATE (contact);
 
   return (const gchar * const *) priv->groups;
 }
