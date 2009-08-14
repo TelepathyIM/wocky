@@ -169,7 +169,7 @@ test_add_group (void)
 static void
 test_in_group (void)
 {
-  WockyContact *a;
+  WockyContact *a, *b;
   const gchar *groups[] = { "Friends", "Badger", NULL };
 
   a = g_object_new (WOCKY_TYPE_CONTACT,
@@ -183,7 +183,17 @@ test_in_group (void)
   g_assert (wocky_contact_in_group (a, "Badger"));
   g_assert (!wocky_contact_in_group (a, "Snake"));
 
+  /* no group defined */
+  b = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      NULL);
+
+  g_assert (!wocky_contact_in_group (b, "Snake"));
+
   g_object_unref (a);
+  g_object_unref (b);
 }
 
 /* test wocky_contact_remove_group */
