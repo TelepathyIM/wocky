@@ -749,11 +749,15 @@ wocky_roster_remove_contact_async (WockyRoster *self,
 
   g_return_if_fail (contact != NULL);
 
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_remove_contact_finish);
+
   if (!contact_in_roster (self, contact))
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
-          "Contact %s is not in the roster", wocky_contact_get_jid (contact));
+      DEBUG ("Contact %s is not in the roster", wocky_contact_get_jid (
+            contact));
+      g_simple_async_result_complete_in_idle (result);
+      g_object_unref (result);
       return;
     }
 
@@ -767,9 +771,6 @@ wocky_roster_remove_contact_async (WockyRoster *self,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
-
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_remove_contact_finish);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, result);
