@@ -12,7 +12,7 @@
 static void
 test_contact_equal (void)
 {
-  WockyContact *a, *b, *c, *d, *e, *f;
+  WockyContact *a, *b, *c, *d, *e, *f, *g;
   const gchar *groups[] = { "Friends", "Badger", NULL };
   const gchar *groups2[] = { "Friends", "Snake", NULL };
   const gchar *groups3[] = { "Badger", "Friends", NULL };
@@ -72,12 +72,22 @@ test_contact_equal (void)
       NULL);
   g_assert (wocky_contact_equal (a, f));
 
+  /* No group defined */
+  g = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      NULL);
+  g_assert (wocky_contact_equal (g, g));
+  g_assert (!wocky_contact_equal (a, g));
+
   g_object_unref (a);
   g_object_unref (b);
   g_object_unref (c);
   g_object_unref (d);
   g_object_unref (e);
   g_object_unref (f);
+  g_object_unref (g);
 }
 
 int
