@@ -684,16 +684,17 @@ wocky_roster_add_contact_async (WockyRoster *self,
   jid = wocky_contact_get_jid (contact);
   g_assert (jid != NULL);
 
-  if (g_hash_table_lookup (priv->items, jid) != NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_ALREADY_PRESENT,
-          "Contact %s is already present in the roster", jid);
-      return;
-    }
-
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_add_contact_finish);
+
+  if (g_hash_table_lookup (priv->items, jid) != NULL)
+    {
+
+      DEBUG ("Contact %s is already present in the roster", jid);
+      g_simple_async_result_complete_in_idle (result);
+      g_object_unref (result);
+      return;
+    }
 
   iq = build_iq_for_contact (contact, NULL);
 
