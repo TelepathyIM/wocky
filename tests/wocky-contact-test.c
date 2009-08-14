@@ -12,10 +12,12 @@
 static void
 test_contact_equal (void)
 {
-  WockyContact *a, *b, *c, *d, *e, *f, *g;
+  WockyContact *a, *b, *c, *d, *e, *f, *g, *h, *i;
   const gchar *groups[] = { "Friends", "Badger", NULL };
   const gchar *groups2[] = { "Friends", "Snake", NULL };
   const gchar *groups3[] = { "Badger", "Friends", NULL };
+  const gchar *groups4[] = { "aa", "bb", NULL };
+  const gchar *groups5[] = { "ab", "ba", NULL };
 
   a = g_object_new (WOCKY_TYPE_CONTACT,
       "jid", "romeo@example.net",
@@ -81,6 +83,19 @@ test_contact_equal (void)
   g_assert (wocky_contact_equal (g, g));
   g_assert (!wocky_contact_equal (a, g));
 
+  /* regression test: used to fail with old group comparaison algorithm */
+  h = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "groups", groups4,
+      NULL);
+
+  i = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "groups", groups5,
+      NULL);
+
+  g_assert (!wocky_contact_equal (h, i));
+
   g_object_unref (a);
   g_object_unref (b);
   g_object_unref (c);
@@ -88,6 +103,8 @@ test_contact_equal (void)
   g_object_unref (e);
   g_object_unref (f);
   g_object_unref (g);
+  g_object_unref (h);
+  g_object_unref (i);
 }
 
 int
