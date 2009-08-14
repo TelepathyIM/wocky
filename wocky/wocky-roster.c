@@ -682,13 +682,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
   g_return_if_fail (contact != NULL);
 
   jid = wocky_contact_get_jid (contact);
-  if (jid == NULL)
-    {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NO_JID,
-          "Contact doesn't have a jid");
-      return;
-    }
+  g_assert (jid != NULL);
 
   if (g_hash_table_lookup (priv->items, jid) != NULL)
     {
