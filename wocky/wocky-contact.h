@@ -81,6 +81,9 @@ void wocky_contact_add_group (WockyContact *contact,
 gboolean wocky_contact_in_group (WockyContact *contact,
     const gchar *group);
 
+void wocky_contact_remove_group (WockyContact *contact,
+    const gchar *group);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_H__*/

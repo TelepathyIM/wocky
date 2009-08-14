@@ -561,3 +561,33 @@ wocky_contact_in_group (WockyContact *self,
 
   return FALSE;
 }
+
+void
+wocky_contact_remove_group (WockyContact *self,
+    const gchar *group)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  GPtrArray *arr;
+  guint len, i;
+
+  if (priv->groups == NULL)
+    return;
+
+  len = g_strv_length (priv->groups);
+  arr = g_ptr_array_sized_new (len);
+
+  for (i = 0; priv->groups[i] != NULL; i++)
+    {
+      if (!wocky_strdiff (priv->groups[i], group))
+        continue;
+
+      g_ptr_array_add (arr, g_strdup (priv->groups[i]));
+    }
+
+  g_strfreev (priv->groups);
+
+  /* Add trailing NULL */
+  g_ptr_array_add (arr, NULL);
+
+  priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
+}
