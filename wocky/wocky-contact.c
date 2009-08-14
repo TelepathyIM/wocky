@@ -401,6 +401,12 @@ groups_equal (const gchar * const * groups_a,
   gboolean result;
   GArray *arr_a, *arr_b;
 
+  if (groups_a == NULL && groups_b == NULL)
+    return TRUE;
+
+  if (groups_a == NULL || groups_b == NULL)
+    return FALSE;
+
   if (g_strv_length ((GStrv) groups_a) != g_strv_length ((GStrv) groups_b))
     return FALSE;
 
