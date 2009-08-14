@@ -779,6 +779,154 @@ test_roster_remove_contact (void)
   teardown_test (test);
 }
 
+/* test changing the name of a roster item */
+static gboolean
+change_name_send_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyXmppNode *node;
+  const gchar *id;
+  WockyXmppStanza *reply;
+  const gchar *group[] = { "Friends", NULL };
+
+  /* Make sure stanza is as expected. */
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+
+  g_assert (type == WOCKY_STANZA_TYPE_IQ);
+  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
+      WOCKY_XMPP_NS_ROSTER);
+  g_assert (node != NULL);
+
+  node = wocky_xmpp_node_get_child (node, "item");
+  g_assert (node != NULL);
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
+      "romeo@example.net"));
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+        "Badger"));
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node,
+        "subscription"), "both"));
+
+  g_assert_cmpuint (g_slist_length (node->children), ==, 1);
+  node = wocky_xmpp_node_get_child (node, "group");
+  g_assert (node != NULL);
+  g_assert (!wocky_strdiff (node->content, "Friends"));
+
+  send_roster_update (test, "romeo@example.net", "Badger", "both", group);
+
+  /* Ack the IQ */
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (id != NULL);
+
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", id,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+contact_name_changed_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyRoster *roster = WOCKY_ROSTER (source);
+
+  g_assert (wocky_roster_change_contact_name_finish (roster, res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+contact_name_changed_not_in_roster_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyRoster *roster = WOCKY_ROSTER (source);
+  GError *error = NULL;
+
+  g_assert (!wocky_roster_change_contact_name_finish (roster, res, &error));
+  g_assert_error (error, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_roster_change_name (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact, *romeo, *mercutio;
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  romeo = create_romeo ();
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      change_name_send_iq_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
+      contact_name_changed_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* check if the contact name has actually been change */
+  wocky_contact_set_name (romeo, "Badger");
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  /* Retry to do the same change; operation succeeds immediately */
+  wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
+      contact_name_changed_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  /* try to change name of a contact which is not in the roster */
+  mercutio = create_mercutio ();
+
+  wocky_roster_change_contact_name_async (roster, mercutio, "Badger", NULL,
+      contact_name_changed_not_in_roster_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  g_object_unref (romeo);
+  g_object_unref (mercutio);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -798,6 +946,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/roster-add-contact", test_roster_add_contact);
   g_test_add_func ("/xmpp-roster/roster-remove-contact",
       test_roster_remove_contact);
+  g_test_add_func ("/xmpp-roster/roster-change-name", test_roster_change_name);
 
   result = g_test_run ();
   test_deinit ();
