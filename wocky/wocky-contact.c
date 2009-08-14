@@ -388,19 +388,36 @@ wocky_contact_get_groups (WockyContact *contact)
 }
 
 static gint
-cmp_gchar (gchar *a,
-    gchar *b)
+cmp_str (gchar **a,
+    gchar **b)
 {
-  return *a - *b;
+  return strcmp (*a, *b);
+}
+
+static GPtrArray *
+sort_groups (GStrv groups)
+{
+  GPtrArray *arr;
+  guint i;
+
+  arr = g_ptr_array_sized_new (g_strv_length (groups));
+  for (i = 0; groups[i] != NULL; i++)
+    {
+      g_ptr_array_add (arr, groups[i]);
+    }
+
+  g_ptr_array_sort (arr, (GCompareFunc) cmp_str);
+
+  return arr;
 }
 
 static gboolean
 groups_equal (const gchar * const * groups_a,
   const gchar * const * groups_b)
 {
-  gchar *joined_a, *joined_b;
-  gboolean result;
-  GArray *arr_a, *arr_b;
+  GPtrArray *arr_a, *arr_b;
+  guint i;
+  gboolean result = TRUE;
 
   if (groups_a == NULL && groups_b == NULL)
     return TRUE;
@@ -411,25 +428,21 @@ groups_equal (const gchar * const * groups_a,
   if (g_strv_length ((GStrv) groups_a) != g_strv_length ((GStrv) groups_b))
     return FALSE;
 
-  /* check if groups are the same by concatenating them and sorting the result
-   * alphabetically */
-  joined_a = g_strjoinv ("/", (gchar **) groups_a);
-  joined_b = g_strjoinv ("/", (gchar **) groups_b);
+  /* Sort both groups array and then compare elements one by one */
+  arr_a = sort_groups ((GStrv) groups_a);
+  arr_b = sort_groups ((GStrv) groups_b);
 
-  arr_a = g_array_sized_new (TRUE, FALSE, sizeof (gchar), strlen (joined_a));
-  g_array_append_vals (arr_a, joined_a, strlen (joined_a));
-  arr_b = g_array_sized_new (TRUE, FALSE, sizeof (gchar), strlen (joined_b));
-  g_array_append_vals (arr_b, joined_b, strlen (joined_b));
+  for (i = 0; i != arr_a->len && result; i++)
+    {
+      const gchar *a = g_ptr_array_index (arr_a, i);
+      const gchar *b = g_ptr_array_index (arr_b, i);
 
-  g_array_sort (arr_a, (GCompareFunc) cmp_gchar);
-  g_array_sort (arr_b, (GCompareFunc) cmp_gchar);
+      if (wocky_strdiff (a, b))
+        result = FALSE;
+    }
 
-  result = !wocky_strdiff (arr_a->data, arr_b->data);
-
-  g_array_free (arr_a, TRUE);
-  g_array_free (arr_b, TRUE);
-  g_free (joined_a);
-  g_free (joined_b);
+  g_ptr_array_free (arr_a, TRUE);
+  g_ptr_array_free (arr_b, TRUE);
   return result;
 }
 
