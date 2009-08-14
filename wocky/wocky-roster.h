@@ -148,6 +148,17 @@ gboolean wocky_roster_contact_add_group_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error);
 
+void wocky_roster_contact_remove_group_async (WockyRoster *self,
+    WockyContact *contact,
+    const gchar *group,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_roster_contact_remove_group_finish (WockyRoster *self,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_ROSTER_H__*/
