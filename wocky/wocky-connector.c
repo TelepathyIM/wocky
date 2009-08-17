@@ -1080,8 +1080,6 @@ maybe_old_ssl (WockyConnector *self)
 
   if (priv->legacy_ssl && !priv->encrypted)
     {
-      GError *error;
-
       g_assert (priv->conn == NULL);
       g_assert (priv->sock != NULL);
 
@@ -1095,20 +1093,8 @@ maybe_old_ssl (WockyConnector *self)
         }
 
       DEBUG ("beginning SSL handshake");
-      priv->tls = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
-      DEBUG ("completed SSL handshake");
-
-      if (priv->tls == NULL)
-        {
-          abort_connect_error (self, &error, "SSL Handshake Error");
-          g_error_free (error);
-          return;
-        }
-
-      priv->encrypted = TRUE;
-      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
-
-      xmpp_init (self, FALSE);
+      wocky_tls_session_handshake_async (priv->tls_sess,
+          G_PRIORITY_DEFAULT, NULL, starttls_handshake_cb, self);
     }
   else
     {
