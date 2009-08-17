@@ -563,20 +563,19 @@ ack_iq (WockyPorter *porter,
 }
 
 /* Test adding a contact to the roster */
-static gboolean
-add_contact_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
-    gpointer user_data)
+static void
+check_add_contact_stanza (WockyXmppStanza *stanza,
+    const gchar *jid,
+    const gchar *name,
+    const gchar **groups)
 {
-  test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
   GSList *l;
-  gboolean group_friend = FALSE, group_badger = FALSE;
-  const gchar *groups[] = { "Friends", "Badger", NULL };
+  guint i;
+  GHashTable *expected_groups;
 
-  /* Make sure stanza is as expected. */
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
 
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
@@ -588,12 +587,17 @@ add_contact_send_iq_cb (WockyPorter *porter,
 
   node = wocky_xmpp_node_get_child (node, "item");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
-      "mercutio@example.net"));
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"), jid));
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
-      "Mercutio"));
+        name));
   g_assert (wocky_xmpp_node_get_attribute (node, "subscription") == NULL);
-  g_assert_cmpuint (g_slist_length (node->children), ==, 2);
+
+  expected_groups = g_hash_table_new (g_str_hash, g_str_equal);
+  for (i = 0; groups[i] != NULL; i++)
+    {
+      g_hash_table_insert (expected_groups, (gchar *) groups[i],
+          GUINT_TO_POINTER (TRUE));
+    }
 
   for (l = node->children; l != NULL; l = g_slist_next (l))
     {
@@ -601,14 +605,21 @@ add_contact_send_iq_cb (WockyPorter *porter,
 
       g_assert (!wocky_strdiff (group->name, "group"));
 
-      if (!wocky_strdiff (group->content, "Friends"))
-        group_friend = TRUE;
-      else if (!wocky_strdiff (group->content, "Badger"))
-        group_badger = TRUE;
-      else
-        g_assert_not_reached ();
+      g_assert (g_hash_table_remove (expected_groups, group->content));
     }
-  g_assert (group_friend && group_badger);
+  g_assert (g_hash_table_size (expected_groups) == 0);
+  g_hash_table_destroy (expected_groups);
+}
+
+static gboolean
+add_contact_send_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+
+  check_add_contact_stanza (stanza, "mercutio@example.net", "Mercutio", groups);
 
   send_roster_update (test, "mercutio@example.net", "Mercutio", "none", groups);
 
