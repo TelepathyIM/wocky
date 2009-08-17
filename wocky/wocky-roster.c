@@ -548,7 +548,7 @@ wocky_roster_get_all_contacts (WockyRoster *self)
   g_hash_table_iter_init (&iter, priv->items);
   while (g_hash_table_iter_next (&iter, NULL, &value))
     {
-      result = g_slist_prepend (result, value);
+      result = g_slist_prepend (result, g_object_ref (value));
     }
 
   return result;
