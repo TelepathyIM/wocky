@@ -244,6 +244,60 @@ test_remove_group (void)
   g_object_unref (c);
 }
 
+static void
+test_contact_copy (void)
+{
+  WockyContact *a, *copy;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+
+  /* Full contact */
+  a = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "name", "Romeo",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      "groups", groups,
+      NULL);
+
+  copy = wocky_contact_copy (a);
+  g_assert (wocky_contact_equal (a, copy));
+  g_object_unref (copy);
+  g_object_unref (a);
+
+  /* No name */
+  a = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      "groups", groups,
+      NULL);
+
+  copy = wocky_contact_copy (a);
+  g_assert (wocky_contact_equal (a, copy));
+  g_object_unref (copy);
+  g_object_unref (a);
+
+  /* No subscription */
+  a = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "groups", groups,
+      NULL);
+
+  copy = wocky_contact_copy (a);
+  g_assert (wocky_contact_equal (a, copy));
+  g_object_unref (copy);
+  g_object_unref (a);
+
+  /* No name */
+  a = g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", "romeo@example.net",
+      "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
+      NULL);
+
+  copy = wocky_contact_copy (a);
+  g_assert (wocky_contact_equal (a, copy));
+  g_object_unref (copy);
+  g_object_unref (a);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -255,6 +309,7 @@ main (int argc, char **argv)
   g_test_add_func ("/contact/add-group", test_add_group);
   g_test_add_func ("/contact/in-group", test_in_group);
   g_test_add_func ("/contact/remove-group", test_remove_group);
+  g_test_add_func ("/contact/contact-copy", test_contact_copy);
 
   result = g_test_run ();
   test_deinit ();
