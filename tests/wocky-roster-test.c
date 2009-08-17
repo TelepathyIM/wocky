@@ -1261,15 +1261,19 @@ main (int argc, char **argv)
 
   test_init (argc, argv);
 
+  /* basic */
   g_test_add_func ("/xmpp-roster/instantiation", test_instantiation);
+  /* roster fetching */
   g_test_add_func ("/xmpp-roster/fetch-roster-send-iq",
       test_fetch_roster_send_iq);
   g_test_add_func ("/xmpp-roster/fetch-roster-reply", test_fetch_roster_reply);
+  /* receive upgrade from server */
   g_test_add_func ("/xmpp-roster/roster-upgrade-add", test_roster_upgrade_add);
   g_test_add_func ("/xmpp-roster/roster-upgrade-remove",
       test_roster_upgrade_remove);
   g_test_add_func ("/xmpp-roster/roster-upgrade-change",
       test_roster_upgrade_change);
+  /* edit roster */
   g_test_add_func ("/xmpp-roster/roster-add-contact", test_roster_add_contact);
   g_test_add_func ("/xmpp-roster/roster-remove-contact",
       test_roster_remove_contact);
