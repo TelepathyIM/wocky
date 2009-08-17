@@ -518,7 +518,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
   g_assert (result != GNUTLS_E_AGAIN);
   session->cancellable = NULL;
 
-  DEBUG ("SYNC JOB HANDSHAKE: %d %s", result, error_to_string(result));
+  DEBUG ("SYNC JOB HANDSHAKE: %d %s", result, error_to_string (result));
 
   if (session->error)
     {

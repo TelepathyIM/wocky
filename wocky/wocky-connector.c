@@ -1420,7 +1420,7 @@ starttls_handshake_cb (GObject *source,
 
   priv->encrypted = TRUE;
   /* throw away the old connection object, we're in TLS land now */
-  if (priv->conn)
+  if (priv->conn != NULL)
     g_object_unref (priv->conn);
   priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
 
