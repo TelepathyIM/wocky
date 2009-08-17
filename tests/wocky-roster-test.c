@@ -199,6 +199,7 @@ fetch_roster_reply_roster_cb (GObject *source_object,
   g_assert (g_slist_find_custom (contacts, juliet, find_contact) != NULL);
   g_object_unref (juliet);
 
+  g_slist_foreach (contacts, (GFunc) g_object_unref, NULL);
   g_slist_free (contacts);
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -325,6 +326,7 @@ roster_added_cb (WockyRoster *roster,
   g_assert (g_slist_find_custom (contacts, nurse, (GCompareFunc) find_contact));
 
   g_object_unref (nurse);
+  g_slist_foreach (contacts, (GFunc) g_object_unref, NULL);
   g_slist_free (contacts);
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -439,6 +441,7 @@ roster_removed_cb (WockyRoster *roster,
       == NULL);
 
   g_object_unref (romeo);
+  g_slist_foreach (contacts, (GFunc) g_object_unref, NULL);
   g_slist_free (contacts);
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -500,6 +503,7 @@ test_roster_upgrade_change (void)
       g_signal_connect (l->data, "notify", G_CALLBACK (contact_notify_cb),
           test);
     }
+  g_slist_foreach (contacts, (GFunc) g_object_unref, NULL);
   g_slist_free (contacts);
 
   /* change name */
