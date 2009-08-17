@@ -542,6 +542,26 @@ test_roster_upgrade_change (void)
   teardown_test (test);
 }
 
+static void
+ack_iq (WockyPorter *porter,
+    WockyXmppStanza *stanza)
+{
+  WockyXmppStanza *reply;
+  const gchar *id;
+
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  g_assert (id != NULL);
+
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE_ATTRIBUTE, "id", id,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+}
+
 /* Test adding a contact to the roster */
 static gboolean
 add_contact_send_iq_cb (WockyPorter *porter,
@@ -554,8 +574,6 @@ add_contact_send_iq_cb (WockyPorter *porter,
   WockyXmppNode *node;
   GSList *l;
   gboolean group_friend = FALSE, group_badger = FALSE;
-  const gchar *id;
-  WockyXmppStanza *reply;
   const gchar *groups[] = { "Friends", "Badger", NULL };
 
   /* Make sure stanza is as expected. */
@@ -595,17 +613,7 @@ add_contact_send_iq_cb (WockyPorter *porter,
   send_roster_update (test, "mercutio@example.net", "Mercutio", "none", groups);
 
   /* Ack the IQ */
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  g_assert (id != NULL);
-
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_RESULT,
-      NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_STANZA_END);
-
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  ack_iq (porter, stanza);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -694,8 +702,6 @@ remove_contact_send_iq_cb (WockyPorter *porter,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
-  const gchar *id;
-  WockyXmppStanza *reply;
   const gchar *no_group[] = { NULL };
 
   /* Make sure stanza is as expected. */
@@ -719,17 +725,7 @@ remove_contact_send_iq_cb (WockyPorter *porter,
   send_roster_update (test, "romeo@example.net", NULL, "remove", no_group);
 
   /* Ack the IQ */
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  g_assert (id != NULL);
-
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_RESULT,
-      NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_STANZA_END);
-
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  ack_iq (porter, stanza);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -809,8 +805,6 @@ change_name_send_iq_cb (WockyPorter *porter,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
-  const gchar *id;
-  WockyXmppStanza *reply;
   const gchar *group[] = { "Friends", NULL };
 
   /* Make sure stanza is as expected. */
@@ -840,17 +834,7 @@ change_name_send_iq_cb (WockyPorter *porter,
   send_roster_update (test, "romeo@example.net", "Badger", "both", group);
 
   /* Ack the IQ */
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  g_assert (id != NULL);
-
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_RESULT,
-      NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_STANZA_END);
-
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  ack_iq (porter, stanza);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -957,8 +941,6 @@ add_group_send_iq_cb (WockyPorter *porter,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
-  const gchar *id;
-  WockyXmppStanza *reply;
   const gchar *groups[] = { "Friends", "Badger", NULL };
   GSList *l;
   gboolean group_friend = FALSE, group_badger = FALSE;
@@ -1001,17 +983,7 @@ add_group_send_iq_cb (WockyPorter *porter,
   send_roster_update (test, "romeo@example.net", "Romeo", "both", groups);
 
   /* Ack the IQ */
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  g_assert (id != NULL);
-
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_RESULT,
-      NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_STANZA_END);
-
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  ack_iq (porter, stanza);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -1118,8 +1090,6 @@ remove_group_send_iq_cb (WockyPorter *porter,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
-  const gchar *id;
-  WockyXmppStanza *reply;
   const gchar *groups[] = { NULL };
 
   /* Make sure stanza is as expected. */
@@ -1146,17 +1116,7 @@ remove_group_send_iq_cb (WockyPorter *porter,
   send_roster_update (test, "romeo@example.net", "Romeo", "both", groups);
 
   /* Ack the IQ */
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  g_assert (id != NULL);
-
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_RESULT,
-      NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_STANZA_END);
-
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  ack_iq (porter, stanza);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
