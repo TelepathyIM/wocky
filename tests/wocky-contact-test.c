@@ -83,7 +83,7 @@ test_contact_equal (void)
   g_assert (wocky_contact_equal (g, g));
   g_assert (!wocky_contact_equal (a, g));
 
-  /* regression test: used to fail with old group comparaison algorithm */
+  /* regression test: used to fail with old group comparison algorithm */
   h = g_object_new (WOCKY_TYPE_CONTACT,
       "jid", "romeo@example.net",
       "groups", groups4,
