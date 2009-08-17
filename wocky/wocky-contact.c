@@ -591,3 +591,14 @@ wocky_contact_remove_group (WockyContact *self,
 
   priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
 }
+
+WockyContact *
+wocky_contact_copy (WockyContact *contact)
+{
+  return g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", wocky_contact_get_jid (contact),
+      "name", wocky_contact_get_name (contact),
+      "subscription", wocky_contact_get_subscription (contact),
+      "groups", wocky_contact_get_groups (contact),
+      NULL);
+}
