@@ -692,17 +692,13 @@ test_roster_add_contact (void)
   teardown_test (test);
 }
 
-/* Test removing a contact from the roster */
-static gboolean
-remove_contact_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
-    gpointer user_data)
+static void
+check_remove_contact_stanza (WockyXmppStanza *stanza,
+    const gchar *jid)
 {
-  test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
-  const gchar *no_group[] = { NULL };
 
   /* Make sure stanza is as expected. */
   wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
@@ -717,10 +713,23 @@ remove_contact_send_iq_cb (WockyPorter *porter,
   node = wocky_xmpp_node_get_child (node, "item");
   g_assert (node != NULL);
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
-      "romeo@example.net"));
+      jid));
+  g_assert (wocky_xmpp_node_get_attribute (node, "name") == NULL);
 
   /* item node is not supposed to have any child */
   g_assert_cmpuint (g_slist_length (node->children), == , 0);
+}
+
+/* Test removing a contact from the roster */
+static gboolean
+remove_contact_send_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  const gchar *no_group[] = { NULL };
+
+  check_remove_contact_stanza (stanza, "romeo@example.net");
 
   send_roster_update (test, "romeo@example.net", NULL, "remove", no_group);
 
