@@ -1408,6 +1408,104 @@ test_remove_contact_edit (void)
   teardown_test (test);
 }
 
+/* Queue some edit operations on the same contact */
+static void
+test_multi_contact_edit (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact, *romeo;
+  const gchar *groups[] = { "Friends", NULL };
+  const gchar *groups_changed[] = { "Friends", "School", "Hacker", NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+
+  romeo = create_romeo ();
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      iq_set_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  /* Change's Romeo's name */
+  wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
+      contact_name_changed_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+  g_assert (received_iq != NULL);
+  /* The IQ has been sent but the server didn't send the upgrade and the reply
+   * yet */
+
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  check_edit_roster_stanza (received_iq, "romeo@example.net", "Badger", "both",
+      groups);
+
+  /* Try to re-change the name of the contact */
+  wocky_roster_change_contact_name_async (roster, contact, "Snake", NULL,
+      contact_name_changed_cb, test);
+
+  /* Add two groups */
+  wocky_roster_contact_add_group_async (roster, contact, "Hacker", NULL,
+      contact_group_added_cb, test);
+  wocky_roster_contact_add_group_async (roster, contact, "School", NULL,
+      contact_group_added_cb, test);
+
+  /* Now the server sends the roster upgrade and reply to the remove IQ */
+  send_roster_update (test, "romeo@example.net", "Badger", "both", groups);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for:
+   * - completion of the first change_name operation
+   * - server receives the second edit IQ
+   */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* At this point, the contact has still his initial name */
+  wocky_contact_set_name (romeo, "Badger");
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  check_edit_roster_stanza (received_iq, "romeo@example.net", "Snake", "both",
+      groups_changed);
+
+  /* Now the server send the roster upgrade and reply to the add IQ */
+  send_roster_update (test, "romeo@example.net", "Snake", "both",
+      groups_changed);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for completion of:
+   * - the second change_name
+   * - the first add_group
+   * - the second agg_group */
+  test->outstanding += 3;
+  test_wait_pending (test);
+
+  /* Check that the contact is back */
+  wocky_contact_set_name (romeo, "Snake");
+  wocky_contact_set_groups (romeo, (gchar **) groups_changed);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  g_object_unref (romeo);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1440,6 +1538,7 @@ main (int argc, char **argv)
       test_remove_contact_re_add);
   g_test_add_func ("/xmpp-roster/remove-contact-edit",
       test_remove_contact_edit);
+  g_test_add_func ("/xmpp-roster/multi-contact-edit", test_multi_contact_edit);
 
   result = g_test_run ();
   test_deinit ();
