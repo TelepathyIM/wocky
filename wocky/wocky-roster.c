@@ -769,8 +769,19 @@ build_iq_for_pending (WockyRoster *self,
     {
       if (!pending->add_contact)
         {
+          GSList *l;
+
           DEBUG ("contact is not in the roster any more");
-          /* TODO: set error on waiting operations */
+
+          for (l = pending->waiting_operations; l != NULL; l = g_slist_next (l))
+            {
+              GSimpleAsyncResult *result = (GSimpleAsyncResult *) l->data;
+
+              g_simple_async_result_set_error (result, WOCKY_ROSTER_ERROR,
+                  WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
+                  "Contact %s is not in the roster any more", pending->jid);
+            }
+
           return NULL;
         }
 
