@@ -1414,18 +1414,18 @@ test_multi_contact_edit (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo;
-  const gchar *groups[] = { "Friends", NULL };
-  const gchar *groups_changed[] = { "Friends", "School", NULL };
+  WockyContact *contact, *juliet;
+  const gchar *groups[] = { "Friends", "Girlz", NULL };
+  const gchar *groups_changed[] = { "Friends", "Girlz", "School", NULL };
 
   test_open_both_connections (test);
 
   roster = create_initial_roster (test);
 
-  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  contact = wocky_roster_get_contact (roster, "juliet@example.net");
   g_assert (contact != NULL);
 
-  romeo = create_romeo ();
+  juliet = create_juliet ();
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -1446,9 +1446,9 @@ test_multi_contact_edit (void)
   /* The IQ has been sent but the server didn't send the upgrade and the reply
    * yet */
 
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_contact_equal (contact, juliet));
 
-  check_edit_roster_stanza (received_iq, "romeo@example.net", "Badger", "both",
+  check_edit_roster_stanza (received_iq, "juliet@example.net", "Badger", "to",
       groups);
 
   /* Try to re-change the name of the contact */
@@ -1466,7 +1466,7 @@ test_multi_contact_edit (void)
       contact_group_removed_cb, test);
 
   /* Now the server sends the roster upgrade and reply to the remove IQ */
-  send_roster_update (test, "romeo@example.net", "Badger", "both", groups);
+  send_roster_update (test, "juliet@example.net", "Badger", "to", groups);
   ack_iq (test->sched_out, received_iq);
   g_object_unref (received_iq);
   received_iq = NULL;
@@ -1479,14 +1479,14 @@ test_multi_contact_edit (void)
   test_wait_pending (test);
 
   /* At this point, the contact has still his initial name */
-  wocky_contact_set_name (romeo, "Badger");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_contact_set_name (juliet, "Badger");
+  g_assert (wocky_contact_equal (contact, juliet));
 
-  check_edit_roster_stanza (received_iq, "romeo@example.net", "Snake", "both",
+  check_edit_roster_stanza (received_iq, "juliet@example.net", "Snake", "to",
       groups_changed);
 
   /* Now the server send the roster upgrade and reply to the add IQ */
-  send_roster_update (test, "romeo@example.net", "Snake", "both",
+  send_roster_update (test, "juliet@example.net", "Snake", "to",
       groups_changed);
   ack_iq (test->sched_out, received_iq);
   g_object_unref (received_iq);
@@ -1502,13 +1502,13 @@ test_multi_contact_edit (void)
   test_wait_pending (test);
 
   /* Check that the contact is back */
-  wocky_contact_set_name (romeo, "Snake");
-  wocky_contact_set_groups (romeo, (gchar **) groups_changed);
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_contact_set_name (juliet, "Snake");
+  wocky_contact_set_groups (juliet, (gchar **) groups_changed);
+  g_assert (wocky_contact_equal (contact, juliet));
 
   test_close_both_porters (test);
   g_object_unref (roster);
-  g_object_unref (romeo);
+  g_object_unref (juliet);
   teardown_test (test);
 }
 
