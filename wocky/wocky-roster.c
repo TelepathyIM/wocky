@@ -66,6 +66,8 @@ typedef struct
   GHashTable *groups_to_remove;
   /* TRUE if a 'add' operation is waiting */
   gboolean add_contact;
+  /* TRUE if a 'remove' operation is waiting */
+  gboolean remove_contact;
 
   /* List of GSimpleAsyncResult that will be completed once the changes stored
    * in this PendingOperation structure will have be completed */
@@ -152,6 +154,20 @@ pending_operation_remove_group (PendingOperation *pending,
   g_hash_table_insert (pending->groups_to_remove, g_strdup (group),
       GUINT_TO_POINTER (TRUE));
   g_hash_table_remove (pending->groups_to_add, group);
+}
+
+static void
+pending_operation_set_add (PendingOperation *pending)
+{
+  pending->add_contact = TRUE;
+  pending->remove_contact = FALSE;
+}
+
+static void
+pending_operation_set_remove (PendingOperation *pending)
+{
+  pending->add_contact = FALSE;
+  pending->remove_contact = TRUE;
 }
 
 static void
@@ -776,6 +792,21 @@ build_iq_for_contact (WockyContact *contact,
 }
 
 static WockyXmppStanza *
+build_remove_contact_iq (WockyContact *contact)
+{
+  return wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+        WOCKY_NODE, "query",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+          WOCKY_NODE, "item",
+            WOCKY_NODE_ATTRIBUTE, "jid", wocky_contact_get_jid (contact),
+            WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+}
+
+static WockyXmppStanza *
 build_iq_for_pending (WockyRoster *self,
     PendingOperation *pending)
 {
@@ -789,11 +820,16 @@ build_iq_for_pending (WockyRoster *self,
 
   if (pending->new_name == NULL &&
       g_hash_table_size (pending->groups_to_add) == 0 &&
-      g_hash_table_size (pending->groups_to_remove) == 0)
+      g_hash_table_size (pending->groups_to_remove) == 0 &&
+      !pending->add_contact &&
+      !pending->remove_contact)
     {
       /* Nothing to change */
       return NULL;
     }
+
+  /* There is no sense to try to add and remove a contact at the same time */
+  g_assert (!pending->add_contact || !pending->remove_contact);
 
   if (contact == NULL)
     {
@@ -814,6 +850,11 @@ build_iq_for_pending (WockyRoster *self,
 
           return NULL;
         }
+      else if (pending->remove_contact)
+        {
+          DEBUG ("Contact %s was already removed", pending->jid);
+          return NULL;
+        }
 
       tmp = g_object_new (WOCKY_TYPE_CONTACT,
           "jid", pending->jid,
@@ -821,6 +862,12 @@ build_iq_for_pending (WockyRoster *self,
     }
   else
     {
+      if (pending->remove_contact)
+        {
+          DEBUG ("Remove contact %s", pending->jid);
+          return build_remove_contact_iq (contact);
+        }
+
       tmp = wocky_contact_copy (contact);
     }
 
@@ -1001,7 +1048,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
       pending_operation_set_new_name (pending, name);
       pending_operation_set_groups (pending, (GStrv) groups);
       pending_operation_add_waiting_operation (pending, result);
-      pending->add_contact = TRUE;
+      pending_operation_set_add (pending);
       return;
     }
 
@@ -1084,17 +1131,18 @@ wocky_roster_remove_contact_async (WockyRoster *self,
   g_return_if_fail (contact != NULL);
   jid = wocky_contact_get_jid (contact);
 
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_remove_contact_finish);
+
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
     {
       DEBUG ("Another operation is pending for contact %s; queuing this one",
           jid);
-      /* TODO */
+      pending_operation_set_remove (pending);
+      pending_operation_add_waiting_operation (pending, result);
       return;
     }
-
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_remove_contact_finish);
 
   if (!contact_in_roster (self, contact))
     {
@@ -1107,16 +1155,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
 
   pending = add_pending_operation (self, jid, result);
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-        WOCKY_NODE, "query",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-          WOCKY_NODE, "item",
-            WOCKY_NODE_ATTRIBUTE, "jid", wocky_contact_get_jid (contact),
-            WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  iq = build_remove_contact_iq (contact);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, pending);
