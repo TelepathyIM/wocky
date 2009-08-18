@@ -1416,7 +1416,7 @@ test_multi_contact_edit (void)
   test_data_t *test = setup_test ();
   WockyContact *contact, *romeo;
   const gchar *groups[] = { "Friends", NULL };
-  const gchar *groups_changed[] = { "Friends", "School", "Hacker", NULL };
+  const gchar *groups_changed[] = { "Friends", "School", NULL };
 
   test_open_both_connections (test);
 
@@ -1461,6 +1461,10 @@ test_multi_contact_edit (void)
   wocky_roster_contact_add_group_async (roster, contact, "School", NULL,
       contact_group_added_cb, test);
 
+  /* Remove a group we just added */
+  wocky_roster_contact_remove_group_async (roster, contact, "Hacker", NULL,
+      contact_group_removed_cb, test);
+
   /* Now the server sends the roster upgrade and reply to the remove IQ */
   send_roster_update (test, "romeo@example.net", "Badger", "both", groups);
   ack_iq (test->sched_out, received_iq);
@@ -1491,8 +1495,10 @@ test_multi_contact_edit (void)
   /* Wait for completion of:
    * - the second change_name
    * - the first add_group
-   * - the second agg_group */
-  test->outstanding += 3;
+   * - the second add_group
+   * - the remove_group
+   */
+  test->outstanding += 4;
   test_wait_pending (test);
 
   /* Check that the contact is back */
