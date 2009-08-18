@@ -826,7 +826,14 @@ static void
 waiting_operations_completed (WockyRoster *self,
     PendingOperation *pending)
 {
-  /* TODO */
+  GSList *l;
+
+  for (l = pending->waiting_operations; l != NULL; l = g_slist_next (l))
+    {
+      GSimpleAsyncResult *result = (GSimpleAsyncResult *) l->data;
+
+      g_simple_async_result_complete (result);
+    }
 }
 
 static void
