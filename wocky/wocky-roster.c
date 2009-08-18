@@ -45,6 +45,109 @@
 
 G_DEFINE_TYPE (WockyRoster, wocky_roster, G_TYPE_OBJECT)
 
+typedef struct
+{
+  WockyRoster *self;
+
+  /* The result of the already-sent operation */
+  /* List of GSimpleAsyncResult to which an IQ has been sent to the server and
+   * that will be completed once we receive the reply of this IQ. */
+  GSList *flying_operations;
+
+  gchar *jid;
+
+  /* The future name of the contact, or NULL to not change it */
+  gchar *new_name;
+  /* The groups to add to the contact, or NULL if any */
+  GStrv groups_to_add;
+  /* The groups to remove from the contact, or NULL if any */
+  GStrv groups_to_remove;
+  /* TRUE if a 'add' operation is waiting */
+  gboolean add_contact;
+
+  /* List of GSimpleAsyncResult that will be completed once the changes stored
+   * in this PendingOperation structure will have be completed */
+  GSList *waiting_operations;
+} PendingOperation;
+
+static PendingOperation *
+pending_operation_new (WockyRoster *self,
+    GSimpleAsyncResult *result,
+    const gchar *jid)
+{
+  PendingOperation *pending = g_slice_new0 (PendingOperation);
+
+  g_assert (self != NULL);
+  g_assert (result != NULL);
+  g_assert (jid != NULL);
+
+  pending->self = g_object_ref (self);
+  pending->flying_operations = g_slist_append (pending->flying_operations,
+      result);
+  pending->jid = g_strdup (jid);
+
+  return pending;
+}
+
+static void
+pending_operation_free (PendingOperation *pending)
+{
+  g_object_unref (pending->self);
+  g_free (pending->new_name);
+  g_free (pending->jid);
+
+  g_slist_foreach (pending->flying_operations, (GFunc) g_object_unref, NULL);
+  g_slist_free (pending->flying_operations);
+  g_slist_foreach (pending->waiting_operations, (GFunc) g_object_unref, NULL);
+  g_slist_free (pending->waiting_operations);
+
+  g_strfreev (pending->groups_to_add);
+  g_strfreev (pending->groups_to_remove);
+
+  g_slice_free (PendingOperation, pending);
+}
+
+static void
+pending_operation_set_new_name (PendingOperation *pending,
+    const gchar *name)
+{
+  g_free (pending->new_name);
+  pending->new_name = g_strdup (name);
+}
+
+static void
+pending_operation_set_groups (PendingOperation *pending,
+    GStrv groups)
+{
+  g_strfreev (pending->groups_to_add);
+  g_strfreev (pending->groups_to_remove);
+
+  pending->groups_to_add = g_strdupv (groups);
+  pending->groups_to_remove = NULL;
+}
+
+static void
+pending_operation_add_waiting_operation (PendingOperation *pending,
+    GSimpleAsyncResult *result)
+{
+  pending->waiting_operations = g_slist_append (pending->waiting_operations,
+      result);
+}
+
+/* Called when the flying operations have been completed and the IQ to complete
+ * the waiting operations has been sent. */
+static void
+pending_operation_reset (PendingOperation *pending)
+{
+  /* Free old flying operations */
+  g_slist_foreach (pending->flying_operations, (GFunc) g_object_unref, NULL);
+  g_slist_free (pending->flying_operations);
+
+  /* Previously waiting operations are now flying */
+  pending->flying_operations = pending->waiting_operations;
+  pending->waiting_operations = NULL;
+}
+
 /* properties */
 enum
 {
@@ -70,6 +173,12 @@ struct _WockyRosterPrivate
   /* owned (gchar *) => reffed (WockyContact *) */
   GHashTable *items;
   guint iq_cb;
+
+  /* owned (gchar *) => owned (PendingOperation *)
+   * When an edit attemps is "in-flight", we store a PendingOperation * in
+   * this hash table which will be used to store required edits until the one
+   * we already sent is acknowledged. This prevents some race conditions. */
+  GHashTable *pending_operations;
 
   GSimpleAsyncResult *fetch_result;
 
@@ -97,6 +206,10 @@ wocky_roster_error_quark (void)
 
   return quark;
 }
+
+static void change_roster_iq_cb (GObject *source_object,
+    GAsyncResult *send_iq_res,
+    gpointer user_data);
 
 static void
 wocky_roster_init (WockyRoster *obj)
@@ -375,6 +488,9 @@ wocky_roster_constructed (GObject *object)
   priv->items = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, g_object_unref);
 
+  priv->pending_operations = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, (GDestroyNotify) pending_operation_free);
+
   priv->iq_cb = wocky_porter_register_handler (priv->porter,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_set_cb, self,
@@ -414,6 +530,7 @@ wocky_roster_finalize (GObject *object)
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
 
   g_hash_table_destroy (priv->items);
+  g_hash_table_destroy (priv->pending_operations);
 
   G_OBJECT_CLASS (wocky_roster_parent_class)->finalize (object);
 }
@@ -573,43 +690,6 @@ wocky_roster_get_all_contacts (WockyRoster *self)
   return result;
 }
 
-static void
-change_roster_iq_cb (GObject *source_object,
-    GAsyncResult *send_iq_res,
-    gpointer user_data)
-{
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyXmppStanza *reply;
-  GError *error = NULL;
-
-  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object),
-      send_iq_res, &error);
-  if (reply == NULL)
-    goto out;
-
-  error = wocky_xmpp_stanza_to_gerror (reply);
-
-  /* According to the XMPP RFC, the server has to send a roster upgrade to
-   * each client (including the one which requested the change) before
-   * replying to the 'set' stanza. We upgraded our list of contacts when this
-   * notification has been received.
-   * FIXME: Should we check if this upgrade has actually be received and raise
-   * en error if it has not? */
-
-out:
-  if (error != NULL)
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-    }
-
-  if (reply != NULL)
-    g_object_unref (reply);
-
-  g_simple_async_result_complete (result);
-  g_object_unref (result);
-}
-
 /* Build an IQ set stanza containing the current state of the contact.
  * If not NULL, item_node will contain a pointer on the "item" node */
 static WockyXmppStanza *
@@ -653,7 +733,7 @@ build_iq_for_contact (WockyContact *contact,
     }
 
   groups = wocky_contact_get_groups (contact);
-  for (i = 0; groups[i] != NULL; i++)
+  for (i = 0; groups != NULL && groups[i] != NULL; i++)
     {
       WockyXmppNode *group;
 
@@ -665,6 +745,184 @@ build_iq_for_contact (WockyContact *contact,
     *item_node = item;
 
   return iq;
+}
+
+static WockyXmppStanza *
+build_iq_for_pending (WockyRoster *self,
+    PendingOperation *pending)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyContact *contact, *tmp;
+  guint i;
+  WockyXmppStanza *iq;
+
+  contact = g_hash_table_lookup (priv->items, pending->jid);
+
+  if (pending->new_name == NULL && pending->groups_to_add == NULL &&
+      pending->groups_to_remove == NULL)
+    {
+      /* Nothing to change */
+      return NULL;
+    }
+
+  if (contact == NULL)
+    {
+      if (!pending->add_contact)
+        {
+          DEBUG ("contact is not in the roster any more");
+          /* TODO: set error on waiting operations */
+          return NULL;
+        }
+
+      tmp = g_object_new (WOCKY_TYPE_CONTACT,
+          "jid", pending->jid,
+          NULL);
+    }
+  else
+    {
+      tmp = wocky_contact_copy (contact);
+    }
+
+  if (pending->new_name != NULL)
+    wocky_contact_set_name (tmp, pending->new_name);
+
+  for (i = 0; pending->groups_to_add != NULL &&
+      pending->groups_to_add[i] != NULL; i++)
+    {
+      wocky_contact_add_group (tmp, pending->groups_to_add[i]);
+    }
+
+  for (i = 0; pending->groups_to_remove != NULL &&
+      pending->groups_to_remove[i] != NULL; i++)
+    {
+      wocky_contact_remove_group (tmp, pending->groups_to_remove[i]);
+    }
+
+  if (wocky_contact_equal (contact, tmp))
+    {
+      DEBUG ("No change needed");
+      g_object_unref (tmp);
+      return NULL;
+    }
+
+  iq = build_iq_for_contact (tmp, NULL);
+  g_object_unref (tmp);
+
+  return iq;
+}
+
+static void
+waiting_operations_completed (WockyRoster *self,
+    PendingOperation *pending)
+{
+  /* TODO */
+}
+
+static void
+flying_operation_completed (PendingOperation *pending,
+    GError *error)
+{
+  WockyRoster *self = pending->self;
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyXmppStanza *iq;
+  GSList *l;
+
+  /* Flying operations are completed */
+  for (l = pending->flying_operations; l != NULL; l = g_slist_next (l))
+    {
+      GSimpleAsyncResult *result = (GSimpleAsyncResult *) l->data;
+
+      if (error != NULL)
+        g_simple_async_result_set_from_error (result, error);
+
+      g_simple_async_result_complete (result);
+    }
+
+  if (g_slist_length (pending->waiting_operations) == 0)
+    {
+      /* No waiting operation, we are done */
+      DEBUG ("No waiting operations");
+      g_hash_table_remove (priv->pending_operations, pending->jid);
+      return;
+    }
+
+  iq = build_iq_for_pending (self, pending);
+  if (iq == NULL)
+    {
+      /* No need to send an IQ; complete waiting operations right now */
+      DEBUG ("No need to send an IQ; complete waiting operations");
+      waiting_operations_completed (self, pending);
+      g_hash_table_remove (priv->pending_operations, pending->jid);
+      return;
+    }
+
+  pending_operation_reset (pending);
+
+  wocky_porter_send_iq_async (priv->porter,
+      iq, NULL, change_roster_iq_cb, pending);
+
+  g_object_unref (iq);
+}
+
+static void
+change_roster_iq_cb (GObject *source_object,
+    GAsyncResult *send_iq_res,
+    gpointer user_data)
+{
+  PendingOperation *pending = (PendingOperation *) user_data;
+  WockyXmppStanza *reply;
+  GError *error = NULL;
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object),
+      send_iq_res, &error);
+  if (reply == NULL)
+    goto out;
+
+  error = wocky_xmpp_stanza_to_gerror (reply);
+
+  /* According to the XMPP RFC, the server has to send a roster upgrade to
+   * each client (including the one which requested the change) before
+   * replying to the 'set' stanza. We upgraded our list of contacts when this
+   * notification has been received.
+   * FIXME: Should we check if this upgrade has actually be received and raise
+   * en error if it has not? */
+
+out:
+  if (reply != NULL)
+    g_object_unref (reply);
+
+  flying_operation_completed (pending, error);
+
+  if (error != NULL)
+    g_error_free (error);
+}
+
+static PendingOperation *
+get_pending_operation (WockyRoster *self,
+    const gchar *jid)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+
+  DEBUG ("Look for pending operation with contact %s", jid);
+  return g_hash_table_lookup (priv->pending_operations, jid);
+}
+
+/* Creates a new PendingOperation structure and associates it with the given
+ * jid. This function is used when starting a edit operation while there is no
+ * flying operation with this contact atm. The PendingOperation won't contain
+ * any information as this operation is going to be sent right away and so
+ * doesn't have to be queued. */
+static PendingOperation *
+add_pending_operation (WockyRoster *self,
+    const gchar *jid,
+    GSimpleAsyncResult *result)
+{
+  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  PendingOperation *pending = pending_operation_new (self, result, jid);
+
+  DEBUG ("Add pending operation for %s", jid);
+  g_hash_table_insert (priv->pending_operations, g_strdup (jid), pending);
+  return pending;
 }
 
 void
@@ -680,11 +938,24 @@ wocky_roster_add_contact_async (WockyRoster *self,
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
   WockyContact *contact;
+  PendingOperation *pending;
 
   g_return_if_fail (jid != NULL);
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_add_contact_finish);
+
+  pending = get_pending_operation (self, jid);
+  if (pending != NULL)
+    {
+      DEBUG ("Another operation is pending for contact %s; queuing this one",
+          jid);
+      pending_operation_set_new_name (pending, name);
+      pending_operation_set_groups (pending, (GStrv) groups);
+      pending_operation_add_waiting_operation (pending, result);
+      pending->add_contact = TRUE;
+      return;
+    }
 
   if (g_hash_table_lookup (priv->items, jid) != NULL)
     {
@@ -693,6 +964,8 @@ wocky_roster_add_contact_async (WockyRoster *self,
       g_object_unref (result);
       return;
     }
+
+  pending = add_pending_operation (self, jid, result);
 
   contact = g_object_new (WOCKY_TYPE_CONTACT,
       "jid", jid,
@@ -707,7 +980,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
   iq = build_iq_for_contact (contact, NULL);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, change_roster_iq_cb, result);
+      iq, cancellable, change_roster_iq_cb, pending);
 
   /* A new contact object will be created and added when we'll receive the
    * server push notification. */
@@ -757,8 +1030,20 @@ wocky_roster_remove_contact_async (WockyRoster *self,
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
+  PendingOperation *pending;
+  const gchar *jid;
 
   g_return_if_fail (contact != NULL);
+  jid = wocky_contact_get_jid (contact);
+
+  pending = get_pending_operation (self, jid);
+  if (pending != NULL)
+    {
+      DEBUG ("Another operation is pending for contact %s; queuing this one",
+          jid);
+      /* TODO */
+      return;
+    }
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_remove_contact_finish);
@@ -772,6 +1057,8 @@ wocky_roster_remove_contact_async (WockyRoster *self,
       return;
     }
 
+  pending = add_pending_operation (self, jid, result);
+
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
         WOCKY_NODE, "query",
@@ -784,7 +1071,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
       WOCKY_STANZA_END);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, change_roster_iq_cb, result);
+      iq, cancellable, change_roster_iq_cb, pending);
 
   g_object_unref (iq);
 }
@@ -816,8 +1103,20 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
   WockyXmppStanza *iq;
   WockyXmppNode *item;
   GSimpleAsyncResult *result;
+  PendingOperation *pending;
+  const gchar *jid;
 
   g_return_if_fail (contact != NULL);
+  jid = wocky_contact_get_jid (contact);
+
+  pending = get_pending_operation (self, jid);
+  if (pending != NULL)
+    {
+      DEBUG ("Another operation is pending for contact %s; queuing this one",
+          jid);
+      /* TODO */
+      return;
+    }
 
   if (!contact_in_roster (self, contact))
     {
@@ -838,13 +1137,15 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
       return;
     }
 
+  pending = add_pending_operation (self, jid, result);
+
   iq = build_iq_for_contact (contact, &item);
 
   /* set new name */
   wocky_xmpp_node_set_attribute (item, "name", name);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, change_roster_iq_cb, result);
+      iq, cancellable, change_roster_iq_cb, pending);
 
   g_object_unref (iq);
 }
@@ -877,14 +1178,26 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
   WockyXmppStanza *iq;
   WockyXmppNode *item, *group_node;
   GSimpleAsyncResult *result;
+  PendingOperation *pending;
+  const gchar *jid;
 
   g_return_if_fail (contact != NULL);
+  jid = wocky_contact_get_jid (contact);
+
+  pending = get_pending_operation (self, jid);
+  if (pending != NULL)
+    {
+      DEBUG ("Another operation is pending for contact %s; queuing this one",
+          jid);
+      /* TODO */
+      return;
+    }
 
   if (!contact_in_roster (self, contact))
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
-          "Contact %s is not in the roster", wocky_contact_get_jid (contact));
+          "Contact %s is not in the roster", jid);
       return;
     }
 
@@ -900,6 +1213,8 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
       return;
     }
 
+  pending = add_pending_operation (self, jid, result);
+
   iq = build_iq_for_contact (contact, &item);
 
   /* add new group */
@@ -907,7 +1222,7 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
   wocky_xmpp_node_set_content (group_node, group);
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, change_roster_iq_cb, result);
+      iq, cancellable, change_roster_iq_cb, pending);
 
   g_object_unref (iq);
 }
@@ -941,14 +1256,26 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
   WockyXmppNode *item;
   GSimpleAsyncResult *result;
   GSList *l;
+  PendingOperation *pending;
+  const gchar *jid;
 
   g_return_if_fail (contact != NULL);
+  jid = wocky_contact_get_jid (contact);
+
+  pending = get_pending_operation (self, jid);
+  if (pending != NULL)
+    {
+      DEBUG ("Another operation is pending for contact %s; queuing this one",
+          jid);
+      /* TODO */
+      return;
+    }
 
   if (!contact_in_roster (self, contact))
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
-          "Contact %s is not in the roster", wocky_contact_get_jid (contact));
+          "Contact %s is not in the roster", jid);
       return;
     }
 
@@ -957,12 +1284,13 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
 
   if (!wocky_contact_in_group (contact, group))
     {
-      DEBUG ("Contact %s is not in group %s; complete immediately",
-          wocky_contact_get_jid (contact), group);
+      DEBUG ("Contact %s is not in group %s; complete immediately", jid, group);
       g_simple_async_result_complete_in_idle (result);
       g_object_unref (result);
       return;
     }
+
+  pending = add_pending_operation (self, jid, result);
 
   iq = build_iq_for_contact (contact, &item);
 
@@ -984,7 +1312,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
     }
 
   wocky_porter_send_iq_async (priv->porter,
-      iq, cancellable, change_roster_iq_cb, result);
+      iq, cancellable, change_roster_iq_cb, pending);
 
   g_object_unref (iq);
 }
