@@ -142,6 +142,7 @@ pending_operation_add_group (PendingOperation *pending,
 {
   g_hash_table_insert (pending->groups_to_add, g_strdup (group),
       GUINT_TO_POINTER (TRUE));
+  g_hash_table_remove (pending->groups_to_remove, group);
 }
 
 static void
