@@ -384,7 +384,7 @@ send_roster_update (test_data_t *test,
   if (subscription != NULL)
     wocky_xmpp_node_set_attribute (item, "subscription", subscription);
 
-  for (i = 0; groups[i] != NULL; i++)
+  for (i = 0; groups != NULL && groups[i] != NULL; i++)
     {
       WockyXmppNode *node;
 
@@ -1524,6 +1524,85 @@ test_multi_contact_edit (void)
   teardown_test (test);
 }
 
+/* test editing a contact and then remove it from the roster */
+static void
+test_edit_contact_remove (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact;
+  const gchar *groups[] = { "Friends", NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      iq_set_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  /* change contact's name */
+  wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
+      contact_name_changed_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+  g_assert (received_iq != NULL);
+  /* The IQ has been sent but the server didn't send the upgrade and the reply
+   * yet.
+   * Now try to re-add the contact */
+
+  check_edit_roster_stanza (received_iq, "romeo@example.net", "Badger",
+      "both", groups);
+
+  /* remove the contact */
+  wocky_roster_remove_contact_async (roster, contact, NULL,
+      contact_removed_cb, test);
+
+  /* Now the server send the roster upgrade and reply to the change name IQ */
+  send_roster_update (test, "romeo@example.net", "Badger", "both", groups);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for:
+   * - completion of the change name operation
+   * - server receives the "remove contact" IQ
+   */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* At this point, the contact has not been removed yet */
+  g_assert (wocky_roster_get_contact (roster, "romeo@example.net") != NULL);
+
+  check_remove_contact_stanza (received_iq, "romeo@example.net");
+
+  /* Now the server send the roster upgrade and reply to the remove IQ */
+  send_roster_update (test, "romeo@example.net", NULL, "remove", NULL);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for completion of the remove_contact operation */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  /* Contact is now removed */
+  g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1557,6 +1636,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/remove-contact-edit",
       test_remove_contact_edit);
   g_test_add_func ("/xmpp-roster/multi-contact-edit", test_multi_contact_edit);
+  g_test_add_func ("/xmpp-roster/edit-contact-remove",
+      test_edit_contact_remove);
 
   result = g_test_run ();
   test_deinit ();
