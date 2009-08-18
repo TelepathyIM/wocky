@@ -58,10 +58,12 @@ typedef struct
 
   /* The future name of the contact, or NULL to not change it */
   gchar *new_name;
-  /* The groups to add to the contact, or NULL if any */
-  GStrv groups_to_add;
-  /* The groups to remove from the contact, or NULL if any */
-  GStrv groups_to_remove;
+  /* (const gchar *) => TRUE
+   * Each key is a group to add to the contact */
+  GHashTable *groups_to_add;
+  /* owned (gchar *) => TRUE
+   * Each key is a group to remove from the contact */
+  GHashTable *groups_to_remove;
   /* TRUE if a 'add' operation is waiting */
   gboolean add_contact;
 
@@ -86,6 +88,11 @@ pending_operation_new (WockyRoster *self,
       result);
   pending->jid = g_strdup (jid);
 
+  pending->groups_to_add = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, NULL);
+  pending->groups_to_remove = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, NULL);
+
   return pending;
 }
 
@@ -101,8 +108,8 @@ pending_operation_free (PendingOperation *pending)
   g_slist_foreach (pending->waiting_operations, (GFunc) g_object_unref, NULL);
   g_slist_free (pending->waiting_operations);
 
-  g_strfreev (pending->groups_to_add);
-  g_strfreev (pending->groups_to_remove);
+  g_hash_table_destroy (pending->groups_to_add);
+  g_hash_table_destroy (pending->groups_to_remove);
 
   g_slice_free (PendingOperation, pending);
 }
@@ -119,11 +126,14 @@ static void
 pending_operation_set_groups (PendingOperation *pending,
     GStrv groups)
 {
-  g_strfreev (pending->groups_to_add);
-  g_strfreev (pending->groups_to_remove);
+  guint i;
 
-  pending->groups_to_add = g_strdupv (groups);
-  pending->groups_to_remove = NULL;
+  g_hash_table_remove_all (pending->groups_to_add);
+  g_hash_table_remove_all (pending->groups_to_remove);
+
+  for (i = 0; groups[i] != NULL; i++)
+    g_hash_table_insert (pending->groups_to_add, g_strdup (groups[i]),
+          GUINT_TO_POINTER (TRUE));
 }
 
 static void
@@ -753,13 +763,15 @@ build_iq_for_pending (WockyRoster *self,
 {
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
   WockyContact *contact, *tmp;
-  guint i;
   WockyXmppStanza *iq;
+  GHashTableIter iter;
+  gpointer group;
 
   contact = g_hash_table_lookup (priv->items, pending->jid);
 
-  if (pending->new_name == NULL && pending->groups_to_add == NULL &&
-      pending->groups_to_remove == NULL)
+  if (pending->new_name == NULL &&
+      g_hash_table_size (pending->groups_to_add) == 0 &&
+      g_hash_table_size (pending->groups_to_remove) == 0)
     {
       /* Nothing to change */
       return NULL;
@@ -797,16 +809,16 @@ build_iq_for_pending (WockyRoster *self,
   if (pending->new_name != NULL)
     wocky_contact_set_name (tmp, pending->new_name);
 
-  for (i = 0; pending->groups_to_add != NULL &&
-      pending->groups_to_add[i] != NULL; i++)
+  g_hash_table_iter_init (&iter, pending->groups_to_add);
+  while (g_hash_table_iter_next (&iter, &group, NULL))
     {
-      wocky_contact_add_group (tmp, pending->groups_to_add[i]);
+      wocky_contact_add_group (tmp, (const gchar *) group);
     }
 
-  for (i = 0; pending->groups_to_remove != NULL &&
-      pending->groups_to_remove[i] != NULL; i++)
+  g_hash_table_iter_init (&iter, pending->groups_to_remove);
+  while (g_hash_table_iter_next (&iter, &group, NULL))
     {
-      wocky_contact_remove_group (tmp, pending->groups_to_remove[i]);
+      wocky_contact_remove_group (tmp, (const gchar *) group);
     }
 
   if (wocky_contact_equal (contact, tmp))
