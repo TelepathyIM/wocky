@@ -564,9 +564,10 @@ ack_iq (WockyPorter *porter,
 
 /* Test adding a contact to the roster */
 static void
-check_add_contact_stanza (WockyXmppStanza *stanza,
+check_edit_roster_stanza (WockyXmppStanza *stanza,
     const gchar *jid,
     const gchar *name,
+    const gchar *subscription,
     const gchar **groups)
 {
   WockyStanzaType type;
@@ -588,9 +589,25 @@ check_add_contact_stanza (WockyXmppStanza *stanza,
   node = wocky_xmpp_node_get_child (node, "item");
   g_assert (node != NULL);
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"), jid));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
-        name));
-  g_assert (wocky_xmpp_node_get_attribute (node, "subscription") == NULL);
+
+  if (name != NULL)
+    g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+          name));
+  else
+    g_assert (wocky_xmpp_node_get_attribute (node, "name") == NULL);
+
+  if (subscription != NULL)
+    g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node,
+            "subscription"), subscription));
+  else
+    g_assert (wocky_xmpp_node_get_attribute (node, "subscription") == NULL);
+
+  if (groups == NULL)
+    {
+      /* No group children */
+      g_assert_cmpuint (g_slist_length (node->children), == , 0);
+      return;
+    }
 
   expected_groups = g_hash_table_new (g_str_hash, g_str_equal);
   for (i = 0; groups[i] != NULL; i++)
@@ -611,6 +628,16 @@ check_add_contact_stanza (WockyXmppStanza *stanza,
   g_assert (g_hash_table_size (expected_groups) == 0);
   g_hash_table_destroy (expected_groups);
 }
+
+static void
+check_add_contact_stanza (WockyXmppStanza *stanza,
+    const gchar *jid,
+    const gchar *name,
+    const gchar **groups)
+{
+  check_edit_roster_stanza (stanza, jid, name, NULL, groups);
+}
+
 
 static gboolean
 add_contact_send_iq_cb (WockyPorter *porter,
@@ -708,28 +735,7 @@ static void
 check_remove_contact_stanza (WockyXmppStanza *stanza,
     const gchar *jid)
 {
-  WockyStanzaType type;
-  WockyStanzaSubType sub_type;
-  WockyXmppNode *node;
-
-  /* Make sure stanza is as expected. */
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
-
-  g_assert (type == WOCKY_STANZA_TYPE_IQ);
-  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
-
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
-      WOCKY_XMPP_NS_ROSTER);
-  g_assert (node != NULL);
-
-  node = wocky_xmpp_node_get_child (node, "item");
-  g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
-      jid));
-  g_assert (wocky_xmpp_node_get_attribute (node, "name") == NULL);
-
-  /* item node is not supposed to have any child */
-  g_assert_cmpuint (g_slist_length (node->children), == , 0);
+  check_edit_roster_stanza (stanza, jid, NULL, "remove", NULL);
 }
 
 /* Test removing a contact from the roster */
