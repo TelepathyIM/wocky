@@ -607,6 +607,7 @@ check_add_contact_stanza (WockyXmppStanza *stanza,
 
       g_assert (g_hash_table_remove (expected_groups, group->content));
     }
+
   g_assert (g_hash_table_size (expected_groups) == 0);
   g_hash_table_destroy (expected_groups);
 }
@@ -1231,7 +1232,106 @@ test_contact_remove_group (void)
   g_object_unref (romeo);
   g_object_unref (mercutio);
   teardown_test (test);
+}
 
+/* Remove a contact and re-add it before the remove operation is completed */
+static WockyXmppStanza *received_iq = NULL;
+
+static gboolean
+iq_set_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (received_iq == NULL);
+  received_iq = g_object_ref (stanza);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_remove_contact_re_add (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact, *romeo;
+  const gchar *groups[] = { "Friends", NULL };
+  const gchar *no_group[] = { NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      iq_set_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_roster_remove_contact_async (roster, contact, NULL,
+      contact_removed_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+  g_assert (received_iq != NULL);
+  /* The IQ has been sent but the server didn't send the upgrade and the reply
+   * yet.
+   * Now try to re-add the contact */
+
+  check_remove_contact_stanza (received_iq, "romeo@example.net");
+
+  wocky_roster_add_contact_async (roster, "romeo@example.net", "Romeo",
+      groups, NULL, contact_added_cb, test);
+
+  /* Now the server send the roster upgrade and reply to the remove IQ */
+  send_roster_update (test, "romeo@example.net", NULL, "remove", no_group);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for:
+   * - completion of the remove_contact operation
+   * - server receives the "add contact" IQ
+   */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* At this point, the contact has been removed */
+  g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
+
+  check_add_contact_stanza (received_iq, "romeo@example.net", "Romeo",
+      groups);
+
+  /* Now the server send the roster upgrade and reply to the add IQ */
+  send_roster_update (test, "romeo@example.net", "Romeo", "none", groups);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for completion of the add_contact operation */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  /* Check that the contact is back */
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+  romeo = create_romeo ();
+  wocky_contact_set_subscription (romeo, WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  test_close_both_porters (test);
+  g_object_unref (romeo);
+  g_object_unref (roster);
+  teardown_test (test);
 }
 
 int
@@ -1261,6 +1361,9 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/contact-add-group", test_contact_add_group);
   g_test_add_func ("/xmpp-roster/contact-remove-group",
       test_contact_remove_group);
+  /* start a edit operation while another edit operation is running */
+  g_test_add_func ("/xmpp-roster/remove-contact-re-add",
+      test_remove_contact_re_add);
 
   result = g_test_run ();
   test_deinit ();
