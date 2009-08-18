@@ -137,6 +137,14 @@ pending_operation_set_groups (PendingOperation *pending,
 }
 
 static void
+pending_operation_add_group (PendingOperation *pending,
+    const gchar *group)
+{
+  g_hash_table_insert (pending->groups_to_add, g_strdup (group),
+      GUINT_TO_POINTER (TRUE));
+}
+
+static void
 pending_operation_add_waiting_operation (PendingOperation *pending,
     GSimpleAsyncResult *result)
 {
@@ -1216,12 +1224,16 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
   g_return_if_fail (contact != NULL);
   jid = wocky_contact_get_jid (contact);
 
+  result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_roster_contact_add_group_finish);
+
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
     {
       DEBUG ("Another operation is pending for contact %s; queuing this one",
           jid);
-      /* TODO */
+      pending_operation_add_group (pending, group);
+      pending_operation_add_waiting_operation (pending, result);
       return;
     }
 
@@ -1230,11 +1242,9 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
           "Contact %s is not in the roster", jid);
+      g_object_unref (result);
       return;
     }
-
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_contact_add_group_finish);
 
   if (wocky_contact_in_group (contact, group))
     {
