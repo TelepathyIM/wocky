@@ -833,7 +833,12 @@ build_iq_for_pending (WockyRoster *self,
 
   if (contact == NULL)
     {
-      if (!pending->add_contact)
+      if (pending->remove_contact)
+        {
+          DEBUG ("Contact %s was already removed", pending->jid);
+          return NULL;
+        }
+      else if (!pending->add_contact)
         {
           GSList *l;
 
@@ -848,11 +853,6 @@ build_iq_for_pending (WockyRoster *self,
                   "Contact %s is not in the roster any more", pending->jid);
             }
 
-          return NULL;
-        }
-      else if (pending->remove_contact)
-        {
-          DEBUG ("Contact %s was already removed", pending->jid);
           return NULL;
         }
 
