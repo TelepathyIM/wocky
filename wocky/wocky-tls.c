@@ -425,14 +425,14 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
       gint result;
       gnutls_handshake_description_t i;
       gnutls_handshake_description_t o;
-      DEBUG ("ASYNC JOB HANDSHAKE");
+      DEBUG ("async job handshake");
       session->async = TRUE;
       result = gnutls_handshake (session->session);
       g_assert (result != GNUTLS_E_INTERRUPTED);
-      DEBUG ("ASYNC JOB HANDSHAKE: %d %s", result, error_to_string(result));
+      DEBUG ("async job handshake: %d %s", result, error_to_string(result));
       i = gnutls_handshake_get_last_in (session->session);
       o = gnutls_handshake_get_last_out (session->session);
-      DEBUG ("ASYNC JOB HANDSHAKE: { in: %s; out: %s }",
+      DEBUG ("async job handshake: { in: %s; out: %s }",
           hdesc_to_string (i),
           hdesc_to_string (o));
 
@@ -444,7 +444,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else if (operation == WOCKY_TLS_OP_READ)
     {
       gssize result;
-      DEBUG ("ASYNC JOB OP_READ");
+      DEBUG ("async job OP_READ");
       g_assert (session->read_job.job.active);
 
       session->async = TRUE;
@@ -460,7 +460,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else
     {
       gssize result;
-      DEBUG ("ASYNC JOB OP_WRITE");
+      DEBUG ("async job OP_WRITE");
       g_assert (operation == WOCKY_TLS_OP_WRITE);
       g_assert (session->write_job.job.active);
 
@@ -510,7 +510,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 {
   gint result;
 
-  DEBUG ("SYNC JOB HANDSHAKE");
+  DEBUG ("sync job handshake");
   session->error = NULL;
   session->cancellable = cancellable;
   result = gnutls_handshake (session->session);
@@ -518,7 +518,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
   g_assert (result != GNUTLS_E_AGAIN);
   session->cancellable = NULL;
 
-  DEBUG ("SYNC JOB HANDSHAKE: %d %s", result, error_to_string (result));
+  DEBUG ("sync job handshake: %d %s", result, error_to_string (result));
 
   if (session->error)
     {
