@@ -1672,6 +1672,72 @@ test_change_name_twice (void)
   teardown_test (test);
 }
 
+/* Remove twice the same contact */
+static void
+test_remove_contact_twice (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact;
+  const gchar *no_group[] = { NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      iq_set_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  /* Keep a ref on the contact as the roster will release its ref when
+   * removing it */
+  g_object_ref (contact);
+
+  wocky_roster_remove_contact_async (roster, contact, NULL,
+      contact_removed_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+  g_assert (received_iq != NULL);
+  /* The IQ has been sent but the server didn't send the upgrade and the reply
+   * yet */
+
+  check_remove_contact_stanza (received_iq, "romeo@example.net");
+
+  /* Re-ask to remove the contact */
+  wocky_roster_remove_contact_async (roster, contact, NULL,
+      contact_removed_cb, test);
+
+  /* Now the server send the roster upgrade and reply to the remove IQ */
+  send_roster_update (test, "romeo@example.net", NULL, "remove", no_group);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait for completion of the 2 remove operations. No IQ has been sent for
+   * the second as no change was needed. */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_assert (received_iq == NULL);
+
+  /* At this point, the contact has been removed */
+  g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
+
+  test_close_both_porters (test);
+  g_object_unref (contact);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1708,6 +1774,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-roster/edit-contact-remove",
       test_edit_contact_remove);
   g_test_add_func ("/xmpp-roster/change-name-twice", test_change_name_twice);
+  g_test_add_func ("/xmpp-roster/remove-contact-twice",
+      test_remove_contact_twice);
 
   result = g_test_run ();
   test_deinit ();
