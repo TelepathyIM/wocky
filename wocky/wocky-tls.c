@@ -338,7 +338,7 @@ static gboolean
 wocky_tls_set_error (GError **error,
                      gssize   result)
 {
-  int code = (int)result;
+  int code = (int) result;
 
   if (result < 0)
     g_set_error (error, 0, 0, "%d: %s", code, error_to_string (code));
@@ -1072,7 +1072,9 @@ wocky_tls_session_pull_func (gpointer  user_data,
     }
 }
 
-static void tls_debug (int level, const char *msg)
+static void
+tls_debug (int level,
+    const char *msg)
 {
   DEBUG ("[%d] [%02d] %s", getpid(), level, msg);
 }
