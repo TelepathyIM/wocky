@@ -323,8 +323,8 @@ wocky_roster_get_property (GObject *object,
     }
 }
 
-static const gchar *
-subscription_to_string (WockyRosterSubscriptionFlags subscription)
+const gchar *
+wocky_roster_subscription_to_string (WockyRosterSubscriptionFlags subscription)
 {
   switch (subscription)
     {
@@ -794,7 +794,7 @@ build_iq_for_contact (WockyContact *contact,
   if (subscription != WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE)
     {
       wocky_xmpp_node_set_attribute (item, "subscription",
-          subscription_to_string (subscription));
+          wocky_roster_subscription_to_string (subscription));
     }
 
   groups = wocky_contact_get_groups (contact);

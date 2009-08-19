@@ -159,6 +159,10 @@ gboolean wocky_roster_contact_remove_group_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error);
 
+/* For debugging only */
+const gchar * wocky_roster_subscription_to_string (
+    WockyRosterSubscriptionFlags subscription);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_ROSTER_H__*/
