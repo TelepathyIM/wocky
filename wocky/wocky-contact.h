@@ -86,6 +86,8 @@ void wocky_contact_remove_group (WockyContact *contact,
 
 WockyContact * wocky_contact_copy (WockyContact *contact);
 
+void wocky_contact_debug_print (WockyContact *contact);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_H__*/

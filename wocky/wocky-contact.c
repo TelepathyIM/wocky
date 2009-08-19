@@ -602,3 +602,17 @@ wocky_contact_copy (WockyContact *contact)
       "groups", wocky_contact_get_groups (contact),
       NULL);
 }
+
+void
+wocky_contact_debug_print (WockyContact *self)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  guint i;
+
+  DEBUG ("Contact: %s  Name: %s  Subscription: %s  Groups:",
+      priv->jid, priv->name,
+      wocky_roster_subscription_to_string (priv->subscription));
+
+  for (i = 0; priv->groups[i] != NULL; i++)
+    DEBUG ("  - %s", priv->groups[i]);
+}
