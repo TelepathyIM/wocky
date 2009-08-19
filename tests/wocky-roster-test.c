@@ -1985,6 +1985,70 @@ test_remove_two_groups (void)
   teardown_test (test);
 }
 
+/* Try to add twice the same contact */
+static void
+test_add_contact_twice (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *mercutio, *contact;
+  const gchar *groups[] = { "Friends", "Badger", NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      iq_set_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  mercutio = create_mercutio ();
+  /* Add the Mercutio to our roster */
+  wocky_roster_add_contact_async (roster, "mercutio@example.net", "Mercutio",
+      groups, NULL, contact_added_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+  g_assert (received_iq != NULL);
+  /* The IQ has been sent but the server didn't send the upgrade and the reply
+   * yet */
+
+  /* contact is not added yet */
+  g_assert (wocky_roster_get_contact (roster, "mercutio@example.net") == NULL);
+
+  check_add_contact_stanza (received_iq, "mercutio@example.net", "Mercutio",
+      groups);
+
+  /* Try to re-add the same contact */
+  wocky_roster_add_contact_async (roster, "mercutio@example.net", "Mercutio",
+      groups, NULL, contact_added_cb, test);
+
+  /* Now the server sends the roster upgrade and reply to the first IQ */
+  send_roster_update (test, "mercutio@example.net", "Mercutio", "none", groups);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait that the 2 add_contact operation are completed. No IQ is sent for
+   * the second as nothing has changed. */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* check if the contact has been actually added */
+  contact = wocky_roster_get_contact (roster, "mercutio@example.net");
+  g_assert (wocky_contact_equal (contact, mercutio));
+
+  test_close_both_porters (test);
+  g_object_unref (mercutio);
+  g_object_unref (roster);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2027,6 +2091,7 @@ main (int argc, char **argv)
       test_change_name_remove_add);
   g_test_add_func ("/xmpp-roster/add-two-groups", test_add_two_groups);
   g_test_add_func ("/xmpp-roster/remove-two-groups", test_remove_two_groups);
+  g_test_add_func ("/xmpp-roster/add-contact-twice", test_add_contact_twice);
 
   result = g_test_run ();
   test_deinit ();
