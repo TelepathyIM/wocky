@@ -496,6 +496,9 @@ roster_update (WockyRoster *self,
 
           g_hash_table_insert (priv->items, g_strdup (jid), contact);
 
+          DEBUG ("New contact added:");
+          wocky_contact_debug_print (contact);
+
           if (fire_signals)
             g_signal_emit (self, signals[ADDED], 0, contact);
         }
