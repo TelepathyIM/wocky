@@ -1402,7 +1402,7 @@ starttls_recv_cb (GObject *source,
       priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
       DEBUG ("starting client TLS handshake %p", priv->tls_sess);
       wocky_tls_session_handshake_async (priv->tls_sess,
-          G_PRIORITY_DEFAULT, NULL, starttls_handshake_cb, self);
+          G_PRIORITY_HIGH, NULL, starttls_handshake_cb, self);
     }
 
  out:
