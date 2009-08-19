@@ -22,6 +22,17 @@
  * 'g' prefixes changes to 'wocky' and server-side TLS support added.
  */
 
+/**
+ * SECTION: wocky-tls
+ * @title: Wocky TLS
+ * @short_description: Establish TLS sessions
+ *
+ * The WOCKY_TLS_DEBUG_LEVEL environnement variable can be used to print debug
+ * output from GNU TLS. To enable it, set it to a value from 1 to 9.
+ * Higher values will print more information. See the documentation of
+ * gnutls_global_set_log_level for more details.
+ */
+
 #include "wocky-tls.h"
 
 #define DEBUG_FLAG DEBUG_TLS
