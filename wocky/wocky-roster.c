@@ -178,6 +178,27 @@ pending_operation_add_waiting_operation (PendingOperation *pending,
       result);
 }
 
+static gboolean
+pending_operation_has_changes (PendingOperation *pending)
+{
+  if (pending->new_name != NULL)
+    return TRUE;
+
+  if (g_hash_table_size (pending->groups_to_add) > 0)
+    return TRUE;
+
+  if (g_hash_table_size (pending->groups_to_remove) > 0)
+    return TRUE;
+
+  if (pending->add_contact)
+    return TRUE;
+
+  if (pending->remove_contact)
+    return TRUE;
+
+  return FALSE;
+}
+
 /* Called when the flying operations have been completed and the IQ to complete
  * the waiting operations has been sent. */
 static void
@@ -818,11 +839,7 @@ build_iq_for_pending (WockyRoster *self,
 
   contact = g_hash_table_lookup (priv->items, pending->jid);
 
-  if (pending->new_name == NULL &&
-      g_hash_table_size (pending->groups_to_add) == 0 &&
-      g_hash_table_size (pending->groups_to_remove) == 0 &&
-      !pending->add_contact &&
-      !pending->remove_contact)
+  if (!pending_operation_has_changes (pending))
     {
       /* Nothing to change */
       return NULL;
