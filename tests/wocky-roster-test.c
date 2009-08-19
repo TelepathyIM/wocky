@@ -1815,6 +1815,92 @@ test_change_name_remove_add (void)
   teardown_test (test);
 }
 
+/* add 2 groups to the same contact */
+static void
+test_add_two_groups (void)
+{
+  WockyRoster *roster;
+  test_data_t *test = setup_test ();
+  WockyContact *contact, *romeo;
+  const gchar *groups2[] = { "Friends", "School", NULL };
+  const gchar *groups3[] = { "Friends", "School", "Hackers", NULL };
+
+  test_open_both_connections (test);
+
+  roster = create_initial_roster (test);
+
+  contact = wocky_roster_get_contact (roster, "romeo@example.net");
+  g_assert (contact != NULL);
+
+  romeo = create_romeo ();
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      iq_set_cb, test,
+      WOCKY_NODE, "query",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  /* Add a group to Romeo */
+  wocky_roster_contact_add_group_async (roster, contact, "School", NULL,
+      contact_group_added_cb, test);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+  g_assert (received_iq != NULL);
+  /* The IQ has been sent but the server didn't send the upgrade and the reply
+   * yet */
+
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  check_edit_roster_stanza (received_iq, "romeo@example.net", "Romeo", "both",
+      groups2);
+
+  /* Add another group */
+  wocky_roster_contact_add_group_async (roster, contact, "Hackers", NULL,
+      contact_group_added_cb, test);
+
+  /* Now the server sends the roster upgrade and reply to the first IQ */
+  send_roster_update (test, "romeo@example.net", "Romeo", "both", groups2);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait that:
+   * - the first add_group operation is completed
+   * - the server receives the IQ for the second add_group
+   */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  wocky_contact_set_groups (romeo, (gchar **) groups2);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  check_edit_roster_stanza (received_iq, "romeo@example.net", "Romeo", "both",
+      groups3);
+
+  /* Server sends the roster upgrade and reply to the first IQ */
+  send_roster_update (test, "romeo@example.net", "Romeo", "both", groups3);
+  ack_iq (test->sched_out, received_iq);
+  g_object_unref (received_iq);
+  received_iq = NULL;
+
+  /* Wait second add_group operation is completed */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  wocky_contact_set_groups (romeo, (gchar **) groups3);
+  g_assert (wocky_contact_equal (contact, romeo));
+
+  test_close_both_porters (test);
+  g_object_unref (roster);
+  g_object_unref (romeo);
+  teardown_test (test);
+
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1855,6 +1941,7 @@ main (int argc, char **argv)
       test_remove_contact_twice);
   g_test_add_func ("/xmpp-roster/change-name-add-remove",
       test_change_name_remove_add);
+  g_test_add_func ("/xmpp-roster/add-two-groups", test_add_two_groups);
 
   result = g_test_run ();
   test_deinit ();
