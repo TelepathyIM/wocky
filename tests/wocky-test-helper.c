@@ -3,6 +3,8 @@
 #include <wocky/wocky-porter.h>
 #include "wocky-test-helper.h"
 
+#define TIMEOUT 3
+
 gboolean
 test_timeout_cb (gpointer data)
 {
@@ -31,7 +33,7 @@ setup_test (void)
 
   data->cancellable = g_cancellable_new ();
 
-  g_timeout_add (2000, test_timeout_cb, NULL);
+  g_timeout_add_seconds (TIMEOUT, test_timeout_cb, NULL);
 
   return data;
 }
