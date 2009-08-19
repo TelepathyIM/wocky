@@ -26,6 +26,7 @@ static GDebugKey keys[] = {
   { "porter",            DEBUG_PORTER            },
   { "connector",         DEBUG_CONNECTOR         },
   { "roster",            DEBUG_ROSTER            },
+  { "tls",               DEBUG_TLS               },
   { "all",               ~0                      },
   { 0, },
 };

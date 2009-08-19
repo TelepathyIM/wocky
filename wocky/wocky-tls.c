@@ -23,12 +23,16 @@
  */
 
 #include "wocky-tls.h"
+
+#define DEBUG_FLAG DEBUG_TLS
+#include "wocky-debug.h"
+
 #include <gnutls/gnutls.h>
 #include <string.h>
 #include <errno.h>
-
 #include <gcrypt.h>
-
+#include <sys/types.h>
+#include <unistd.h>
 enum
 {
   PROP_S_NONE,
@@ -190,12 +194,154 @@ G_DEFINE_TYPE (WockyTLSOutputStream, wocky_tls_output_stream, G_TYPE_OUTPUT_STRE
                                        WOCKY_TYPE_TLS_OUTPUT_STREAM,         \
                                        WockyTLSOutputStream))
 
+static const gchar *hdesc_to_string (long desc)
+{
+#define HDESC(x) case GNUTLS_HANDSHAKE_##x: return #x; break;
+  switch (desc)
+    {
+      HDESC (HELLO_REQUEST);
+      HDESC (CLIENT_HELLO);
+      HDESC (SERVER_HELLO);
+      HDESC (CERTIFICATE_PKT);
+      HDESC (SERVER_KEY_EXCHANGE);
+      HDESC (CERTIFICATE_REQUEST);
+      HDESC (SERVER_HELLO_DONE);
+      HDESC (CERTIFICATE_VERIFY);
+      HDESC (CLIENT_KEY_EXCHANGE);
+      HDESC (FINISHED);
+      HDESC (SUPPLEMENTAL);
+    }
+  return "Unknown State";
+}
+
+static const gchar *error_to_string (long error)
+{
+#define ERROR(x) case GNUTLS_E_##x: return #x; break;
+  switch (error)
+    {
+      ERROR (SUCCESS);
+      ERROR (UNKNOWN_COMPRESSION_ALGORITHM);
+      ERROR (UNKNOWN_CIPHER_TYPE);
+      ERROR (LARGE_PACKET);
+      ERROR (UNSUPPORTED_VERSION_PACKET);
+      ERROR (UNEXPECTED_PACKET_LENGTH);
+      ERROR (INVALID_SESSION);
+      ERROR (FATAL_ALERT_RECEIVED);
+      ERROR (UNEXPECTED_PACKET);
+      ERROR (WARNING_ALERT_RECEIVED);
+      ERROR (ERROR_IN_FINISHED_PACKET);
+      ERROR (UNEXPECTED_HANDSHAKE_PACKET);
+      ERROR (UNKNOWN_CIPHER_SUITE);
+      ERROR (UNWANTED_ALGORITHM);
+      ERROR (MPI_SCAN_FAILED);
+      ERROR (DECRYPTION_FAILED);
+      ERROR (MEMORY_ERROR);
+      ERROR (DECOMPRESSION_FAILED);
+      ERROR (COMPRESSION_FAILED);
+      ERROR (AGAIN);
+      ERROR (EXPIRED);
+      ERROR (DB_ERROR);
+      ERROR (SRP_PWD_ERROR);
+      ERROR (INSUFFICIENT_CREDENTIALS);
+      ERROR (HASH_FAILED);
+      ERROR (BASE64_DECODING_ERROR);
+      ERROR (MPI_PRINT_FAILED);
+      ERROR (REHANDSHAKE);
+      ERROR (GOT_APPLICATION_DATA);
+      ERROR (RECORD_LIMIT_REACHED);
+      ERROR (ENCRYPTION_FAILED);
+      ERROR (PK_ENCRYPTION_FAILED);
+      ERROR (PK_DECRYPTION_FAILED);
+      ERROR (PK_SIGN_FAILED);
+      ERROR (X509_UNSUPPORTED_CRITICAL_EXTENSION);
+      ERROR (KEY_USAGE_VIOLATION);
+      ERROR (NO_CERTIFICATE_FOUND);
+      ERROR (INVALID_REQUEST);
+      ERROR (SHORT_MEMORY_BUFFER);
+      ERROR (INTERRUPTED);
+      ERROR (PUSH_ERROR);
+      ERROR (PULL_ERROR);
+      ERROR (RECEIVED_ILLEGAL_PARAMETER);
+      ERROR (REQUESTED_DATA_NOT_AVAILABLE);
+      ERROR (PKCS1_WRONG_PAD);
+      ERROR (RECEIVED_ILLEGAL_EXTENSION);
+      ERROR (INTERNAL_ERROR);
+      ERROR (DH_PRIME_UNACCEPTABLE);
+      ERROR (FILE_ERROR);
+      ERROR (TOO_MANY_EMPTY_PACKETS);
+      ERROR (UNKNOWN_PK_ALGORITHM);
+
+  /* returned if libextra functionality was requested but *
+   * gnutls_global_init_extra() was not called.           */
+      ERROR (INIT_LIBEXTRA);
+      ERROR (LIBRARY_VERSION_MISMATCH);
+
+  /* returned if you need to generate temporary RSA         *
+   * parameters. These are needed for export cipher suites. */
+      ERROR (NO_TEMPORARY_RSA_PARAMS);
+      ERROR (LZO_INIT_FAILED);
+      ERROR (NO_COMPRESSION_ALGORITHMS);
+      ERROR (NO_CIPHER_SUITES);
+      ERROR (OPENPGP_GETKEY_FAILED);
+      ERROR (PK_SIG_VERIFY_FAILED);
+      ERROR (ILLEGAL_SRP_USERNAME);
+      ERROR (SRP_PWD_PARSING_ERROR);
+      ERROR (NO_TEMPORARY_DH_PARAMS);
+
+  /* For certificate and key stuff */
+      ERROR (ASN1_ELEMENT_NOT_FOUND);
+      ERROR (ASN1_IDENTIFIER_NOT_FOUND);
+      ERROR (ASN1_DER_ERROR);
+      ERROR (ASN1_VALUE_NOT_FOUND);
+      ERROR (ASN1_GENERIC_ERROR);
+      ERROR (ASN1_VALUE_NOT_VALID);
+      ERROR (ASN1_TAG_ERROR);
+      ERROR (ASN1_TAG_IMPLICIT);
+      ERROR (ASN1_TYPE_ANY_ERROR);
+      ERROR (ASN1_SYNTAX_ERROR);
+      ERROR (ASN1_DER_OVERFLOW);
+      ERROR (OPENPGP_UID_REVOKED);
+      ERROR (X509_CERTIFICATE_ERROR);
+      ERROR (CERTIFICATE_KEY_MISMATCH);
+      ERROR (UNSUPPORTED_CERTIFICATE_TYPE);
+      ERROR (X509_UNKNOWN_SAN);
+      ERROR (OPENPGP_FINGERPRINT_UNSUPPORTED);
+      ERROR (X509_UNSUPPORTED_ATTRIBUTE);
+      ERROR (UNKNOWN_HASH_ALGORITHM);
+      ERROR (UNKNOWN_PKCS_CONTENT_TYPE);
+      ERROR (UNKNOWN_PKCS_BAG_TYPE);
+      ERROR (INVALID_PASSWORD);
+      ERROR (MAC_VERIFY_FAILED);
+      ERROR (CONSTRAINT_ERROR);
+      ERROR (WARNING_IA_IPHF_RECEIVED);
+      ERROR (WARNING_IA_FPHF_RECEIVED);
+      ERROR (IA_VERIFY_FAILED);
+      ERROR (UNKNOWN_ALGORITHM);
+      ERROR (BASE64_ENCODING_ERROR);
+      ERROR (INCOMPATIBLE_GCRYPT_LIBRARY);
+      ERROR (INCOMPATIBLE_LIBTASN1_LIBRARY);
+      ERROR (OPENPGP_KEYRING_ERROR);
+      ERROR (X509_UNSUPPORTED_OID);
+      ERROR (RANDOM_FAILED);
+      ERROR (BASE64_UNEXPECTED_HEADER_ERROR);
+      ERROR (OPENPGP_SUBKEY_ERROR);
+      ERROR (CRYPTO_ALREADY_REGISTERED);
+      ERROR (HANDSHAKE_TOO_LARGE);
+      ERROR (UNIMPLEMENTED_FEATURE);
+      ERROR (APPLICATION_ERROR_MAX);
+      ERROR (APPLICATION_ERROR_MIN);
+    }
+  return "Unknown Error";
+}
+
 static gboolean
 wocky_tls_set_error (GError **error,
                      gssize   result)
 {
+  int code = (int)result;
+
   if (result < 0)
-    g_set_error (error, 0, 0, "got error code %d", (int) result);
+    g_set_error (error, 0, 0, "%d: %s", code, error_to_string (code));
 
   return result < 0;
 }
@@ -277,10 +423,19 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   if (session->handshake_job.job.active)
     {
       gint result;
-
+      gnutls_handshake_description_t i;
+      gnutls_handshake_description_t o;
+      DEBUG ("ASYNC JOB HANDSHAKE");
       session->async = TRUE;
       result = gnutls_handshake (session->session);
       g_assert (result != GNUTLS_E_INTERRUPTED);
+      DEBUG ("ASYNC JOB HANDSHAKE: %d %s", result, error_to_string(result));
+      i = gnutls_handshake_get_last_in (session->session);
+      o = gnutls_handshake_get_last_out (session->session);
+      DEBUG ("ASYNC JOB HANDSHAKE: { in: %s; out: %s }",
+          hdesc_to_string (i),
+          hdesc_to_string (o));
+
       session->async = FALSE;
 
       wocky_tls_job_result_boolean (&session->handshake_job.job, result);
@@ -289,7 +444,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else if (operation == WOCKY_TLS_OP_READ)
     {
       gssize result;
-
+      DEBUG ("ASYNC JOB OP_READ");
       g_assert (session->read_job.job.active);
 
       session->async = TRUE;
@@ -305,7 +460,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else
     {
       gssize result;
-
+      DEBUG ("ASYNC JOB OP_WRITE");
       g_assert (operation == WOCKY_TLS_OP_WRITE);
       g_assert (session->write_job.job.active);
 
@@ -404,12 +559,15 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
     g_return_val_if_fail (G_OBJECT (session) == source_object, NULL);
   }
 
+  DEBUG ("checking source tag");
   g_return_val_if_fail (wocky_tls_session_handshake_async ==
                         g_simple_async_result_get_source_tag (simple), NULL);
+  DEBUG ("source tag Ok");
 
   if (g_simple_async_result_propagate_error (simple, error))
     return NULL;
 
+  DEBUG ("connection OK");
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
 
@@ -911,16 +1069,28 @@ wocky_tls_session_pull_func (gpointer  user_data,
     }
 }
 
+static void tls_debug (int level, const char *msg)
+{
+  DEBUG ("[%d] [%02d] %s", getpid(), level, msg);
+}
+
 static void
 wocky_tls_session_init (WockyTLSSession *session)
 {
+  const char *level;
+  guint lvl = 0;
   static gsize initialised;
 
   if G_UNLIKELY (g_once_init_enter (&initialised))
     {
       gnutls_global_init ();
+      gnutls_global_set_log_function (tls_debug);
       g_once_init_leave (&initialised, 1);
     }
+
+  if ((level = getenv ("WOCKY_TLS_DEBUG_LEVEL")) != NULL)
+    lvl = atoi (level);
+  gnutls_global_set_log_level (lvl);
 }
 
 static void
