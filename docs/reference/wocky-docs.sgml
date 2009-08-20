@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+               "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd"
+[
+  <!ENTITY % local.common.attrib "xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'">
+]>
+<book id="index">
+  <bookinfo>
+    <title>wocky Reference Manual</title>
+    <releaseinfo>
+      for wocky [VERSION]
+      The latest version of this documentation can be found on-line at
+      <ulink role="online-location" url="http://[SERVER]/wocky/index.html">http://[SERVER]/wocky/</ulink>.
+    </releaseinfo>
+  </bookinfo>
+
+  <chapter>
+    <title>[Insert title here]</title>
+        <xi:include href="xml/wocky-sasl-auth.xml"/>
+    <xi:include href="xml/wocky-xmpp-reader.xml"/>
+    <xi:include href="xml/wocky-contact.xml"/>
+    <xi:include href="xml/wocky-porter.xml"/>
+    <xi:include href="xml/wocky-connector.xml"/>
+    <xi:include href="xml/wocky-xmpp-stanza.xml"/>
+    <xi:include href="xml/wocky-xmpp-writer.xml"/>
+    <xi:include href="xml/wocky-xmpp-connection.xml"/>
+    <xi:include href="xml/wocky-roster.xml"/>
+    <xi:include href="xml/wocky-debug.xml"/>
+    <xi:include href="xml/wocky.xml"/>
+    <xi:include href="xml/wocky-xmpp-reader-enumtypes.xml"/>
+    <xi:include href="xml/wocky-types.xml"/>
+    <xi:include href="xml/wocky-namespaces.xml"/>
+    <xi:include href="xml/wocky-utils.xml"/>
+    <xi:include href="xml/wocky-xmpp-node.xml"/>
+    <xi:include href="xml/wocky-xmpp-error.xml"/>
+    <xi:include href="xml/wocky-tls.xml"/>
+
+  </chapter>
+  <chapter id="object-tree">
+    <title>Object Hierarchy</title>
+     <xi:include href="xml/tree_index.sgml"/>
+  </chapter>
+  <index id="api-index-full">
+    <title>API Index</title>
+    <xi:include href="xml/api-index-full.xml"><xi:fallback /></xi:include>
+  </index>
+
+  <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>
+</book>
