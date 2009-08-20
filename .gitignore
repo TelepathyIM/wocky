@@ -110,3 +110,4 @@ docs/reference/*.stamp
 docs/reference/html
 docs/reference/tmpl/*.sgml
 docs/reference/xml
+docs/reference/wocky.types
