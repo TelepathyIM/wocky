@@ -11,6 +11,7 @@ BUILT_SOURCES = \
   wocky-xmpp-reader-enumtypes.c
 
 HANDWRITTEN_SOURCES =            \
+  wocky-types.h                  \
   wocky.c                        \
   wocky.h                        \
   wocky-connector.c              \
