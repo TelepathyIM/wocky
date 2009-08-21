@@ -15,8 +15,8 @@ HANDWRITTEN_SOURCES =            \
   wocky.h                        \
   wocky-connector.c              \
   wocky-connector.h              \
-  wocky-tls.c					 \
-  wocky-tls.h					 \
+  wocky-tls.c                    \
+  wocky-tls.h                    \
   wocky-xmpp-connection.c        \
   wocky-xmpp-connection.h        \
   wocky-debug.c                  \
