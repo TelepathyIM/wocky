@@ -3,10 +3,10 @@
 .PRECIOUS: %-key.pem
 CERTTOOL := $(shell which certtool)
 GENKEY   := $(CERTTOOL) --generate-privkey --outfile
-CA_KEY   := $(abspath certs/ca-key.pem)
-CA_CERT  := $(abspath certs/ca-cert.pem)
-TLS_KEY  := $(abspath certs/tls-key.pem)
-TLS_CERT := $(abspath certs/tls-cert.pem)
+CA_KEY   := @abs_top_srcdir@/tests/certs/ca-key.pem
+CA_CERT  := @abs_top_srcdir@/tests/certs/ca-cert.pem
+TLS_KEY  := @abs_top_srcdir@/tests/certs/tls-key.pem
+TLS_CERT := @abs_top_srcdir@/tests/certs/tls-cert.pem
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
