@@ -19,6 +19,7 @@ LDADD = \
     $(top_builddir)/wocky/libwocky.la
 
 AM_CFLAGS = \
+    $(WOCKY_CFLAGS) \
     $(ERROR_CFLAGS) \
     @GLIB_CFLAGS@
 
