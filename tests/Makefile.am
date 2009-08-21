@@ -160,6 +160,9 @@ clean-local:
 
 SUPPRESSIONS=threadlocal.supp
 
+CLEANFILES = test-report.xml \
+	sasl-test.db
+
 # valgrind any given test by running make test.valgrind
 %.valgrind: %
 	G_SLICE=always-malloc               \
