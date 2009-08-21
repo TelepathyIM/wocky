@@ -191,4 +191,6 @@ valgrind: $(TEST_PROGS)
 	fi
 
 
-EXTRA_DIST = $(SURPRESSIONS)
+EXTRA_DIST = $(SURPRESSIONS) \
+	certs/ca-cert.cfg \
+	certs/tls-cert.cfg
