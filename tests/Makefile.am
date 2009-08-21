@@ -104,7 +104,7 @@ wocky_contact_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-contact-test.c
 
-AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
+AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @WOCKY_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
 LDADD = $(top_builddir)/wocky/libwocky.la
 
