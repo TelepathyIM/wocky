@@ -144,6 +144,10 @@ WOCKY_LCOV(${coverage})
 
 AC_SUBST(PACKAGE_STRING)
 
+dnl To be used by tests and examples
+WOCKY_CFLAGS='-I${top_builddir} -I${top_srcdir}'
+AC_SUBST(WOCKY_CFLAGS)
+
 GTK_DOC_CHECK([1.10])
 
 SHAVE_INIT(.)
