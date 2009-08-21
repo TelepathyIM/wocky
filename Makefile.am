@@ -2,6 +2,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = wocky tools m4 examples tests docs
 
+DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc
+
 dist-hook:
 	chmod u+w ${distdir}/ChangeLog
 	if test -d ${top_srcdir}/.git; then \
