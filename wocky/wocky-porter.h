@@ -31,6 +31,17 @@ G_BEGIN_DECLS
 typedef struct _WockyPorter WockyPorter;
 typedef struct _WockyPorterClass WockyPorterClass;
 
+/**
+ * WockyPorterError:
+ * @WOCKY_PORTER_ERROR_NOT_STARTED : The #WockyPorter has not been started yet
+ * @WOCKY_PORTER_ERROR_CLOSING : The #WockyPorter is closing
+ * @WOCKY_PORTER_ERROR_CLOSED : The #WockyPorter is closed
+ * @WOCKY_PORTER_ERROR_NOT_IQ : The #WockyXmppStanza is not an IQ
+ * @WOCKY_PORTER_ERROR_FORCE_CLOSING : The #WockyPorter has been forced to
+ * close
+ *
+ * The #WockyPorter specific errors.
+ */
 typedef enum {
   WOCKY_PORTER_ERROR_NOT_STARTED,
   WOCKY_PORTER_ERROR_CLOSING,
