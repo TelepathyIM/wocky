@@ -28,6 +28,7 @@ typedef enum
   DEBUG_PORTER            = 1 << 11,
   DEBUG_CONNECTOR         = 1 << 12,
   DEBUG_ROSTER            = 1 << 13,
+  DEBUG_TLS               = 1 << 14,
 } DebugFlags;
 
 #define DEBUG_XMPP (DEBUG_XMPP_READER | DEBUG_XMPP_WRITER)

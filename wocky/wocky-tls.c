@@ -22,13 +22,28 @@
  * 'g' prefixes changes to 'wocky' and server-side TLS support added.
  */
 
+/**
+ * SECTION: wocky-tls
+ * @title: Wocky TLS
+ * @short_description: Establish TLS sessions
+ *
+ * The WOCKY_TLS_DEBUG_LEVEL environnement variable can be used to print debug
+ * output from GNU TLS. To enable it, set it to a value from 1 to 9.
+ * Higher values will print more information. See the documentation of
+ * gnutls_global_set_log_level for more details.
+ */
+
 #include "wocky-tls.h"
+
+#define DEBUG_FLAG DEBUG_TLS
+#include "wocky-debug.h"
+
 #include <gnutls/gnutls.h>
 #include <string.h>
 #include <errno.h>
-
 #include <gcrypt.h>
-
+#include <sys/types.h>
+#include <unistd.h>
 enum
 {
   PROP_S_NONE,
@@ -190,12 +205,45 @@ G_DEFINE_TYPE (WockyTLSOutputStream, wocky_tls_output_stream, G_TYPE_OUTPUT_STRE
                                        WOCKY_TYPE_TLS_OUTPUT_STREAM,         \
                                        WockyTLSOutputStream))
 
+static const gchar *hdesc_to_string (long desc)
+{
+#define HDESC(x) case GNUTLS_HANDSHAKE_##x: return #x; break;
+  switch (desc)
+    {
+      HDESC (HELLO_REQUEST);
+      HDESC (CLIENT_HELLO);
+      HDESC (SERVER_HELLO);
+      HDESC (CERTIFICATE_PKT);
+      HDESC (SERVER_KEY_EXCHANGE);
+      HDESC (CERTIFICATE_REQUEST);
+      HDESC (SERVER_HELLO_DONE);
+      HDESC (CERTIFICATE_VERIFY);
+      HDESC (CLIENT_KEY_EXCHANGE);
+      HDESC (FINISHED);
+      HDESC (SUPPLEMENTAL);
+    }
+  return "Unknown State";
+}
+
+static const gchar *error_to_string (long error)
+{
+  const gchar *result;
+
+  result = gnutls_strerror_name (error);
+  if (result != NULL)
+    return result;
+
+  return "Unknown Error";
+}
+
 static gboolean
 wocky_tls_set_error (GError **error,
                      gssize   result)
 {
+  int code = (int) result;
+
   if (result < 0)
-    g_set_error (error, 0, 0, "got error code %d", (int) result);
+    g_set_error (error, 0, 0, "%d: %s", code, error_to_string (code));
 
   return result < 0;
 }
@@ -277,10 +325,19 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   if (session->handshake_job.job.active)
     {
       gint result;
-
+      gnutls_handshake_description_t i;
+      gnutls_handshake_description_t o;
+      DEBUG ("async job handshake");
       session->async = TRUE;
       result = gnutls_handshake (session->session);
       g_assert (result != GNUTLS_E_INTERRUPTED);
+      DEBUG ("async job handshake: %d %s", result, error_to_string(result));
+      i = gnutls_handshake_get_last_in (session->session);
+      o = gnutls_handshake_get_last_out (session->session);
+      DEBUG ("async job handshake: { in: %s; out: %s }",
+          hdesc_to_string (i),
+          hdesc_to_string (o));
+
       session->async = FALSE;
 
       wocky_tls_job_result_boolean (&session->handshake_job.job, result);
@@ -289,7 +346,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else if (operation == WOCKY_TLS_OP_READ)
     {
       gssize result;
-
+      DEBUG ("async job OP_READ");
       g_assert (session->read_job.job.active);
 
       session->async = TRUE;
@@ -305,7 +362,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else
     {
       gssize result;
-
+      DEBUG ("async job OP_WRITE");
       g_assert (operation == WOCKY_TLS_OP_WRITE);
       g_assert (session->write_job.job.active);
 
@@ -355,12 +412,15 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 {
   gint result;
 
+  DEBUG ("sync job handshake");
   session->error = NULL;
   session->cancellable = cancellable;
   result = gnutls_handshake (session->session);
   g_assert (result != GNUTLS_E_INTERRUPTED);
   g_assert (result != GNUTLS_E_AGAIN);
   session->cancellable = NULL;
+
+  DEBUG ("sync job handshake: %d %s", result, error_to_string (result));
 
   if (session->error)
     {
@@ -404,12 +464,15 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
     g_return_val_if_fail (G_OBJECT (session) == source_object, NULL);
   }
 
+  DEBUG ("checking source tag");
   g_return_val_if_fail (wocky_tls_session_handshake_async ==
                         g_simple_async_result_get_source_tag (simple), NULL);
+  DEBUG ("source tag Ok");
 
   if (g_simple_async_result_propagate_error (simple, error))
     return NULL;
 
+  DEBUG ("connection OK");
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
 
@@ -912,15 +975,29 @@ wocky_tls_session_pull_func (gpointer  user_data,
 }
 
 static void
+tls_debug (int level,
+    const char *msg)
+{
+  DEBUG ("[%d] [%02d] %s", getpid(), level, msg);
+}
+
+static void
 wocky_tls_session_init (WockyTLSSession *session)
 {
+  const char *level;
+  guint lvl = 0;
   static gsize initialised;
 
   if G_UNLIKELY (g_once_init_enter (&initialised))
     {
       gnutls_global_init ();
+      gnutls_global_set_log_function (tls_debug);
       g_once_init_leave (&initialised, 1);
     }
+
+  if ((level = getenv ("WOCKY_TLS_DEBUG_LEVEL")) != NULL)
+    lvl = atoi (level);
+  gnutls_global_set_log_level (lvl);
 }
 
 static void

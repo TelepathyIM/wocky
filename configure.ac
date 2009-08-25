@@ -101,7 +101,7 @@ GTK_DOC_CHECK
 
 dnl Check for Glib
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.16, gobject-2.0 >= 2.16, gthread-2.0 >=
-2.4, gio-2.0 >= 2.21, gnutls])
+2.4, gio-2.0 >= 2.21, gnutls >= 2.8.2])
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
