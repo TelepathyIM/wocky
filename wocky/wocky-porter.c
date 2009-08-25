@@ -1128,6 +1128,20 @@ send_close (WockyPorter *self)
       NULL, close_sent_cb, self);
 }
 
+/**
+ * wocky_porter_close_async:
+ * @porter: a #WockyPorter
+ * @cancellable: optional #GCancellable object, NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of a #WockyPorter. This fire the
+ * WockyPorter::closing signal, flush the sending queue, close the XMPP stream
+ * and wait that the other side closes the XMPP stream as well. When this is
+ * done, @callback is called.
+ * You can then call wocky_porter_close_finish() to get the result of
+ * the operation.
+ */
 void
 wocky_porter_close_async (WockyPorter *self,
     GCancellable *cancellable,
@@ -1188,6 +1202,16 @@ wocky_porter_close_async (WockyPorter *self,
   send_close (self);
 }
 
+/**
+ * wocky_porter_close_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes a close operation.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ */
 gboolean
 wocky_porter_close_finish (
     WockyPorter *self,
@@ -1464,6 +1488,21 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
   return g_object_ref (reply);
 }
 
+/**
+ * wocky_porter_force_close_async:
+ * @porter: a #WockyPorter
+ * @cancellable: optional #GCancellable object, NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Force the #WockyPorter to close the TCP connection of the underlying
+ * #WockyXmppConnection.
+ * If a close operation is pending, it will be completed with the
+ * #WOCKY_PORTER_ERROR_FORCE_CLOSING error.
+ * When the connection has been closed, @callback will be called.
+ * You can then call wocky_porter_force_close_finish() to get the result of
+ * the operation.
+ */
 void
 wocky_porter_force_close_async (WockyPorter *self,
     GCancellable *cancellable,
@@ -1568,6 +1607,16 @@ wocky_porter_force_close_async (WockyPorter *self,
   g_cancellable_cancel (priv->receive_cancellable);
 }
 
+/**
+ * wocky_porter_force_close_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes a force close operation.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ */
 gboolean
 wocky_porter_force_close_finish (
     WockyPorter *self,
