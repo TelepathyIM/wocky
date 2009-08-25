@@ -624,6 +624,19 @@ send_cancelled_cb (GCancellable *cancellable,
   sending_queue_elem_free (elem);
 }
 
+/**
+ * wocky_porter_send_async:
+ * @porter: a #WockyPorter
+ * @stanza: the #WockyXmppStanza to send
+ * @cancellable: optional #GCancellable object, NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of a #WockyXmppStanza.
+ * When the stanza has been sent callback will be called.
+ * You can then call wocky_porter_send_finish() to get the result
+ * of the operation.
+ */
 void
 wocky_porter_send_async (WockyPorter *self,
     WockyXmppStanza *stanza,
@@ -658,6 +671,16 @@ wocky_porter_send_async (WockyPorter *self,
     }
 }
 
+/**
+ * wocky_porter_send_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes sending a #WockyXmppStanza.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ */
 gboolean
 wocky_porter_send_finish (WockyPorter *self,
     GAsyncResult *result,
@@ -673,6 +696,16 @@ wocky_porter_send_finish (WockyPorter *self,
   return TRUE;
 }
 
+/**
+ * wocky_porter_send:
+ * @porter: a #WockyPorter
+ * @stanza: the #WockyXmppStanza to send
+ *
+ * Send a #WockyXmppStanza.
+ * This is a convenient function to not have to call
+ * wocky_porter_send_async with lot of %NULL arguments if you don't care to
+ * know when the stanza has been actually sent.
+ */
 void
 wocky_porter_send (WockyPorter *self,
     WockyXmppStanza *stanza)
@@ -1029,6 +1062,12 @@ receive_stanza (WockyPorter *self)
       priv->receive_cancellable, stanza_received_cb, self);
 }
 
+/**
+ * wocky_porter_start:
+ * @porter: a #WockyPorter
+ *
+ * Start a #WockyPorter to make it read and dispatch incoming stanzas.
+ */
 void
 wocky_porter_start (WockyPorter *self)
 {
@@ -1304,6 +1343,20 @@ iq_sent_cb (GObject *source,
   g_error_free (error);
 }
 
+/**
+ * wocky_porter_send_iq_async:
+ * @porter: a #WockyPorter
+ * @stanza: the #WockyXmppStanza to send
+ * @cancellable: optional #GCancellable object, NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of a #WockyXmppStanza of type
+ * %WOCKY_STANZA_TYPE_IQ and sub-type %WOCKY_STANZA_SUB_TYPE_GET or
+ * %WOCKY_STANZA_SUB_TYPE_SET.
+ * When the reply to this IQ has been received callback will be called.
+ * You can then call wocky_porter_send_iq_finish() to get the reply stanza.
+ */
 void
 wocky_porter_send_iq_async (WockyPorter *self,
     WockyXmppStanza *stanza,
@@ -1381,6 +1434,16 @@ wrong_stanza:
       "Stanza is not an IQ query");
 }
 
+/**
+ * wocky_porter_send_iq_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Get the reply of an IQ query.
+ *
+ * Returns: a reffed #WockyXmppStanza on success, NULL on error
+ */
 WockyXmppStanza * wocky_porter_send_iq_finish (
     WockyPorter *self,
     GAsyncResult *result,
