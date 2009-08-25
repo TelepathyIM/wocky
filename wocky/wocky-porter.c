@@ -388,24 +388,54 @@ wocky_porter_class_init (
   object_class->dispose = wocky_porter_dispose;
   object_class->finalize = wocky_porter_finalize;
 
+  /**
+   * WockyPorter::remote-closed:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::remote-closed signal is emitted when the other side closed the XMPP
+   * stream.
+   */
   signals[REMOTE_CLOSED] = g_signal_new ("remote-closed",
       G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
+  /**
+   * WockyPorter::remote-error:
+   * @porter: the object on which the signal is emitted
+   * @domain: error domain
+   * @code: error code
+   * @message: human-readable informative error message
+   *
+   * The ::remote-error signal is emitted when an error has been detected
+   * on the XMPP stream.
+   */
   signals[REMOTE_ERROR] = g_signal_new ("remote-error",
       G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__UINT_INT_STRING,
       G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
 
+  /**
+   * WockyPorter::closing:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::closing signal is emitted when the #WockyPorter starts to close its
+   * XMPP connection. Once this signal has been emitted, the #WockyPorter
+   * can't be used to send stanzas any more.
+   */
   signals[CLOSING] = g_signal_new ("closing",
       G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
+  /**
+   * WockyPorter:connection:
+   *
+   * The underlying #WockyXmppConnection wrapped by the #WockyPorter
+   */
   spec = g_param_spec_object ("connection", "XMPP connection",
     "the XMPP connection used by this porter",
     WOCKY_TYPE_XMPP_CONNECTION,
