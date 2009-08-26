@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include "wocky-types.h"
+#include "wocky-contact.h"
 #include "wocky-roster.h"
 
 G_BEGIN_DECLS
@@ -31,11 +32,11 @@ G_BEGIN_DECLS
 typedef struct _WockyBareContactClass WockyBareContactClass;
 
 struct _WockyBareContactClass {
-  GObjectClass parent_class;
+  WockyContactClass parent_class;
 };
 
 struct _WockyBareContact {
-  GObject parent;
+  WockyContact parent;
 };
 
 GType wocky_bare_contact_get_type (void);

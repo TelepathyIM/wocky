@@ -42,7 +42,7 @@
 #define DEBUG_FLAG DEBUG_ROSTER
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE (WockyBareContact, wocky_bare_contact, G_TYPE_OBJECT)
+G_DEFINE_TYPE (WockyBareContact, wocky_bare_contact, WOCKY_TYPE_CONTACT)
 
 /* properties */
 enum
