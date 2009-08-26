@@ -14,6 +14,7 @@
     <xi:include href="xml/wocky-sasl-auth.xml"/>
     <xi:include href="xml/wocky-xmpp-reader.xml"/>
     <xi:include href="xml/wocky-contact.xml"/>
+    <xi:include href="xml/wocky-bare-contact.xml"/>
     <xi:include href="xml/wocky-porter.xml"/>
     <xi:include href="xml/wocky-connector.xml"/>
     <xi:include href="xml/wocky-xmpp-stanza.xml"/>

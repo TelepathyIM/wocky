@@ -49,23 +49,30 @@ WOCKY_XMPP_READER_GET_CLASS
 </SECTION>
 
 <SECTION>
-<FILE>wocky-contact</FILE>
-<TITLE>WockyContact</TITLE>
-wocky_contact_get_jid
-wocky_contact_get_name
-wocky_contact_set_name
-wocky_contact_get_subscription
-wocky_contact_set_subscription
-wocky_contact_set_groups
-wocky_contact_equal
+<FILE>wocky-bare-contact</FILE>
+<TITLE>WockyBareContact</TITLE>
+WockyBareContact
+WockyBareContactClass
+wocky_bare_contact_get_jid
+wocky_bare_contact_get_name
+wocky_bare_contact_set_name
+wocky_bare_contact_get_subscription
+wocky_bare_contact_set_subscription
+wocky_bare_contact_set_groups
+wocky_bare_contact_equal
+wocky_bare_contact_add_group
+wocky_bare_contact_copy
+wocky_bare_contact_debug_print
+wocky_bare_contact_in_group
+wocky_bare_contact_remove_group
 <SUBSECTION Standard>
-WOCKY_CONTACT
-WOCKY_IS_CONTACT
-WOCKY_TYPE_CONTACT
-wocky_contact_get_type
-WOCKY_CONTACT_CLASS
-WOCKY_IS_CONTACT_CLASS
-WOCKY_CONTACT_GET_CLASS
+WOCKY_BARE_CONTACT
+WOCKY_IS_BARE_CONTACT
+WOCKY_TYPE_BARE_CONTACT
+wocky_bare_contact_get_type
+WOCKY_BARE_CONTACT_CLASS
+WOCKY_IS_BARE_CONTACT_CLASS
+WOCKY_BARE_CONTACT_GET_CLASS
 </SECTION>
 
 <SECTION>
