@@ -1,5 +1,5 @@
 /*
- * wocky-contact.h - Header for WockyContact
+ * wocky-bare-contact.h - Header for WockyContact
  * Copyright (C) 2009 Collabora Ltd.
  * @author Jonny Lamb <jonny.lamb@collabora.co.uk>
  *

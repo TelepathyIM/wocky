@@ -8,7 +8,7 @@
 #include <wocky/wocky-porter.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-contact.h>
+#include <wocky/wocky-bare-contact.h>
 #include <wocky/wocky-namespaces.h>
 
 #include "wocky-test-stream.h"

@@ -32,7 +32,7 @@
 
 #include "wocky-roster.h"
 
-#include "wocky-contact.h"
+#include "wocky-bare-contact.h"
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-stanza.h"
 #include "wocky-utils.h"

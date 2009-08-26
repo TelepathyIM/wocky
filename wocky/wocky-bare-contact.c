@@ -1,5 +1,5 @@
 /*
- * wocky-contact.c - Source for WockyContact
+ * wocky-bare-contact.c - Source for WockyContact
  * Copyright (C) 2009 Collabora Ltd.
  * @author Jonny Lamb <jonny.lamb@collabora.co.uk>
  *
@@ -35,7 +35,7 @@
 
 #include <gio/gio.h>
 
-#include "wocky-contact.h"
+#include "wocky-bare-contact.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
