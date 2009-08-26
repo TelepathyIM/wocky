@@ -488,13 +488,16 @@ wocky_bare_contact_equal (WockyBareContact *a,
   if (a == NULL || b == NULL)
     return FALSE;
 
-  if (wocky_strdiff (wocky_bare_contact_get_jid (a), wocky_bare_contact_get_jid (b)))
+  if (wocky_strdiff (wocky_bare_contact_get_jid (a),
+        wocky_bare_contact_get_jid (b)))
     return FALSE;
 
-  if (wocky_strdiff (wocky_bare_contact_get_name (a), wocky_bare_contact_get_name (b)))
+  if (wocky_strdiff (wocky_bare_contact_get_name (a),
+        wocky_bare_contact_get_name (b)))
     return FALSE;
 
-  if (wocky_bare_contact_get_subscription (a) != wocky_bare_contact_get_subscription (b))
+  if (wocky_bare_contact_get_subscription (a) !=
+      wocky_bare_contact_get_subscription (b))
     return FALSE;
 
   groups_a = wocky_bare_contact_get_groups (a);
