@@ -22,14 +22,24 @@
  * SECTION: wocky-connector
  * @title: WockyConnector
  * @short_description: Low-level XMPP connection generator.
+ * @include wocky/wocky-connector.h
+ *
+ * See: RFC3920 XEP-0077
  *
  * Sends and receives #WockyXmppStanzas from an underlying GIOStream.
  * negotiating TLS if possible and completing authentication with the server
  * by the "most suitable" method available.
  * Returns a WockyXmppConnection object to the user on successful completion.
- */
-
-/*
+ *
+ * Can also be used to register or unregister an account: When unregistering
+ * (cancelling) an account, a WockyXmppConnection is NOT returned - a boolean
+ * value indicating success or failure is returned instead.
+ *
+ * The WOCKY_DEBUG tag for this module is "connector".
+ *
+ * The flow of control during connection is roughly as follows:
+ * (registration/cancellation flows are not represented with here)
+ *
  * tcp_srv_connected
  * │
  * ├→ tcp_host_connected                       ①
@@ -562,75 +572,169 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   oclass->dispose      = wocky_connector_dispose;
   oclass->finalize     = wocky_connector_finalize;
 
+  /**
+   * WockyConnector:ignore-ssl-errors:
+   *
+   * Whether to ignore recoverable SSL errors.
+   * (certificate insecurity/expiry etc) - not actually implemented yet.
+   */
   spec = g_param_spec_boolean ("ignore-ssl-errors", "ignore-ssl-errors",
       "Whether recoverable TLS errors should be ignored", TRUE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_TLS_INSECURE_OK, spec);
 
+  /**
+   * WockyConnector:plaintext-auth-allowed:
+   *
+   * Whether auth info can be sent in the clear (eg PLAINTEXT auth).
+   * This is independent of any encryption (TLS, SSL) that has been negotiated.
+   */
   spec = g_param_spec_boolean ("plaintext-auth-allowed",
       "plaintext-auth-allowed",
       "Whether auth info can be sent in the clear", FALSE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_AUTH_INSECURE_OK, spec);
 
+  /**
+   * WockyConnector:encrypted-plain-auth-ok:
+   *
+   * Whether PLAINTEXT auth is ok when encrypted.
+   */
   spec = g_param_spec_boolean ("encrypted-plain-auth-ok",
       "encrypted-plain-auth-ok",
       "Whether PLAIN auth can be used when encrypted", TRUE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_ENC_PLAIN_AUTH_OK, spec);
 
+  /**
+   * WockyConnector:tls-required:
+   *
+   * Whether we require successful tls/ssl negotiation to continue.
+   */
   spec = g_param_spec_boolean ("tls-required", "TLS required",
       "Whether SSL/TLS is required", TRUE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_TLS_REQUIRED, spec);
 
+  /**
+   * WockyConnector:jid:
+   *
+   * The XMPP account's JID (with or without a /resource).
+   */
   spec = g_param_spec_string ("jid", "jid", "The XMPP jid", NULL,
       (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_JID, spec);
 
-  spec = g_param_spec_string ("email", "email", "user's email adddress", NULL,
+  /**
+   * WockyConnector:email:
+   *
+   * The XMPP account's email address (optional, MAY be required by the server
+   * if we are registering an account, not required otherwise).
+   */
+  spec = g_param_spec_string ("email", "email", "user's email address", NULL,
       (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_EMAIL, spec);
 
+  /**
+   * WockyConnector:password:
+   *
+   * XMPP Account password.
+   */
   spec = g_param_spec_string ("password", "pass", "Password", NULL,
       (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_PASS, spec);
 
+  /**
+   * WockyConnector:resource:
+   *
+   * The resource (sans '/') for this connection. Will be generated
+   * automatically if not set. May be altered by the server anyway
+   * upon successful binding.
+   */
   spec = g_param_spec_string ("resource", "resource",
       "XMPP resource to append to the jid", NULL,
       (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_RESOURCE, spec);
 
+  /**
+   * WockyConnector:identity:
+   *
+   * JID + resource (a AT b SLASH c) that is in effect _after_ a successful
+   * resource binding operation. This is NOT guaranteed to be related to
+   * the JID specified in the original #WockyConnector:jid property.
+   * The resource, in particular, is often different, and with gtalk the
+   * domain is often different.
+   */
   spec = g_param_spec_string ("identity", "identity",
       "jid + resource (set by XMPP server)", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_IDENTITY, spec);
 
+  /**
+   * WockyConnector:xmpp-server:
+   *
+   * Optional XMPP connect server. Any DNS SRV record and the host specified
+   * in #WockyConnector:jid will be ignored if this is set. May be a hostname
+   * (fully qualified or otherwise), a dotted quad or an ipv6 address.
+   */
   spec = g_param_spec_string ("xmpp-server", "XMPP server",
       "XMPP connect server hostname or address", NULL,
       (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_XMPP_HOST, spec);
 
+  /**
+   * WockyConnector:xmpp-port:
+   *
+   * Optional XMPP connect port. Any DNS SRV record will be ignored if
+   * this is set. (So the host will be either the WockyConnector:xmpp-server
+   * property or the domain part of the JID, in descending order of preference)
+   */
   spec = g_param_spec_uint ("xmpp-port", "XMPP port",
       "XMPP port", 0, 65535, 0,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_XMPP_PORT, spec);
 
+  /**
+   * WockyConnector:features:
+   *
+   * A #WockyXmppStanza instance, the last WockyXmppStanza instance received
+   * by the connector during the connection procedure (there may be several,
+   * the most recent one always being the one we should refer to).
+   */
   spec = g_param_spec_object ("features", "XMPP Features",
       "Last XMPP Feature Stanza advertised by server", WOCKY_TYPE_XMPP_STANZA,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_FEATURES, spec);
 
+  /**
+   * WockyConnector:legacy:
+   *
+   * Whether to attempt old-style (non-SASL) jabber auth.
+   */
   spec = g_param_spec_boolean ("legacy", "Legacy Jabber Support",
       "Old style Jabber (Auth) support", FALSE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_LEGACY, spec);
 
+
+  /**
+   * WockyConnector:old-ssl:
+   *
+   * Whether to use old-style SSL-at-connect-time encryption rather than
+   * the more modern STARTTLS approach.
+   */
   spec = g_param_spec_boolean ("old-ssl", "Legacy SSL Support",
       "Old style SSL support", FALSE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_LEGACY_SSL, spec);
 
+  /**
+   * WockyConnector:old-ssl:
+   *
+   * The Session ID supplied by the server upon successfully connecting.
+   * May be useful later on as some XEPs suggest this value should be used
+   * at various stages as part of a hash or as an ID.
+   */
   spec = g_param_spec_string ("session-id", "XMPP Session ID",
       "XMPP Session ID", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
@@ -2255,6 +2359,18 @@ establish_session_recv_cb (GObject *source,
 /* *************************************************************************
  * exposed methods
  * ************************************************************************* */
+  /**
+   * wocky_connector_connect_finish:
+   * @self: a #WockyConnector instance.
+   * @res: a #GAsyncResult (from your wocky_connector_connect_async callback).
+   * @error: space for a #GError if an error occurred.
+   * @jid: space for a gchar * (or NULL): the JID in effect after connection.
+   * @sid: space for a gchar * (or NULL): the Session ID after connection.
+   *
+   * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
+   *
+   * Called by the callback passed to wocky_connector_connect_async().
+   */
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
     GAsyncResult *res,
@@ -2291,6 +2407,18 @@ wocky_connector_connect_finish (WockyConnector *self,
   return priv->conn;
 }
 
+/**
+ * wocky_connector_register_finish:
+ * @self: a #WockyConnector instance.
+ * @res: a #GAsyncResult (from your wocky_connector_register_async callback).
+ * @error: space for a #GError if an error occurred.
+ * @jid: space for a gchar * (or NULL): the JID in effect after connection.
+ * @sid: space for a gchar * (or NULL): the Session ID after connection.
+ *
+ * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
+ *
+ * Called by the callback passed to wocky_connector_register_async().
+ */
 WockyXmppConnection *
 wocky_connector_register_finish (WockyConnector *self,
     GAsyncResult *res,
@@ -2301,7 +2429,16 @@ wocky_connector_register_finish (WockyConnector *self,
   return wocky_connector_connect_finish (self, res, error, jid, sid);
 }
 
-
+/**
+ * wocky_connector_unregister_finish:
+ * @self: a #WockyConnector instance.
+ * @res: a #GAsyncResult (from your wocky_connector_register_async callback).
+ * @error: space for a #GError if an error occurred.
+ *
+ * Returns: a #gboolean value TRUE (success), or FALSE (failure).
+ *
+ * Called by the callback passed to wocky_connector_unregister_async().
+ */
 gboolean
 wocky_connector_unregister_finish (WockyConnector *self,
     GAsyncResult *res,
@@ -2320,6 +2457,13 @@ wocky_connector_unregister_finish (WockyConnector *self,
   return ok;
 }
 
+/**
+ * wocky_connector_auth_mechanism:
+ * @self: a #WockyConnector instance.
+ *
+ * Returns: a #WockySaslAuthMechanism value indicating the auth mechanism.
+ * actually used during the connection process.
+ */
 WockySaslAuthMechanism
 wocky_connector_auth_mechanism (WockyConnector *self)
 {
@@ -2327,6 +2471,15 @@ wocky_connector_auth_mechanism (WockyConnector *self)
   return priv->mech;
 }
 
+/**
+ * wocky_connector_connect_async:
+ * @self: a #WockyConnector instance.
+ * @cb: a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: a #gpointer to pass to the callback.
+ *
+ * Connect to the account/server specified by the @self.
+ * @cb should invoke wocky_connector_connect_finish().
+ */
 void
 wocky_connector_connect_async (WockyConnector *self,
     GAsyncReadyCallback cb,
@@ -2421,6 +2574,16 @@ wocky_connector_connect_async (WockyConnector *self,
   return;
 }
 
+/**
+ * wocky_connector_unregister_async:
+ * @self: a #WockyConnector instance.
+ * @cb: a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: a #gpointer to pass to the callback @cb.
+ *
+ * Connect to the account/server specified by @self, and unregister (cancel)
+ * the account there.
+ * @cb should invoke wocky_connector_unregister_finish().
+ */
 void
 wocky_connector_unregister_async (WockyConnector *self,
     GAsyncReadyCallback cb,
@@ -2432,6 +2595,16 @@ wocky_connector_unregister_async (WockyConnector *self,
   wocky_connector_connect_async (self, cb, user_data);
 }
 
+/**
+ * wocky_connector_register_async:
+ * @self: a #WockyConnector instance.
+ * @cb: a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: a #gpointer to pass to the callback @cb.
+ *
+ * Connect to the account/server specified by @self, register (set up)
+ * the account there and then log in to it.
+ * @cb should invoke wocky_connector_register_finish().
+ */
 void
 wocky_connector_register_async (WockyConnector *self,
     GAsyncReadyCallback cb,
@@ -2442,6 +2615,16 @@ wocky_connector_register_async (WockyConnector *self,
   priv->reg_op = XEP77_SIGNUP;
   wocky_connector_connect_async (self, cb, user_data);
 }
+
+/**
+ * wocky_connector_new:
+ * @jid: a JID (user AT domain).
+ * @pass: the password.
+ * @resource: the resource (sans '/'), or NULL to autogenerate one.
+ *
+ * Connect to the account/server specified by @self.
+ * To set other #WockyConnector properties, use g_object_new() instead.
+ */
 
 WockyConnector *
 wocky_connector_new (const gchar *jid,
