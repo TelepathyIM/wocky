@@ -39,6 +39,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-sasl-auth.h              \
   wocky-porter.c                 \
   wocky-porter.h                 \
+  wocky-contact.c                \
+  wocky-contact.h                \
   wocky-bare-contact.c           \
   wocky-bare-contact.h           \
   wocky-roster.c                 \
