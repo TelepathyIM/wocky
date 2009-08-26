@@ -10,6 +10,22 @@
 #include "wocky-test-helper.h"
 
 static void
+test_instantiation (void)
+{
+  WockyBareContact *a;
+
+  a = g_object_new (WOCKY_TYPE_BARE_CONTACT,
+      "jid", "romeo@example.net",
+      NULL);
+
+  g_assert (WOCKY_IS_BARE_CONTACT (a));
+  /* WockyBareContact is a sub-class of WockyContact */
+  g_assert (WOCKY_IS_CONTACT (a));
+
+  g_object_unref (a);
+}
+
+static void
 test_contact_equal (void)
 {
   WockyBareContact *a, *b, *c, *d, *e, *f, *g, *h, *i;
@@ -305,6 +321,7 @@ main (int argc, char **argv)
 
   test_init (argc, argv);
 
+  g_test_add_func ("/bare-contact/instantiation", test_instantiation);
   g_test_add_func ("/bare-contact/contact-equal", test_contact_equal);
   g_test_add_func ("/bare-contact/add-group", test_add_group);
   g_test_add_func ("/bare-contact/in-group", test_in_group);
