@@ -6,6 +6,7 @@ WockySaslAuthError
 WockySaslAuthMechanism
 <TITLE>WockySaslAuth</TITLE>
 WockySaslAuth
+WockySaslAuthClass
 wocky_sasl_auth_new
 wocky_sasl_auth_authenticate_async
 wocky_sasl_auth_authenticate_finish
@@ -24,6 +25,7 @@ WOCKY_SASL_AUTH_GET_CLASS
 <FILE>wocky-xmpp-reader</FILE>
 <TITLE>WockyXmppReader</TITLE>
 WockyXmppReader
+WockyXmppReaderClass
 WockyXmppReaderState
 WockyXmppReaderError
 wocky_xmpp_reader_error_quark
@@ -76,6 +78,7 @@ WOCKY_PORTER_HANDLER_PRIORITY_MAX
 WOCKY_PORTER_ERROR
 <TITLE>WockyPorter</TITLE>
 WockyPorter
+WockyPorterClass
 wocky_porter_new
 wocky_porter_send_async
 wocky_porter_send_finish
@@ -107,6 +110,7 @@ wocky_connector_error_quark
 WOCKY_CONNECTOR_ERROR
 <TITLE>WockyConnector</TITLE>
 WockyConnector
+WockyConnectorClass
 wocky_connector_connect_finish
 wocky_connector_register_finish
 wocky_connector_connect_async
@@ -129,6 +133,7 @@ WOCKY_CONNECTOR_GET_CLASS
 <FILE>wocky-xmpp-stanza</FILE>
 <TITLE>WockyXmppStanza</TITLE>
 WockyXmppStanza
+WockyXmppStanzaClass
 WockyStanzaType
 WockyStanzaSubType
 WockyBuildTag
@@ -153,6 +158,7 @@ WOCKY_XMPP_STANZA_GET_CLASS
 <FILE>wocky-xmpp-writer</FILE>
 <TITLE>WockyXmppWriter</TITLE>
 WockyXmppWriter
+WockyXmppWriterClass
 wocky_xmpp_writer_new
 wocky_xmpp_writer_new_no_stream
 wocky_xmpp_writer_stream_open
@@ -176,6 +182,7 @@ wocky_xmpp_connection_error_quark
 WOCKY_XMPP_CONNECTION_ERROR
 <TITLE>WockyXmppConnection</TITLE>
 WockyXmppConnection
+WockyXmppConnectionClass
 wocky_xmpp_connection_new
 wocky_xmpp_connection_send_open_async
 wocky_xmpp_connection_send_open_finish
@@ -206,6 +213,7 @@ WOCKY_XMPP_CONNECTION_GET_CLASS
 wocky_roster_error_quark
 <TITLE>WockyRoster</TITLE>
 WockyRoster
+WockyRosterClass
 WockyRosterSubscriptionFlags
 WockyRosterError
 WOCKY_ROSTER_ERROR
