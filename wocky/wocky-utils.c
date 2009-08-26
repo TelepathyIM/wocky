@@ -42,6 +42,7 @@ wocky_strdiff (const gchar *left,
 
 /**
  * wocky_decode_jid:
+ * @jid: a JID
  * @node: address to which return the username/room part of the JID
  * @domain: address to which return the server/service part of the JID
  * @resource: address to which return the resource/nick part of the JID
