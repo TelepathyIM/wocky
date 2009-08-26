@@ -28,6 +28,12 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyPorter:
+ *
+ * An object providing a convenient wrapper around a #WockyXmppConnection to
+ * send and receive stanzas.
+ */
 typedef struct _WockyPorter WockyPorter;
 typedef struct _WockyPorterClass WockyPorterClass;
 
