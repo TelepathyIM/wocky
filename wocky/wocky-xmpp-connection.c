@@ -329,6 +329,7 @@ wocky_xmpp_connection_do_write (WockyXmppConnection *self)
  * @from: sender in the XMPP opening (can be NULL).
  * @version: XMPP version sent (can be NULL).
  * @lang: language sent (can be NULL).
+ * @id: XMPP Stream ID, if any, or NULL
  * @cancellable: optional GCancellable object, NULL to ignore.
  * @callback: callback to call when the request is satisfied.
  * @user_data: the data to pass to callback function.
@@ -647,6 +648,7 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
 
 /**
  * wocky_xmpp_connection_send_stanza_async:
+ * @connection: a #WockyXmppConnection
  * @stanza: #WockyXmppStanza to send.
  * @cancellable: optional GCancellable object, NULL to ignore.
  * @callback: callback to call when the request is satisfied.
@@ -748,6 +750,7 @@ wocky_xmpp_connection_send_stanza_finish (
 
 /**
  * wocky_xmpp_connection_recv_stanza_async:
+ * @connection: a #WockyXmppConnection
  * @cancellable: optional GCancellable object, NULL to ignore.
  * @callback: callback to call when the request is satisfied.
  * @user_data: the data to pass to callback function.
