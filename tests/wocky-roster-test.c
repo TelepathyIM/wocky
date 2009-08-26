@@ -135,12 +135,12 @@ test_fetch_roster_send_iq (void)
 /* Test if the Roster object is properly populated when receiving its fetch
  * reply */
 
-static WockyContact *
+static WockyBareContact *
 create_romeo (void)
 {
   const gchar *groups[] = { "Friends", NULL };
 
-  return g_object_new (WOCKY_TYPE_CONTACT,
+  return g_object_new (WOCKY_TYPE_BARE_CONTACT,
       "jid", "romeo@example.net",
       "name", "Romeo",
       "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
@@ -148,12 +148,12 @@ create_romeo (void)
       NULL);
 }
 
-static WockyContact *
+static WockyBareContact *
 create_juliet (void)
 {
   const gchar *groups[] = { "Friends", "Girlz", NULL };
 
-  return g_object_new (WOCKY_TYPE_CONTACT,
+  return g_object_new (WOCKY_TYPE_BARE_CONTACT,
       "jid", "juliet@example.net",
       "name", "Juliet",
       "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO,
@@ -165,7 +165,7 @@ static int
 find_contact (gconstpointer a,
     gconstpointer b)
 {
-  if (wocky_contact_equal (WOCKY_CONTACT (a), WOCKY_CONTACT (b)))
+  if (wocky_bare_contact_equal (WOCKY_BARE_CONTACT (a), WOCKY_BARE_CONTACT (b)))
     return 0;
 
   return 1;
@@ -177,9 +177,9 @@ fetch_roster_reply_roster_cb (GObject *source_object,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyContact *contact;
+  WockyBareContact *contact;
   WockyRoster *roster = WOCKY_ROSTER (source_object);
-  WockyContact *romeo, *juliet;
+  WockyBareContact *romeo, *juliet;
   GSList *contacts;
 
   g_return_if_fail (wocky_roster_fetch_roster_finish (roster, res, NULL));
@@ -189,13 +189,13 @@ fetch_roster_reply_roster_cb (GObject *source_object,
 
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
   romeo = create_romeo ();
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
   g_assert (g_slist_find_custom (contacts, romeo, find_contact) != NULL);
   g_object_unref (romeo);
 
   contact = wocky_roster_get_contact (roster, "juliet@example.net");
   juliet = create_juliet ();
-  g_assert (wocky_contact_equal (contact, juliet));
+  g_assert (wocky_bare_contact_equal (contact, juliet));
   g_assert (g_slist_find_custom (contacts, juliet, find_contact) != NULL);
   g_object_unref (juliet);
 
@@ -295,12 +295,12 @@ test_fetch_roster_reply (void)
 }
 
 /* Test if roster is properly upgraded when a contact is added to it */
-static WockyContact *
+static WockyBareContact *
 create_nurse (void)
 {
   const gchar *groups[] = { NULL };
 
-  return g_object_new (WOCKY_TYPE_CONTACT,
+  return g_object_new (WOCKY_TYPE_BARE_CONTACT,
       "jid", "nurse@example.net",
       "name", "Nurse",
       "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE,
@@ -310,15 +310,15 @@ create_nurse (void)
 
 static void
 roster_added_cb (WockyRoster *roster,
-    WockyContact *contact,
+    WockyBareContact *contact,
     test_data_t *test)
 {
-  WockyContact *nurse;
+  WockyBareContact *nurse;
   GSList *contacts;
 
   /* Is that the right contact? */
   nurse = create_nurse ();
-  g_assert (wocky_contact_equal (contact, nurse));
+  g_assert (wocky_bare_contact_equal (contact, nurse));
 
   /* Check if the contact has been added to the roster */
   g_assert (wocky_roster_get_contact (roster, "nurse@example.net") == contact);
@@ -424,15 +424,15 @@ test_roster_upgrade_add (void)
 /* Test if roster is properly upgraded when a contact is removed from it */
 static void
 roster_removed_cb (WockyRoster *roster,
-    WockyContact *contact,
+    WockyBareContact *contact,
     test_data_t *test)
 {
-  WockyContact *romeo;
+  WockyBareContact *romeo;
   GSList *contacts;
 
   /* Is that the right contact? */
   romeo = create_romeo ();
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   /* Check if the contact has been removed from the roster */
   g_assert (wocky_roster_get_contact (roster, "romeo@example.net") == NULL);
@@ -469,9 +469,9 @@ test_roster_upgrade_remove (void)
   teardown_test (test);
 }
 
-/* Test if WockyContact objects are properly upgraded */
+/* Test if WockyBareContact objects are properly upgraded */
 static void
-contact_notify_cb (WockyContact *contact,
+contact_notify_cb (WockyBareContact *contact,
     GParamSpec *pspec,
     test_data_t *test)
 {
@@ -485,7 +485,7 @@ test_roster_upgrade_change (void)
   WockyRoster *roster;
   test_data_t *test = setup_test ();
   GSList *contacts, *l;
-  WockyContact *romeo, *contact;
+  WockyBareContact *romeo, *contact;
   const gchar *groups_init[] = { "Friends", NULL };
   const gchar *groups[] = { "Badger", NULL };
 
@@ -513,8 +513,8 @@ test_roster_upgrade_change (void)
   test_wait_pending (test);
 
   /* Name has been changed */
-  wocky_contact_set_name (romeo, "Romeooo");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_name (romeo, "Romeooo");
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   /* change subscription */
   test->outstanding++;
@@ -523,8 +523,8 @@ test_roster_upgrade_change (void)
   test_wait_pending (test);
 
   /* Subscription has been changed */
-  wocky_contact_set_subscription (romeo, WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO);
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_subscription (romeo, WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO);
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   /* change groups */
   test->outstanding++;
@@ -533,8 +533,8 @@ test_roster_upgrade_change (void)
   test_wait_pending (test);
 
   /* Groups have been changed */
-  wocky_contact_set_groups (romeo, (gchar **) groups);
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_groups (romeo, (gchar **) groups);
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   g_object_unref (romeo);
   test_close_both_porters (test);
@@ -689,12 +689,12 @@ contact_added_cb (GObject *source,
   g_main_loop_quit (test->loop);
 }
 
-static WockyContact *
+static WockyBareContact *
 create_mercutio (void)
 {
   const gchar *groups[] = { "Friends", "Badger", NULL };
 
-  return g_object_new (WOCKY_TYPE_CONTACT,
+  return g_object_new (WOCKY_TYPE_BARE_CONTACT,
       "jid", "mercutio@example.net",
       "name", "Mercutio",
       "groups", groups,
@@ -706,7 +706,7 @@ test_roster_add_contact (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *mercutio, *contact;
+  WockyBareContact *mercutio, *contact;
   const gchar *groups[] = { "Friends", "Badger", NULL };
 
   test_open_both_connections (test);
@@ -732,7 +732,7 @@ test_roster_add_contact (void)
 
   /* check if the contact has been actually added */
   contact = wocky_roster_get_contact (roster, "mercutio@example.net");
-  g_assert (wocky_contact_equal (contact, mercutio));
+  g_assert (wocky_bare_contact_equal (contact, mercutio));
 
   /* try to re-add the same contact. Operation succeeds immediately */
   wocky_roster_add_contact_async (roster, "mercutio@example.net", "Mercutio",
@@ -751,8 +751,8 @@ test_roster_add_contact (void)
 
   /* check if the contact has been updated */
   contact = wocky_roster_get_contact (roster, "mercutio@example.net");
-  wocky_contact_set_name (mercutio, "Badger");
-  g_assert (wocky_contact_equal (contact, mercutio));
+  wocky_bare_contact_set_name (mercutio, "Badger");
+  g_assert (wocky_bare_contact_equal (contact, mercutio));
 
   test_close_both_porters (test);
   g_object_unref (mercutio);
@@ -807,7 +807,7 @@ test_roster_remove_contact (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact;
+  WockyBareContact *contact;
 
   test_open_both_connections (test);
 
@@ -933,7 +933,7 @@ test_roster_change_name (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo, *mercutio;
+  WockyBareContact *contact, *romeo, *mercutio;
 
   test_open_both_connections (test);
 
@@ -943,7 +943,7 @@ test_roster_change_name (void)
 
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
   g_assert (contact != NULL);
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -961,8 +961,8 @@ test_roster_change_name (void)
   test_wait_pending (test);
 
   /* check if the contact name has actually been change */
-  wocky_contact_set_name (romeo, "Badger");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_name (romeo, "Badger");
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   /* Retry to do the same change; operation succeeds immediately */
   wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
@@ -1082,7 +1082,7 @@ test_contact_add_group (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo, *mercutio;
+  WockyBareContact *contact, *romeo, *mercutio;
 
   test_open_both_connections (test);
 
@@ -1092,7 +1092,7 @@ test_contact_add_group (void)
 
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
   g_assert (contact != NULL);
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -1110,8 +1110,8 @@ test_contact_add_group (void)
   test_wait_pending (test);
 
   /* check if the group has actually been added */
-  wocky_contact_add_group (romeo, "Badger");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_add_group (romeo, "Badger");
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   /* Retry to do the same change; operation succeeds immediately */
   wocky_roster_contact_add_group_async (roster, contact, "Badger", NULL,
@@ -1215,7 +1215,7 @@ test_contact_remove_group (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo, *mercutio;
+  WockyBareContact *contact, *romeo, *mercutio;
 
   test_open_both_connections (test);
 
@@ -1225,7 +1225,7 @@ test_contact_remove_group (void)
 
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
   g_assert (contact != NULL);
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -1243,8 +1243,8 @@ test_contact_remove_group (void)
   test_wait_pending (test);
 
   /* check if the group has actually been added */
-  wocky_contact_remove_group (romeo, "Friends");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_remove_group (romeo, "Friends");
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   /* Retry to do the same change; operation succeeds immediately */
   wocky_roster_contact_remove_group_async (roster, contact, "Friends", NULL,
@@ -1292,7 +1292,7 @@ test_remove_contact_re_add (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo;
+  WockyBareContact *contact, *romeo;
   const gchar *groups[] = { "Friends", NULL };
   const gchar *no_group[] = { NULL };
 
@@ -1360,8 +1360,8 @@ test_remove_contact_re_add (void)
   contact = wocky_roster_get_contact (roster, "romeo@example.net");
   g_assert (contact != NULL);
   romeo = create_romeo ();
-  wocky_contact_set_subscription (romeo, WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE);
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_subscription (romeo, WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE);
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   test_close_both_porters (test);
   g_object_unref (romeo);
@@ -1376,7 +1376,7 @@ test_remove_contact_edit (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact;
+  WockyBareContact *contact;
   const gchar *no_group[] = { NULL };
 
   test_open_both_connections (test);
@@ -1443,7 +1443,7 @@ test_multi_contact_edit (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *juliet;
+  WockyBareContact *contact, *juliet;
   const gchar *groups[] = { "Friends", "Girlz", NULL };
   const gchar *groups_changed[] = { "Friends", "School", NULL };
 
@@ -1475,7 +1475,7 @@ test_multi_contact_edit (void)
   /* The IQ has been sent but the server didn't send the upgrade and the reply
    * yet */
 
-  g_assert (wocky_contact_equal (contact, juliet));
+  g_assert (wocky_bare_contact_equal (contact, juliet));
 
   check_edit_roster_stanza (received_iq, "juliet@example.net", "Badger", "to",
       groups);
@@ -1517,8 +1517,8 @@ test_multi_contact_edit (void)
   test_wait_pending (test);
 
   /* At this point, the contact has still his initial name */
-  wocky_contact_set_name (juliet, "Badger");
-  g_assert (wocky_contact_equal (contact, juliet));
+  wocky_bare_contact_set_name (juliet, "Badger");
+  g_assert (wocky_bare_contact_equal (contact, juliet));
 
   check_edit_roster_stanza (received_iq, "juliet@example.net", "Snake", "to",
       groups_changed);
@@ -1543,9 +1543,9 @@ test_multi_contact_edit (void)
   test_wait_pending (test);
 
   /* Check that the contact is back */
-  wocky_contact_set_name (juliet, "Snake");
-  wocky_contact_set_groups (juliet, (gchar **) groups_changed);
-  g_assert (wocky_contact_equal (contact, juliet));
+  wocky_bare_contact_set_name (juliet, "Snake");
+  wocky_bare_contact_set_groups (juliet, (gchar **) groups_changed);
+  g_assert (wocky_bare_contact_equal (contact, juliet));
 
   test_close_both_porters (test);
   g_object_unref (roster);
@@ -1559,7 +1559,7 @@ test_edit_contact_remove (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact;
+  WockyBareContact *contact;
   const gchar *groups[] = { "Friends", NULL };
 
   test_open_both_connections (test);
@@ -1638,7 +1638,7 @@ test_change_name_twice (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo;
+  WockyBareContact *contact, *romeo;
   const gchar *groups[] = { "Friends", NULL };
 
   test_open_both_connections (test);
@@ -1669,7 +1669,7 @@ test_change_name_twice (void)
   /* The IQ has been sent but the server didn't send the upgrade and the reply
    * yet */
 
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   check_edit_roster_stanza (received_iq, "romeo@example.net", "Badger", "both",
       groups);
@@ -1692,8 +1692,8 @@ test_change_name_twice (void)
   g_assert (received_iq == NULL);
 
   /* Name has been changed */
-  wocky_contact_set_name (romeo, "Badger");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_name (romeo, "Badger");
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   test_close_both_porters (test);
   g_object_unref (roster);
@@ -1707,7 +1707,7 @@ test_remove_contact_twice (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact;
+  WockyBareContact *contact;
   const gchar *no_group[] = { NULL };
 
   test_open_both_connections (test);
@@ -1774,7 +1774,7 @@ test_change_name_remove_add (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo;
+  WockyBareContact *contact, *romeo;
   const gchar *groups[] = { "Friends", NULL };
 
   test_open_both_connections (test);
@@ -1805,7 +1805,7 @@ test_change_name_remove_add (void)
   /* The IQ has been sent but the server didn't send the upgrade and the reply
    * yet */
 
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   check_edit_roster_stanza (received_iq, "romeo@example.net", "Badger", "both",
       groups);
@@ -1835,8 +1835,8 @@ test_change_name_remove_add (void)
   g_assert (received_iq == NULL);
 
   /* Name has been changed */
-  wocky_contact_set_name (romeo, "Badger");
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_name (romeo, "Badger");
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   test_close_both_porters (test);
   g_object_unref (roster);
@@ -1850,7 +1850,7 @@ test_add_two_groups (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *romeo;
+  WockyBareContact *contact, *romeo;
   const gchar *groups2[] = { "Friends", "School", NULL };
   const gchar *groups3[] = { "Friends", "School", "Hackers", NULL };
 
@@ -1882,7 +1882,7 @@ test_add_two_groups (void)
   /* The IQ has been sent but the server didn't send the upgrade and the reply
    * yet */
 
-  g_assert (wocky_contact_equal (contact, romeo));
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   check_edit_roster_stanza (received_iq, "romeo@example.net", "Romeo", "both",
       groups2);
@@ -1904,8 +1904,8 @@ test_add_two_groups (void)
   test->outstanding += 2;
   test_wait_pending (test);
 
-  wocky_contact_set_groups (romeo, (gchar **) groups2);
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_groups (romeo, (gchar **) groups2);
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   check_edit_roster_stanza (received_iq, "romeo@example.net", "Romeo", "both",
       groups3);
@@ -1920,8 +1920,8 @@ test_add_two_groups (void)
   test->outstanding += 1;
   test_wait_pending (test);
 
-  wocky_contact_set_groups (romeo, (gchar **) groups3);
-  g_assert (wocky_contact_equal (contact, romeo));
+  wocky_bare_contact_set_groups (romeo, (gchar **) groups3);
+  g_assert (wocky_bare_contact_equal (contact, romeo));
 
   test_close_both_porters (test);
   g_object_unref (roster);
@@ -1935,7 +1935,7 @@ test_remove_two_groups (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *contact, *juliet;
+  WockyBareContact *contact, *juliet;
   const gchar *groups[] = { "Friends", NULL };
   const gchar *no_group[] = { NULL };
 
@@ -1967,7 +1967,7 @@ test_remove_two_groups (void)
   /* The IQ has been sent but the server didn't send the upgrade and the reply
    * yet */
 
-  g_assert (wocky_contact_equal (contact, juliet));
+  g_assert (wocky_bare_contact_equal (contact, juliet));
 
   check_edit_roster_stanza (received_iq, "juliet@example.net", "Juliet", "to",
       groups);
@@ -1989,8 +1989,8 @@ test_remove_two_groups (void)
   test->outstanding += 2;
   test_wait_pending (test);
 
-  wocky_contact_set_groups (juliet, (gchar **) groups);
-  g_assert (wocky_contact_equal (contact, juliet));
+  wocky_bare_contact_set_groups (juliet, (gchar **) groups);
+  g_assert (wocky_bare_contact_equal (contact, juliet));
 
   check_edit_roster_stanza (received_iq, "juliet@example.net", "Juliet", "to",
       no_group);
@@ -2005,8 +2005,8 @@ test_remove_two_groups (void)
   test->outstanding += 1;
   test_wait_pending (test);
 
-  wocky_contact_set_groups (juliet, (gchar **) no_group);
-  g_assert (wocky_contact_equal (contact, juliet));
+  wocky_bare_contact_set_groups (juliet, (gchar **) no_group);
+  g_assert (wocky_bare_contact_equal (contact, juliet));
 
   test_close_both_porters (test);
   g_object_unref (roster);
@@ -2020,7 +2020,7 @@ test_add_contact_twice (void)
 {
   WockyRoster *roster;
   test_data_t *test = setup_test ();
-  WockyContact *mercutio, *contact;
+  WockyBareContact *mercutio, *contact;
   const gchar *groups[] = { "Friends", "Badger", NULL };
 
   test_open_both_connections (test);
@@ -2070,7 +2070,7 @@ test_add_contact_twice (void)
 
   /* check if the contact has been actually added */
   contact = wocky_roster_get_contact (roster, "mercutio@example.net");
-  g_assert (wocky_contact_equal (contact, mercutio));
+  g_assert (wocky_bare_contact_equal (contact, mercutio));
 
   test_close_both_porters (test);
   g_object_unref (mercutio);

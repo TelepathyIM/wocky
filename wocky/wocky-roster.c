@@ -235,7 +235,7 @@ typedef struct _WockyRosterPrivate WockyRosterPrivate;
 struct _WockyRosterPrivate
 {
   WockyPorter *porter;
-  /* owned (gchar *) => reffed (WockyContact *) */
+  /* owned (gchar *) => reffed (WockyBareContact *) */
   GHashTable *items;
   guint iq_cb;
 
@@ -347,7 +347,7 @@ remove_item (WockyRoster *self,
     const gchar *jid)
 {
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-  WockyContact *contact;
+  WockyBareContact *contact;
 
   contact = g_hash_table_lookup (priv->items, jid);
   if (contact == NULL)
@@ -407,7 +407,7 @@ roster_update (WockyRoster *self,
     {
       const gchar *jid;
       WockyXmppNode *n = (WockyXmppNode *) j->data;
-      WockyContact *contact = NULL;
+      WockyBareContact *contact = NULL;
       const gchar *subscription;
       WockyRosterSubscriptionFlags subscription_type;
       GPtrArray *groups_arr;
@@ -477,17 +477,17 @@ roster_update (WockyRoster *self,
       if (contact != NULL)
         {
           /* Contact already exists; update. */
-          wocky_contact_set_name (contact,
+          wocky_bare_contact_set_name (contact,
               wocky_xmpp_node_get_attribute (n, "name"));
 
-          wocky_contact_set_subscription (contact, subscription_type);
+          wocky_bare_contact_set_subscription (contact, subscription_type);
 
-          wocky_contact_set_groups (contact, groups);
+          wocky_bare_contact_set_groups (contact, groups);
         }
       else
         {
           /* Create a new contact. */
-          contact = g_object_new (WOCKY_TYPE_CONTACT,
+          contact = g_object_new (WOCKY_TYPE_BARE_CONTACT,
               "jid", jid,
               "name", wocky_xmpp_node_get_attribute (n, "name"),
               "subscription", subscription_type,
@@ -497,7 +497,7 @@ roster_update (WockyRoster *self,
           g_hash_table_insert (priv->items, g_strdup (jid), contact);
 
           DEBUG ("New contact added:");
-          wocky_contact_debug_print (contact);
+          wocky_bare_contact_debug_print (contact);
 
           if (fire_signals)
             g_signal_emit (self, signals[ADDED], 0, contact);
@@ -732,7 +732,7 @@ wocky_roster_fetch_roster_finish (WockyRoster *self,
   return TRUE;
 }
 
-WockyContact *
+WockyBareContact *
 wocky_roster_get_contact (WockyRoster *self,
     const gchar *jid)
 {
@@ -761,7 +761,7 @@ wocky_roster_get_all_contacts (WockyRoster *self)
 /* Build an IQ set stanza containing the current state of the contact.
  * If not NULL, item_node will contain a pointer on the "item" node */
 static WockyXmppStanza *
-build_iq_for_contact (WockyContact *contact,
+build_iq_for_contact (WockyBareContact *contact,
     WockyXmppNode **item_node)
 {
   WockyXmppStanza *iq;
@@ -771,7 +771,7 @@ build_iq_for_contact (WockyContact *contact,
   guint i;
   WockyRosterSubscriptionFlags subscription;
 
-  jid = wocky_contact_get_jid (contact);
+  jid = wocky_bare_contact_get_jid (contact);
   g_return_val_if_fail (jid != NULL, NULL);
 
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -787,20 +787,20 @@ build_iq_for_contact (WockyContact *contact,
 
   g_assert (item != NULL);
 
-  name = wocky_contact_get_name (contact);
+  name = wocky_bare_contact_get_name (contact);
   if (name != NULL)
     {
       wocky_xmpp_node_set_attribute (item, "name", name);
     }
 
-  subscription = wocky_contact_get_subscription (contact);
+  subscription = wocky_bare_contact_get_subscription (contact);
   if (subscription != WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE)
     {
       wocky_xmpp_node_set_attribute (item, "subscription",
           wocky_roster_subscription_to_string (subscription));
     }
 
-  groups = wocky_contact_get_groups (contact);
+  groups = wocky_bare_contact_get_groups (contact);
   for (i = 0; groups != NULL && groups[i] != NULL; i++)
     {
       WockyXmppNode *group;
@@ -816,14 +816,14 @@ build_iq_for_contact (WockyContact *contact,
 }
 
 static WockyXmppStanza *
-build_remove_contact_iq (WockyContact *contact)
+build_remove_contact_iq (WockyBareContact *contact)
 {
   return wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
         WOCKY_NODE, "query",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
           WOCKY_NODE, "item",
-            WOCKY_NODE_ATTRIBUTE, "jid", wocky_contact_get_jid (contact),
+            WOCKY_NODE_ATTRIBUTE, "jid", wocky_bare_contact_get_jid (contact),
             WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
           WOCKY_NODE_END,
         WOCKY_NODE_END,
@@ -835,7 +835,7 @@ build_iq_for_pending (WockyRoster *self,
     PendingOperation *pending)
 {
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-  WockyContact *contact, *tmp;
+  WockyBareContact *contact, *tmp;
   WockyXmppStanza *iq;
   GHashTableIter iter;
   gpointer group;
@@ -876,7 +876,7 @@ build_iq_for_pending (WockyRoster *self,
           return NULL;
         }
 
-      tmp = g_object_new (WOCKY_TYPE_CONTACT,
+      tmp = g_object_new (WOCKY_TYPE_BARE_CONTACT,
           "jid", pending->jid,
           NULL);
     }
@@ -888,25 +888,25 @@ build_iq_for_pending (WockyRoster *self,
           return build_remove_contact_iq (contact);
         }
 
-      tmp = wocky_contact_copy (contact);
+      tmp = wocky_bare_contact_copy (contact);
     }
 
   if (pending->new_name != NULL)
-    wocky_contact_set_name (tmp, pending->new_name);
+    wocky_bare_contact_set_name (tmp, pending->new_name);
 
   g_hash_table_iter_init (&iter, pending->groups_to_add);
   while (g_hash_table_iter_next (&iter, &group, NULL))
     {
-      wocky_contact_add_group (tmp, (const gchar *) group);
+      wocky_bare_contact_add_group (tmp, (const gchar *) group);
     }
 
   g_hash_table_iter_init (&iter, pending->groups_to_remove);
   while (g_hash_table_iter_next (&iter, &group, NULL))
     {
-      wocky_contact_remove_group (tmp, (const gchar *) group);
+      wocky_bare_contact_remove_group (tmp, (const gchar *) group);
     }
 
-  if (wocky_contact_equal (contact, tmp))
+  if (wocky_bare_contact_equal (contact, tmp))
     {
       DEBUG ("No change needed");
       g_object_unref (tmp);
@@ -1053,7 +1053,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
-  WockyContact *contact, *existing_contact;
+  WockyBareContact *contact, *existing_contact;
   PendingOperation *pending;
 
   g_return_if_fail (jid != NULL);
@@ -1073,21 +1073,21 @@ wocky_roster_add_contact_async (WockyRoster *self,
       return;
     }
 
-  contact = g_object_new (WOCKY_TYPE_CONTACT,
+  contact = g_object_new (WOCKY_TYPE_BARE_CONTACT,
       "jid", jid,
       NULL);
 
   if (name != NULL)
-    wocky_contact_set_name (contact, name);
+    wocky_bare_contact_set_name (contact, name);
 
   if (groups != NULL)
-    wocky_contact_set_groups (contact, (gchar **) groups);
+    wocky_bare_contact_set_groups (contact, (gchar **) groups);
 
   existing_contact = g_hash_table_lookup (priv->items, jid);
   if (existing_contact != NULL)
     {
       /* contact is already in the roster. Check if we need to change him. */
-      if (wocky_contact_equal (contact, existing_contact))
+      if (wocky_bare_contact_equal (contact, existing_contact))
         {
           DEBUG ("Contact %s is already present in the roster; "
               "no need to change him", jid);
@@ -1136,7 +1136,7 @@ is_contact (gpointer key,
 
 static gboolean
 contact_in_roster (WockyRoster *self,
-    WockyContact *contact)
+    WockyBareContact *contact)
 {
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
 
@@ -1145,7 +1145,7 @@ contact_in_roster (WockyRoster *self,
 
 void
 wocky_roster_remove_contact_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -1157,7 +1157,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
-  jid = wocky_contact_get_jid (contact);
+  jid = wocky_bare_contact_get_jid (contact);
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_remove_contact_finish);
@@ -1174,7 +1174,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
 
   if (!contact_in_roster (self, contact))
     {
-      DEBUG ("Contact %s is not in the roster", wocky_contact_get_jid (
+      DEBUG ("Contact %s is not in the roster", wocky_bare_contact_get_jid (
             contact));
       g_simple_async_result_complete_in_idle (result);
       g_object_unref (result);
@@ -1208,7 +1208,7 @@ wocky_roster_remove_contact_finish (WockyRoster *self,
 
 void
 wocky_roster_change_contact_name_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     const gchar *name,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -1222,7 +1222,7 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
-  jid = wocky_contact_get_jid (contact);
+  jid = wocky_bare_contact_get_jid (contact);
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_change_contact_name_finish);
@@ -1241,12 +1241,12 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
     {
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
-          "Contact %s is not in the roster", wocky_contact_get_jid (contact));
+          "Contact %s is not in the roster", wocky_bare_contact_get_jid (contact));
       g_object_unref (result);
       return;
     }
 
-  if (!wocky_strdiff (wocky_contact_get_name (contact), name))
+  if (!wocky_strdiff (wocky_bare_contact_get_name (contact), name))
     {
       DEBUG ("No need to change name; complete immediately");
       g_simple_async_result_complete_in_idle (result);
@@ -1285,7 +1285,7 @@ wocky_roster_change_contact_name_finish (WockyRoster *self,
 
 void
 wocky_roster_contact_add_group_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     const gchar *group,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -1299,7 +1299,7 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
-  jid = wocky_contact_get_jid (contact);
+  jid = wocky_bare_contact_get_jid (contact);
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_contact_add_group_finish);
@@ -1323,10 +1323,10 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
       return;
     }
 
-  if (wocky_contact_in_group (contact, group))
+  if (wocky_bare_contact_in_group (contact, group))
     {
       DEBUG ("Contact %s in already in group %s; complete immediately",
-          wocky_contact_get_jid (contact), group);
+          wocky_bare_contact_get_jid (contact), group);
       g_simple_async_result_complete_in_idle (result);
       g_object_unref (result);
       return;
@@ -1364,7 +1364,7 @@ wocky_roster_contact_add_group_finish (WockyRoster *self,
 
 void
 wocky_roster_contact_remove_group_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     const gchar *group,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -1379,7 +1379,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
-  jid = wocky_contact_get_jid (contact);
+  jid = wocky_bare_contact_get_jid (contact);
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_contact_remove_group_finish);
@@ -1403,7 +1403,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
       return;
     }
 
-  if (!wocky_contact_in_group (contact, group))
+  if (!wocky_bare_contact_in_group (contact, group))
     {
       DEBUG ("Contact %s is not in group %s; complete immediately", jid, group);
       g_simple_async_result_complete_in_idle (result);

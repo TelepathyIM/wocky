@@ -1,5 +1,5 @@
 /*
- * wocky-bare-contact.h - Header for WockyContact
+ * wocky-bare-contact.h - Header for WockyBareContact
  * Copyright (C) 2009 Collabora Ltd.
  * @author Jonny Lamb <jonny.lamb@collabora.co.uk>
  *
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __WOCKY_CONTACT_H__
-#define __WOCKY_CONTACT_H__
+#ifndef __WOCKY_BARE_CONTACT_H__
+#define __WOCKY_BARE_CONTACT_H__
 
 #include <glib-object.h>
 
@@ -28,66 +28,66 @@
 
 G_BEGIN_DECLS
 
-typedef struct _WockyContactClass WockyContactClass;
+typedef struct _WockyBareContactClass WockyBareContactClass;
 
-struct _WockyContactClass {
+struct _WockyBareContactClass {
   GObjectClass parent_class;
 };
 
-struct _WockyContact {
+struct _WockyBareContact {
   GObject parent;
 };
 
-GType wocky_contact_get_type (void);
+GType wocky_bare_contact_get_type (void);
 
-#define WOCKY_TYPE_CONTACT \
-  (wocky_contact_get_type ())
-#define WOCKY_CONTACT(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_CONTACT, \
-   WockyContact))
-#define WOCKY_CONTACT_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_CONTACT, \
-   WockyContactClass))
-#define WOCKY_IS_CONTACT(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_CONTACT))
-#define WOCKY_IS_CONTACT_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass), WOCKY_TYPE_CONTACT))
-#define WOCKY_CONTACT_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONTACT, \
-   WockyContactClass))
+#define WOCKY_TYPE_BARE_CONTACT \
+  (wocky_bare_contact_get_type ())
+#define WOCKY_BARE_CONTACT(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_BARE_CONTACT, \
+   WockyBareContact))
+#define WOCKY_BARE_CONTACT_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_BARE_CONTACT, \
+   WockyBareContactClass))
+#define WOCKY_IS_BARE_CONTACT(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_BARE_CONTACT))
+#define WOCKY_IS_BARE_CONTACT_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), WOCKY_TYPE_BARE_CONTACT))
+#define WOCKY_BARE_CONTACT_GET_CLASS(obj) \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_BARE_CONTACT, \
+   WockyBareContactClass))
 
-const gchar *wocky_contact_get_jid (WockyContact *contact);
+const gchar *wocky_bare_contact_get_jid (WockyBareContact *contact);
 
-const gchar *wocky_contact_get_name (WockyContact *contact);
+const gchar *wocky_bare_contact_get_name (WockyBareContact *contact);
 
-void wocky_contact_set_name (WockyContact *contact, const gchar *name);
+void wocky_bare_contact_set_name (WockyBareContact *contact, const gchar *name);
 
-WockyRosterSubscriptionFlags wocky_contact_get_subscription (
-    WockyContact *contact);
+WockyRosterSubscriptionFlags wocky_bare_contact_get_subscription (
+    WockyBareContact *contact);
 
-void wocky_contact_set_subscription (WockyContact *contact,
+void wocky_bare_contact_set_subscription (WockyBareContact *contact,
     WockyRosterSubscriptionFlags subscription);
 
-const gchar * const *wocky_contact_get_groups (WockyContact *contact);
+const gchar * const *wocky_bare_contact_get_groups (WockyBareContact *contact);
 
-void wocky_contact_set_groups (WockyContact *contact, gchar **groups);
+void wocky_bare_contact_set_groups (WockyBareContact *contact, gchar **groups);
 
-gboolean wocky_contact_equal (WockyContact *a,
-    WockyContact *b);
+gboolean wocky_bare_contact_equal (WockyBareContact *a,
+    WockyBareContact *b);
 
-void wocky_contact_add_group (WockyContact *contact,
+void wocky_bare_contact_add_group (WockyBareContact *contact,
     const gchar *group);
 
-gboolean wocky_contact_in_group (WockyContact *contact,
+gboolean wocky_bare_contact_in_group (WockyBareContact *contact,
     const gchar *group);
 
-void wocky_contact_remove_group (WockyContact *contact,
+void wocky_bare_contact_remove_group (WockyBareContact *contact,
     const gchar *group);
 
-WockyContact * wocky_contact_copy (WockyContact *contact);
+WockyBareContact * wocky_bare_contact_copy (WockyBareContact *contact);
 
-void wocky_contact_debug_print (WockyContact *contact);
+void wocky_bare_contact_debug_print (WockyBareContact *contact);
 
 G_END_DECLS
 
-#endif /* #ifndef __WOCKY_CONTACT_H__*/
+#endif /* #ifndef __WOCKY_BARE_CONTACT_H__*/

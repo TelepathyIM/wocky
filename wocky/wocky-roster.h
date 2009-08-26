@@ -101,7 +101,7 @@ void wocky_roster_fetch_roster_async (WockyRoster *self,
 gboolean wocky_roster_fetch_roster_finish (WockyRoster *self,
     GAsyncResult *result, GError **error);
 
-WockyContact * wocky_roster_get_contact (WockyRoster *self,
+WockyBareContact * wocky_roster_get_contact (WockyRoster *self,
     const gchar *jid);
 
 GSList * wocky_roster_get_all_contacts (WockyRoster *self);
@@ -119,7 +119,7 @@ gboolean wocky_roster_add_contact_finish (WockyRoster *self,
     GError **error);
 
 void wocky_roster_remove_contact_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
@@ -129,7 +129,7 @@ gboolean wocky_roster_remove_contact_finish (WockyRoster *self,
     GError **error);
 
 void wocky_roster_change_contact_name_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     const gchar *name,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -140,7 +140,7 @@ gboolean wocky_roster_change_contact_name_finish (WockyRoster *self,
     GError **error);
 
 void wocky_roster_contact_add_group_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     const gchar *group,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -151,7 +151,7 @@ gboolean wocky_roster_contact_add_group_finish (WockyRoster *self,
     GError **error);
 
 void wocky_roster_contact_remove_group_async (WockyRoster *self,
-    WockyContact *contact,
+    WockyBareContact *contact,
     const gchar *group,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
