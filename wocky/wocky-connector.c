@@ -2359,18 +2359,19 @@ establish_session_recv_cb (GObject *source,
 /* *************************************************************************
  * exposed methods
  * ************************************************************************* */
-  /**
-   * wocky_connector_connect_finish:
-   * @self: a #WockyConnector instance.
-   * @res: a #GAsyncResult (from your wocky_connector_connect_async callback).
-   * @error: space for a #GError if an error occurred.
-   * @jid: space for a gchar * (or NULL): the JID in effect after connection.
-   * @sid: space for a gchar * (or NULL): the Session ID after connection.
-   *
-   * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
-   *
-   * Called by the callback passed to wocky_connector_connect_async().
-   */
+
+/**
+ * wocky_connector_connect_finish:
+ * @self: a #WockyConnector instance.
+ * @res: a #GAsyncResult (from your wocky_connector_connect_async callback).
+ * @error: space for a #GError if an error occurred.
+ * @jid: a gchar ** (or NULL): the user JID from the server is stored here.
+ * @sid: a gchar ** (or NULL): the Session ID is stored here.
+ *
+ * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
+ *
+ * Called by the callback passed to wocky_connector_connect_async().
+ */
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
     GAsyncResult *res,
@@ -2622,10 +2623,12 @@ wocky_connector_register_async (WockyConnector *self,
  * @pass: the password.
  * @resource: the resource (sans '/'), or NULL to autogenerate one.
  *
+ * Returns: a #WockyConnector instance which can be used to connect to,
+ * register or cancel an account
+ *
  * Connect to the account/server specified by @self.
  * To set other #WockyConnector properties, use g_object_new() instead.
  */
-
 WockyConnector *
 wocky_connector_new (const gchar *jid,
     const gchar *pass,
