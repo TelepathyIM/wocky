@@ -1241,6 +1241,49 @@ compare_handler (StanzaHandler *a,
     return 0;
 }
 
+/**
+ * wocky_porter_register_handler:
+ * @porter: a #WockyPorter
+ * @type: the type of stanza dispatched by this handler
+ * @sub_type: the subtype of stanza dispatched by this handler or
+ * WOCKY_STANZA_SUB_TYPE_NONE to match any subtype
+ * @from: if not %NULL, the handler will be called only if the from attribute
+ * attribute of the stanza is the same as @from
+ * @priority: the priority of the handler; handler with a higher priority are
+ * called first
+ * @callback: the function called when dispatching a matching stanza
+ * @user_data: the data to pass to @callback when dispatching a stanza
+ * @spec: an optionnal set of nodes and their attributes as in
+ * wocky_xmpp_stanza_build and terminated by WOCKY_STANZA_END
+ *
+ * Register a new stanza handler.
+ * Stanza handlers are called when the Porter receives a new stanza matching
+ * the rules of the handler. Matching handlers are sorted by priority and are
+ * called until one claims to have handled the stanza (by returning %TRUE).
+ *
+ * Register a handler matching all message stanzas received from anyone:
+ * |[
+ * id = wocky_porter_register_handler (porter,
+ *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, message_received_cb, NULL,
+ *   WOCKY_STANZA_END);
+ * ]|
+ *
+ * Register an IQ handler from Juliet for all the jingle stanzas related
+ * to one jingle session:
+ * |[
+ * id = wocky_porter_register_handler (porter,
+ *   WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, jingle_cb,
+ *   "juliet@example.com/Balcony",
+ *   WOCKY_NODE, "jingle",
+ *     WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+ *     WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
+ *   WOCKY_NODE_END, WOCKY_STANZA_END);
+ * ]|
+ *
+ * Returns: an ID representing the registered handler
+ */
 guint
 wocky_porter_register_handler (WockyPorter *self,
     WockyStanzaType type,
@@ -1275,6 +1318,14 @@ wocky_porter_register_handler (WockyPorter *self,
   return priv->next_handler_id++;
 }
 
+/**
+ * wocky_porter_unregister_handler:
+ * @porter: a #WockyPorter
+ * @id: the id of the handler to unregister
+ *
+ * Unregister a registered handler. This handler won't be called when
+ * receiving stanzas anymore.
+ */
 void
 wocky_porter_unregister_handler (WockyPorter *self,
     guint id)

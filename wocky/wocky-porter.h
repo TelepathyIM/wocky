@@ -109,6 +109,17 @@ void wocky_porter_send (WockyPorter *porter,
 
 void wocky_porter_start (WockyPorter *porter);
 
+/**
+ * WockyPorterHandlerFunc:
+ * @porter: the #WockyPorter dispatching the #WockyXmppStanza
+ * @stanza: the #WockyXmppStanza being dispatched
+ * @user_data: the data passed when the handler has been registered
+ *
+ * Handler called when a matchinWOCKY_STANZA_SUB_TYPE_NONEg stanza has been received by the
+ * #WockyPorter.
+ *
+ * Returns: %TRUE if the stanza has been handled, %FALSE if not
+ */
 typedef gboolean (* WockyPorterHandlerFunc) (
     WockyPorter *porter,
     WockyXmppStanza *stanza,
