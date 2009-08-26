@@ -1283,16 +1283,18 @@ wocky_tls_session_new (GIOStream *stream)
 }
 
 /**
- * wocky_tls_session_server_new - create a new TLS server session
+ * wocky_tls_session_server_new:
  * @stream: a GIOStream on which we expect to receive the client TLS handshake
- * @dh_bits: size of the DH parameters (see gnutls for valid settings)
+ * @dhbits: size of the DH parameters (see gnutls for valid settings)
  * @key: the path to the X509 PEM key file
  * @cert: the path to the X509 PEM certificate
  * @ca: the path to the X509 trust (certificate authority) file (or NULL)
  * @crl: the path to the X509 CRL (certificate revocation list) file (or NULL)
  *
- * Returns: a WockyTLSSession object
- **/
+ * Create a new TLS server session
+ *
+ * Returns: a #WockyTLSSession object
+ */
 WockyTLSSession *
 wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
                               const gchar* key, const gchar* cert,
