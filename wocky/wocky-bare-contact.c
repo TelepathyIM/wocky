@@ -19,10 +19,10 @@
  */
 
 /**
- * SECTION: wocky-contact
+ * SECTION: wocky-bare-contact
  * @title: WockyBareContact
  * @short_description: Wrapper around a roster item.
- * @include: wocky/wocky-contact.h
+ * @include: wocky/wocky-bare-contact.h
  *
  * Stores information regarding a roster item and provides a higher level API
  * for altering its details.
