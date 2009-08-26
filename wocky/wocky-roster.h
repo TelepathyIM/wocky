@@ -72,9 +72,11 @@ typedef enum
 
 /**
  * WockyRosterError:
- * @WOCKY_ROSTER_INVALID_STANZA
+ * @WOCKY_ROSTER_ERROR_INVALID_STANZA : received an invalid roster stanza
+ * from the server
+ * @WOCKY_ROSTER_ERROR_NOT_IN_ROSTER : the contact is not in the roster
  *
- * The different errors that can occur while reading a stream
+ * The #WockyRosterError specific errors.
  */
 typedef enum {
   WOCKY_ROSTER_ERROR_INVALID_STANZA,
