@@ -305,11 +305,11 @@ main (int argc, char **argv)
 
   test_init (argc, argv);
 
-  g_test_add_func ("/contact/contact-equal", test_contact_equal);
-  g_test_add_func ("/contact/add-group", test_add_group);
-  g_test_add_func ("/contact/in-group", test_in_group);
-  g_test_add_func ("/contact/remove-group", test_remove_group);
-  g_test_add_func ("/contact/contact-copy", test_contact_copy);
+  g_test_add_func ("/bare-contact/contact-equal", test_contact_equal);
+  g_test_add_func ("/bare-contact/add-group", test_add_group);
+  g_test_add_func ("/bare-contact/in-group", test_in_group);
+  g_test_add_func ("/bare-contact/remove-group", test_remove_group);
+  g_test_add_func ("/bare-contact/contact-copy", test_contact_copy);
 
   result = g_test_run ();
   test_deinit ();
