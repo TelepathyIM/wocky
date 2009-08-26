@@ -40,6 +40,8 @@
  * The flow of control during connection is roughly as follows:
  * (registration/cancellation flows are not represented with here)
  *
+ * <informalexample>
+ *  <programlisting>
  * tcp_srv_connected
  * │
  * ├→ tcp_host_connected                       ①
@@ -78,6 +80,8 @@
  *    establish_session_sent_cb      │
  *    ↓                              │
  *    establish_session_recv_cb ─────┘
+ *  </programlisting>
+ * </informalexample>
  */
 
 #include <stdio.h>

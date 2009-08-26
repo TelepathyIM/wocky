@@ -35,15 +35,39 @@ typedef struct _WockyConnectorClass WockyConnectorClass;
 
 /**
  * WockyConnectorError:
+ * @WOCKY_CONNECTOR_ERROR_UNKNOWN                  : Unexpected Error Condition
+ * @WOCKY_CONNECTOR_ERROR_IN_PROGRESS              : Connection Already Underway
+ * @WOCKY_CONNECTOR_ERROR_BAD_JID                  : JID is Invalid
+ * @WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER       : XMPP Version < 1
+ * @WOCKY_CONNECTOR_ERROR_BAD_FEATURES             : Feature Stanza Invalid
+ * @WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE          : TLS Unavailable
+ * @WOCKY_CONNECTOR_ERROR_TLS_REFUSED              : TLS Refused by Server
+ * @WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED       : TLS Handshake Failed
+ * @WOCKY_CONNECTOR_ERROR_BIND_UNAVAILABLE         : Bind Not Available
+ * @WOCKY_CONNECTOR_ERROR_BIND_FAILED              : Bind Failed
+ * @WOCKY_CONNECTOR_ERROR_BIND_INVALID             : Bind Args Invalid
+ * @WOCKY_CONNECTOR_ERROR_BIND_DENIED              : Bind Not Allowed
+ * @WOCKY_CONNECTOR_ERROR_BIND_CONFLICT            : Bind Resource In Use
+ * @WOCKY_CONNECTOR_ERROR_BIND_REJECTED            : Bind Error (Generic)
+ * @WOCKY_CONNECTOR_ERROR_SESSION_FAILED           : Session Failed
+ * @WOCKY_CONNECTOR_ERROR_SESSION_DENIED           : Session Refused by Server
+ * @WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT         : Session Not Allowed
+ * @WOCKY_CONNECTOR_ERROR_SESSION_REJECTED         : Session Error
+ * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE  : Jabber Auth Unavailable
+ * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED       : Jabber Auth Failed
+ * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS     : Jabber Auth - No Mechanisms
+ * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED     : Jabber Auth - Unauthorised
+ * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE   : Jabber Auth Args Incomplete
+ * @WOCKY_CONNECTOR_ERROR_INSECURE                 : Insufficent Security for Requested Operation
+ * @WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED      : Account Registration Error
+ * @WOCKY_CONNECTOR_ERROR_REGISTRATION_UNAVAILABLE : Account Registration Not Available
+ * @WOCKY_CONNECTOR_ERROR_REGISTRATION_UNSUPPORTED : Account Registration Not Implemented
+ * @WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY       : Account Registration Makes No Sense
+ * @WOCKY_CONNECTOR_ERROR_REGISTRATION_CONFLICT    : Account Already Registered
+ * @WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED    : Account Registration Rejected
+ * @WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED        : Account Cancellation Failed
+ * @WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED        : Account Cancellation Refused
  *
- * @WOCKY_CONNECTOR_ERROR_UNKNOWN        : Generic Bad Things happened
- * @WOCKY_CONNECTOR_ERROR_IS_CONNECTED   : Already connected
- * @WOCKY_CONNECTOR_ERROR_INVALID_JID    : JID is malformed in some obvious way
- * @WOCKY_CONNECTOR_ERROR_DISCONNECTED   : Connection closed
- * @WOCKY_CONNECTOR_ERROR_NON_XMPP_SERVER: Malformed XMPP response
- * @WOCKY_CONNECTOR_ERROR_NOT_SUPPORTED  : Requested feature not available
- * @WOCKY_CONNECTOR_ERROR_REFUSED        : Feature request refused (eg starttls)
- * @WOCKY_CONNECTOR_ERROR_AUTH_FAILED    : Auth failed in some way (eg bad pass)
  * The #WockyConnector specific errors that can occur while connecting.
  */
 typedef enum {
@@ -118,13 +142,13 @@ GType wocky_connector_get_type (void);
 #define WOCKY_CONNECTOR_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONNECTOR, WockyConnectorClass))
 
-WockyXmppConnection *wocky_connector_connect_finish (WockyConnector *connector,
+WockyXmppConnection *wocky_connector_connect_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error,
     gchar **jid,
     gchar **sid);
 
-WockyXmppConnection *wocky_connector_register_finish (WockyConnector *connector,
+WockyXmppConnection *wocky_connector_register_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error,
     gchar **jid,
