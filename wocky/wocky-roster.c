@@ -37,6 +37,7 @@
 #include "wocky-xmpp-stanza.h"
 #include "wocky-utils.h"
 #include "wocky-signals-marshal.h"
+#include "wocky-contact-factory.h"
 
 #define DEBUG_FLAG DEBUG_ROSTER
 #include "wocky-debug.h"
@@ -247,6 +248,9 @@ struct _WockyRosterPrivate
 
   GSimpleAsyncResult *fetch_result;
 
+  /* FIXME: this should probably be moved to a Session object or something */
+  WockyContactFactory *contact_factory;
+
   gboolean dispose_has_run;
 };
 
@@ -279,10 +283,10 @@ static void change_roster_iq_cb (GObject *source_object,
 static void
 wocky_roster_init (WockyRoster *obj)
 {
-  /*
   WockyRoster *self = WOCKY_ROSTER (obj);
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-  */
+
+  priv->contact_factory = wocky_contact_factory_new ();
 }
 
 static void
@@ -487,8 +491,10 @@ roster_update (WockyRoster *self,
       else
         {
           /* Create a new contact. */
-          contact = g_object_new (WOCKY_TYPE_BARE_CONTACT,
-              "jid", jid,
+          contact = wocky_contact_factory_ensure_bare_contact (
+              priv->contact_factory, jid);
+
+          g_object_set (contact,
               "name", wocky_xmpp_node_get_attribute (n, "name"),
               "subscription", subscription_type,
               "groups", groups,
@@ -586,6 +592,8 @@ wocky_roster_dispose (GObject *object)
 
   if (priv->porter != NULL)
     g_object_unref (priv->porter);
+
+  g_object_unref (priv->contact_factory);
 
   if (G_OBJECT_CLASS (wocky_roster_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_roster_parent_class)->dispose (object);

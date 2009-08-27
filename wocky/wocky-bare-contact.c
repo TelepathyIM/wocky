@@ -240,7 +240,7 @@ wocky_bare_contact_class_init (WockyBareContactClass *wocky_bare_contact_class)
       LAST_WOCKY_ROSTER_SUBSCRIPTION_TYPE,
       WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE,
       G_PARAM_READWRITE |
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_SUBSCRIPTION, spec);
 
   /**
@@ -252,7 +252,7 @@ wocky_bare_contact_class_init (WockyBareContactClass *wocky_bare_contact_class)
       "Contact Groups",
       G_TYPE_STRV,
       G_PARAM_READWRITE |
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+      G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_GROUPS, spec);
 }
 
