@@ -999,8 +999,9 @@ change_roster_iq_cb (GObject *source_object,
    * each client (including the one which requested the change) before
    * replying to the 'set' stanza. We upgraded our list of contacts when this
    * notification has been received.
-   * FIXME: Should we check if this upgrade has actually be received and raise
-   * en error if it has not? */
+   * We can't really check that this upgrade has been actually receive as we
+   * could receive other notifications from the server due to other clients
+   * actions. So we just have to trust the server on this. */
 
 out:
   if (reply != NULL)
