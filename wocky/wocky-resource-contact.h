@@ -61,6 +61,9 @@ GType wocky_resource_contact_get_type (void);
 WockyResourceContact * wocky_resource_contact_new (WockyBareContact *bare,
     const gchar *resource);
 
+const gchar * wocky_resource_contact_get_resource (
+    WockyResourceContact *contact);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_RESOURCE_CONTACT_H__*/

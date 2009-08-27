@@ -217,3 +217,11 @@ wocky_resource_contact_new (WockyBareContact *bare,
       "resource", resource,
       NULL);
 }
+
+const gchar *
+wocky_resource_contact_get_resource (WockyResourceContact *self)
+{
+  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+
+  return priv->resource;
+}
