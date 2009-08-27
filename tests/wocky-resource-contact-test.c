@@ -56,6 +56,25 @@ test_get_resource (void)
   g_object_unref (resource_contact);
 }
 
+static void
+test_get_bare_contact (void)
+{
+  WockyBareContact *bare_contact;
+  WockyResourceContact *resource_contact;
+
+  bare_contact = g_object_new (WOCKY_TYPE_BARE_CONTACT,
+      "jid", "juliet@example.net",
+      NULL);
+
+  resource_contact = wocky_resource_contact_new (bare_contact, "Balcony");
+
+  g_assert (wocky_resource_contact_get_bare_contact (resource_contact) ==
+      bare_contact);
+
+  g_object_unref (bare_contact);
+  g_object_unref (resource_contact);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -65,6 +84,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/resource-contact/instantiation", test_instantiation);
   g_test_add_func ("/resource-contact/get-resource", test_get_resource);
+  g_test_add_func ("/resource-contact/get-bare-contact", test_get_bare_contact);
 
   result = g_test_run ();
   test_deinit ();

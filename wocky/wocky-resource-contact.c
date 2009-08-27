@@ -225,3 +225,11 @@ wocky_resource_contact_get_resource (WockyResourceContact *self)
 
   return priv->resource;
 }
+
+WockyBareContact *
+wocky_resource_contact_get_bare_contact (WockyResourceContact *self)
+{
+  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+
+  return priv->bare_contact;
+}
