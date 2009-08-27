@@ -91,6 +91,13 @@ WockyBareContact * wocky_bare_contact_copy (WockyBareContact *contact);
 
 void wocky_bare_contact_debug_print (WockyBareContact *contact);
 
+
+void wocky_bare_contact_add_resource (WockyBareContact *contact,
+    WockyResourceContact *resource);
+
+
+GSList * wocky_bare_contact_get_resources (WockyBareContact *contact);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_BARE_CONTACT_H__*/

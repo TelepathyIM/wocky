@@ -74,6 +74,11 @@ struct _WockyBareContactPrivate
   gchar *name;
   WockyRosterSubscriptionFlags subscription;
   gchar **groups;
+
+  /* list of weak reffed (WockyResourceContact *)
+   * Each WockyResourceContact has a ref on its WockyBareContact so we don't
+   * have to keep a ref on it. */
+  GSList *resources;
 };
 
 #define WOCKY_BARE_CONTACT_GET_PRIVATE(o)  \
@@ -83,10 +88,10 @@ struct _WockyBareContactPrivate
 static void
 wocky_bare_contact_init (WockyBareContact *obj)
 {
-  /*
   WockyBareContact *self = WOCKY_BARE_CONTACT (obj);
   WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
-  */
+
+  priv->resources = NULL;
 }
 
 static void
@@ -158,15 +163,31 @@ wocky_bare_contact_constructed (GObject *object)
 }
 
 static void
+resource_disposed_cb (gpointer user_data,
+    GObject *resource)
+{
+  WockyBareContact *self = WOCKY_BARE_CONTACT (user_data);
+  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+
+  priv->resources = g_slist_remove (priv->resources, resource);
+}
+
+static void
 wocky_bare_contact_dispose (GObject *object)
 {
   WockyBareContact *self = WOCKY_BARE_CONTACT (object);
   WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  GSList *l;
 
   if (priv->dispose_has_run)
     return;
 
   priv->dispose_has_run = TRUE;
+
+  for (l = priv->resources; l != NULL; l = g_slist_next (l))
+    {
+      g_object_weak_unref (G_OBJECT (l->data), resource_disposed_cb, self);
+    }
 
   if (G_OBJECT_CLASS (wocky_bare_contact_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_bare_contact_parent_class)->dispose (object);
@@ -186,6 +207,8 @@ wocky_bare_contact_finalize (GObject *object)
 
   if (priv->groups != NULL)
     g_strfreev (priv->groups);
+
+  g_slist_free (priv->resources);
 
   G_OBJECT_CLASS (wocky_bare_contact_parent_class)->finalize (object);
 }
@@ -626,4 +649,22 @@ wocky_bare_contact_debug_print (WockyBareContact *self)
 
   for (i = 0; priv->groups[i] != NULL; i++)
     DEBUG ("  - %s", priv->groups[i]);
+}
+
+void
+wocky_bare_contact_add_resource (WockyBareContact *self,
+    WockyResourceContact *resource)
+{
+  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+
+  g_object_weak_ref (G_OBJECT (resource), resource_disposed_cb, self);
+  priv->resources = g_slist_append (priv->resources, resource);
+}
+
+GSList *
+wocky_bare_contact_get_resources (WockyBareContact *self)
+{
+  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+
+  return g_slist_copy (priv->resources);
 }
