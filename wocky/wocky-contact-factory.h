@@ -71,6 +71,10 @@ WockyResourceContact * wocky_contact_factory_ensure_resource_contact (
     WockyContactFactory *factory,
     const gchar *full_jid);
 
+WockyResourceContact * wocky_contact_factory_lookup_resource_contact (
+    WockyContactFactory *factory,
+    const gchar *full_jid);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_FACTORY_H__*/

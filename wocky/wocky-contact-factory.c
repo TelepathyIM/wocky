@@ -274,3 +274,12 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
 
   return contact;
 }
+
+WockyResourceContact *
+wocky_contact_factory_lookup_resource_contact (WockyContactFactory *self,
+    const gchar *full_jid)
+{
+  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
+
+  return g_hash_table_lookup (priv->resource_contacts, full_jid);
+}
