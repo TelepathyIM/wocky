@@ -23,7 +23,7 @@
 
 #include <glib-object.h>
 
-#include "wocky-types.h"
+#include "wocky-bare-contact.h"
 
 G_BEGIN_DECLS
 
@@ -57,6 +57,10 @@ GType wocky_contact_factory_get_type (void);
    WockyContactFactoryClass))
 
 WockyContactFactory * wocky_contact_factory_new (void);
+
+WockyBareContact * wocky_contact_factory_ensure_bare_contact (
+    WockyContactFactory *factory,
+    const gchar *bare_jid);
 
 G_END_DECLS
 

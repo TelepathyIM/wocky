@@ -165,3 +165,22 @@ wocky_contact_factory_new (void)
   return g_object_new (WOCKY_TYPE_CONTACT_FACTORY,
       NULL);
 }
+
+WockyBareContact *
+wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
+    const gchar *bare_jid)
+{
+  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
+  WockyBareContact *contact;
+
+  contact = g_hash_table_lookup (priv->bare_contacts, bare_jid);
+  if (contact != NULL)
+    return g_object_ref (contact);
+
+  contact = wocky_bare_contact_new (bare_jid);
+
+  g_hash_table_insert (priv->bare_contacts, g_strdup (bare_jid),
+      g_object_ref (contact));
+
+  return contact;
+}
