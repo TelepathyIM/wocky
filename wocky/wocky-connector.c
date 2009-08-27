@@ -26,13 +26,13 @@
  *
  * See: RFC3920 XEP-0077
  *
- * Sends and receives #WockyXmppStanzas from an underlying GIOStream.
+ * Sends and receives #WockyXmppStanzas from an underlying #GIOStream.
  * negotiating TLS if possible and completing authentication with the server
  * by the "most suitable" method available.
- * Returns a WockyXmppConnection object to the user on successful completion.
+ * Returns a #WockyXmppConnection object to the user on successful completion.
  *
  * Can also be used to register or unregister an account: When unregistering
- * (cancelling) an account, a WockyXmppConnection is NOT returned - a boolean
+ * (cancelling) an account, a #WockyXmppConnection is NOT returned - a #gboolean
  * value indicating success or failure is returned instead.
  *
  * The WOCKY_DEBUG tag for this module is "connector".
@@ -2367,14 +2367,14 @@ establish_session_recv_cb (GObject *source,
 /**
  * wocky_connector_connect_finish:
  * @self: a #WockyConnector instance.
- * @res: a #GAsyncResult (from your wocky_connector_connect_async callback).
- * @error: space for a #GError if an error occurred.
- * @jid: a gchar ** (or NULL): the user JID from the server is stored here.
- * @sid: a gchar ** (or NULL): the Session ID is stored here.
+ * @res: a #GAsyncResult (from your wocky_connector_connect_async() callback).
+ * @error: (%NULL to ignore) the #GError (if any) is sored here.
+ * @jid: (%NULL to ignore): the user JID from the server is stored here.
+ * @sid: (%NULL to ignore): the Session ID is stored here.
  *
  * Called by the callback passed to wocky_connector_connect_async().
  *
- * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
+ * Returns: a #WockyXmppConnection instance (success), or %NULL (failure).
  */
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
@@ -2415,14 +2415,14 @@ wocky_connector_connect_finish (WockyConnector *self,
 /**
  * wocky_connector_register_finish:
  * @self: a #WockyConnector instance.
- * @res: a #GAsyncResult (from your wocky_connector_register_async callback).
- * @error: space for a #GError if an error occurred.
- * @jid: space for a gchar * (or NULL): the JID in effect after connection.
- * @sid: space for a gchar * (or NULL): the Session ID after connection.
+ * @res: a #GAsyncResult (from your wocky_connector_register_async() callback).
+ * @error: (%NULL to ignore) the #GError (if any) is stored here.
+ * @jid: (%NULL to ignore) the JID in effect after connection is stored here.
+ * @sid: (%NULL to ignore) the Session ID after connection is stored here.
  *
  * Called by the callback passed to wocky_connector_register_async().
  *
- * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
+ * Returns: a #WockyXmppConnection instance (success), or %NULL (failure).
  */
 WockyXmppConnection *
 wocky_connector_register_finish (WockyConnector *self,
@@ -2437,12 +2437,12 @@ wocky_connector_register_finish (WockyConnector *self,
 /**
  * wocky_connector_unregister_finish:
  * @self: a #WockyConnector instance.
- * @res: a #GAsyncResult (from your wocky_connector_register_async callback).
- * @error: space for a #GError if an error occurred.
+ * @res: a #GAsyncResult (from the wocky_connector_unregister_async() callback).
+ * @error: (%NULL to ignore) the #GError (if any) is stored here.
  *
  * Called by the callback passed to wocky_connector_unregister_async().
  *
- * Returns: a #gboolean value TRUE (success), or FALSE (failure).
+ * Returns: a #gboolean value %TRUE (success), or %FALSE (failure).
  */
 gboolean
 wocky_connector_unregister_finish (WockyConnector *self,
