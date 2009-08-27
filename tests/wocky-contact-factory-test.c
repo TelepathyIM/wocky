@@ -19,6 +19,26 @@ test_instantiation (void)
   g_object_unref (factory);
 }
 
+static void
+test_ensure_bare_contact(void)
+{
+  WockyContactFactory *factory;
+  WockyBareContact *juliet, *a, *b;
+
+  factory = wocky_contact_factory_new ();
+  juliet = wocky_bare_contact_new ("juliet@example.org");
+
+  a = wocky_contact_factory_ensure_bare_contact (factory, "juliet@example.org");
+  g_assert (wocky_bare_contact_equal (a, juliet));
+  b = wocky_contact_factory_ensure_bare_contact (factory, "juliet@example.org");
+  g_assert (a == b);
+
+  g_object_unref (factory);
+  g_object_unref (juliet);
+  g_object_unref (a);
+  g_object_unref (b);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -27,6 +47,8 @@ main (int argc, char **argv)
   test_init (argc, argv);
 
   g_test_add_func ("/contact-factory/instantiation", test_instantiation);
+  g_test_add_func ("/contact-factory/ensure-bare-contact",
+      test_ensure_bare_contact);
 
   result = g_test_run ();
   test_deinit ();
