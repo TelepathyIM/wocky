@@ -2372,9 +2372,9 @@ establish_session_recv_cb (GObject *source,
  * @jid: a gchar ** (or NULL): the user JID from the server is stored here.
  * @sid: a gchar ** (or NULL): the Session ID is stored here.
  *
- * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
- *
  * Called by the callback passed to wocky_connector_connect_async().
+ *
+ * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
  */
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
@@ -2420,9 +2420,9 @@ wocky_connector_connect_finish (WockyConnector *self,
  * @jid: space for a gchar * (or NULL): the JID in effect after connection.
  * @sid: space for a gchar * (or NULL): the Session ID after connection.
  *
- * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
- *
  * Called by the callback passed to wocky_connector_register_async().
+ *
+ * Returns: a #WockyXmppConnection instance (success), or NULL (failure).
  */
 WockyXmppConnection *
 wocky_connector_register_finish (WockyConnector *self,
@@ -2440,9 +2440,9 @@ wocky_connector_register_finish (WockyConnector *self,
  * @res: a #GAsyncResult (from your wocky_connector_register_async callback).
  * @error: space for a #GError if an error occurred.
  *
- * Returns: a #gboolean value TRUE (success), or FALSE (failure).
- *
  * Called by the callback passed to wocky_connector_unregister_async().
+ *
+ * Returns: a #gboolean value TRUE (success), or FALSE (failure).
  */
 gboolean
 wocky_connector_unregister_finish (WockyConnector *self,
@@ -2627,11 +2627,11 @@ wocky_connector_register_async (WockyConnector *self,
  * @pass: the password.
  * @resource: the resource (sans '/'), or NULL to autogenerate one.
  *
- * Returns: a #WockyConnector instance which can be used to connect to,
- * register or cancel an account
- *
  * Connect to the account/server specified by @self.
  * To set other #WockyConnector properties, use g_object_new() instead.
+ *
+ * Returns: a #WockyConnector instance which can be used to connect to,
+ * register or cancel an account
  */
 WockyConnector *
 wocky_connector_new (const gchar *jid,
