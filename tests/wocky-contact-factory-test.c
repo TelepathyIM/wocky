@@ -97,6 +97,25 @@ test_ensure_resource_contact(void)
   g_object_unref (b);
 }
 
+static void
+test_lookup_resource_contact (void)
+{
+  WockyContactFactory *factory;
+  WockyResourceContact *contact;
+
+  factory = wocky_contact_factory_new ();
+
+  g_assert (wocky_contact_factory_lookup_resource_contact (factory,
+        "juliet@example.org/Balcony") == NULL);
+  contact  = wocky_contact_factory_ensure_resource_contact (factory,
+      "juliet@example.org/Balcony");
+  g_assert (wocky_contact_factory_lookup_resource_contact (factory,
+        "juliet@example.org/Balcony") != NULL);
+
+  g_object_unref (factory);
+  g_object_unref (contact);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -111,6 +130,8 @@ main (int argc, char **argv)
       test_lookup_bare_contact);
   g_test_add_func ("/contact-factory/ensure-resource-contact",
       test_ensure_resource_contact);
+  g_test_add_func ("/contact-factory/lookup-resource-contact",
+      test_lookup_resource_contact);
 
   result = g_test_run ();
   test_deinit ();
