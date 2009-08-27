@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include "wocky-bare-contact.h"
+#include "wocky-resource-contact.h"
 
 G_BEGIN_DECLS
 
@@ -65,6 +66,10 @@ WockyBareContact * wocky_contact_factory_ensure_bare_contact (
 WockyBareContact * wocky_contact_factory_lookup_bare_contact (
     WockyContactFactory *factory,
     const gchar *bare_jid);
+
+WockyResourceContact * wocky_contact_factory_ensure_resource_contact (
+    WockyContactFactory *factory,
+    const gchar *full_jid);
 
 G_END_DECLS
 

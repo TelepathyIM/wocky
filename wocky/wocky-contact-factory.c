@@ -66,6 +66,8 @@ struct _WockyContactFactoryPrivate
 {
   /* bare JID (gchar *) => weak reffed (WockyBareContact *) */
   GHashTable *bare_contacts;
+  /* full JID (gchar *) => weak reffed (WockyResourceContact *) */
+  GHashTable *resource_contacts;
 
   gboolean dispose_has_run;
 };
@@ -82,6 +84,8 @@ wocky_contact_factory_init (WockyContactFactory *obj)
 
   priv->bare_contacts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free,
       NULL);
+  priv->resource_contacts = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, NULL);
 }
 
 static void
@@ -136,6 +140,17 @@ bare_contact_disposed_cb (gpointer user_data,
 }
 
 static void
+resource_contact_disposed_cb (gpointer user_data,
+    GObject *contact)
+{
+  WockyContactFactory *self = WOCKY_CONTACT_FACTORY (user_data);
+  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
+
+  g_hash_table_foreach_remove (priv->resource_contacts, remove_contact,
+      contact);
+}
+
+static void
 wocky_contact_factory_dispose (GObject *object)
 {
   WockyContactFactory *self = WOCKY_CONTACT_FACTORY (object);
@@ -154,6 +169,13 @@ wocky_contact_factory_dispose (GObject *object)
       g_object_weak_unref (G_OBJECT (contact), bare_contact_disposed_cb, self);
     }
 
+  g_hash_table_iter_init (&iter, priv->resource_contacts);
+  while (g_hash_table_iter_next (&iter, NULL, &contact))
+    {
+      g_object_weak_unref (G_OBJECT (contact), resource_contact_disposed_cb,
+          self);
+    }
+
   if (G_OBJECT_CLASS (wocky_contact_factory_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_contact_factory_parent_class)->dispose (object);
 }
@@ -165,6 +187,7 @@ wocky_contact_factory_finalize (GObject *object)
   WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
 
   g_hash_table_destroy (priv->bare_contacts);
+  g_hash_table_destroy (priv->resource_contacts);
 
   G_OBJECT_CLASS (wocky_contact_factory_parent_class)->finalize (object);
 }
@@ -218,4 +241,36 @@ wocky_contact_factory_lookup_bare_contact (WockyContactFactory *self,
   WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
 
   return g_hash_table_lookup (priv->bare_contacts, bare_jid);
+}
+
+WockyResourceContact *
+wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
+    const gchar *full_jid)
+{
+  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
+  WockyBareContact *bare;
+  WockyResourceContact *contact;
+  gchar *node, *domain, *resource, *bare_jid;
+
+  contact = g_hash_table_lookup (priv->resource_contacts, full_jid);
+  if (contact != NULL)
+    return g_object_ref (contact);
+
+  wocky_decode_jid (full_jid, &node, &domain, &resource);
+  bare_jid = g_strdup_printf ("%s@%s", node, domain);
+
+  bare = wocky_contact_factory_ensure_bare_contact (self, bare_jid);
+
+  contact = wocky_resource_contact_new (bare, resource);
+
+  g_object_weak_ref (G_OBJECT (contact), resource_contact_disposed_cb, self);
+  g_hash_table_insert (priv->resource_contacts, g_strdup (full_jid), contact);
+
+  g_free (node);
+  g_free (domain);
+  g_free (resource);
+  g_free (bare_jid);
+  g_object_unref (bare);
+
+  return contact;
 }
