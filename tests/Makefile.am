@@ -26,7 +26,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-connector-test \
   wocky-roster-test \
   wocky-bare-contact-test \
-  wocky-resource-contact-test
+  wocky-resource-contact-test \
+  wocky-contact-factory-test
 
 wocky_xmpp_connection_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_connection_test_SOURCES = \
@@ -110,6 +111,12 @@ wocky_resource_contact_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-resource-contact-test.c
+
+wocky_contact_factory_test_DEPENDENCIES = $(LIBWOCKY)
+wocky_contact_factory_test_SOURCES = \
+  wocky-test-helper.c wocky-test-helper.h \
+  wocky-test-stream.c wocky-test-stream.h \
+  wocky-contact-factory-test.c
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @WOCKY_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@

@@ -87,6 +87,7 @@ tests/certs/*.pem
 tests/wocky-roster-test
 tests/wocky-bare-contact-test
 tests/wocky-resource-contact-test
+tests/wocky-contact-factory-test
 
 examples/wocky-connect
 examples/wocky-register
