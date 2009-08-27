@@ -62,6 +62,10 @@ WockyBareContact * wocky_contact_factory_ensure_bare_contact (
     WockyContactFactory *factory,
     const gchar *bare_jid);
 
+WockyBareContact * wocky_contact_factory_lookup_bare_contact (
+    WockyContactFactory *factory,
+    const gchar *bare_jid);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_FACTORY_H__*/

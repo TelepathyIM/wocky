@@ -210,3 +210,13 @@ wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
 
   return contact;
 }
+
+WockyBareContact *
+wocky_contact_factory_lookup_bare_contact (
+    WockyContactFactory *self,
+    const gchar *bare_jid)
+{
+  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
+
+  return g_hash_table_lookup (priv->bare_contacts, bare_jid);
+}
