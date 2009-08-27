@@ -256,6 +256,14 @@ wocky_bare_contact_class_init (WockyBareContactClass *wocky_bare_contact_class)
   g_object_class_install_property (object_class, PROP_GROUPS, spec);
 }
 
+WockyBareContact *
+wocky_bare_contact_new (const gchar *jid)
+{
+  return g_object_new (WOCKY_TYPE_BARE_CONTACT,
+      "jid", jid,
+      NULL);
+}
+
 /**
  * wocky_bare_contact_get_jid:
  * @contact: a #WockyBareContact instance

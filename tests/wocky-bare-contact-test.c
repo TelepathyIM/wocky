@@ -12,7 +12,7 @@
 static void
 test_instantiation (void)
 {
-  WockyBareContact *a;
+  WockyBareContact *a, *b;
 
   a = g_object_new (WOCKY_TYPE_BARE_CONTACT,
       "jid", "romeo@example.net",
@@ -22,7 +22,11 @@ test_instantiation (void)
   /* WockyBareContact is a sub-class of WockyContact */
   g_assert (WOCKY_IS_CONTACT (a));
 
+  b = wocky_bare_contact_new ("romeo@example.net");
+  g_assert (wocky_bare_contact_equal (a, b));
+
   g_object_unref (a);
+  g_object_unref (b);
 }
 
 static void

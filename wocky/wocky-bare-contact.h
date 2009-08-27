@@ -57,6 +57,8 @@ GType wocky_bare_contact_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_BARE_CONTACT, \
    WockyBareContactClass))
 
+WockyBareContact * wocky_bare_contact_new (const gchar *jid);
+
 const gchar *wocky_bare_contact_get_jid (WockyBareContact *contact);
 
 const gchar *wocky_bare_contact_get_name (WockyBareContact *contact);
