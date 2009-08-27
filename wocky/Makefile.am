@@ -43,6 +43,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-contact.h                \
   wocky-bare-contact.c           \
   wocky-bare-contact.h           \
+  wocky-resource-contact.c       \
+  wocky-resource-contact.h       \
   wocky-roster.c                 \
   wocky-roster.h
 

@@ -26,6 +26,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockyContact WockyContact;
 typedef struct _WockyBareContact WockyBareContact;
+typedef struct _WockyResourceContact WockyResourceContact;
 
 G_END_DECLS
 
