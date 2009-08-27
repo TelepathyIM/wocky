@@ -69,8 +69,9 @@ static void
 test_ensure_resource_contact(void)
 {
   WockyContactFactory *factory;
-  WockyBareContact *juliet;
+  WockyBareContact *juliet, *bare;
   WockyResourceContact *juliet_balcony, *juliet_pub, *a, *b;
+  GSList *resources;
 
   factory = wocky_contact_factory_new ();
   juliet = wocky_bare_contact_new ("juliet@example.org");
@@ -81,8 +82,15 @@ test_ensure_resource_contact(void)
   a = wocky_contact_factory_ensure_resource_contact (factory,
       "juliet@example.org/Balcony");
   g_assert (wocky_resource_contact_equal (a, juliet_balcony));
-  g_assert (wocky_contact_factory_lookup_bare_contact (factory,
-        "juliet@example.org") != NULL);
+  bare = wocky_contact_factory_lookup_bare_contact (factory,
+        "juliet@example.org");
+  g_assert (bare != NULL);
+
+  /* Resource has been added to the bare contact */
+  resources = wocky_bare_contact_get_resources (bare);
+  g_assert_cmpuint (g_slist_length (resources), ==, 1);
+  g_assert (g_slist_find (resources, a) != NULL);
+  g_slist_free (resources);
 
   /* Bare contact is already in the factory */
   b = wocky_contact_factory_ensure_resource_contact (factory,

@@ -266,6 +266,8 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
   g_object_weak_ref (G_OBJECT (contact), resource_contact_disposed_cb, self);
   g_hash_table_insert (priv->resource_contacts, g_strdup (full_jid), contact);
 
+  wocky_bare_contact_add_resource (bare, contact);
+
   g_free (node);
   g_free (domain);
   g_free (resource);
