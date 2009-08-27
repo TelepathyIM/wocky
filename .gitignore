@@ -86,6 +86,7 @@ tests/*report.xml
 tests/certs/*.pem
 tests/wocky-roster-test
 tests/wocky-bare-contact-test
+tests/wocky-resource-contact-test
 
 examples/wocky-connect
 examples/wocky-register
