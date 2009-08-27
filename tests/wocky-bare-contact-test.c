@@ -5,6 +5,7 @@
 #include <glib.h>
 
 #include <wocky/wocky-bare-contact.h>
+#include <wocky/wocky-resource-contact.h>
 #include <wocky/wocky-utils.h>
 
 #include "wocky-test-helper.h"
@@ -318,6 +319,48 @@ test_contact_copy (void)
   g_object_unref (a);
 }
 
+static void
+test_add_get_resource (void)
+{
+  WockyBareContact *bare;
+  WockyResourceContact *resource_1, *resource_2;
+  GSList *resources;
+
+  bare = wocky_bare_contact_new ("juliet@example.org");
+  resources = wocky_bare_contact_get_resources (bare);
+  g_assert_cmpuint (g_slist_length (resources), ==, 0);
+
+  /* add a ressource */
+  resource_1 = wocky_resource_contact_new (bare, "Resource1");
+  wocky_bare_contact_add_resource (bare, resource_1);
+
+  resources = wocky_bare_contact_get_resources (bare);
+  g_assert_cmpuint (g_slist_length (resources), ==, 1);
+  g_assert (g_slist_find (resources, resource_1) != NULL);
+  g_slist_free (resources);
+
+  /* add another resource */
+  resource_2 = wocky_resource_contact_new (bare, "Resource2");
+  wocky_bare_contact_add_resource (bare, resource_2);
+
+  resources = wocky_bare_contact_get_resources (bare);
+  g_assert_cmpuint (g_slist_length (resources), ==, 2);
+  g_assert (g_slist_find (resources, resource_1) != NULL);
+  g_assert (g_slist_find (resources, resource_2) != NULL);
+  g_slist_free (resources);
+
+  /* first resource is disposed and so automatically removed */
+  g_object_unref (resource_1);
+
+  resources = wocky_bare_contact_get_resources (bare);
+  g_assert_cmpuint (g_slist_length (resources), ==, 1);
+  g_assert (g_slist_find (resources, resource_2) != NULL);
+  g_slist_free (resources);
+
+  g_object_unref (bare);
+  g_object_unref (resource_2);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -331,6 +374,7 @@ main (int argc, char **argv)
   g_test_add_func ("/bare-contact/in-group", test_in_group);
   g_test_add_func ("/bare-contact/remove-group", test_remove_group);
   g_test_add_func ("/bare-contact/contact-copy", test_contact_copy);
+  g_test_add_func ("/bare-contact/add-get-resource", test_add_get_resource);
 
   result = g_test_run ();
   test_deinit ();
