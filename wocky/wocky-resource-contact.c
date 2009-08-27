@@ -233,3 +233,20 @@ wocky_resource_contact_get_bare_contact (WockyResourceContact *self)
 
   return priv->bare_contact;
 }
+
+gboolean
+wocky_resource_contact_equal (WockyResourceContact *a,
+    WockyResourceContact *b)
+{
+  g_assert (a != NULL || b != NULL);
+
+  if (a == NULL || b == NULL)
+    return FALSE;
+
+  if (wocky_strdiff (wocky_resource_contact_get_resource (a),
+        wocky_resource_contact_get_resource (b)))
+    return FALSE;
+
+  return wocky_bare_contact_equal (wocky_resource_contact_get_bare_contact (a),
+      wocky_resource_contact_get_bare_contact (b));
+}

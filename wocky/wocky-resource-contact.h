@@ -67,6 +67,9 @@ const gchar * wocky_resource_contact_get_resource (
 WockyBareContact * wocky_resource_contact_get_bare_contact (
     WockyResourceContact *contact);
 
+gboolean wocky_resource_contact_equal (WockyResourceContact *a,
+    WockyResourceContact *b);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_RESOURCE_CONTACT_H__*/
