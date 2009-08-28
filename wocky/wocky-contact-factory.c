@@ -129,25 +129,15 @@ remove_contact (gpointer key,
   return value == contact;
 }
 
+/* Called when a WockyBareContact or WockyResourceContact has been disposed so
+ * we can remove it from his hash table. */
 static void
-bare_contact_disposed_cb (gpointer user_data,
+contact_disposed_cb (gpointer user_data,
     GObject *contact)
 {
-  WockyContactFactory *self = WOCKY_CONTACT_FACTORY (user_data);
-  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
+  GHashTable *table = (GHashTable *) user_data;
 
-  g_hash_table_foreach_remove (priv->bare_contacts, remove_contact, contact);
-}
-
-static void
-resource_contact_disposed_cb (gpointer user_data,
-    GObject *contact)
-{
-  WockyContactFactory *self = WOCKY_CONTACT_FACTORY (user_data);
-  WockyContactFactoryPrivate *priv = WOCKY_CONTACT_FACTORY_GET_PRIVATE (self);
-
-  g_hash_table_foreach_remove (priv->resource_contacts, remove_contact,
-      contact);
+  g_hash_table_foreach_remove (table, remove_contact, contact);
 }
 
 static void
@@ -166,14 +156,15 @@ wocky_contact_factory_dispose (GObject *object)
   g_hash_table_iter_init (&iter, priv->bare_contacts);
   while (g_hash_table_iter_next (&iter, NULL, &contact))
     {
-      g_object_weak_unref (G_OBJECT (contact), bare_contact_disposed_cb, self);
+      g_object_weak_unref (G_OBJECT (contact), contact_disposed_cb,
+          priv->bare_contacts);
     }
 
   g_hash_table_iter_init (&iter, priv->resource_contacts);
   while (g_hash_table_iter_next (&iter, NULL, &contact))
     {
-      g_object_weak_unref (G_OBJECT (contact), resource_contact_disposed_cb,
-          self);
+      g_object_weak_unref (G_OBJECT (contact), contact_disposed_cb,
+          priv->resource_contacts);
     }
 
   if (G_OBJECT_CLASS (wocky_contact_factory_parent_class)->dispose)
@@ -228,7 +219,8 @@ wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
 
   contact = wocky_bare_contact_new (bare_jid);
 
-  g_object_weak_ref (G_OBJECT (contact), bare_contact_disposed_cb, self);
+  g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
+      priv->bare_contacts);
   g_hash_table_insert (priv->bare_contacts, g_strdup (bare_jid), contact);
 
   return contact;
@@ -263,7 +255,8 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
 
   contact = wocky_resource_contact_new (bare, resource);
 
-  g_object_weak_ref (G_OBJECT (contact), resource_contact_disposed_cb, self);
+  g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
+      priv->resource_contacts);
   g_hash_table_insert (priv->resource_contacts, g_strdup (full_jid), contact);
 
   wocky_bare_contact_add_resource (bare, contact);
