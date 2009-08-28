@@ -240,7 +240,7 @@ struct _WockyRosterPrivate
   guint iq_cb;
 
   /* owned (gchar *) => owned (PendingOperation *)
-   * When an edit attemps is "in-flight", we store a PendingOperation * in
+   * When an edit attempt is "in-flight", we store a PendingOperation * in
    * this hash table which will be used to store required edits until the one
    * we already sent is acknowledged. This prevents some race conditions. */
   GHashTable *pending_operations;
