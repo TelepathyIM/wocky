@@ -23,11 +23,11 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-porter-test \
   wocky-xmpp-node-test \
   wocky-xmpp-stanza-test \
-  wocky-connector-test \
   wocky-roster-test \
   wocky-bare-contact-test \
   wocky-resource-contact-test \
-  wocky-contact-factory-test
+  wocky-contact-factory-test \
+  wocky-connector-test
 
 wocky_xmpp_connection_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_connection_test_SOURCES = \
