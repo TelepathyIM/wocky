@@ -286,7 +286,7 @@ test_contact_copy (void)
   g_object_unref (copy);
   g_object_unref (a);
 
-  /* No name */
+  /* No group */
   a = g_object_new (WOCKY_TYPE_CONTACT,
       "jid", "romeo@example.net",
       "subscription", WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH,
