@@ -84,6 +84,10 @@ gboolean wocky_contact_in_group (WockyContact *contact,
 void wocky_contact_remove_group (WockyContact *contact,
     const gchar *group);
 
+WockyContact * wocky_contact_copy (WockyContact *contact);
+
+void wocky_contact_debug_print (WockyContact *contact);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONTACT_H__*/

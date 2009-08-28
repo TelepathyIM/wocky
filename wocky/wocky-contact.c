@@ -591,3 +591,28 @@ wocky_contact_remove_group (WockyContact *self,
 
   priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
 }
+
+WockyContact *
+wocky_contact_copy (WockyContact *contact)
+{
+  return g_object_new (WOCKY_TYPE_CONTACT,
+      "jid", wocky_contact_get_jid (contact),
+      "name", wocky_contact_get_name (contact),
+      "subscription", wocky_contact_get_subscription (contact),
+      "groups", wocky_contact_get_groups (contact),
+      NULL);
+}
+
+void
+wocky_contact_debug_print (WockyContact *self)
+{
+  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  guint i;
+
+  DEBUG ("Contact: %s  Name: %s  Subscription: %s  Groups:",
+      priv->jid, priv->name,
+      wocky_roster_subscription_to_string (priv->subscription));
+
+  for (i = 0; priv->groups[i] != NULL; i++)
+    DEBUG ("  - %s", priv->groups[i]);
+}
