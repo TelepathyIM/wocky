@@ -238,8 +238,6 @@ gboolean
 wocky_resource_contact_equal (WockyResourceContact *a,
     WockyResourceContact *b)
 {
-  g_assert (a != NULL || b != NULL);
-
   if (a == NULL || b == NULL)
     return FALSE;
 

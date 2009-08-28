@@ -514,8 +514,6 @@ wocky_bare_contact_equal (WockyBareContact *a,
   const gchar * const * groups_a;
   const gchar * const * groups_b;
 
-  g_assert (a != NULL || b != NULL);
-
   if (a == NULL || b == NULL)
     return FALSE;
 
