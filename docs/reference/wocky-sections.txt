@@ -66,6 +66,7 @@ WOCKY_TYPE_CONTACT
 <TITLE>WockyBareContact</TITLE>
 WockyBareContact
 WockyBareContactClass
+wocky_bare_contact_new
 wocky_bare_contact_get_jid
 wocky_bare_contact_get_name
 wocky_bare_contact_set_name
@@ -78,6 +79,8 @@ wocky_bare_contact_copy
 wocky_bare_contact_debug_print
 wocky_bare_contact_in_group
 wocky_bare_contact_remove_group
+wocky_bare_contact_add_resource
+wocky_bare_contact_get_resources
 <SUBSECTION Standard>
 WOCKY_BARE_CONTACT
 WOCKY_IS_BARE_CONTACT
@@ -413,3 +416,39 @@ wocky_tls_session_new
 wocky_tls_session_server_new
 </SECTION>
 
+<SECTION>
+<FILE>wocky-resource-contact</FILE>
+WockyResourceContact
+WockyResourceContactClass
+wocky_resource_contact_new
+wocky_resource_contact_equal
+wocky_resource_contact_get_bare_contact
+wocky_resource_contact_get_resource
+<SUBSECTION Standard>
+wocky_resource_contact_get_type
+WOCKY_IS_RESOURCE_CONTACT
+WOCKY_IS_RESOURCE_CONTACT_CLASS
+WOCKY_RESOURCE_CONTACT
+WOCKY_RESOURCE_CONTACT_CLASS
+WOCKY_RESOURCE_CONTACT_GET_CLASS
+WOCKY_TYPE_RESOURCE_CONTACT
+</SECTION>
+
+<SECTION>
+<FILE>wocky-contact-factory</FILE>
+WockyContactFactory
+WockyContactFactoryClass
+wocky_contact_factory_new
+wocky_contact_factory_ensure_bare_contact
+wocky_contact_factory_ensure_resource_contact
+wocky_contact_factory_lookup_bare_contact
+wocky_contact_factory_lookup_resource_contact
+<SUBSECTION Standard>
+wocky_contact_factory_get_type
+WOCKY_CONTACT_FACTORY
+WOCKY_CONTACT_FACTORY_CLASS
+WOCKY_CONTACT_FACTORY_GET_CLASS
+WOCKY_IS_CONTACT_FACTORY
+WOCKY_IS_CONTACT_FACTORY_CLASS
+WOCKY_TYPE_CONTACT_FACTORY
+</SECTION>
