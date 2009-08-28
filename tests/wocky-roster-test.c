@@ -638,6 +638,7 @@ check_add_contact_stanza (WockyXmppStanza *stanza,
   check_edit_roster_stanza (stanza, jid, name, NULL, groups);
 }
 
+static gboolean first_add = TRUE;
 
 static gboolean
 add_contact_send_iq_cb (WockyPorter *porter,
@@ -647,9 +648,24 @@ add_contact_send_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   const gchar *groups[] = { "Friends", "Badger", NULL };
 
-  check_add_contact_stanza (stanza, "mercutio@example.net", "Mercutio", groups);
+  if (first_add)
+    {
+      check_add_contact_stanza (stanza, "mercutio@example.net", "Mercutio",
+          groups);
 
-  send_roster_update (test, "mercutio@example.net", "Mercutio", "none", groups);
+      send_roster_update (test, "mercutio@example.net", "Mercutio", "none",
+          groups);
+      first_add = FALSE;
+    }
+  else
+    {
+      /* the second time the name is changed */
+      check_add_contact_stanza (stanza, "mercutio@example.net", "Badger",
+          groups);
+
+      send_roster_update (test, "mercutio@example.net", "Badger", "none",
+          groups);
+    }
 
   /* Ack the IQ */
   ack_iq (porter, stanza);
@@ -724,6 +740,19 @@ test_roster_add_contact (void)
 
   test->outstanding += 1;
   test_wait_pending (test);
+
+  /* try to re-add the same contact but with a different name. The name is
+   * changed */
+  wocky_roster_add_contact_async (roster, "mercutio@example.net", "Badger",
+      groups, NULL, contact_added_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* check if the contact has been updated */
+  contact = wocky_roster_get_contact (roster, "mercutio@example.net");
+  wocky_contact_set_name (mercutio, "Badger");
+  g_assert (wocky_contact_equal (contact, mercutio));
 
   test_close_both_porters (test);
   g_object_unref (mercutio);
