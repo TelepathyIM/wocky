@@ -19,6 +19,16 @@ test_instantiation (void)
   g_object_unref (factory);
 }
 
+gboolean add_signal_received = FALSE;
+
+static void
+bare_contact_added (WockyContactFactory *factory,
+    WockyBareContact *contact,
+    gpointer data)
+{
+  add_signal_received = TRUE;
+}
+
 static void
 test_ensure_bare_contact(void)
 {
@@ -28,8 +38,14 @@ test_ensure_bare_contact(void)
   factory = wocky_contact_factory_new ();
   juliet = wocky_bare_contact_new ("juliet@example.org");
 
+  add_signal_received = FALSE;
+  g_signal_connect (factory, "bare-contact-added",
+      G_CALLBACK (bare_contact_added), NULL);
+
   a = wocky_contact_factory_ensure_bare_contact (factory, "juliet@example.org");
   g_assert (wocky_bare_contact_equal (a, juliet));
+  g_assert (add_signal_received);
+
   b = wocky_contact_factory_ensure_bare_contact (factory, "juliet@example.org");
   g_assert (a == b);
 
@@ -66,6 +82,14 @@ test_lookup_bare_contact (void)
 }
 
 static void
+resource_contact_added (WockyContactFactory *factory,
+    WockyBareContact *contact,
+    gpointer data)
+{
+  add_signal_received = TRUE;
+}
+
+static void
 test_ensure_resource_contact(void)
 {
   WockyContactFactory *factory;
@@ -78,10 +102,16 @@ test_ensure_resource_contact(void)
   juliet_balcony = wocky_resource_contact_new (juliet, "Balcony");
   juliet_pub = wocky_resource_contact_new (juliet, "Pub");
 
+  add_signal_received = FALSE;
+  g_signal_connect (factory, "resource-contact-added",
+      G_CALLBACK (resource_contact_added), NULL);
+
   /* Bare contact isn't in the factory yet */
   a = wocky_contact_factory_ensure_resource_contact (factory,
       "juliet@example.org/Balcony");
   g_assert (wocky_resource_contact_equal (a, juliet_balcony));
+  g_assert (add_signal_received);
+
   bare = wocky_contact_factory_lookup_bare_contact (factory,
         "juliet@example.org");
   g_assert (bare != NULL);

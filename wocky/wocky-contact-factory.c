@@ -52,12 +52,12 @@ enum
 /* signal enum */
 enum
 {
+  BARE_CONTACT_ADDED,
+  RESOURCE_CONTACT_ADDED,
   LAST_SIGNAL,
 };
 
-/*
 static guint signals[LAST_SIGNAL] = {0};
-*/
 
 /* private structure */
 typedef struct _WockyContactFactoryPrivate WockyContactFactoryPrivate;
@@ -197,6 +197,18 @@ wocky_contact_factory_class_init (
   object_class->get_property = wocky_contact_factory_get_property;
   object_class->dispose = wocky_contact_factory_dispose;
   object_class->finalize = wocky_contact_factory_finalize;
+
+  signals[BARE_CONTACT_ADDED] = g_signal_new ("bare-contact-added",
+      G_OBJECT_CLASS_TYPE (wocky_contact_factory_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT,
+      G_TYPE_NONE, 1, G_TYPE_OBJECT);
+
+  signals[RESOURCE_CONTACT_ADDED] = g_signal_new ("resource-contact-added",
+      G_OBJECT_CLASS_TYPE (wocky_contact_factory_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT,
+      G_TYPE_NONE, 1, G_TYPE_OBJECT);
 }
 
 WockyContactFactory *
@@ -222,6 +234,8 @@ wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
   g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
       priv->bare_contacts);
   g_hash_table_insert (priv->bare_contacts, g_strdup (bare_jid), contact);
+
+  g_signal_emit (self, signals[BARE_CONTACT_ADDED], 0, contact);
 
   return contact;
 }
@@ -266,6 +280,8 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
   g_free (resource);
   g_free (bare_jid);
   g_object_unref (bare);
+
+  g_signal_emit (self, signals[RESOURCE_CONTACT_ADDED], 0, contact);
 
   return contact;
 }
