@@ -1053,7 +1053,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
   WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
-  WockyContact *contact;
+  WockyContact *contact, *existing_contact;
   PendingOperation *pending;
 
   g_return_if_fail (jid != NULL);
@@ -1073,16 +1073,6 @@ wocky_roster_add_contact_async (WockyRoster *self,
       return;
     }
 
-  if (g_hash_table_lookup (priv->items, jid) != NULL)
-    {
-      DEBUG ("Contact %s is already present in the roster", jid);
-      g_simple_async_result_complete_in_idle (result);
-      g_object_unref (result);
-      return;
-    }
-
-  pending = add_pending_operation (self, jid, result);
-
   contact = g_object_new (WOCKY_TYPE_CONTACT,
       "jid", jid,
       NULL);
@@ -1093,7 +1083,24 @@ wocky_roster_add_contact_async (WockyRoster *self,
   if (groups != NULL)
     wocky_contact_set_groups (contact, (gchar **) groups);
 
+  existing_contact = g_hash_table_lookup (priv->items, jid);
+  if (existing_contact != NULL)
+    {
+      /* contact is already in the roster. Check if we need to change him. */
+      if (wocky_contact_equal (contact, existing_contact))
+        {
+          DEBUG ("Contact %s is already present in the roster; "
+              "no need to change him", jid);
+          g_simple_async_result_complete_in_idle (result);
+          g_object_unref (contact);
+          g_object_unref (result);
+          return;
+        }
+    }
+
   iq = build_iq_for_contact (contact, NULL);
+
+  pending = add_pending_operation (self, jid, result);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, pending);
