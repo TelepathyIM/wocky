@@ -40,6 +40,7 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
+#include "wocky-contact-factory.h"
 
 #define DEBUG_FLAG DEBUG_PORTER
 #include "wocky-debug.h"
@@ -50,6 +51,7 @@ G_DEFINE_TYPE(WockyPorter, wocky_porter, G_TYPE_OBJECT)
 enum
 {
   PROP_CONNECTION = 1,
+  PROP_CONTACT_FACTORY,
 };
 
 /* signal enum */
@@ -91,6 +93,9 @@ struct _WockyPorterPrivate
   GHashTable *iq_reply_handlers;
 
   WockyXmppConnection *connection;
+
+  /* FIXME: this should probably be moved to a Session object or something */
+  WockyContactFactory *contact_factory;
 };
 
 /**
@@ -280,6 +285,8 @@ wocky_porter_init (WockyPorter *obj)
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, (GDestroyNotify) stanza_iq_handler_free);
+
+  priv->contact_factory = wocky_contact_factory_new ();
 }
 
 static void wocky_porter_dispose (GObject *object);
@@ -322,6 +329,9 @@ wocky_porter_get_property (GObject *object,
     {
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
+        break;
+      case PROP_CONTACT_FACTORY:
+        g_value_set_object (value, priv->contact_factory);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -408,8 +418,14 @@ wocky_porter_class_init (
     WOCKY_TYPE_XMPP_CONNECTION,
     G_PARAM_READWRITE |
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
-
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
+
+  spec = g_param_spec_object ("contact-factory", "Contact factory",
+    "the contact factory associated with this porter",
+    WOCKY_TYPE_CONTACT_FACTORY,
+    G_PARAM_READABLE |
+    G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_CONTACT_FACTORY, spec);
 }
 
 void
@@ -449,6 +465,8 @@ wocky_porter_dispose (GObject *object)
       g_object_unref (priv->force_close_result);
       priv->force_close_result = NULL;
     }
+
+  g_object_unref (priv->contact_factory);
 
   if (G_OBJECT_CLASS (wocky_porter_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_porter_parent_class)->dispose (object);

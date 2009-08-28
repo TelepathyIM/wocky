@@ -283,10 +283,6 @@ static void change_roster_iq_cb (GObject *source_object,
 static void
 wocky_roster_init (WockyRoster *obj)
 {
-  WockyRoster *self = WOCKY_ROSTER (obj);
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
-
-  priv->contact_factory = wocky_contact_factory_new ();
 }
 
 static void
@@ -565,12 +561,19 @@ wocky_roster_constructed (GObject *object)
   priv->pending_operations = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, (GDestroyNotify) pending_operation_free);
 
+  g_assert (priv->porter != NULL);
+
   priv->iq_cb = wocky_porter_register_handler (priv->porter,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_set_cb, self,
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  g_object_get (priv->porter,
+      "contact-factory", &(priv->contact_factory),
+      NULL);
+  g_assert (priv->contact_factory != NULL);
 }
 
 static void
