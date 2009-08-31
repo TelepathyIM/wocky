@@ -63,13 +63,12 @@ dist-hook:
 	$(shell for x in $(BUILT_SOURCES); do rm -f $(distdir)/$$x ; done)
 
 wocky-signals-marshal.list: $(HANDWRITTEN_SOURCES) Makefile.am
-	$(QUIET_GEN)( cd $(srcdir) && \
+	( cd $(srcdir) && \
 	sed -n -e 's/.*_wocky_signals_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
 	$(HANDWRITTEN_SOURCES) ) \
 	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
 	if cmp -s $@.tmp $@; then \
 		rm $@.tmp; \
-		touch $@; \
 	else \
 		mv $@.tmp $@; \
 	fi
