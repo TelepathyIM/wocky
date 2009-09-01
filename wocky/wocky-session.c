@@ -213,6 +213,13 @@ wocky_session_new (WockyXmppConnection *conn)
       NULL);
 }
 
+void wocky_session_start (WockySession *self)
+{
+  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+
+  wocky_porter_start (priv->porter);
+}
+
 WockyPorter *
 wocky_session_get_porter (WockySession *self)
 {

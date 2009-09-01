@@ -60,6 +60,8 @@ GType wocky_session_get_type (void);
 
 WockySession * wocky_session_new (WockyXmppConnection *conn);
 
+void wocky_session_start (WockySession *session);
+
 WockyPorter * wocky_session_get_porter (WockySession *session);
 
 WockyContactFactory * wocky_session_get_contact_factory (WockySession *session);
