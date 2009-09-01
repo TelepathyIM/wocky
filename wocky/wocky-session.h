@@ -27,6 +27,7 @@
 #include "wocky-xmpp-connection.h"
 #include "wocky-porter.h"
 #include "wocky-contact-factory.h"
+#include "wocky-roster.h"
 
 G_BEGIN_DECLS
 
@@ -65,6 +66,8 @@ void wocky_session_start (WockySession *session);
 WockyPorter * wocky_session_get_porter (WockySession *session);
 
 WockyContactFactory * wocky_session_get_contact_factory (WockySession *session);
+
+WockyRoster * wocky_session_get_roster (WockySession *session);
 
 G_END_DECLS
 

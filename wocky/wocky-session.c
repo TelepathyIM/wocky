@@ -44,6 +44,7 @@ enum
   PROP_CONNECTION = 1,
   PROP_PORTER,
   PROP_CONTACT_FACTORY,
+  PROP_ROSTER,
 };
 
 /* signal enum */
@@ -66,6 +67,7 @@ struct _WockySessionPrivate
   WockyXmppConnection *connection;
   WockyPorter *porter;
   WockyContactFactory *contact_factory;
+  WockyRoster *roster;
 };
 
 #define WOCKY_SESSION_GET_PRIVATE(o)  \
@@ -121,6 +123,9 @@ wocky_session_get_property (GObject *object,
       case PROP_CONTACT_FACTORY:
         g_value_set_object (value, priv->contact_factory);
         break;
+      case PROP_ROSTER:
+        g_value_set_object (value, priv->roster);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -136,6 +141,8 @@ wocky_session_constructed (GObject *object)
   g_assert (priv->connection != NULL);
 
   priv->porter = wocky_porter_new (priv->connection);
+
+  priv->roster = wocky_roster_new (self);
 }
 
 static void
@@ -152,6 +159,7 @@ wocky_session_dispose (GObject *object)
   g_object_unref (priv->connection);
   g_object_unref (priv->porter);
   g_object_unref (priv->contact_factory);
+  g_object_unref (priv->roster);
 
   if (G_OBJECT_CLASS (wocky_session_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_session_parent_class)->dispose (object);
@@ -203,6 +211,13 @@ wocky_session_class_init (WockySessionClass *wocky_session_class)
       G_PARAM_READABLE |
       G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_CONTACT_FACTORY, spec);
+
+  spec = g_param_spec_object ("roster", "Roster",
+      "The WockyRoster associated with this session",
+      WOCKY_TYPE_ROSTER,
+      G_PARAM_READABLE |
+      G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_ROSTER, spec);
 }
 
 WockySession *
@@ -234,4 +249,12 @@ wocky_session_get_contact_factory (WockySession *self)
   WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
 
   return priv->contact_factory;
+}
+
+WockyRoster *
+wocky_session_get_roster (WockySession *self)
+{
+  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+
+  return priv->roster;
 }
