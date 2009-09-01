@@ -92,12 +92,12 @@ wocky_session_set_property (GObject *object,
 
   switch (property_id)
     {
-    case PROP_CONNECTION:
-      priv->connection = g_value_dup_object (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+      case PROP_CONNECTION:
+        priv->connection = g_value_dup_object (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
     }
 }
 
@@ -112,18 +112,18 @@ wocky_session_get_property (GObject *object,
 
   switch (property_id)
     {
-    case PROP_CONNECTION:
-      g_value_set_object (value, priv->connection);
-      break;
-    case PROP_PORTER:
-      g_value_set_object (value, priv->porter);
-      break;
-    case PROP_CONTACT_FACTORY:
-      g_value_set_object (value, priv->contact_factory);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+      case PROP_CONNECTION:
+        g_value_set_object (value, priv->connection);
+        break;
+      case PROP_PORTER:
+        g_value_set_object (value, priv->porter);
+        break;
+      case PROP_CONTACT_FACTORY:
+        g_value_set_object (value, priv->contact_factory);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
     }
 }
 
