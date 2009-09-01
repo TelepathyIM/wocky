@@ -88,6 +88,7 @@ tests/wocky-roster-test
 tests/wocky-bare-contact-test
 tests/wocky-resource-contact-test
 tests/wocky-contact-factory-test
+tests/wocky-session-test
 
 examples/wocky-connect
 examples/wocky-register
