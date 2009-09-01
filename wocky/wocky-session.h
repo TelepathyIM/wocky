@@ -25,6 +25,7 @@
 
 #include "wocky-types.h"
 #include "wocky-xmpp-connection.h"
+#include "wocky-porter.h"
 
 G_BEGIN_DECLS
 
@@ -57,6 +58,8 @@ GType wocky_session_get_type (void);
    WockySessionClass))
 
 WockySession * wocky_session_new (WockyXmppConnection *conn);
+
+WockyPorter * wocky_session_get_porter (WockySession *session);
 
 G_END_DECLS
 

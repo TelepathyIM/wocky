@@ -28,6 +28,22 @@ test_instantiation (void)
   g_object_unref (session);
 }
 
+static void
+test_get_porter (void)
+{
+  test_data_t *test = setup_test ();
+  WockySession *session;
+  WockyPorter *porter;
+
+  session = wocky_session_new (test->in);
+
+  porter = wocky_session_get_porter (session);
+  g_assert (WOCKY_IS_PORTER (porter));
+
+  g_object_unref (session);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -36,6 +52,7 @@ main (int argc, char **argv)
   test_init (argc, argv);
 
   g_test_add_func ("/session/instantiation", test_instantiation);
+  g_test_add_func ("/session/get-porter", test_get_porter);
 
   result = g_test_run ();
   test_deinit ();

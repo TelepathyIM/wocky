@@ -42,6 +42,7 @@ G_DEFINE_TYPE (WockySession, wocky_session, G_TYPE_OBJECT)
 enum
 {
   PROP_CONNECTION = 1,
+  PROP_PORTER,
 };
 
 /* signal enum */
@@ -62,6 +63,7 @@ struct _WockySessionPrivate
   gboolean dispose_has_run;
 
   WockyXmppConnection *connection;
+  WockyPorter *porter;
 };
 
 #define WOCKY_SESSION_GET_PRIVATE(o)  \
@@ -111,6 +113,9 @@ wocky_session_get_property (GObject *object,
     case PROP_CONNECTION:
       g_value_set_object (value, priv->connection);
       break;
+    case PROP_PORTER:
+      g_value_set_object (value, priv->porter);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -124,6 +129,8 @@ wocky_session_constructed (GObject *object)
   WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
 
   g_assert (priv->connection != NULL);
+
+  priv->porter = wocky_porter_new (priv->connection);
 }
 
 static void
@@ -138,6 +145,7 @@ wocky_session_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   g_object_unref (priv->connection);
+  g_object_unref (priv->porter);
 
   if (G_OBJECT_CLASS (wocky_session_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_session_parent_class)->dispose (object);
@@ -175,6 +183,14 @@ wocky_session_class_init (WockySessionClass *wocky_session_class)
       G_PARAM_READWRITE |
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
+
+  spec = g_param_spec_object ("porter", "Porter",
+      "The WockyPorter associated with this session",
+      WOCKY_TYPE_PORTER,
+      G_PARAM_READABLE |
+      G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_PORTER, spec);
+
 }
 
 WockySession *
@@ -183,4 +199,12 @@ wocky_session_new (WockyXmppConnection *conn)
   return g_object_new (WOCKY_TYPE_SESSION,
       "connection", conn,
       NULL);
+}
+
+WockyPorter *
+wocky_session_get_porter (WockySession *self)
+{
+  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+
+  return priv->porter;
 }
