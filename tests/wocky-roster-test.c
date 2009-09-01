@@ -121,7 +121,7 @@ test_fetch_roster_send_iq (void)
   wocky_porter_start (test->sched_out);
   wocky_session_start (test->session_in);
 
-  roster = wocky_roster_new (test->session_in);
+  roster = wocky_session_get_roster (test->session_in);
 
   wocky_roster_fetch_roster_async (roster, NULL, fetch_roster_fetched_cb, test);
 
@@ -129,7 +129,6 @@ test_fetch_roster_send_iq (void)
   test_wait_pending (test);
 
   test_close_both_porters (test);
-  g_object_unref (roster);
   teardown_test (test);
 }
 
@@ -269,7 +268,7 @@ create_initial_roster (test_data_t *test)
   wocky_porter_start (test->sched_out);
   wocky_session_start (test->session_in);
 
-  roster = wocky_roster_new (test->session_in);
+  roster = wocky_session_get_roster (test->session_in);
 
   wocky_roster_fetch_roster_async (roster, NULL,
       fetch_roster_reply_roster_cb, test);
@@ -277,7 +276,7 @@ create_initial_roster (test_data_t *test)
   test->outstanding++;
   test_wait_pending (test);
 
-  return roster;
+  return g_object_ref (roster);
 }
 
 static void
