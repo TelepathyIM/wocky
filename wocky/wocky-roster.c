@@ -38,6 +38,8 @@
 #include "wocky-utils.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-contact-factory.h"
+#include "wocky-porter.h"
+#include "wocky-session.h"
 
 #define DEBUG_FLAG DEBUG_ROSTER
 #include "wocky-debug.h"
@@ -217,7 +219,7 @@ pending_operation_reset (PendingOperation *pending)
 /* properties */
 enum
 {
-  PROP_PORTER = 1,
+  PROP_SESSION = 1,
 };
 
 /* signal enum */
@@ -235,7 +237,10 @@ typedef struct _WockyRosterPrivate WockyRosterPrivate;
 
 struct _WockyRosterPrivate
 {
+  WockySession *session;
   WockyPorter *porter;
+  WockyContactFactory *contact_factory;
+
   /* owned (gchar *) => reffed (WockyBareContact *) */
   GHashTable *items;
   guint iq_cb;
@@ -247,9 +252,6 @@ struct _WockyRosterPrivate
   GHashTable *pending_operations;
 
   GSimpleAsyncResult *fetch_result;
-
-  /* FIXME: this should probably be moved to a Session object or something */
-  WockyContactFactory *contact_factory;
 
   gboolean dispose_has_run;
 };
@@ -295,8 +297,10 @@ wocky_roster_set_property (GObject *object,
 
   switch (property_id)
     {
-    case PROP_PORTER:
-      priv->porter = g_value_dup_object (value);
+    case PROP_SESSION:
+      /* Don't keep a ref on the session at the session keeps a ref on the
+       * roster */
+      priv->session = g_value_get_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -314,8 +318,8 @@ wocky_roster_get_property (GObject *object,
 
   switch (property_id)
     {
-    case PROP_PORTER:
-      g_value_set_object (value, priv->porter);
+    case PROP_SESSION:
+      g_value_set_object (value, priv->session);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -561,7 +565,11 @@ wocky_roster_constructed (GObject *object)
   priv->pending_operations = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, (GDestroyNotify) pending_operation_free);
 
+  g_assert (priv->session != NULL);
+
+  priv->porter = wocky_session_get_porter (priv->session);
   g_assert (priv->porter != NULL);
+  g_object_ref (priv->porter);
 
   priv->iq_cb = wocky_porter_register_handler (priv->porter,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -570,10 +578,9 @@ wocky_roster_constructed (GObject *object)
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END, WOCKY_STANZA_END);
 
-  g_object_get (priv->porter,
-      "contact-factory", &(priv->contact_factory),
-      NULL);
+  priv->contact_factory = wocky_session_get_contact_factory (priv->session);
   g_assert (priv->contact_factory != NULL);
+  g_object_ref (priv->contact_factory);
 }
 
 static void
@@ -593,9 +600,7 @@ wocky_roster_dispose (GObject *object)
       priv->iq_cb = 0;
     }
 
-  if (priv->porter != NULL)
-    g_object_unref (priv->porter);
-
+  g_object_unref (priv->porter);
   g_object_unref (priv->contact_factory);
 
   if (G_OBJECT_CLASS (wocky_roster_parent_class)->dispose)
@@ -629,12 +634,12 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
   object_class->dispose = wocky_roster_dispose;
   object_class->finalize = wocky_roster_finalize;
 
-  spec = g_param_spec_object ("porter", "Wocky porter",
-    "the wocky porter used by this roster",
-    WOCKY_TYPE_PORTER,
+  spec = g_param_spec_object ("session", "Wocky session",
+    "the wocky session used by this roster",
+    WOCKY_TYPE_SESSION,
     G_PARAM_READWRITE |
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_PORTER, spec);
+  g_object_class_install_property (object_class, PROP_SESSION, spec);
 
   signals[ADDED] = g_signal_new ("added",
       G_OBJECT_CLASS_TYPE (wocky_roster_class),
@@ -650,12 +655,12 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
 }
 
 WockyRoster *
-wocky_roster_new (WockyPorter *porter)
+wocky_roster_new (WockySession *session)
 {
-  g_return_val_if_fail (WOCKY_IS_PORTER (porter), NULL);
+  g_return_val_if_fail (WOCKY_IS_SESSION (session), NULL);
 
   return g_object_new (WOCKY_TYPE_ROSTER,
-      "porter", porter,
+      "session", session,
       NULL);
 }
 

@@ -25,7 +25,6 @@
 
 #include "wocky-types.h"
 #include "wocky-xmpp-connection.h"
-#include "wocky-porter.h"
 
 G_BEGIN_DECLS
 
@@ -92,7 +91,7 @@ GQuark wocky_roster_error_quark (void);
  */
 #define WOCKY_ROSTER_ERROR (wocky_roster_error_quark ())
 
-WockyRoster * wocky_roster_new (WockyPorter *porter);
+WockyRoster * wocky_roster_new (WockySession *session);
 
 void wocky_roster_fetch_roster_async (WockyRoster *self,
     GCancellable *cancellable, GAsyncReadyCallback callback,

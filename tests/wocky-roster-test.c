@@ -10,6 +10,7 @@
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-bare-contact.h>
 #include <wocky/wocky-namespaces.h>
+#include <wocky/wocky-session.h>
 
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
@@ -20,19 +21,19 @@ test_instantiation (void)
 {
   WockyRoster *roster;
   WockyXmppConnection *connection;
-  WockyPorter *porter;
   WockyTestStream *stream;
+  WockySession *session;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  porter = wocky_porter_new (connection);
+  session = wocky_session_new (connection);
 
-  roster = wocky_roster_new (porter);
+  roster = wocky_roster_new (session);
 
   g_assert (roster != NULL);
 
   g_object_unref (roster);
-  g_object_unref (porter);
+  g_object_unref (session);
   g_object_unref (connection);
   g_object_unref (stream);
 }
@@ -118,9 +119,9 @@ test_fetch_roster_send_iq (void)
       fetch_roster_send_iq_cb, test, WOCKY_STANZA_END);
 
   wocky_porter_start (test->sched_out);
-  wocky_porter_start (test->sched_in);
+  wocky_session_start (test->session_in);
 
-  roster = wocky_roster_new (test->sched_in);
+  roster = wocky_roster_new (test->session_in);
 
   wocky_roster_fetch_roster_async (roster, NULL, fetch_roster_fetched_cb, test);
 
@@ -266,9 +267,9 @@ create_initial_roster (test_data_t *test)
       fetch_roster_reply_cb, test, WOCKY_STANZA_END);
 
   wocky_porter_start (test->sched_out);
-  wocky_porter_start (test->sched_in);
+  wocky_session_start (test->session_in);
 
-  roster = wocky_roster_new (test->sched_in);
+  roster = wocky_roster_new (test->session_in);
 
   wocky_roster_fetch_roster_async (roster, NULL,
       fetch_roster_reply_roster_cb, test);
