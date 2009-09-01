@@ -26,8 +26,11 @@ setup_test (void)
   data->in = wocky_xmpp_connection_new (data->stream->stream0);
   data->out = wocky_xmpp_connection_new (data->stream->stream1);
 
-  data->sched_in = wocky_porter_new (data->in);
-  data->sched_out = wocky_porter_new (data->out);
+  data->session_in = wocky_session_new (data->in);
+  data->session_out = wocky_session_new (data->out);
+
+  data->sched_in = wocky_session_get_porter (data->session_in);
+  data->sched_out = wocky_session_get_porter (data->session_out);
 
   data->expected_stanzas = g_queue_new ();
 
@@ -45,10 +48,10 @@ teardown_test (test_data_t *data)
   g_object_unref (data->stream);
   g_object_unref (data->in);
   g_object_unref (data->out);
-  if (data->sched_in != NULL)
-    g_object_unref (data->sched_in);
-  if (data->sched_out != NULL)
-    g_object_unref (data->sched_out);
+  if (data->session_in != NULL)
+    g_object_unref (data->session_in);
+  if (data->session_out != NULL)
+    g_object_unref (data->session_out);
   g_object_unref (data->cancellable);
 
   /* All the stanzas should have been received */

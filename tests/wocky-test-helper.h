@@ -5,6 +5,7 @@ G_BEGIN_DECLS
 
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-porter.h>
+#include <wocky/wocky-session.h>
 #include "wocky-test-stream.h"
 
 typedef struct {
@@ -15,6 +16,8 @@ typedef struct {
   WockyXmppConnection *out;
   WockyPorter *sched_in;
   WockyPorter *sched_out;
+  WockySession *session_in;
+  WockySession *session_out;
   WockyTestStream *stream;
   guint outstanding;
   GCancellable *cancellable;

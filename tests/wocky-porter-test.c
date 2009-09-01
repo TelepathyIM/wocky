@@ -1737,8 +1737,8 @@ test_unref_when_closed_cb (GObject *source,
       WOCKY_PORTER (source), res, NULL));
 
   /* Porter has been closed, unref it */
-  g_object_unref (test->sched_in);
-  test->sched_in = NULL;
+  g_object_unref (test->session_in);
+  test->session_in = NULL;
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
