@@ -60,22 +60,6 @@ test_get_contact_factory (void)
   teardown_test (test);
 }
 
-static void
-test_get_roster (void)
-{
-  test_data_t *test = setup_test ();
-  WockySession *session;
-  WockyRoster *roster;
-
-  session = wocky_session_new (test->in);
-
-  roster = wocky_session_get_roster (session);
-  g_assert (WOCKY_IS_ROSTER (roster));
-
-  g_object_unref (session);
-  teardown_test (test);
-}
-
 int
 main (int argc, char **argv)
 {
@@ -86,7 +70,6 @@ main (int argc, char **argv)
   g_test_add_func ("/session/instantiation", test_instantiation);
   g_test_add_func ("/session/get-porter", test_get_porter);
   g_test_add_func ("/session/get-contact-factory", test_get_contact_factory);
-  g_test_add_func ("/session/get-roster", test_get_roster);
 
   result = g_test_run ();
   test_deinit ();
