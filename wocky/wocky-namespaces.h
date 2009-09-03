@@ -90,4 +90,7 @@
 #define WOCKY_XMPP_NS_ROSTER \
   "jabber:iq:roster"
 
+#define WOCKY_XMPP_NS_PUBSUB \
+  "http://jabber.org/protocol/pubsub"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
