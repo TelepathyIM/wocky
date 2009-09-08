@@ -831,9 +831,7 @@ test_t tests[] =
      * Invalid JID                                                           */
     { "/connector/problem/jid/invalid",
       NOISY,
-      /* this should be the failure but wocky_decode_jid needs to be smarter */
-      /* { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID }, */
-      { DOMAIN_RES, 0 },
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BAD_JID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
