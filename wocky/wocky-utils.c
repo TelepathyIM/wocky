@@ -40,6 +40,39 @@ wocky_strdiff (const gchar *left,
   return g_strcmp0 (left, right) != 0;
 }
 
+static gboolean
+validate_jid_node (const gchar *node)
+{
+  /* See RFC 3920 §3.3. */
+  const gchar *c;
+
+  for (c = node; *c; c++)
+    if (strchr ("\"&'/:<>@", *c))
+      /* RFC 3920 §A.5 */
+      return FALSE;
+
+  return TRUE;
+}
+
+static gboolean
+validate_jid_domain (const gchar *domain)
+{
+  /* XXX: This doesn't do proper validation, it just checks the character
+   * range. In theory, we check that the domain is a well-formed IDN or
+   * an IPv4/IPv6 address literal.
+   *
+   * See RFC 3920 §3.2.
+   */
+
+  const gchar *c;
+
+  for (c = domain; *c; c++)
+    if (!g_ascii_isalnum (*c) && !strchr (":-.", *c))
+      return FALSE;
+
+  return TRUE;
+}
+
 /**
  * wocky_decode_jid:
  * @jid: a JID
@@ -47,33 +80,25 @@ wocky_strdiff (const gchar *left,
  * @domain: address to which return the server/service part of the JID
  * @resource: address to which return the resource/nick part of the JID
  *
- * Parses a JID which may be one of the following forms:
- *  server
- *  server/resource
- *  username@server
- *  username@server/resource
- *  room@service/nick
- * and sets the caller's node, domain and resource
- * pointers to the username/room, server/service and resource/nick parts
- * respectively, if available in the provided JID. The caller may set any of
- * the pointers to NULL if they are not interested in a certain component.
+ *  If the JID is valid, returns TRUE and sets the caller's
+ * node/domain/resource pointers if they are not NULL. The node and resource
+ * pointers will be set to NULL if the respective part is not present in the
+ * JID. The node and domain are lower-cased because the Jabber protocol treats
+ * them case-insensitively.
  *
- * The returned values may be NULL or zero-length if a component was either
- * not present or zero-length respectively in the given JID. The username/room
- * and server/service are lower-cased because the Jabber protocol treats them
- * case-insensitively.
+ * XXX: Do nodeprep/resourceprep and length checking.
  *
+ * See RFC 3920 §3.
  */
-void
+gboolean
 wocky_decode_jid (const gchar *jid,
     gchar **node,
     gchar **domain,
     gchar **resource)
 {
-  char *tmp_jid, *tmp_username, *tmp_server, *tmp_resource;
+  char *tmp_jid, *tmp_node, *tmp_domain, *tmp_resource;
 
   g_assert (jid != NULL);
-  g_assert (node != NULL || domain != NULL || resource != NULL);
 
   if (node != NULL)
     *node = NULL;
@@ -84,48 +109,70 @@ wocky_decode_jid (const gchar *jid,
   if (resource != NULL)
     *resource = NULL;
 
-  /* take a local copy so we don't modify the caller's string */
+  /* Take a local copy so we don't modify the caller's string. */
   tmp_jid = g_strdup (jid);
 
-  /* find an @ in username, truncate username to that length, and point
-   * 'server' to the byte afterwards */
-  tmp_server = strchr (tmp_jid, '@');
-  if (tmp_server)
-    {
-      tmp_username = tmp_jid;
+  /* If there's a slash in tmp_jid, split it in two and take the second part as
+   * the resource.
+   */
+  tmp_resource = strchr (tmp_jid, '/');
 
-      *tmp_server = '\0';
-      tmp_server++;
-
-      /* store the username if the user provided a pointer */
-      if (node != NULL)
-        *node = g_utf8_strdown (tmp_username, -1);
-    }
-  else
-    {
-      tmp_username = NULL;
-      tmp_server = tmp_jid;
-    }
-
-  /* if we have a server, find a / in it, truncate it to that length, and point
-   * 'resource' to the byte afterwards. otherwise, do the same to username to
-   * find any resource there. */
-  tmp_resource = strchr (tmp_server, '/');
   if (tmp_resource)
     {
       *tmp_resource = '\0';
       tmp_resource++;
-
-      /* store the resource if the user provided a pointer */
-      if (resource != NULL)
-        *resource = g_strdup (tmp_resource);
+    }
+  else
+    {
+      tmp_resource = NULL;
     }
 
-  /* the server must be stored after the resource, in case we truncated a
-   * resource from it */
+  /* If there's an at sign in tmp_jid, split it in two and set tmp_node and
+   * tmp_domain appropriately. Otherwise, tmp_node is NULL and the domain is
+   * the whole string.
+   */
+  tmp_domain = strchr (tmp_jid, '@');
+
+  if (tmp_domain)
+    {
+      *tmp_domain = '\0';
+      tmp_domain++;
+      tmp_node = tmp_jid;
+    }
+  else
+    {
+      tmp_domain = tmp_jid;
+      tmp_node = NULL;
+    }
+
+  /* Domain must be non-empty and not contain invalid characters. If the node
+   * or the resource exist, they must be non-empty and the node must not
+   * contain invalid characters.
+   */
+  if (*tmp_domain == '\0' ||
+      !validate_jid_domain (tmp_domain) ||
+      (tmp_node != NULL &&
+         (*tmp_node == '\0' || !validate_jid_node (tmp_node))) ||
+      (tmp_resource != NULL && *tmp_resource == '\0'))
+    {
+      g_free (tmp_jid);
+      return FALSE;
+    }
+
+  /* the server must be stored after we find the resource, in case we
+   * truncated a resource from it */
   if (domain != NULL)
-    *domain = g_utf8_strdown (tmp_server, -1);
+    *domain = g_utf8_strdown (tmp_domain, -1);
+
+  /* store the username if the user provided a pointer */
+  if (tmp_node != NULL && node != NULL)
+    *node = g_utf8_strdown (tmp_node, -1);
+
+  /* store the resource if the user provided a pointer */
+  if (tmp_resource != NULL && resource != NULL)
+    *resource = g_strdup (tmp_resource);
 
   /* free our working copy */
   g_free (tmp_jid);
+  return TRUE;
 }
