@@ -476,6 +476,86 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
 
+int
+wocky_tls_session_verify_peer(WockyTLSSession *session,
+                              const gchar     *peername,
+                              long             flags,
+                              guint           *status)
+{
+  int rval = -1;
+  guint cls = -1;
+  guint stat = 0;
+  gboolean peer_name_ok = TRUE;
+
+  g_assert (status != NULL);
+  *status = WOCKY_TLS_CERT_OK;
+
+  gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, flags);
+  rval = gnutls_certificate_verify_peers2 (session->session, &stat);
+
+  if ((rval == GNUTLS_E_SUCCESS) && (peername != NULL))
+    switch (gnutls_certificate_type_get (session->session))
+      {
+        gnutls_x509_crt_t x509;
+        gnutls_openpgp_crt_t opgp;
+      case GNUTLS_CRT_X509:
+        if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
+          { /* we know these ops must succeed, or verify_peers2 would have *
+             * failed before we got here: We just need to duplicate a bit  *
+             * of what it does:                                            */
+            const gnutls_datum_t *peers =
+              gnutls_certificate_get_peers (session->session, &cls);
+
+            gnutls_x509_crt_import (x509, &peers[0], GNUTLS_X509_FMT_DER);
+            rval = gnutls_x509_crt_check_hostname (x509, peername);
+            DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d", peername, rval);
+            rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
+            peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+
+            gnutls_x509_crt_deinit (x509);
+          }
+        break;
+      case GNUTLS_CRT_OPENPGP:
+        if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
+          {
+            const gnutls_datum_t *peers =
+              gnutls_certificate_get_peers (session->session, &cls);
+
+            gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
+            rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
+            DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",peername,rval);
+            rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
+            peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+
+            gnutls_openpgp_crt_deinit (opgp);
+          }
+        break;
+      default:
+        rval = GNUTLS_E_CERTIFICATE_ERROR;
+        peer_name_ok = FALSE;
+      }
+
+  if (!peer_name_ok)
+    *status = WOCKY_TLS_CERT_NAME_MISMATCH;
+  else
+    if (stat & GNUTLS_CERT_REVOKED)
+      *status = WOCKY_TLS_CERT_REVOKED;
+    else if (stat & GNUTLS_CERT_SIGNER_NOT_FOUND)
+      *status = WOCKY_TLS_CERT_SIGNER_UNKNOWN;
+    else if (stat & GNUTLS_CERT_SIGNER_NOT_CA)
+      *status = WOCKY_TLS_CERT_SIGNER_UNAUTHORISED;
+    else if (stat & GNUTLS_CERT_INSECURE_ALGORITHM)
+      *status = WOCKY_TLS_CERT_INSECURE;
+    else if (stat & GNUTLS_CERT_NOT_ACTIVATED)
+      *status = WOCKY_TLS_CERT_NOT_ACTIVE;
+    else if (stat & GNUTLS_CERT_EXPIRED)
+      *status = WOCKY_TLS_CERT_EXPIRED;
+    else
+      *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+
+  return rval;
+}
+
 static gssize
 wocky_tls_input_stream_read (GInputStream  *stream,
                              void          *buffer,
@@ -1307,3 +1387,8 @@ wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
                        "x509-ca", ca, "x509-crl", crl, "server", TRUE,
                        NULL);
 }
+
+/* this file is "borrowed" from an unmerged gnio feature: */
+/* Local Variables:                                       */
+/* c-file-style: "gnu"                                    */
+/* End:                                                   */

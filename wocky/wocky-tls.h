@@ -27,6 +27,8 @@
 #define _wocky_tls_h_
 
 #include <gio/gio.h>
+#include <gnutls/x509.h>
+#include <gnutls/openpgp.h>
 
 #define WOCKY_TYPE_TLS_CONNECTION (wocky_tls_connection_get_type ())
 #define WOCKY_TYPE_TLS_SESSION    (wocky_tls_session_get_type ())
@@ -40,13 +42,39 @@
 typedef struct OPAQUE_TYPE__WockyTLSConnection WockyTLSConnection;
 typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
 
+#define WOCKY_TLS_VERIFY_STRICT  GNUTLS_VERIFY_DO_NOT_ALLOW_SAME
+#define WOCKY_TLS_VERIFY_NORMAL  GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT
+#define WOCKY_TLS_VERIFY_LENIENT ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT     | \
+                                   GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT | \
+                                   GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2       | \
+                                   GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5       | \
+                                   GNUTLS_VERIFY_DISABLE_TIME_CHECKS      | \
+                                   GNUTLS_VERIFY_DISABLE_CA_SIGN          )
+
+typedef enum
+{
+  WOCKY_TLS_CERT_OK = 0,
+  WOCKY_TLS_CERT_NAME_MISMATCH,
+  WOCKY_TLS_CERT_REVOKED,
+  WOCKY_TLS_CERT_SIGNER_UNKNOWN,
+  WOCKY_TLS_CERT_SIGNER_UNAUTHORISED,
+  WOCKY_TLS_CERT_INSECURE,
+  WOCKY_TLS_CERT_NOT_ACTIVE,
+  WOCKY_TLS_CERT_EXPIRED,
+  WOCKY_TLS_CERT_UNKNOWN_ERROR,
+} WockyTLSCertStatus;
+
 GType wocky_tls_connection_get_type (void);
 GType wocky_tls_session_get_type (void);
+
+int wocky_tls_session_verify_peer(WockyTLSSession *session,
+                                  const gchar     *peername,
+                                  long             flags,
+                                  guint           *status);
 
 WockyTLSConnection *wocky_tls_session_handshake (WockyTLSSession   *session,
                                                  GCancellable  *cancellable,
                                                  GError       **error);
-
 void
 wocky_tls_session_handshake_async (WockyTLSSession         *session,
                                    gint io_priority,
@@ -66,3 +94,8 @@ wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
                               const gchar* ca, const gchar* crl);
 
 #endif
+
+/* this file is "borrowed" from an unmerged gnio feature: */
+/* Local Variables:                                       */
+/* c-file-style: "gnu"                                    */
+/* End:                                                   */
