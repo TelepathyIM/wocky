@@ -1514,7 +1514,9 @@ starttls_handshake_cb (GObject *source,
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
   WockyTLSSession *sess = priv->tls_sess;
   const gchar *tla = priv->legacy_ssl ? "SSL" : "TLS";
-
+  long flags = WOCKY_TLS_VERIFY_NORMAL;
+  const gchar *peer = NULL;
+  guint status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
 
   priv->tls = wocky_tls_session_handshake_finish (sess, res, &error);
   DEBUG ("completed %s handshake", tla);
@@ -1526,12 +1528,62 @@ starttls_handshake_cb (GObject *source,
       return;
     }
 
-  priv->encrypted = TRUE;
   /* throw away the old connection object, we're in TLS land now */
   if (priv->conn != NULL)
     g_object_unref (priv->conn);
   priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
 
+  /* when lenient, don't check the peername, set cert flags accordingly   *
+   * when 'strict', leave the flags at NORMAL and check the peername      *
+   * under legacy ssl, the connect hostname is the preferred peername     *
+   * under starttls, we check the domain regardless of the connect server */
+  if (priv->cert_insecure_ok)
+    flags = WOCKY_TLS_VERIFY_LENIENT;
+  else if (priv->legacy_ssl)
+    peer = (priv->xmpp_host != NULL) ? priv->xmpp_host : priv->domain;
+  else
+    peer = priv->domain;
+
+  DEBUG ("verifying certificate (peer: %s)", (peer == NULL) ? "-" : peer);
+
+  if (wocky_tls_session_verify_peer (sess, peer, flags, &status) != 0)
+    {
+      const gchar *msg = NULL;
+      switch (status)
+        {
+          case WOCKY_TLS_CERT_NAME_MISMATCH:
+            msg = "SSL Certificate does not match name '%s'";
+            break;
+          case WOCKY_TLS_CERT_REVOKED:
+            msg = "SSL Certificate for %s has been revoked";
+            break;
+          case WOCKY_TLS_CERT_SIGNER_UNKNOWN:
+            msg = "SSL Certificate for %s is insecure (unknown signer)";
+            break;
+          case WOCKY_TLS_CERT_SIGNER_UNAUTHORISED:
+            msg = "SSL Certificate for %s is insecure (unauthorised signer)";
+            break;
+          case WOCKY_TLS_CERT_INSECURE:
+            msg = "SSL Certificate for %s is insecure (weak crypto)";
+            break;
+          case WOCKY_TLS_CERT_NOT_ACTIVE:
+            msg = "SSL Certificate for %s not active yet";
+            break;
+          case WOCKY_TLS_CERT_EXPIRED:
+            msg = "SSL Certificate for %s expired";
+            break;
+          case WOCKY_TLS_CERT_UNKNOWN_ERROR:
+          default:
+            msg = "TLS Certificate Verification Error for %s";
+        }
+      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_INSECURE, msg, peer);
+      return;
+    }
+
+  DEBUG ("cert verified %s",
+      (flags == WOCKY_TLS_VERIFY_LENIENT) ? "LENIENT" : "NORMAL");
+
+  priv->encrypted = TRUE;
   xmpp_init (self, FALSE);
 }
 
