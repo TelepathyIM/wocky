@@ -483,9 +483,26 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
                               guint           *status)
 {
   int rval = -1;
+  int x;
   guint cls = -1;
   guint stat = 0;
   gboolean peer_name_ok = TRUE;
+
+  /* list gnutls cert error conditions in descending order of noteworthiness *
+   * and map them to wocky cert error conditions                             */
+  static const struct
+  {
+    gnutls_certificate_status_t gnutls;
+    WockyTLSCertStatus wocky;
+  } status_map[] =
+    { { GNUTLS_CERT_REVOKED,            WOCKY_TLS_CERT_REVOKED             },
+      { GNUTLS_CERT_NOT_ACTIVATED,      WOCKY_TLS_CERT_NOT_ACTIVE          },
+      { GNUTLS_CERT_EXPIRED,            WOCKY_TLS_CERT_EXPIRED             },
+      { GNUTLS_CERT_SIGNER_NOT_FOUND,   WOCKY_TLS_CERT_SIGNER_UNKNOWN      },
+      { GNUTLS_CERT_SIGNER_NOT_CA,      WOCKY_TLS_CERT_SIGNER_UNAUTHORISED },
+      { GNUTLS_CERT_INSECURE_ALGORITHM, WOCKY_TLS_CERT_INSECURE            },
+      { 0,                              WOCKY_TLS_CERT_UNKNOWN_ERROR       } };
+  /* *********************************************************************** */
 
   g_assert (status != NULL);
   *status = WOCKY_TLS_CERT_OK;
@@ -538,20 +555,16 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
   if (!peer_name_ok)
     *status = WOCKY_TLS_CERT_NAME_MISMATCH;
   else
-    if (stat & GNUTLS_CERT_REVOKED)
-      *status = WOCKY_TLS_CERT_REVOKED;
-    else if (stat & GNUTLS_CERT_SIGNER_NOT_FOUND)
-      *status = WOCKY_TLS_CERT_SIGNER_UNKNOWN;
-    else if (stat & GNUTLS_CERT_SIGNER_NOT_CA)
-      *status = WOCKY_TLS_CERT_SIGNER_UNAUTHORISED;
-    else if (stat & GNUTLS_CERT_INSECURE_ALGORITHM)
-      *status = WOCKY_TLS_CERT_INSECURE;
-    else if (stat & GNUTLS_CERT_NOT_ACTIVATED)
-      *status = WOCKY_TLS_CERT_NOT_ACTIVE;
-    else if (stat & GNUTLS_CERT_EXPIRED)
-      *status = WOCKY_TLS_CERT_EXPIRED;
-    else
+    { /* Gnutls cert checking can return multiple errors bitwise &ed together *
+       * but we are realy only interested in the "most important" error:      */
       *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+      for (x = 0; status_map[x].gnutls != 0; x++)
+        if (stat & status_map[x].gnutls)
+          {
+            *status = status_map[x].wocky;
+            break;
+          }
+    }
 
   return rval;
 }
