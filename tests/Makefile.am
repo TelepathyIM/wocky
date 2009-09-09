@@ -138,6 +138,8 @@ check_c_sources = \
   $(wocky_xmpp_readwrite_test_SOURCES) \
   $(wocky_xmpp_reader_test_SOURCES)
 
+all: ${TEST_PROGS}
+
 test-report: test-report.xml
 	gtester-report $(top_builddir)/tests/$@.xml > \
 	  $(top_builddir)/tests/$@.html
@@ -161,19 +163,20 @@ check-local: test check-coding-style
 	$(GENKEY) $@
 
 %-cert.pem: %-key.pem %-cert.cfg certs/ca-cert.pem 
-	@echo $@ DEPS: $^
-	$(CERTTOOL) --generate-certificate                  \
+	$(CERTTOOL) --generate-certificate                      \
                     --load-ca-certificate certs/ca-cert.pem \
-	            --load-ca-privkey certs/ca-key.pem      \
-	            --load-privkey $*-key.pem               \
-	            --template $*-cert.cfg                  \
-	            --outfile $@
+	            --load-ca-privkey certs/ca-key.pem          \
+	            --load-privkey $*-key.pem                   \
+	            --template     $*-cert.cfg                  \
+	            --outfile      $@ 2>&1 |                    \
+	  grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
 
 certs/ca-cert.pem: certs/ca-key.pem certs/ca-cert.cfg
 	$(CERTTOOL) --generate-self-signed            \
 	            --load-privkey $<                 \
 	            --template     $(basename $@).cfg \
-	            --outfile      $@
+	            --outfile      $@ 2>&1 |          \
+	  grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
 
 clean-local:
 	rm -fv certs/*.pem
