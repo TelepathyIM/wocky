@@ -1600,10 +1600,11 @@ starttls_handshake_cb (GObject *source,
             ok_when_lenient = TRUE;
           case WOCKY_TLS_CERT_UNKNOWN_ERROR:
           default:
-            msg = "TLS Certificate Verification Error for %s";
+            msg = "SSL Certificate Verification Error for %s";
         }
       if (!(priv->cert_insecure_ok && ok_when_lenient))
         {
+          GError *cert_error = NULL;
           if (peer == NULL)
             {
               if (priv->legacy_ssl)
@@ -1611,7 +1612,9 @@ starttls_handshake_cb (GObject *source,
               if (peer == NULL)
                 peer = priv->domain;
             }
-          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_INSECURE, msg, peer);
+          cert_error = g_error_new (WOCKY_TLS_CERT_ERROR, status, msg, peer);
+          abort_connect_error (self, &cert_error, NULL);
+          g_error_free (cert_error);
           return;
         }
       else

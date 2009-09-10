@@ -56,6 +56,7 @@
 #define DOMAIN_GIO  "g-io-error-quark"
 #define DOMAIN_RES  "g-resolver-error-quark"
 #define DOMAIN_STREAM "wocky-xmpp-stream-error"
+#define DOMAIN_CERT "wocky-tls-cert-error"
 
 #define CONNECTOR_INTERNALS_TEST "/connector/basic/internals"
 
@@ -2543,7 +2544,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/nohost/fail/name-mismatch",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_NAME_MISMATCH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2555,7 +2556,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/host/fail/name-mismatch",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_NAME_MISMATCH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2567,7 +2568,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/expired/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_EXPIRED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2579,7 +2580,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/inactive/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_NOT_ACTIVE },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2591,7 +2592,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/selfsigned/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_INVALID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2603,7 +2604,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/unknown/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_SIGNER_UNKNOWN },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2641,7 +2642,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/nohost/fail/name-mismatch",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_NAME_MISMATCH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2653,7 +2654,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/host/fail/name-mismatch",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_NAME_MISMATCH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2665,7 +2666,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/expired/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_EXPIRED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2677,7 +2678,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/inactive/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_NOT_ACTIVE },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2689,7 +2690,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/selfsigned/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_INVALID },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2701,7 +2702,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/unknown/fail",
       QUIET,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { DOMAIN_CERT, WOCKY_TLS_CERT_SIGNER_UNKNOWN },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
