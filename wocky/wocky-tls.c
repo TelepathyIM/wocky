@@ -1226,7 +1226,7 @@ add_certfiles (gnutls_certificate_credentials cred,
           g_free (path);
         }
 
-      DEBUG ("+ %s: %d certs from dir", , n);
+      DEBUG ("+ %s: %d certs from dir", thing, n);
       closedir (dir);
     }
   else if (S_ISREG (target.st_mode))
