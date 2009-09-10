@@ -40,6 +40,8 @@
 #define INITIAL_STREAM_ID "0-HAI"
 #define DEBUG(format, ...) \
   wocky_debug (DEBUG_CONNECTOR, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
+#define DEBUG2(format, ...) \
+  wocky_debug (DEBUG_ROSTER, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
 
 G_DEFINE_TYPE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT);
 
@@ -73,6 +75,14 @@ typedef enum {
   SERVER_STATE_FEATURES_SENT
 } server_state;
 
+static struct { CertSet set; const gchar *key; const gchar *crt; } certs[] =
+  { { CERT_STANDARD, TLS_SERVER_KEY_FILE,  TLS_SERVER_CRT_FILE  },
+    { CERT_EXPIRED,  TLS_EXP_KEY_FILE,     TLS_EXP_CRT_FILE     },
+    { CERT_NOT_YET,  TLS_NEW_KEY_FILE,     TLS_NEW_CRT_FILE     },
+    { CERT_UNKNOWN,  TLS_UNKNOWN_KEY_FILE, TLS_UNKNOWN_CRT_FILE },
+    { CERT_SELFSIGN, TLS_SS_KEY_FILE,      TLS_SS_CRT_FILE      },
+    { CERT_NONE,     NULL,                 NULL                 } };
+
 typedef struct _TestConnectorServerPrivate TestConnectorServerPrivate;
 
 struct _TestConnectorServerPrivate
@@ -90,6 +100,7 @@ struct _TestConnectorServerPrivate
   gchar *pass;
   gchar *version;
 
+  CertSet cert;
   WockyTLSSession *tls_sess;
   WockyTLSConnection *tls_conn;
 
@@ -924,9 +935,23 @@ handle_starttls (TestConnectorServer *self,
             priv->tls_sess = wocky_tls_session_server_new (priv->stream,
                 1024, NULL, NULL, NULL, NULL);
           else
-            priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
-                TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE,
-                NULL);
+            {
+              int x;
+              const gchar *key = TLS_SERVER_KEY_FILE;
+              const gchar *crt = TLS_SERVER_CRT_FILE;
+
+              for (x = 0; certs[x].set != CERT_NONE; x++)
+                if (certs[x].set == priv->cert)
+                  {
+                    key = certs[x].key;
+                    crt = certs[x].crt;
+                    break;
+                  }
+              DEBUG2 ("cert file: %s", crt);
+              priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
+                  key, crt, TLS_CA_CRT_FILE,
+                  NULL);
+            }
 
         }
       wocky_xmpp_connection_send_stanza_async (conn, reply, NULL, cb, self);
@@ -1179,8 +1204,22 @@ static void startssl (TestConnectorServer *self)
     priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
         NULL, NULL, NULL, NULL);
   else
-    priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
-        TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE, TLS_CA_CRT_FILE, NULL);
+    {
+      int x;
+      const gchar *key = TLS_SERVER_KEY_FILE;
+      const gchar *crt = TLS_SERVER_CRT_FILE;
+
+      for (x = 0; certs[x].set != CERT_NONE; x++)
+        if (certs[x].set == priv->cert)
+          {
+            key = certs[x].key;
+            crt = certs[x].crt;
+            break;
+          }
+
+      priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
+          key, crt, TLS_CA_CRT_FILE, NULL);
+    }
 
   DEBUG ("starting server SSL handshake");
   priv->tls_conn = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
@@ -1298,7 +1337,8 @@ test_connector_server_new (GIOStream *stream,
     const gchar *pass,
     const gchar *version,
     ConnectorProblem *problem,
-    ServerProblem sasl_problem)
+    ServerProblem sasl_problem,
+    CertSet cert)
 {
   TestConnectorServer *self;
   TestConnectorServerPrivate *priv;
@@ -1315,6 +1355,7 @@ test_connector_server_new (GIOStream *stream,
   priv->problem.sasl      = sasl_problem;
   priv->problem.connector = problem;
   priv->conn   = wocky_xmpp_connection_new (stream);
+  priv->cert   = cert;
 
   DEBUG ("connection: %p", priv->conn);
 

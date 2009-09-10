@@ -28,6 +28,10 @@
 #define OLD_SSL    TRUE
 #define OLD_JABBER TRUE
 #define XMPP_V1    FALSE
+#define STARTTLS   FALSE
+
+#define CERT_CHECK_STRICT  FALSE
+#define CERT_CHECK_LENIENT TRUE
 
 #define TLS_REQUIRED TRUE
 #define PLAINTEXT_OK FALSE
@@ -81,12 +85,13 @@ typedef struct {
     struct { ServerProblem sasl; ConnectorProblem conn; } problem;
     struct { gchar *user; gchar *pass; } auth;
     guint port;
+    CertSet cert;
   } server;
   struct { char *srv; guint port; char *host; char *addr; char *srvhost; } dns;
   struct {
     gboolean require_tls;
     struct { gchar *jid; gchar *pass; gboolean secure; gboolean tls; } auth;
-    struct { gchar *host; guint port; gboolean jabber; gboolean ssl; } options;
+    struct { gchar *host; guint port; gboolean jabber; gboolean ssl; gboolean lax_ssl; } options;
     int op;
     test_setup setup;
   } client;
@@ -2560,7 +2565,56 @@ test_t tests[] =
           { "moose@tomato-juice.org", "something", PLAIN, TLS },
           { "tomato-juice.org", 0, XMPP_V1 } } },
 
-    /* as above but with legacy ssl */
+    { "/connector/cert-verification/tls/expired/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_EXPIRED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1 } } },
+
+    { "/connector/cert-verification/tls/inactive/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_NOT_YET },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1 } } },
+
+    { "/connector/cert-verification/tls/selfsigned/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_SELFSIGN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1 } } },
+
+    { "/connector/cert-verification/tls/unknown/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_UNKNOWN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1 } } },
+
+    /* ********************************************************************* */
+    /* as above but with legacy ssl                                          */
     { "/connector/cert-verification/ssl/nohost/ok",
       QUIET,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -2608,6 +2662,250 @@ test_t tests[] =
         { PLAINTEXT_OK,
           { "moose@tomato-juice.org", "something", PLAIN, TLS },
           { "tomato-juice.org", 0, XMPP_V1, OLD_SSL } } },
+
+    { "/connector/cert-verification/ssl/expired/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_EXPIRED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL } } },
+
+    { "/connector/cert-verification/ssl/inactive/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_NOT_YET },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL } } },
+
+    { "/connector/cert-verification/ssl/selfsigned/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_SELFSIGN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL } } },
+
+    { "/connector/cert-verification/ssl/unknown/fail",
+      QUIET,
+      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_INSECURE },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_UNKNOWN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL } } },
+
+    /* ********************************************************************* */
+    /* certificate non-verification tests                                    */
+    { "/connector/cert-nonverification/tls/nohost/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1 } } },
+
+    { "/connector/cert-nonverification/tls/host/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+        { NULL, 0, "thud.org", REACHABLE, NULL },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { "thud.org", 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/tls/nohost/ok/name-mismatch",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+        { "tomato-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@tomato-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/tls/host/ok/name-mismatch",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+        { NULL, 0, "tomato-juice.org", REACHABLE, NULL },
+        { PLAINTEXT_OK,
+          { "moose@tomato-juice.org", "something", PLAIN, TLS },
+          { "tomato-juice.org", 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/tls/expired/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_EXPIRED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/tls/inactive/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_NOT_YET },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/tls/selfsigned/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_SELFSIGN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/tls/unknown/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_UNKNOWN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
+
+    /* ********************************************************************* */
+    /* as above but with legacy ssl                                          */
+    { "/connector/cert-nonverification/ssl/nohost/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/host/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+        { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
+        { PLAINTEXT_OK,
+          { "moose@thud.org", "something", PLAIN, TLS },
+          { "weasel-juice.org", PORT_XMPP, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/nohost/ok/name-mismatch",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+        { "tomato-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@tomato-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/host/ok/name-mismatch",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP },
+        { NULL, 0, "tomato-juice.org", REACHABLE, NULL },
+        { PLAINTEXT_OK,
+          { "moose@tomato-juice.org", "something", PLAIN, TLS },
+          { "tomato-juice.org", 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/expired/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_EXPIRED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/inactive/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_NOT_YET },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/selfsigned/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_SELFSIGN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
+
+    { "/connector/cert-nonverification/ssl/unknown/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_UNKNOWN },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
 
     /* we are done, cap the list: */
     { NULL }
@@ -2683,7 +2981,8 @@ client_connected (GIOChannel *channel,
       test->server.auth.pass,
       test->server.features.version,
       cproblem,
-      test->server.problem.sasl);
+      test->server.problem.sasl,
+      test->server.cert);
   test_connector_server_start (G_OBJECT (server));
   return FALSE;
 }
@@ -2873,7 +3172,8 @@ run_test (gpointer data)
       "legacy"                  , test->client.options.jabber,
       "old-ssl"                 , test->client.options.ssl,
       /* insecure tls cert/etc not yet implemented */
-      "ignore-ssl-errors"       , FALSE,
+      "ignore-ssl-errors"       , test->client.options.lax_ssl,
+      "certificate-authority"   , TLS_CA_CRT_FILE,
       NULL);
 
   test->connector = wcon;

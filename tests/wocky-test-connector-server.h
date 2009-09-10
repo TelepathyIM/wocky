@@ -111,6 +111,16 @@ typedef enum
   XEP77_PROBLEM_CANCEL_STREAM   = CONNPROBLEM(12),
 } XEP77Problem;
 
+typedef enum
+{
+  CERT_STANDARD,
+  CERT_EXPIRED,
+  CERT_NOT_YET,
+  CERT_UNKNOWN,
+  CERT_SELFSIGN,
+  CERT_NONE
+} CertSet;
+
 typedef struct
 {
   XmppProblem xmpp;
@@ -157,7 +167,8 @@ TestConnectorServer * test_connector_server_new (GIOStream *stream,
     const gchar *pass,
     const gchar *version,
     ConnectorProblem *problem,
-    ServerProblem sasl_problem);
+    ServerProblem sasl_problem,
+    CertSet cert);
 
 void test_connector_server_start (GObject *object);
 
