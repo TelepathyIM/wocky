@@ -234,6 +234,7 @@ enum
   PROP_LEGACY_SSL,
   PROP_SESSION_ID,
   PROP_EMAIL,
+  PROP_CA,
 };
 
 /* this tracks which XEP 0077 operation (register account, cancel account)  *
@@ -284,6 +285,7 @@ struct _WockyConnectorPrivate
   gboolean legacy_support;
   gboolean legacy_ssl;
   gchar *session_id;
+  gchar *ca; /* file or dir containing x509 CA files */
 
   /* XMPP connection data */
   WockyXmppStanza *features;
@@ -495,6 +497,10 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->session_id);
         priv->session_id = g_value_dup_string (value);
         break;
+      case PROP_CA:
+        g_free (priv->ca);
+        priv->ca = g_value_dup_string (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -556,6 +562,9 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_SESSION_ID:
         g_value_set_string (value, priv->session_id);
+        break;
+      case PROP_CA:
+        g_value_set_string (value, priv->ca);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -743,6 +752,17 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "XMPP Session ID", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
+
+  /**
+   * WockyConnector:certificate-authority
+   *
+   * PEM file containing a certificate authority or directory
+   * full of such PEM files.
+   */
+  spec = g_param_spec_string ("certificate-authority", "certificate-authority",
+      "Location of CA file(s)", "/etc/ssl/certs",
+      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_CA, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
@@ -1192,7 +1212,8 @@ maybe_old_ssl (WockyConnector *self)
       g_assert (priv->sock != NULL);
 
       DEBUG ("creating SSL session");
-      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
+      priv->tls_sess =
+        wocky_tls_session_new (G_IO_STREAM (priv->sock), priv->ca, NULL);
       if (priv->tls_sess == NULL)
         {
           abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
@@ -1493,7 +1514,8 @@ starttls_recv_cb (GObject *source,
     }
   else
     {
-      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
+      priv->tls_sess =
+        wocky_tls_session_new (G_IO_STREAM (priv->sock), priv->ca, NULL);
       DEBUG ("starting client TLS handshake %p", priv->tls_sess);
       wocky_tls_session_handshake_async (priv->tls_sess,
           G_PRIORITY_HIGH, NULL, starttls_handshake_cb, self);
@@ -1548,6 +1570,7 @@ starttls_handshake_cb (GObject *source,
 
   if (wocky_tls_session_verify_peer (sess, peer, flags, &status) != 0)
     {
+      gboolean ok_when_lenient = FALSE;
       const gchar *msg = NULL;
       switch (status)
         {
@@ -1558,6 +1581,7 @@ starttls_handshake_cb (GObject *source,
             msg = "SSL Certificate for %s has been revoked";
             break;
           case WOCKY_TLS_CERT_SIGNER_UNKNOWN:
+            ok_when_lenient = TRUE;
             msg = "SSL Certificate for %s is insecure (unknown signer)";
             break;
           case WOCKY_TLS_CERT_SIGNER_UNAUTHORISED:
@@ -1572,12 +1596,40 @@ starttls_handshake_cb (GObject *source,
           case WOCKY_TLS_CERT_EXPIRED:
             msg = "SSL Certificate for %s expired";
             break;
+          case WOCKY_TLS_CERT_INVALID:
+            ok_when_lenient = TRUE;
           case WOCKY_TLS_CERT_UNKNOWN_ERROR:
           default:
             msg = "TLS Certificate Verification Error for %s";
         }
-      abort_connect_code (self, WOCKY_CONNECTOR_ERROR_INSECURE, msg, peer);
-      return;
+      if (!(priv->cert_insecure_ok && ok_when_lenient))
+        {
+          if (peer == NULL)
+            {
+              if (priv->legacy_ssl)
+                peer = priv->xmpp_host;
+              if (peer == NULL)
+                peer = priv->domain;
+            }
+          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_INSECURE, msg, peer);
+          return;
+        }
+      else
+        {
+          gchar *err;
+
+          if (peer == NULL)
+            {
+              if (priv->legacy_ssl)
+                peer = priv->xmpp_host;
+              if (peer == NULL)
+                peer = priv->domain;
+            }
+
+          err = g_strdup_printf (msg, peer);
+          DEBUG ("Cert error: '%s', but ignore-ssl-errors is set", err);
+          g_free (err);
+        }
     }
 
   DEBUG ("cert verified %s",
