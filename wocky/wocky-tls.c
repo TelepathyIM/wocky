@@ -495,10 +495,10 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
 }
 
 int
-wocky_tls_session_verify_peer (WockyTLSSession *session,
-                               const gchar     *peername,
-                               long             flags,
-                               guint           *status)
+wocky_tls_session_verify_peer (WockyTLSSession    *session,
+                               const gchar        *peername,
+                               long                flags,
+                               WockyTLSCertStatus *status)
 {
   int rval = -1;
   guint cls = -1;

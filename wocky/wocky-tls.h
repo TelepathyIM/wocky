@@ -69,10 +69,10 @@ typedef enum
 GType wocky_tls_connection_get_type (void);
 GType wocky_tls_session_get_type (void);
 
-int wocky_tls_session_verify_peer(WockyTLSSession *session,
-                                  const gchar     *peername,
-                                  long             flags,
-                                  guint           *status);
+int wocky_tls_session_verify_peer (WockyTLSSession    *session,
+                                   const gchar        *peername,
+                                   long                flags,
+                                   WockyTLSCertStatus *status);
 
 WockyTLSConnection *wocky_tls_session_handshake (WockyTLSSession   *session,
                                                  GCancellable  *cancellable,
