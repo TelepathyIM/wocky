@@ -1221,12 +1221,12 @@ add_certfiles (gnutls_certificate_credentials cred,
           gchar *path = g_build_path ("/", thing, entry->d_name, NULL);
 
           if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
-            n = add (cred, path, GNUTLS_X509_FMT_PEM);
+            n += add (cred, path, GNUTLS_X509_FMT_PEM);
 
-          DEBUG ("+ %s: %d certs from dir", path, n);
           g_free (path);
         }
 
+      DEBUG ("+ %s: %d certs from dir", , n);
       closedir (dir);
     }
   else if (S_ISREG (target.st_mode))
