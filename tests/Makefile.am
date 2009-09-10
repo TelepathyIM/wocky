@@ -1,21 +1,43 @@
 ############################################################################
 # x509 certificates:
-.PRECIOUS: %-key.pem
 CERTTOOL := $(shell which certtool)
+TARDIS   := $(shell which datefudge)
 GENKEY   := $(CERTTOOL) --generate-privkey --outfile
 CA_KEY   := @abs_top_srcdir@/tests/certs/ca-key.pem
 CA_CERT  := @abs_top_srcdir@/tests/certs/ca-cert.pem
+SS_KEY   := @abs_top_srcdir@/tests/certs/ss-key.pem
+SS_CERT  := @abs_top_srcdir@/tests/certs/ss-cert.pem
+EXP_KEY  := @abs_top_srcdir@/tests/certs/exp-key.pem
+EXP_CERT := @abs_top_srcdir@/tests/certs/exp-cert.pem
+NEW_KEY  := @abs_top_srcdir@/tests/certs/new-key.pem
+NEW_CERT := @abs_top_srcdir@/tests/certs/new-cert.pem
 TLS_KEY  := @abs_top_srcdir@/tests/certs/tls-key.pem
 TLS_CERT := @abs_top_srcdir@/tests/certs/tls-cert.pem
+UNKNOWN_KEY  := @abs_top_srcdir@/tests/certs/unknown-key.pem
+UNKNOWN_CERT := @abs_top_srcdir@/tests/certs/unknown-cert.pem
+CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(UNKNOWN_CERT)
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
+            -DTLS_SS_KEY_FILE='"$(SS_KEY)"'      \
+            -DTLS_SS_CRT_FILE='"$(SS_CERT)"'     \
+            -DTLS_EXP_KEY_FILE='"$(EXP_KEY)"'    \
+            -DTLS_EXP_CRT_FILE='"$(EXP_CERT)"'   \
+            -DTLS_NEW_KEY_FILE='"$(NEW_KEY)"'    \
+            -DTLS_NEW_CRT_FILE='"$(NEW_CERT)"'   \
+            -DTLS_UNKNOWN_KEY_FILE='"$(UNKNOWN_KEY)"'  \
+            -DTLS_UNKNOWN_CRT_FILE='"$(UNKNOWN_CERT)"' \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'
+DFCHECK  := $(if $(shell which datefudge),                 \
+                 $(info  datefudge installed, proceeding), \
+                 $(error datefudge NOT IN PATH - install datefudge?))
 DUMMY    := $(if $(shell which certtool),                  \
                  $(info  certtool  installed, proceeding), \
                  $(error certtool NOT IN PATH - install gnutls-bin?))
-
+FUTURE   := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) + 86400)))
+PAST     := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) - 86400 * 7)))
+FILTER_BITS := grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
 ############################################################################
 TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
@@ -48,7 +70,7 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(TLS_CERT) $(LIBWOCKY)
+wocky_connector_test_DEPENDENCIES = $(CERTS) $(LIBWOCKY)
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -138,7 +160,11 @@ check_c_sources = \
   $(wocky_xmpp_readwrite_test_SOURCES) \
   $(wocky_xmpp_reader_test_SOURCES)
 
-all: ${TEST_PROGS}
+.PRECIOUS: %-key.pem $(CA_CERT)
+
+all: $(TEST_PROGS)
+
+certs: $(CERTS)
 
 test-report: test-report.xml
 	gtester-report $(top_builddir)/tests/$@.xml > \
@@ -162,21 +188,43 @@ check-local: test check-coding-style
 %-key.pem:
 	$(GENKEY) $@
 
-%-cert.pem: %-key.pem %-cert.cfg certs/ca-cert.pem 
-	$(CERTTOOL) --generate-certificate                      \
-                    --load-ca-certificate certs/ca-cert.pem \
-	            --load-ca-privkey certs/ca-key.pem          \
-	            --load-privkey $*-key.pem                   \
-	            --template     $*-cert.cfg                  \
-	            --outfile      $@ 2>&1 |                    \
-	  grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
-
-certs/ca-cert.pem: certs/ca-key.pem certs/ca-cert.cfg
+%/ss-cert.pem: %/ss-key.pem %/ss-cert.cfg
 	$(CERTTOOL) --generate-self-signed            \
 	            --load-privkey $<                 \
 	            --template     $(basename $@).cfg \
-	            --outfile      $@ 2>&1 |          \
-	  grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
+	            --outfile      $@ 2>&1 | $(FILTER_BITS)
+
+%/unknown-ca-cert.pem: %/unknown-ca-key.pem %/unknown-ca-cert.cfg
+	$(CERTTOOL) --generate-self-signed            \
+	            --load-privkey $<                 \
+	            --template     $(basename $@).cfg \
+	            --outfile      $@ 2>&1 | $(FILTER_BITS)
+
+%/unknown-cert.pem: %/unknown-key.pem %/unknown-cert.cfg %/unknown-ca-cert.pem
+	$(CERTTOOL) --generate-certificate                           \
+                --load-ca-certificate $*/unknown-ca-cert.pem     \
+	            --load-ca-privkey     $*/unknown-ca-key.pem      \
+	            --load-privkey        $<                         \
+	            --template            $*/unknown-cert.cfg        \
+	            --outfile             $@ 2>&1 | $(FILTER_BITS)
+
+%/ca-cert.pem: %/ca-key.pem %/ca-cert.cfg
+	$(CERTTOOL) --generate-self-signed            \
+	            --load-privkey $<                 \
+	            --template     $(basename $@).cfg \
+	            --outfile      $@ 2>&1 | $(FILTER_BITS)
+
+%/tls-cert.pem: export CERTCMD = $(CERTTOOL)
+%/new-cert.pem: export CERTCMD = $(TARDIS) "$(FUTURE)" $(CERTTOOL)
+%/exp-cert.pem: export CERTCMD = $(TARDIS) "$(PAST)"   $(CERTTOOL)
+
+%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT)
+	$(CERTCMD)  --generate-certificate                   \
+                --load-ca-certificate $(CA_CERT)         \
+	            --load-ca-privkey     $(CA_KEY)          \
+	            --load-privkey        $<                 \
+	            --template            $*-cert.cfg        \
+	            --outfile             $@ 2>&1 | $(FILTER_BITS)
 
 clean-local:
 	rm -fv certs/*.pem
@@ -217,11 +265,8 @@ valgrind: $(TEST_PROGS)
 		false;                     \
 	fi
 
+EXTRA_DIST = $(SUPPRESSIONS)     \
+    $(wildcard certs/*.cfg)      \
+    $(wildcard certs/*-cert.pem) \
+	$(wildcard certs/*-key.pem)
 
-EXTRA_DIST = $(SUPPRESSIONS) \
-	certs/ca-cert.cfg \
-	certs/tls-cert.cfg \
-	certs/ca-cert.pem \
-	certs/ca-key.pem \
-	certs/tls-cert.pem \
-	certs/tls-key.pem
