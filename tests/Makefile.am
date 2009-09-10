@@ -3,18 +3,24 @@
 CERTTOOL := $(shell which certtool)
 TARDIS   := $(shell which datefudge)
 GENKEY   := $(CERTTOOL) --generate-privkey --outfile
-CA_KEY   := @abs_top_srcdir@/tests/certs/ca-key.pem
-CA_CERT  := @abs_top_srcdir@/tests/certs/ca-cert.pem
-SS_KEY   := @abs_top_srcdir@/tests/certs/ss-key.pem
-SS_CERT  := @abs_top_srcdir@/tests/certs/ss-cert.pem
-EXP_KEY  := @abs_top_srcdir@/tests/certs/exp-key.pem
-EXP_CERT := @abs_top_srcdir@/tests/certs/exp-cert.pem
-NEW_KEY  := @abs_top_srcdir@/tests/certs/new-key.pem
-NEW_CERT := @abs_top_srcdir@/tests/certs/new-cert.pem
-TLS_KEY  := @abs_top_srcdir@/tests/certs/tls-key.pem
-TLS_CERT := @abs_top_srcdir@/tests/certs/tls-cert.pem
-UNKNOWN_KEY  := @abs_top_srcdir@/tests/certs/unknown-key.pem
-UNKNOWN_CERT := @abs_top_srcdir@/tests/certs/unknown-cert.pem
+TEST_DIR := @abs_top_srcdir@/tests
+CERT_DIR := $(TEST_DIR)/certs
+CA_CERT2 := $(CERT_DIR)/ca-1-cert.pem
+CA_CERT3 := $(CERT_DIR)/ca-2-cert.pem
+CA_KEY   := $(CERT_DIR)/ca-0-key.pem
+CA_CERT  := $(CERT_DIR)/ca-0-cert.pem
+SS_KEY   := $(CERT_DIR)/ss-key.pem
+SS_CERT  := $(CERT_DIR)/ss-cert.pem
+EXP_KEY  := $(CERT_DIR)/exp-key.pem
+EXP_CERT := $(CERT_DIR)/exp-cert.pem
+NEW_KEY  := $(CERT_DIR)/new-key.pem
+NEW_CERT := $(CERT_DIR)/new-cert.pem
+TLS_KEY  := $(CERT_DIR)/tls-key.pem
+TLS_CERT := $(CERT_DIR)/tls-cert.pem
+CA_DIR   := $(CERT_DIR)/cas
+CAS      := $(CA_CERT) $(CA_CERT2) $(CA_CERT3)
+UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
+UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
 CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(UNKNOWN_CERT)
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
@@ -28,7 +34,8 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_UNKNOWN_KEY_FILE='"$(UNKNOWN_KEY)"'  \
             -DTLS_UNKNOWN_CRT_FILE='"$(UNKNOWN_CERT)"' \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
-            -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'
+            -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
+            -DTLS_CA_DIR='"$(CA_DIR)"'
 DFCHECK  := $(if $(shell which datefudge),                 \
                  $(info  datefudge installed, proceeding), \
                  $(error datefudge NOT IN PATH - please install datefudge))
@@ -70,7 +77,7 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(CERTS) $(LIBWOCKY)
+wocky_connector_test_DEPENDENCIES = $(CA_DIR) $(CERTS) $(LIBWOCKY)
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -208,7 +215,7 @@ check-local: test check-coding-style
 	            --template            $*/unknown-cert.cfg        \
 	            --outfile             $@ 2>&1 | $(FILTER_BITS)
 
-%/ca-cert.pem: %/ca-key.pem %/ca-cert.cfg
+$(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 	$(CERTTOOL) --generate-self-signed            \
 	            --load-privkey $<                 \
 	            --template     $(basename $@).cfg \
@@ -226,8 +233,12 @@ check-local: test check-coding-style
 	            --template            $*-cert.cfg        \
 	            --outfile             $@ 2>&1 | $(FILTER_BITS)
 
+$(CA_DIR): $(CAS)
+	@mkdir -p $@ && cp -av $(CAS) $(CA_DIR)
+
 clean-local:
 	rm -fv certs/*.pem
+	rm -fv certs/cas/*.pem
 ############################################################################
 
 SUPPRESSIONS=threadlocal.supp

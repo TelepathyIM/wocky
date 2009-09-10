@@ -92,7 +92,7 @@ typedef struct {
   struct {
     gboolean require_tls;
     struct { gchar *jid; gchar *pass; gboolean secure; gboolean tls; } auth;
-    struct { gchar *host; guint port; gboolean jabber; gboolean ssl; gboolean lax_ssl; } options;
+    struct { gchar *host; guint port; gboolean jabber; gboolean ssl; gboolean lax_ssl; const gchar *ca; } options;
     int op;
     test_setup setup;
   } client;
@@ -2530,6 +2530,18 @@ test_t tests[] =
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1 } } },
 
+    { "/connector/multica-verification/tls/nohost/ok",
+      QUIET,
+      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_STRICT, TLS_CA_DIR } } },
+
     { "/connector/cert-verification/tls/host/ok",
       QUIET,
       { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
@@ -3149,6 +3161,7 @@ run_test (gpointer data)
   struct stat dummy;
   gchar base[PATH_MAX + 1];
   char *path;
+  const gchar *ca;
 
   /* clean up any leftover messes from previous tests     */
   /* unlink the sasl db tmpfile, it will cause a deadlock */
@@ -3160,6 +3173,8 @@ run_test (gpointer data)
 
   start_dummy_xmpp_server (test);
   setup_dummy_dns_entries (test);
+
+  ca = test->client.options.ca ? test->client.options.ca : TLS_CA_CRT_FILE;
 
   wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
       "jid"                     , test->client.auth.jid,
@@ -3174,7 +3189,7 @@ run_test (gpointer data)
       "old-ssl"                 , test->client.options.ssl,
       /* insecure tls cert/etc not yet implemented */
       "ignore-ssl-errors"       , test->client.options.lax_ssl,
-      "certificate-authority"   , TLS_CA_CRT_FILE,
+      "certificate-authority"   , ca,
       NULL);
 
   test->connector = wcon;
