@@ -217,6 +217,17 @@ G_DEFINE_TYPE (WockyTLSOutputStream, wocky_tls_output_stream, G_TYPE_OUTPUT_STRE
                                        WOCKY_TYPE_TLS_OUTPUT_STREAM,         \
                                        WockyTLSOutputStream))
 
+GQuark
+wocky_tls_cert_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string ("wocky-tls-cert-error");
+
+  return quark;
+}
+
 static const gchar *hdesc_to_string (long desc)
 {
 #define HDESC(x) case GNUTLS_HANDSHAKE_##x: return #x; break;

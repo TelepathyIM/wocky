@@ -52,6 +52,9 @@ typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
                                    GNUTLS_VERIFY_DISABLE_TIME_CHECKS      | \
                                    GNUTLS_VERIFY_DISABLE_CA_SIGN          )
 
+GQuark wocky_tls_cert_error_quark (void);
+#define WOCKY_TLS_CERT_ERROR (wocky_tls_cert_error_quark ())
+
 typedef enum
 {
   WOCKY_TLS_CERT_OK = 0,
