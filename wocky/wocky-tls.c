@@ -1191,7 +1191,10 @@ add_certfiles (gnutls_certificate_credentials cred,
   DEBUG ("checking %s", thing);
 
   if (stat (thing, &target) != 0)
+    {
+      DEBUG ("ca/crl file '%s': stat failed)", thing);
       return;
+    }
 
   if (S_ISDIR (target.st_mode))
     {
