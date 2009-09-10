@@ -1212,12 +1212,14 @@ static void startssl (TestConnectorServer *self)
       const gchar *crt = TLS_SERVER_CRT_FILE;
 
       for (x = 0; certs[x].set != CERT_NONE; x++)
-        if (certs[x].set == priv->cert)
-          {
-            key = certs[x].key;
-            crt = certs[x].crt;
-            break;
-          }
+        {
+          if (certs[x].set == priv->cert)
+            {
+              key = certs[x].key;
+              crt = certs[x].crt;
+              break;
+            }
+        }
 
       priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
           key, crt, TLS_CA_CRT_FILE, NULL);
