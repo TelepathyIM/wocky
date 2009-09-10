@@ -31,10 +31,10 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'
 DFCHECK  := $(if $(shell which datefudge),                 \
                  $(info  datefudge installed, proceeding), \
-                 $(error datefudge NOT IN PATH - install datefudge?))
+                 $(error datefudge NOT IN PATH - please install datefudge))
 DUMMY    := $(if $(shell which certtool),                  \
                  $(info  certtool  installed, proceeding), \
-                 $(error certtool NOT IN PATH - install gnutls-bin?))
+                 $(error certtool NOT IN PATH - please install gnutls-bin))
 FUTURE   := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) + 86400)))
 PAST     := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) - 86400 * 7)))
 FILTER_BITS := grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
