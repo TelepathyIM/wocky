@@ -31,11 +31,21 @@
  * output from GNU TLS. To enable it, set it to a value from 1 to 9.
  * Higher values will print more information. See the documentation of
  * gnutls_global_set_log_level for more details.
+ *
+ * Increasing the value past certain thresholds will also trigger increased
+ * debugging output from within wocky-tls.c as well.
  */
 
 #include "wocky-tls.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
 
 #define DEBUG_FLAG DEBUG_TLS
+#define DEBUG_HANDSHAKE_LEVEL 5
+#define DEBUG_ASYNC_DETAIL_LEVEL 6
+
 #include "wocky-debug.h"
 
 #include <gnutls/gnutls.h>
@@ -190,6 +200,8 @@ struct OPAQUE_TYPE__WockyTLSConnection
   WockyTLSOutputStream *output;
 };
 
+static guint tls_debug_level = 0;
+
 static GType wocky_tls_input_stream_get_type (void);
 static GType wocky_tls_output_stream_get_type (void);
 G_DEFINE_TYPE (WockyTLSConnection, wocky_tls_connection, G_TYPE_IO_STREAM);
@@ -325,18 +337,23 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   if (session->handshake_job.job.active)
     {
       gint result;
-      gnutls_handshake_description_t i;
-      gnutls_handshake_description_t o;
       DEBUG ("async job handshake");
       session->async = TRUE;
       result = gnutls_handshake (session->session);
       g_assert (result != GNUTLS_E_INTERRUPTED);
-      DEBUG ("async job handshake: %d %s", result, error_to_string(result));
-      i = gnutls_handshake_get_last_in (session->session);
-      o = gnutls_handshake_get_last_out (session->session);
-      DEBUG ("async job handshake: { in: %s; out: %s }",
-          hdesc_to_string (i),
-          hdesc_to_string (o));
+
+      if (tls_debug_level >= DEBUG_HANDSHAKE_LEVEL)
+        {
+          gnutls_handshake_description_t i;
+          gnutls_handshake_description_t o;
+
+          DEBUG ("async job handshake: %d %s", result, error_to_string(result));
+          i = gnutls_handshake_get_last_in (session->session);
+          o = gnutls_handshake_get_last_out (session->session);
+          DEBUG ("async job handshake: { in: %s; out: %s }",
+                 hdesc_to_string (i),
+                 hdesc_to_string (o));
+        }
 
       session->async = FALSE;
 
@@ -346,7 +363,8 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else if (operation == WOCKY_TLS_OP_READ)
     {
       gssize result;
-      DEBUG ("async job OP_READ");
+      if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+        DEBUG ("async job OP_READ");
       g_assert (session->read_job.job.active);
 
       session->async = TRUE;
@@ -362,7 +380,8 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   else
     {
       gssize result;
-      DEBUG ("async job OP_WRITE");
+      if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+        DEBUG ("async job OP_WRITE");
       g_assert (operation == WOCKY_TLS_OP_WRITE);
       g_assert (session->write_job.job.active);
 
@@ -420,7 +439,8 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
   g_assert (result != GNUTLS_E_AGAIN);
   session->cancellable = NULL;
 
-  DEBUG ("sync job handshake: %d %s", result, error_to_string (result));
+  if (tls_debug_level >= DEBUG_HANDSHAKE_LEVEL)
+    DEBUG ("sync job handshake: %d %s", result, error_to_string (result));
 
   if (session->error)
     {
@@ -464,10 +484,8 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
     g_return_val_if_fail (G_OBJECT (session) == source_object, NULL);
   }
 
-  DEBUG ("checking source tag");
   g_return_val_if_fail (wocky_tls_session_handshake_async ==
                         g_simple_async_result_get_source_tag (simple), NULL);
-  DEBUG ("source tag Ok");
 
   if (g_simple_async_result_propagate_error (simple, error))
     return NULL;
@@ -483,10 +501,10 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
                               guint           *status)
 {
   int rval = -1;
-  int x;
   guint cls = -1;
-  guint stat = 0;
+  guint _stat = 0;
   gboolean peer_name_ok = TRUE;
+  const gchar *check_level;
 
   /* list gnutls cert error conditions in descending order of noteworthiness *
    * and map them to wocky cert error conditions                             */
@@ -501,14 +519,32 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
       { GNUTLS_CERT_SIGNER_NOT_FOUND,   WOCKY_TLS_CERT_SIGNER_UNKNOWN      },
       { GNUTLS_CERT_SIGNER_NOT_CA,      WOCKY_TLS_CERT_SIGNER_UNAUTHORISED },
       { GNUTLS_CERT_INSECURE_ALGORITHM, WOCKY_TLS_CERT_INSECURE            },
-      { 0,                              WOCKY_TLS_CERT_UNKNOWN_ERROR       } };
+      { GNUTLS_CERT_INVALID,            WOCKY_TLS_CERT_INVALID             },
+      { ~((long) 0),                    WOCKY_TLS_CERT_UNKNOWN_ERROR       },
+      { 0,                              WOCKY_TLS_CERT_OK                  } };
   /* *********************************************************************** */
 
   g_assert (status != NULL);
   *status = WOCKY_TLS_CERT_OK;
 
+  switch (flags)
+    {
+    case WOCKY_TLS_VERIFY_STRICT:
+      check_level = "WOCKY_TLS_VERIFY_STRICT";
+      break;
+    case WOCKY_TLS_VERIFY_NORMAL:
+      check_level = "WOCKY_TLS_VERIFY_NORMAL";
+      break;
+    case WOCKY_TLS_VERIFY_LENIENT:
+      check_level = "WOCKY_TLS_VERIFY_LENIENT";
+      break;
+    default:
+      check_level = "*custom setting*";
+    }
+
+  DEBUG ("setting gnutls verify flags level to: %s", check_level);
   gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, flags);
-  rval = gnutls_certificate_verify_peers2 (session->session, &stat);
+  rval = gnutls_certificate_verify_peers2 (session->session, &_stat);
 
   if ((rval == GNUTLS_E_SUCCESS) && (peername != NULL))
     switch (gnutls_certificate_type_get (session->session))
@@ -516,6 +552,7 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
         gnutls_x509_crt_t x509;
         gnutls_openpgp_crt_t opgp;
       case GNUTLS_CRT_X509:
+        DEBUG ("checking X509 cert");
         if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
           { /* we know these ops must succeed, or verify_peers2 would have *
              * failed before we got here: We just need to duplicate a bit  *
@@ -533,6 +570,7 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
           }
         break;
       case GNUTLS_CRT_OPENPGP:
+        DEBUG ("checking PGP cert");
         if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
           {
             const gnutls_datum_t *peers =
@@ -548,22 +586,31 @@ wocky_tls_session_verify_peer(WockyTLSSession *session,
           }
         break;
       default:
+        DEBUG ("unknown cert type!");
         rval = GNUTLS_E_CERTIFICATE_ERROR;
         peer_name_ok = FALSE;
       }
+
+  DEBUG ("peer_name_ok: %d", peer_name_ok );
 
   if (!peer_name_ok)
     *status = WOCKY_TLS_CERT_NAME_MISMATCH;
   else
     { /* Gnutls cert checking can return multiple errors bitwise &ed together *
        * but we are realy only interested in the "most important" error:      */
-      *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+      int x;
+      *status = WOCKY_TLS_CERT_OK;
       for (x = 0; status_map[x].gnutls != 0; x++)
-        if (stat & status_map[x].gnutls)
-          {
-            *status = status_map[x].wocky;
-            break;
-          }
+        {
+          DEBUG ("checking gnutls error %d", status_map[x].gnutls);
+          if (_stat & status_map[x].gnutls)
+            {
+              DEBUG ("gnutls error %d set", status_map[x].gnutls);
+              *status = status_map[x].wocky;
+              rval = GNUTLS_E_CERTIFICATE_ERROR;
+              break;
+            }
+        }
     }
 
   return rval;
@@ -1090,6 +1137,8 @@ wocky_tls_session_init (WockyTLSSession *session)
 
   if ((level = getenv ("WOCKY_TLS_DEBUG_LEVEL")) != NULL)
     lvl = atoi (level);
+
+  tls_debug_level = lvl;
   gnutls_global_set_log_level (lvl);
 }
 
@@ -1127,6 +1176,52 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
     }
 }
 
+typedef int (*add_certfile) (gnutls_certificate_credentials_t res,
+                             const char *file,
+                             gnutls_x509_crt_fmt_t type);
+
+static void
+add_certfiles (gnutls_certificate_credentials cred,
+               const gchar *thing,
+               add_certfile add)
+{
+  int n = 0;
+  struct stat target;
+
+  DEBUG ("checking %s", thing);
+
+  if (stat (thing, &target) != 0)
+      return;
+
+  if (S_ISDIR (target.st_mode))
+    {
+      DIR *dir;
+      struct dirent *entry;
+
+      if ((dir = opendir (thing)) == NULL)
+        return;
+
+      for (entry = readdir (dir); entry != NULL; entry = readdir (dir))
+        {
+          struct stat file;
+          gchar *path = g_build_path ("/", thing, entry->d_name, NULL);
+
+          if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
+            n = add (cred, path, GNUTLS_X509_FMT_PEM);
+
+          DEBUG ("+ %s: %d certs from dir", path, n);
+          g_free (path);
+        }
+
+      closedir (dir);
+    }
+  else if (S_ISREG (target.st_mode))
+    {
+      n = add (cred, thing, GNUTLS_X509_FMT_PEM);
+      DEBUG ("+ %s: %d certs from file", thing, n);
+    }
+}
+
 static void
 wocky_tls_session_constructed (GObject *object)
 {
@@ -1137,19 +1232,23 @@ wocky_tls_session_constructed (GObject *object)
   /* gnutls_handshake_set_private_extensions (session->session, 1); */
   gnutls_certificate_allocate_credentials (&(session->gnutls_cert_cred));
 
+  DEBUG ("adding ca_file %s", session->ca_file);
+  if (session->ca_file != NULL)
+    add_certfiles (session->gnutls_cert_cred,
+                   session->ca_file,
+                   gnutls_certificate_set_x509_trust_file);
+
+  if (session->crl_file != NULL)
+    add_certfiles (session->gnutls_cert_cred,
+                   session->crl_file,
+                   gnutls_certificate_set_x509_crl_file);
+
   /* I think this all needs to be done per connection: conceivably
      the DH parameters could be moved to the global section above,
      but IANA cryptographer */
   if (server)
     {
-      if (session->ca_file)
-        gnutls_certificate_set_x509_trust_file (session->gnutls_cert_cred,
-                                                session->ca_file,
-                                                GNUTLS_X509_FMT_PEM);
-      if (session->crl_file)
-        gnutls_certificate_set_x509_crl_file (session->gnutls_cert_cred,
-                                              session->crl_file,
-                                              GNUTLS_X509_FMT_PEM);
+      DEBUG ("cert/key pair: %s/%s", session->cert_file, session->key_file);
       gnutls_certificate_set_x509_key_file (session->gnutls_cert_cred,
                                             session->cert_file,
                                             session->key_file,
@@ -1368,10 +1467,14 @@ wocky_tls_connection_class_init (WockyTLSConnectionClass *class)
 }
 
 WockyTLSSession *
-wocky_tls_session_new (GIOStream *stream)
+wocky_tls_session_new (GIOStream *stream,
+                       const gchar *ca,
+                       const gchar *crl)
 {
   return g_object_new (WOCKY_TYPE_TLS_SESSION,
                        "base-stream", stream,
+                       "x509-ca", ca,
+                       "x509-crl", crl,
                        "server", FALSE, NULL);
 }
 

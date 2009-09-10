@@ -43,7 +43,8 @@ typedef struct OPAQUE_TYPE__WockyTLSConnection WockyTLSConnection;
 typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
 
 #define WOCKY_TLS_VERIFY_STRICT  GNUTLS_VERIFY_DO_NOT_ALLOW_SAME
-#define WOCKY_TLS_VERIFY_NORMAL  GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT
+#define WOCKY_TLS_VERIFY_NORMAL  ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT | \
+                                   GNUTLS_VERIFY_DO_NOT_ALLOW_SAME )
 #define WOCKY_TLS_VERIFY_LENIENT ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT     | \
                                    GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT | \
                                    GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2       | \
@@ -54,6 +55,7 @@ typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
 typedef enum
 {
   WOCKY_TLS_CERT_OK = 0,
+  WOCKY_TLS_CERT_INVALID,
   WOCKY_TLS_CERT_NAME_MISMATCH,
   WOCKY_TLS_CERT_REVOKED,
   WOCKY_TLS_CERT_SIGNER_UNKNOWN,
@@ -86,7 +88,9 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
                                     GAsyncResult  *result,
                                     GError       **error);
 
-WockyTLSSession *wocky_tls_session_new (GIOStream *stream);
+WockyTLSSession *wocky_tls_session_new (GIOStream *stream,
+                                        const gchar *ca,
+                                        const gchar *crl);
 
 WockyTLSSession *
 wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
