@@ -557,7 +557,33 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, flags);
   rval = gnutls_certificate_verify_peers2 (session->session, &_stat);
 
-  if ((rval == GNUTLS_E_SUCCESS) && (peername != NULL))
+  if (rval != GNUTLS_E_SUCCESS)
+    {
+      switch (rval)
+        {
+        case GNUTLS_E_NO_CERTIFICATE_FOUND:
+        case GNUTLS_E_INVALID_REQUEST:
+          *status = WOCKY_TLS_CERT_NO_CERTIFICATE;
+          break;
+        case GNUTLS_E_INSUFFICIENT_CREDENTIALS:
+          *status = WOCKY_TLS_CERT_INSECURE;
+          break;
+        case GNUTLS_E_CONSTRAINT_ERROR:
+          *status = WOCKY_TLS_CERT_MAYBE_DOS;
+          break;
+        case GNUTLS_E_MEMORY_ERROR:
+          *status = WOCKY_TLS_CERT_INTERNAL_ERROR;
+          break;
+        default:
+          *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+      }
+
+      return rval;
+    }
+
+  /* if we get this far, we have a structurally valid certificate *
+   * signed by _someone_: check the hostname matches the peername */
+  if (peername != NULL)
     switch (gnutls_certificate_type_get (session->session))
       {
         gnutls_x509_crt_t x509;
@@ -597,13 +623,17 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           }
         break;
       default:
+        /* theoretically, this can't happen if ...verify_peers2 is working: */
         DEBUG ("unknown cert type!");
-        rval = GNUTLS_E_CERTIFICATE_ERROR;
+        rval = GNUTLS_E_INVALID_REQUEST;
         peer_name_ok = FALSE;
       }
 
   DEBUG ("peer_name_ok: %d", peer_name_ok );
 
+  /* if the hostname didn't match, we can just bail out with an error here *
+   * otherwise we need to figure out which error (if any) our verification *
+   * call failed with:                                                     */
   if (!peer_name_ok)
     *status = WOCKY_TLS_CERT_NAME_MISMATCH;
   else
