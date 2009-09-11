@@ -94,15 +94,15 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
                                     GAsyncResult  *result,
                                     GError       **error);
 
-WockyTLSSession *wocky_tls_session_new (GIOStream *stream,
-                                        const gchar *ca,
-                                        const gchar *crl);
+void wocky_tls_session_add_ca (WockyTLSSession *session, const gchar *path);
+void wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *path);
 
-WockyTLSSession *
-wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
-                              const gchar* key, const gchar* cert,
-                              const gchar* ca, const gchar* crl);
+WockyTLSSession *wocky_tls_session_new (GIOStream *stream);
 
+WockyTLSSession *wocky_tls_session_server_new (GIOStream   *stream,
+                                               guint        dhbits,
+                                               const gchar* key,
+                                               const gchar* cert);
 #endif
 
 /* this file is "borrowed" from an unmerged gnio feature: */

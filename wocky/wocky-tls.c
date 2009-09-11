@@ -62,8 +62,6 @@ enum
   PROP_S_DHBITS,
   PROP_S_KEYFILE,
   PROP_S_CERTFILE,
-  PROP_S_CAFILE,
-  PROP_S_CRLFILE
 };
 
 enum
@@ -161,8 +159,6 @@ struct OPAQUE_TYPE__WockyTLSSession
   guint dh_bits;
   gchar *key_file;
   gchar *cert_file;
-  gchar *ca_file;
-  gchar *crl_file;
 
   /* frontend jobs */
   WockyTLSJobHandshake handshake_job;
@@ -466,6 +462,76 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
+
+/* ************************************************************************* */
+/* adding CA certificates and CRL lists for peer certificate verification    */
+typedef int (*add_certfile) (gnutls_certificate_credentials_t res,
+                             const char *file,
+                             gnutls_x509_crt_fmt_t type);
+
+static void
+add_certfiles (gnutls_certificate_credentials cred,
+               const gchar *thing,
+               add_certfile add)
+{
+  int n = 0;
+  struct stat target;
+
+  DEBUG ("checking %s", thing);
+
+  if (stat (thing, &target) != 0)
+    {
+      DEBUG ("ca/crl file '%s': stat failed)", thing);
+      return;
+    }
+
+  if (S_ISDIR (target.st_mode))
+    {
+      DIR *dir;
+      struct dirent *entry;
+
+      if ((dir = opendir (thing)) == NULL)
+        return;
+
+      for (entry = readdir (dir); entry != NULL; entry = readdir (dir))
+        {
+          struct stat file;
+          gchar *path = g_build_path ("/", thing, entry->d_name, NULL);
+
+          if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
+            n += add (cred, path, GNUTLS_X509_FMT_PEM);
+
+          g_free (path);
+        }
+
+      DEBUG ("+ %s: %d certs from dir", thing, n);
+      closedir (dir);
+    }
+  else if (S_ISREG (target.st_mode))
+    {
+      n = add (cred, thing, GNUTLS_X509_FMT_PEM);
+      DEBUG ("+ %s: %d certs from file", thing, n);
+    }
+}
+
+void
+wocky_tls_session_add_ca (WockyTLSSession *session,
+                          const gchar *path)
+{
+  DEBUG ("adding CA CERT path '%s'", (gchar *) path);
+  add_certfiles (session->gnutls_cert_cred, path,
+                 gnutls_certificate_set_x509_trust_file);
+}
+
+void
+wocky_tls_session_add_crl (WockyTLSSession *session,
+                           const gchar *path)
+{
+  DEBUG ("adding CRL path '%s'", (gchar *) path);
+  add_certfiles (session->gnutls_cert_cred, path,
+                 gnutls_certificate_set_x509_crl_file);
+}
+/* ************************************************************************* */
 
 void
 wocky_tls_session_handshake_async (WockyTLSSession         *session,
@@ -1206,63 +1272,8 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
     case PROP_S_CERTFILE:
       session->cert_file = g_value_dup_string (value);
       break;
-    case PROP_S_CAFILE:
-      session->ca_file = g_value_dup_string (value);
-      break;
-    case PROP_S_CRLFILE:
-      session->crl_file = g_value_dup_string (value);
-      break;
      default:
       g_assert_not_reached ();
-    }
-}
-
-typedef int (*add_certfile) (gnutls_certificate_credentials_t res,
-                             const char *file,
-                             gnutls_x509_crt_fmt_t type);
-
-static void
-add_certfiles (gnutls_certificate_credentials cred,
-               const gchar *thing,
-               add_certfile add)
-{
-  int n = 0;
-  struct stat target;
-
-  DEBUG ("checking %s", thing);
-
-  if (stat (thing, &target) != 0)
-    {
-      DEBUG ("ca/crl file '%s': stat failed)", thing);
-      return;
-    }
-
-  if (S_ISDIR (target.st_mode))
-    {
-      DIR *dir;
-      struct dirent *entry;
-
-      if ((dir = opendir (thing)) == NULL)
-        return;
-
-      for (entry = readdir (dir); entry != NULL; entry = readdir (dir))
-        {
-          struct stat file;
-          gchar *path = g_build_path ("/", thing, entry->d_name, NULL);
-
-          if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
-            n += add (cred, path, GNUTLS_X509_FMT_PEM);
-
-          g_free (path);
-        }
-
-      DEBUG ("+ %s: %d certs from dir", thing, n);
-      closedir (dir);
-    }
-  else if (S_ISREG (target.st_mode))
-    {
-      n = add (cred, thing, GNUTLS_X509_FMT_PEM);
-      DEBUG ("+ %s: %d certs from file", thing, n);
     }
 }
 
@@ -1275,17 +1286,6 @@ wocky_tls_session_constructed (GObject *object)
 
   /* gnutls_handshake_set_private_extensions (session->session, 1); */
   gnutls_certificate_allocate_credentials (&(session->gnutls_cert_cred));
-
-  DEBUG ("adding ca_file %s", session->ca_file);
-  if (session->ca_file != NULL)
-    add_certfiles (session->gnutls_cert_cred,
-                   session->ca_file,
-                   gnutls_certificate_set_x509_trust_file);
-
-  if (session->crl_file != NULL)
-    add_certfiles (session->gnutls_cert_cred,
-                   session->crl_file,
-                   gnutls_certificate_set_x509_crl_file);
 
   /* I think this all needs to be done per connection: conceivably
      the DH parameters could be moved to the global section above,
@@ -1344,12 +1344,6 @@ wocky_tls_session_dispose (GObject *object)
   g_free (session->cert_file);
   session->cert_file = NULL;
 
-  g_free (session->ca_file);
-  session->ca_file = NULL;
-
-  g_free (session->crl_file);
-  session->crl_file = NULL;
-
   G_OBJECT_CLASS (wocky_tls_session_parent_class)->dispose (object);
 }
 
@@ -1392,20 +1386,6 @@ wocky_tls_session_class_init (GObjectClass *class)
   g_object_class_install_property (class, PROP_S_CERTFILE,
     g_param_spec_string ("x509-cert", "x509 certificate",
                          "x509 PEM certificate file",
-                         NULL, G_PARAM_WRITABLE |
-                         G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
-                         G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
-
-  g_object_class_install_property (class, PROP_S_CAFILE,
-    g_param_spec_string ("x509-ca", "x509 CA",
-                         "x509 PEM Certificate Authority file",
-                         NULL, G_PARAM_WRITABLE |
-                         G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
-                         G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
-
-  g_object_class_install_property (class, PROP_S_CRLFILE,
-    g_param_spec_string ("x509-crl", "x509 CRL",
-                         "x509 PEM CRL file",
                          NULL, G_PARAM_WRITABLE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
@@ -1511,14 +1491,10 @@ wocky_tls_connection_class_init (WockyTLSConnectionClass *class)
 }
 
 WockyTLSSession *
-wocky_tls_session_new (GIOStream *stream,
-                       const gchar *ca,
-                       const gchar *crl)
+wocky_tls_session_new (GIOStream *stream)
 {
   return g_object_new (WOCKY_TYPE_TLS_SESSION,
                        "base-stream", stream,
-                       "x509-ca", ca,
-                       "x509-crl", crl,
                        "server", FALSE, NULL);
 }
 
@@ -1528,8 +1504,6 @@ wocky_tls_session_new (GIOStream *stream,
  * @dhbits: size of the DH parameters (see gnutls for valid settings)
  * @key: the path to the X509 PEM key file
  * @cert: the path to the X509 PEM certificate
- * @ca: the path to the X509 trust (certificate authority) file (or NULL)
- * @crl: the path to the X509 CRL (certificate revocation list) file (or NULL)
  *
  * Create a new TLS server session
  *
@@ -1537,14 +1511,13 @@ wocky_tls_session_new (GIOStream *stream,
  */
 WockyTLSSession *
 wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
-                              const gchar* key, const gchar* cert,
-                              const gchar* ca, const gchar* crl)
+                              const gchar* key, const gchar* cert)
 {
   if (dhbits == 0)
     dhbits = 1024;
   return g_object_new (WOCKY_TYPE_TLS_SESSION, "base-stream", stream,
                        "dh-bits", dhbits, "x509-key", key, "x509-cert", cert,
-                       "x509-ca", ca, "x509-crl", crl, "server", TRUE,
+                       "server", TRUE,
                        NULL);
 }
 

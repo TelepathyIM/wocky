@@ -176,6 +176,12 @@ gboolean wocky_connector_unregister_finish (WockyConnector *self,
 
 WockySaslAuthMechanism wocky_connector_auth_mechanism (WockyConnector *self);
 
+gboolean wocky_connector_add_crl (WockyConnector *self,
+    const gchar *path);
+
+gboolean wocky_connector_add_ca (WockyConnector *self,
+    const gchar *path);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONNECTOR_H__*/

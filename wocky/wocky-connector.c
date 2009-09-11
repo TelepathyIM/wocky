@@ -234,7 +234,6 @@ enum
   PROP_LEGACY_SSL,
   PROP_SESSION_ID,
   PROP_EMAIL,
-  PROP_CA,
 };
 
 /* this tracks which XEP 0077 operation (register account, cancel account)  *
@@ -302,6 +301,8 @@ struct _WockyConnectorPrivate
   WockySaslAuthMechanism mech;
 
   /* socket/tls/etc structures */
+  GSList *cas;
+  GSList *crl;
   GSocketClient *client;
   GSocketConnection *sock;
   WockyTLSSession *tls_sess;
@@ -497,10 +498,6 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->session_id);
         priv->session_id = g_value_dup_string (value);
         break;
-      case PROP_CA:
-        g_free (priv->ca);
-        priv->ca = g_value_dup_string (value);
-        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -562,9 +559,6 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_SESSION_ID:
         g_value_set_string (value, priv->session_id);
-        break;
-      case PROP_CA:
-        g_value_set_string (value, priv->ca);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -752,21 +746,28 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "XMPP Session ID", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
-
-  /**
-   * WockyConnector:certificate-authority
-   *
-   * PEM file containing a certificate authority or directory
-   * full of such PEM files.
-   */
-  spec = g_param_spec_string ("certificate-authority", "certificate-authority",
-      "Location of CA file(s)", "/etc/ssl/certs",
-      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (oclass, PROP_CA, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
 #define GFREE_AND_FORGET(x) g_free (x); x = NULL;
+
+static void
+add_cas (gpointer path, gpointer wtlsc)
+{
+  wocky_tls_session_add_ca (wtlsc, path);
+}
+
+static void
+add_crl (gpointer path, gpointer wtlsc)
+{
+  wocky_tls_session_add_crl (wtlsc, path);
+}
+
+static void
+free_ca_crl_path (gpointer path, gpointer nil)
+{
+  g_free (path);
+}
 
 static void
 wocky_connector_dispose (GObject *object)
@@ -784,6 +785,13 @@ wocky_connector_dispose (GObject *object)
   UNREF_AND_FORGET (priv->tls_sess);
   UNREF_AND_FORGET (priv->tls);
   UNREF_AND_FORGET (priv->features);
+
+  g_slist_foreach (priv->cas, free_ca_crl_path, NULL);
+  g_slist_foreach (priv->crl, free_ca_crl_path, NULL);
+  g_slist_free (priv->cas);
+  g_slist_free (priv->crl);
+  priv->cas = NULL;
+  priv->crl = NULL;
 
   if (G_OBJECT_CLASS (wocky_connector_parent_class )->dispose)
     G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
@@ -1212,14 +1220,17 @@ maybe_old_ssl (WockyConnector *self)
       g_assert (priv->sock != NULL);
 
       DEBUG ("creating SSL session");
-      priv->tls_sess =
-        wocky_tls_session_new (G_IO_STREAM (priv->sock), priv->ca, NULL);
+      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
+
       if (priv->tls_sess == NULL)
         {
           abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
               "SSL Session Failed");
           return;
         }
+
+      g_slist_foreach (priv->cas, add_cas, priv->tls_sess);
+      g_slist_foreach (priv->crl, add_crl, priv->tls_sess);
 
       DEBUG ("beginning SSL handshake");
       wocky_tls_session_handshake_async (priv->tls_sess,
@@ -1514,8 +1525,18 @@ starttls_recv_cb (GObject *source,
     }
   else
     {
-      priv->tls_sess =
-        wocky_tls_session_new (G_IO_STREAM (priv->sock), priv->ca, NULL);
+      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
+
+      if (priv->tls_sess == NULL)
+        {
+          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
+              "SSL Session Failed");
+          goto out;
+        }
+
+      g_slist_foreach (priv->cas, add_cas, priv->tls_sess);
+      g_slist_foreach (priv->crl, add_crl, priv->tls_sess);
+
       DEBUG ("starting client TLS handshake %p", priv->tls_sess);
       wocky_tls_session_handshake_async (priv->tls_sess,
           G_PRIORITY_HIGH, NULL, starttls_handshake_cb, self);
@@ -2728,6 +2749,50 @@ wocky_connector_register_async (WockyConnector *self,
 
   priv->reg_op = XEP77_SIGNUP;
   wocky_connector_connect_async (self, cb, user_data);
+}
+
+/**
+ * wocky_connector_add_ca:
+ * @self: a #WockyConnector instance
+ * @path: a path to a directory or file containing PEM encoded CA certificates
+ *
+ * Returns: a #gboolean indicating whether the path was resolved.
+ * Does not indicate that there was actually a file or directory there
+ * or that any CAs were actually found.
+ */
+gboolean
+wocky_connector_add_ca (WockyConnector *self,
+    const gchar *path)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  gchar *abspath = realpath (path, NULL);
+
+  if (abspath != NULL)
+    priv->cas = g_slist_prepend (priv->cas, abspath);
+
+  return abspath != NULL;
+}
+
+/**
+ * wocky_connector_add_crl:
+ * @self: a #WockyConnector instance
+ * @path: a path to a directory or file containing PEM encoded CRLs
+ *
+ * Returns: a #gboolean indicating whether the path was resolved.
+ * Does not indicate that there was actually a file or directory there
+ * or that any CRLs were actually found.
+ */
+gboolean
+wocky_connector_add_crl (WockyConnector *self,
+    const gchar *path)
+{
+  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  gchar *abspath = realpath (path, NULL);
+
+  if (abspath != NULL)
+    priv->crl = g_slist_prepend (priv->crl, abspath);
+
+  return abspath != NULL;
 }
 
 /**
