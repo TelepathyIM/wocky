@@ -1545,7 +1545,9 @@ starttls_handshake_cb (GObject *source,
 
   if (priv->tls == NULL)
     {
-      abort_connect_error (data, &error, "%s Handshake Error", tla);
+      const gchar *msg = (error == NULL) ? "unknown error" : error->message;
+      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
+          "%s Handshake Error: %s", tla, msg);
       g_error_free (error);
       return;
     }
