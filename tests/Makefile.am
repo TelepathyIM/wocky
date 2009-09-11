@@ -11,6 +11,8 @@ CA_KEY   := $(CERT_DIR)/ca-0-key.pem
 CA_CERT  := $(CERT_DIR)/ca-0-cert.pem
 SS_KEY   := $(CERT_DIR)/ss-key.pem
 SS_CERT  := $(CERT_DIR)/ss-cert.pem
+REV_KEY  := $(CERT_DIR)/rev-key.pem
+REV_CERT := $(CERT_DIR)/rev-cert.pem
 EXP_KEY  := $(CERT_DIR)/exp-key.pem
 EXP_CERT := $(CERT_DIR)/exp-cert.pem
 NEW_KEY  := $(CERT_DIR)/new-key.pem
@@ -18,10 +20,13 @@ NEW_CERT := $(CERT_DIR)/new-cert.pem
 TLS_KEY  := $(CERT_DIR)/tls-key.pem
 TLS_CERT := $(CERT_DIR)/tls-cert.pem
 CA_DIR   := $(CERT_DIR)/cas
+CRL_DIR  := $(CERT_DIR)/crl
 CAS      := $(CA_CERT) $(CA_CERT2) $(CA_CERT3)
+CRL      := $(CERT_DIR)/ca-0-crl.pem
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
-CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(UNKNOWN_CERT)
+CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(REV_CERT) \
+            $(UNKNOWN_CERT)
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
@@ -31,10 +36,13 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_EXP_CRT_FILE='"$(EXP_CERT)"'   \
             -DTLS_NEW_KEY_FILE='"$(NEW_KEY)"'    \
             -DTLS_NEW_CRT_FILE='"$(NEW_CERT)"'   \
+            -DTLS_REV_KEY_FILE='"$(REV_KEY)"'    \
+            -DTLS_REV_CRT_FILE='"$(REV_CERT)"'   \
             -DTLS_UNKNOWN_KEY_FILE='"$(UNKNOWN_KEY)"'  \
             -DTLS_UNKNOWN_CRT_FILE='"$(UNKNOWN_CERT)"' \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
+            -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
 DFCHECK  := $(if $(shell which datefudge),                 \
                  $(info  datefudge installed, proceeding), \
@@ -77,7 +85,7 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(CA_DIR) $(CERTS) $(LIBWOCKY)
+wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) $(CERTS) $(LIBWOCKY)
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -221,6 +229,7 @@ $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 	            --template     $(basename $@).cfg \
 	            --outfile      $@ 2>&1 | $(FILTER_BITS)
 
+%/rev-cert.pem: export CERTCMD = $(CERTTOOL)
 %/tls-cert.pem: export CERTCMD = $(CERTTOOL)
 %/new-cert.pem: export CERTCMD = $(TARDIS) "$(FUTURE)" $(CERTTOOL)
 %/exp-cert.pem: export CERTCMD = $(TARDIS) "$(PAST)"   $(CERTTOOL)
@@ -236,9 +245,23 @@ $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 $(CA_DIR): $(CAS)
 	@mkdir -p $@ && cp -av $(CAS) $(CA_DIR)
 
+$(CRL): $(REV_CERT) $(CA_CERT) $(CA_KEY)
+	$(CERTTOOL) --generate-crl        \
+	            --template $(basename $@).cfg     \
+	            --load-ca-privkey     $(CA_KEY)   \
+	            --load-ca-certificate $(CA_CERT)  \
+	            --load-certificate    $(REV_CERT) \
+                --outfile             $@ 2>&1 | $(FILTER_BITS)
+
+$(CRL_DIR): $(CRL)
+	@mkdir -p $@ && ln -s $(CRL) $(CRL_DIR)
+
 clean-local:
+	rm -fv certs/*.crl
 	rm -fv certs/*.pem
 	rm -fv certs/cas/*.pem
+	rm -fv certs/crl/*.pem
+
 ############################################################################
 
 SUPPRESSIONS=threadlocal.supp
