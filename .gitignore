@@ -84,6 +84,7 @@ tests/wocky-xmpp-stanza-test
 tests/wocky-connector-test
 tests/*report.xml
 tests/certs/*.pem
+tests/certs/cas/*
 tests/wocky-roster-test
 tests/wocky-bare-contact-test
 tests/wocky-resource-contact-test
