@@ -159,7 +159,7 @@ tcp_start_tls_recv_cb (GObject *source,
 
   g_object_unref (conn);
 
-  ssl_session = wocky_tls_session_new (G_IO_STREAM (tcp), NULL, NULL);
+  ssl_session = wocky_tls_session_new (G_IO_STREAM (tcp));
   ssl = wocky_tls_session_handshake (ssl_session, NULL, &error);
 
   if (ssl == NULL)
