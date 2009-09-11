@@ -118,7 +118,8 @@ typedef enum
   CERT_NOT_YET,
   CERT_UNKNOWN,
   CERT_SELFSIGN,
-  CERT_NONE
+  CERT_REVOKED,
+  CERT_NONE,
 } CertSet;
 
 typedef struct

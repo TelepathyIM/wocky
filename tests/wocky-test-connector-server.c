@@ -81,6 +81,7 @@ static struct { CertSet set; const gchar *key; const gchar *crt; } certs[] =
     { CERT_NOT_YET,  TLS_NEW_KEY_FILE,     TLS_NEW_CRT_FILE     },
     { CERT_UNKNOWN,  TLS_UNKNOWN_KEY_FILE, TLS_UNKNOWN_CRT_FILE },
     { CERT_SELFSIGN, TLS_SS_KEY_FILE,      TLS_SS_CRT_FILE      },
+    { CERT_REVOKED,  TLS_REV_KEY_FILE,     TLS_REV_CRT_FILE     },
     { CERT_NONE,     NULL,                 NULL                 } };
 
 typedef struct _TestConnectorServerPrivate TestConnectorServerPrivate;
