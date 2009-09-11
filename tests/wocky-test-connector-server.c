@@ -933,7 +933,7 @@ handle_starttls (TestConnectorServer *self,
            * gnutls_global_set_log_level (10); */
           if (problem->death & SERVER_DEATH_TLS_NEG)
             priv->tls_sess = wocky_tls_session_server_new (priv->stream,
-                1024, NULL, NULL, NULL, NULL);
+                1024, NULL, NULL);
           else
             {
               int x;
@@ -950,9 +950,8 @@ handle_starttls (TestConnectorServer *self,
                     }
                 }
               DEBUG2 ("cert file: %s", crt);
-              priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
-                  key, crt, TLS_CA_CRT_FILE,
-                  NULL);
+              priv->tls_sess =
+                wocky_tls_session_server_new (priv->stream, 1024, key, crt);
             }
 
         }
@@ -1203,8 +1202,8 @@ static void startssl (TestConnectorServer *self)
 
   DEBUG ("creating SSL Session [server]");
   if (problem->death & SERVER_DEATH_TLS_NEG)
-    priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
-        NULL, NULL, NULL, NULL);
+    priv->tls_sess =
+      wocky_tls_session_server_new (priv->stream, 1024, NULL, NULL);
   else
     {
       int x;
@@ -1221,8 +1220,8 @@ static void startssl (TestConnectorServer *self)
             }
         }
 
-      priv->tls_sess = wocky_tls_session_server_new (priv->stream, 1024,
-          key, crt, TLS_CA_CRT_FILE, NULL);
+      priv->tls_sess =
+        wocky_tls_session_server_new (priv->stream, 1024, key, crt);
     }
 
   DEBUG ("starting server SSL handshake");

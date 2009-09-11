@@ -3189,8 +3189,9 @@ run_test (gpointer data)
       "old-ssl"                 , test->client.options.ssl,
       /* insecure tls cert/etc not yet implemented */
       "ignore-ssl-errors"       , test->client.options.lax_ssl,
-      "certificate-authority"   , ca,
       NULL);
+
+  wocky_connector_add_ca (wcon, ca);
 
   test->connector = wcon;
   running_test = TRUE;
