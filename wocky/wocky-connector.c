@@ -2756,9 +2756,18 @@ wocky_connector_register_async (WockyConnector *self,
  * @self: a #WockyConnector instance
  * @path: a path to a directory or file containing PEM encoded CA certificates
  *
+ * Sensible default paths (under Debian derived distributions) are:
+ *
+ * * for gnutls:  /etc/ssl/certs/ca-certificates.crt
+ * * for openssl: /etc/ssl/certs
+ *
+ * Certificates my also be found under /usr/share/ca-certificates/...
+ * if the user wishes to pick and choose which CAs to use.
+ *
  * Returns: a #gboolean indicating whether the path was resolved.
  * Does not indicate that there was actually a file or directory there
- * or that any CAs were actually found.
+ * or that any CAs were actually found. The CAs won't actually be loaded
+ * until just before the TLS session setup is attempted.
  */
 gboolean
 wocky_connector_add_ca (WockyConnector *self,
@@ -2778,9 +2787,12 @@ wocky_connector_add_ca (WockyConnector *self,
  * @self: a #WockyConnector instance
  * @path: a path to a directory or file containing PEM encoded CRLs
  *
+ * This function does not descend subdirectories automatically.
+ *
  * Returns: a #gboolean indicating whether the path was resolved.
  * Does not indicate that there was actually a file or directory there
- * or that any CRLs were actually found.
+ * or that any CRLs were actually found. The CRLs won't actually be loaded
+ * until just before the TLS session setup is attempted.
  */
 gboolean
 wocky_connector_add_crl (WockyConnector *self,
