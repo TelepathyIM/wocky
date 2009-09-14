@@ -254,7 +254,13 @@ $(CRL): $(REV_CERT) $(CA_CERT) $(CA_KEY)
                 --outfile             $@ 2>&1 | $(FILTER_BITS)
 
 $(CRL_DIR): $(CRL)
-	@mkdir -p $@ && ln -s $(CRL) $(CRL_DIR)
+	@( mkdir -p $@ &&                                \
+	   if cmp $(CRL) $(CRL_DIR)/$(notdir $(CRL));    \
+	   then                                          \
+	       echo -n;                                  \
+	   else                                          \
+	       ln -sfv $(CRL) $(CRL_DIR);                \
+	   fi );
 
 clean-local:
 	rm -fv certs/*.crl
@@ -301,6 +307,8 @@ valgrind: $(TEST_PROGS)
 
 EXTRA_DIST = $(SUPPRESSIONS)     \
     $(wildcard certs/*.cfg)      \
-    $(wildcard certs/*-cert.pem) \
-	$(wildcard certs/*-key.pem)
+	$(wildcard certs/*.pem)      \
+	$(wildcard certs/cas/*.pem)  \
+	certs/crl                    \
+	$(wildcard certs/crl/*.pem)
 
