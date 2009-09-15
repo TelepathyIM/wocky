@@ -96,9 +96,6 @@ AC_C_INLINE
 dnl Check endianness (Needed for the sha1 implementation)
 AC_C_BIGENDIAN
 
-dnl GTK docs
-GTK_DOC_CHECK
-
 dnl Check for Glib
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.16, gobject-2.0 >= 2.16, gthread-2.0 >=
 2.4, gio-2.0 >= 2.21, gnutls >= 2.8.2])
