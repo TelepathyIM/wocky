@@ -25,6 +25,8 @@ CAS      := $(CA_CERT) $(CA_CERT2) $(CA_CERT3)
 CRL      := $(CERT_DIR)/ca-0-crl.pem
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
+PRES     := new exp ca-0
+PRESERVE := $(foreach y,cert key,$(foreach x,$(PRES),certs/$(x)-$(y).pem))
 CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(REV_CERT) \
             $(UNKNOWN_CERT)
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
@@ -44,14 +46,14 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
             -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
-DFCHECK  := $(if $(shell which datefudge),                 \
-                 $(info  datefudge installed, proceeding), \
-                 $(error datefudge NOT IN PATH - please install datefudge))
 DUMMY    := $(if $(shell which certtool),                  \
                  $(info  certtool  installed, proceeding), \
                  $(error certtool NOT IN PATH - please install gnutls-bin))
-FUTURE   := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) + 86400)))
-PAST     := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) - 86400 * 7)))
+DAY      := 86400
+YEAR     := 365 * $(DAY)
+TIMEWARP := 28 * $(YEAR)
+FUTURE   := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) + $(TIMEWARP))))
+PAST     := $(shell date +'%Y-%m-%d %H:%M' -d @$$(($$(date +%s) - $(DAY) * 7)))
 FILTER_BITS := grep -v '^[	 ]\+\([a-f0-9]\{2\}:\)\+[a-f0-9]\{2\}$$'
 ############################################################################
 TEST_PROGS = wocky-xmpp-reader-test \
@@ -175,7 +177,7 @@ check_c_sources = \
   $(wocky_xmpp_readwrite_test_SOURCES) \
   $(wocky_xmpp_reader_test_SOURCES)
 
-.PRECIOUS: %-key.pem $(CA_CERT)
+.PRECIOUS: %-key.pem $(CA_CERT) $(PRESERVE)
 
 all: $(TEST_PROGS)
 
@@ -237,7 +239,7 @@ $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 %-cert.pem: %-key.pem %-cert.cfg $(CA_CERT)
 	$(CERTCMD)  --generate-certificate                   \
                 --load-ca-certificate $(CA_CERT)         \
-	            --load-ca-privkey     $(CA_KEY)          \
+	            --load-ca-privkey     $(CA_KEY)	         \
 	            --load-privkey        $<                 \
 	            --template            $*-cert.cfg        \
 	            --outfile             $@ 2>&1 | $(FILTER_BITS)
@@ -264,7 +266,7 @@ $(CRL_DIR): $(CRL)
 
 clean-local:
 	rm -fv certs/*.crl
-	rm -fv certs/*.pem
+	rm -fv $(filter-out $(PRESERVE), $(wildcard certs/*.pem))
 	rm -fv certs/cas/*.pem
 	rm -fv certs/crl/*.pem
 
