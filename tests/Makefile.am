@@ -181,9 +181,6 @@ check_c_sources = \
 
 all: $(TEST_PROGS)
 
-moose:
-	@echo PRESERVE = $(PRESERVE)
-
 certs: $(CERTS)
 
 test-report: test-report.xml
