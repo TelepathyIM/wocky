@@ -103,6 +103,12 @@ PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.16, gobject-2.0 >= 2.16, gthread-2.0 >=
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
+dnl Check for gnutls certtool (x509 certificate generation for ssl/tls tests)
+AC_CHECK_PROG(HAVE_GNUTLS_CERTTOOL, certtool, yes)
+if test ! x$HAVE_GNUTLS_CERTTOOL = xyes; then 
+  AC_MSG_ERROR([gnutls certtool missing: cannot complete ssl/tls tests])
+fi
+
 GLIB_GENMARSHAL=`$PKG_CONFIG --variable=glib_genmarshal glib-2.0`
 AC_SUBST(GLIB_GENMARSHAL)
 
