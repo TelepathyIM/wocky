@@ -93,4 +93,7 @@
 #define WOCKY_XMPP_NS_PUBSUB \
   "http://jabber.org/protocol/pubsub"
 
+#define WOCKY_XMPP_NS_PUBSUB_EVENT \
+  WOCKY_XMPP_NS_PUBSUB "#event"
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
