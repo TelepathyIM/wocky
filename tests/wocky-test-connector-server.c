@@ -40,8 +40,6 @@
 #define INITIAL_STREAM_ID "0-HAI"
 #define DEBUG(format, ...) \
   wocky_debug (DEBUG_CONNECTOR, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
-#define DEBUG2(format, ...) \
-  wocky_debug (DEBUG_ROSTER, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
 
 G_DEFINE_TYPE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT);
 
@@ -950,11 +948,11 @@ handle_starttls (TestConnectorServer *self,
                       break;
                     }
                 }
-              DEBUG2 ("cert file: %s", crt);
+              DEBUG ("cert file: %s", crt);
+
               priv->tls_sess =
                 wocky_tls_session_server_new (priv->stream, 1024, key, crt);
             }
-
         }
       wocky_xmpp_connection_send_stanza_async (conn, reply, NULL, cb, self);
       g_object_unref (reply);
