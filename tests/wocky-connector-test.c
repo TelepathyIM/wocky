@@ -16,6 +16,7 @@
 #include "wocky-test-connector-server.h"
 #include "test-resolver.h"
 #include "wocky-test-helper.h"
+#include "config.h"
 
 #define SASL_DB_NAME "sasl-test.db"
 
@@ -3417,8 +3418,22 @@ main (int argc,
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
+#ifdef HAVE_LIBSASL2
+
   for (i = 0; tests[i].desc != NULL; i++)
     g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
+
+#else
+
+#warning "Skipping SASL MD5 tests"
+  for (i = 0; tests[i].desc != NULL; i++)
+    {
+      if (tests[i].result.mech == WOCKY_SASL_AUTH_DIGEST_MD5)
+        continue;
+      g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
+    }
+
+#endif
 
   result = g_test_run ();
   test_deinit ();

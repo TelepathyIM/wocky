@@ -18,7 +18,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,11 +28,13 @@
 #include "wocky-test-sasl-auth-server.h"
 
 #include <wocky/wocky-xmpp-connection.h>
-
+#include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
+#include "config.h"
+
+#ifdef HAVE_LIBSASL2
 
 #include <sasl/sasl.h>
-
 #define CHECK_SASL_RETURN(x)                                \
 G_STMT_START   {                                            \
     if (x < SASL_OK) {                                      \
@@ -42,6 +43,22 @@ G_STMT_START   {                                            \
       g_assert_not_reached ();                              \
     }                                                       \
 } G_STMT_END
+
+#else
+
+#warning "libsasl2 or headers for same not found. faking it for tests."
+#define SASL_OK 0
+#define SASL_BADAUTH -13
+#define SASL_NOUSER  -20
+#define CHECK_SASL_RETURN(x) \
+G_STMT_START   {                                       \
+    if (x < SASL_OK) {                                 \
+      fprintf (stderr, "sasl error (%d): ???\n", ret); \
+      g_assert_not_reached ();                         \
+    }                                                  \
+} G_STMT_END
+
+#endif
 
 G_DEFINE_TYPE(TestSaslAuthServer, test_sasl_auth_server, G_TYPE_OBJECT)
 
@@ -70,7 +87,9 @@ struct _TestSaslAuthServerPrivate
   gboolean dispose_has_run;
   WockyXmppConnection *conn;
   GIOStream *stream;
+#ifdef HAVE_LIBSASL2
   sasl_conn_t *sasl_conn;
+#endif
   gchar *username;
   gchar *password;
   gchar *mech;
@@ -141,9 +160,11 @@ test_sasl_auth_server_dispose (GObject *object)
     g_object_unref (priv->stream);
   priv->stream = NULL;
 
+#ifdef HAVE_LIBSASL2
   if (&priv->sasl_conn != NULL)
     sasl_dispose (&priv->sasl_conn);
   priv->sasl_conn = NULL;
+#endif
 
   if (priv->result != NULL)
     g_object_unref (priv->result);
@@ -444,8 +465,27 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 
   priv->state = AUTH_STATE_CHALLENGE;
 
+#if HAVE_LIBSASL2
   ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
+#else
+  challenge = g_strdup("");
+  challenge_len = 0;
+  g_assert (!wocky_strdiff ("PLAIN", mech));
+  /* response format: ^@ u s e r ^@ p a s s    */
+  /* require at least 1 char user and password */
+  if (response_len >= 4)
+    {
+      const gchar *user = ((gchar *) response) + 1;
+      int ulen = strlen (user);
+      gchar *pass = g_strndup (user + ulen + 1, response_len - ulen - 2);
+      ret = ( wocky_strdiff (user, priv->username) ? SASL_NOUSER  :
+              wocky_strdiff (pass, priv->password) ? SASL_BADAUTH : SASL_OK );
+      g_free (pass);
+    }
+  else
+    ret = SASL_BADAUTH;
+#endif
 
   if (!check_sasl_return (self, ret))
     goto out;
@@ -461,7 +501,6 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
         }
 
       challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
-
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
@@ -508,8 +547,14 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
       response = g_base64_decode (stanza->node->content, &response_len);
     }
 
+#ifdef HAVE_LIBSASL2
   ret = sasl_server_step (priv->sasl_conn, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
+#else
+  ret = SASL_OK;
+  challenge_len = 0;
+  challenge = "";
+#endif
 
   if (!check_sasl_return (self, ret))
     goto out;
@@ -525,7 +570,6 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
         }
 
       challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
-
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
@@ -606,6 +650,7 @@ received_stanza (GObject *source,
   g_assert_not_reached ();
 }
 
+#ifdef HAVE_LIBSASL2
 static int
 test_sasl_server_auth_log (void *context, int level, const gchar *message)
 {
@@ -638,6 +683,7 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
 
   return SASL_OK;
 }
+#endif
 
 TestSaslAuthServer *
 test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
@@ -647,6 +693,8 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
 {
   TestSaslAuthServer *server;
   TestSaslAuthServerPrivate *priv;
+
+#ifdef HAVE_LIBSASL2
   static gboolean sasl_initialized = FALSE;
   int ret;
   static sasl_callback_t callbacks[] = {
@@ -660,20 +708,22 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
       sasl_server_init (NULL, NULL);
       sasl_initialized = TRUE;
     }
+#endif
 
   server = g_object_new (TEST_TYPE_SASL_AUTH_SERVER, NULL);
   priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (server);
 
   priv->state = AUTH_STATE_STARTED;
 
+#ifdef HAVE_LIBSASL2
   ret = sasl_server_new ("xmpp", servername, NULL, NULL, NULL, callbacks,
       SASL_SUCCESS_DATA, &(priv->sasl_conn));
   CHECK_SASL_RETURN (ret);
 
   ret = sasl_setpass (priv->sasl_conn, user, password, strlen (password),
       NULL, 0, SASL_SET_CREATE);
-
   CHECK_SASL_RETURN (ret);
+#endif
 
   priv->username = g_strdup (user);
   priv->password = g_strdup (password);
@@ -768,9 +818,15 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat)
           const gchar *mechs;
           gchar **mechlist;
           gchar **tmp;
+
+#ifdef HAVE_LIBSASL2
           ret = sasl_listmech (priv->sasl_conn, NULL, "","\n","", &mechs,
               NULL,NULL);
           CHECK_SASL_RETURN (ret);
+#else
+          mechs = "PLAIN";
+#endif
+
           mechlist = g_strsplit (mechs, "\n", -1);
           for (tmp = mechlist; *tmp != NULL; tmp++)
             {
