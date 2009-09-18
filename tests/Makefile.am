@@ -179,6 +179,8 @@ check_c_sources = \
 all: $(TEST_PROGS)
 
 certs: $(CERTS)
+certs: $(CRL_DIR)/ca-0-crl.pem 
+certs: $(foreach x,0 1 2,$(CA_DIR)/ca-$(x)-cert.pem)
 
 test-report: test-report.xml
 	gtester-report $(top_builddir)/tests/$@.xml > \
@@ -258,9 +260,6 @@ $(NEW_CERT) $(EXP_CERT) certs/exp-cert.pem certs/new-cert.pem: | tardis
 	            --template            $*-cert.cfg        \
 	            --outfile             $@ 2>&1 | $(FILTER_BITS)
 
-$(CA_DIR): $(CAS)
-	@mkdir -p $@ && cp -av $(CAS) $(CA_DIR)
-
 $(CRL): $(REV_CERT) $(CA_CERT) $(CA_KEY)
 	$(CERTTOOL) --generate-crl        \
 	            --template $(basename $@).cfg     \
@@ -269,14 +268,14 @@ $(CRL): $(REV_CERT) $(CA_CERT) $(CA_KEY)
 	            --load-certificate    $(REV_CERT) \
                 --outfile             $@ 2>&1 | $(FILTER_BITS)
 
-$(CRL_DIR): $(CRL)
-	@( mkdir -p $@ &&                                \
-	   if cmp $(CRL) $(CRL_DIR)/$(notdir $(CRL));    \
-	   then                                          \
-	       echo -n;                                  \
-	   else                                          \
-	       ln -sfv $(CRL) $(CRL_DIR);                \
-	   fi );
+$(CA_DIR) $(CRL_DIR):
+	@mkdir -p $@
+
+$(CA_DIR)/%.pem: $(CERT_DIR)/%.pem
+	@cp -av $< $@
+
+$(CRL_DIR)/%.pem: $(CERT_DIR)/%.pem
+	@cp -av $< $@
 
 clean-local:
 	@rm -f certtool
