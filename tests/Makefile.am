@@ -325,5 +325,6 @@ EXTRA_DIST = $(SUPPRESSIONS)     \
 	$(wildcard certs/*.pem)      \
 	$(wildcard certs/cas/*.pem)  \
 	certs/crl                    \
+	certs/cas                    \
 	$(wildcard certs/crl/*.pem)
 
