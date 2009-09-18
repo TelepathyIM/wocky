@@ -226,7 +226,7 @@ tardis:
 	            --template     $(basename $@).cfg \
 	            --outfile      $@ 2>&1 | $(FILTER_BITS)
 
-$(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
+certs/ca-%-cert.pem $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 	$(CERTTOOL) --generate-self-signed            \
 	            --load-privkey $<                 \
 	            --template     $(basename $@).cfg \
