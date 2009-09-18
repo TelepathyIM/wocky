@@ -88,23 +88,25 @@ tests/*report.xml
 # tests/certs/ca-0-key.pem
 # tests/certs/exp-cert.pem # keep these hanging around as we'd have
 # tests/certs/new-cert.pem # to build-dep on datefudge otherwise
-tests/certs/ca-0-crl.pem
-tests/certs/ca-1-cert.pem
-tests/certs/ca-1-key.pem
-tests/certs/ca-2-cert.pem
-tests/certs/ca-2-key.pem
-tests/certs/exp-key.pem
-tests/certs/new-key.pem
-tests/certs/rev-cert.pem
-tests/certs/rev-key.pem
-tests/certs/ss-cert.pem
-tests/certs/ss-key.pem
-tests/certs/tls-cert.pem
-tests/certs/tls-key.pem
-tests/certs/unknown-ca-key.pem
-tests/certs/unknown-cert.pem
-tests/certs/unknown-key.pem
+# tests/certs/ca-0-crl.pem
+# tests/certs/ca-1-cert.pem
+# tests/certs/ca-1-key.pem
+# tests/certs/ca-2-cert.pem
+# tests/certs/ca-2-key.pem
+# tests/certs/exp-key.pem
+# tests/certs/new-key.pem
+# tests/certs/rev-cert.pem
+# tests/certs/rev-key.pem
+# tests/certs/ss-cert.pem
+# tests/certs/ss-key.pem
+# tests/certs/tls-cert.pem
+# tests/certs/tls-key.pem
+# tests/certs/unknown-ca-key.pem
+# tests/certs/unknown-cert.pem
+# tests/certs/unknown-key.pem
 
+tests/certtool
+tests/tardis
 tests/certs/cas/*
 tests/certs/crl/*
 tests/wocky-roster-test
