@@ -1292,11 +1292,14 @@ wocky_tls_session_constructed (GObject *object)
      but IANA cryptographer */
   if (server)
     {
-      DEBUG ("cert/key pair: %s/%s", session->cert_file, session->key_file);
-      gnutls_certificate_set_x509_key_file (session->gnutls_cert_cred,
-                                            session->cert_file,
-                                            session->key_file,
-                                            GNUTLS_X509_FMT_PEM);
+      if ((session->key_file != NULL) && (session->cert_file != NULL))
+        {
+          DEBUG ("cert/key pair: %s/%s", session->cert_file, session->key_file);
+          gnutls_certificate_set_x509_key_file (session->gnutls_cert_cred,
+                                                session->cert_file,
+                                                session->key_file,
+                                                GNUTLS_X509_FMT_PEM);
+        }
       gnutls_dh_params_init (&session->dh_params);
       gnutls_dh_params_generate2 (session->dh_params, session->dh_bits);
       gnutls_certificate_set_dh_params (session->gnutls_cert_cred,
