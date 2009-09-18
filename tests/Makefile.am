@@ -26,7 +26,6 @@ CRL      := $(CERT_DIR)/ca-0-crl.pem
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
 PRES     := new exp ca-0 ca-1 ca-2 rev ss tls unknown
-PRESERVE := $(foreach y,cert key,$(foreach x,$(PRES),certs/$(x)-$(y).pem))
 CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(REV_CERT) \
             $(UNKNOWN_CERT)
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
@@ -175,7 +174,7 @@ check_c_sources = \
   $(wocky_xmpp_readwrite_test_SOURCES) \
   $(wocky_xmpp_reader_test_SOURCES)
 
-.PRECIOUS: %-key.pem $(CA_CERT) $(PRESERVE)
+.PRECIOUS: %.pem
 
 all: $(TEST_PROGS)
 
@@ -210,7 +209,7 @@ tardis:
 	           $(error Need $@ to rebuild expired/inactive certificates))
 	@touch $@
 
-%-key.pem: certtool
+%-key.pem: | certtool
 	$(GENKEY) $@
 
 %/ss-cert.pem: %/ss-key.pem %/ss-cert.cfg
@@ -236,7 +235,7 @@ $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 %/new-cert.pem: export CERTCMD = $(TARDIS) "$(FUTURE)" $(CERTTOOL)
 %/exp-cert.pem: export CERTCMD = $(TARDIS) "$(PAST)"   $(CERTTOOL)
 
-$(NEW_CERT) $(EXP_CERT) certs/exp-cert.pem certs/new-cert.pem: tardis
+$(NEW_CERT) $(EXP_CERT) certs/exp-cert.pem certs/new-cert.pem: | tardis
 
 %/unknown-cert.pem: export CERTCMD = $(CERTTOOL)
 %/unknown-cert.pem: export CA_CERT = $*/unknown-ca-cert.pem
@@ -250,7 +249,7 @@ $(NEW_CERT) $(EXP_CERT) certs/exp-cert.pem certs/new-cert.pem: tardis
 	            --template            $*/unknown-cert.cfg    \
 	            --outfile             $@ 2>&1 | $(FILTER_BITS)
 
-%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT) certtool
+%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT) | certtool
 	@echo "CERTIFICATE $@ ($(CERTCMD)): $^"
 	$(CERTCMD)  --generate-certificate                   \
                 --load-ca-certificate $(CA_CERT)         \
@@ -282,8 +281,6 @@ $(CRL_DIR): $(CRL)
 clean-local:
 	@rm -f certtool
 	@rm -f tardis
-	rm -fv certs/*.crl
-	rm -fv $(filter-out $(PRESERVE), $(wildcard certs/*.pem))
 	rm -fv certs/cas/*.pem
 	rm -fv certs/crl/*.pem
 
