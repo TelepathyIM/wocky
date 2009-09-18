@@ -25,7 +25,7 @@ CAS      := $(CA_CERT) $(CA_CERT2) $(CA_CERT3)
 CRL      := $(CERT_DIR)/ca-0-crl.pem
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
-PRES     := new exp ca-0
+PRES     := new exp ca-0 ca-1 ca-2 rev ss tls unknown
 PRESERVE := $(foreach y,cert key,$(foreach x,$(PRES),certs/$(x)-$(y).pem))
 CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(REV_CERT) \
             $(UNKNOWN_CERT)
@@ -46,9 +46,6 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
             -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
-DUMMY    := $(if $(shell which certtool),                  \
-                 $(info  certtool  installed, proceeding), \
-                 $(error certtool NOT IN PATH - please install gnutls-bin))
 DAY      := 86400
 YEAR     := 365 * $(DAY)
 TIMEWARP := 28 * $(YEAR)
@@ -88,6 +85,7 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-xmpp-reader-test.c
 
 wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) $(CERTS) $(LIBWOCKY)
+
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -195,14 +193,24 @@ test: ${TEST_PROGS}
 test-%: wocky-%-test
 	gtester -o $@-report.xml -k --verbose $<
 
-.PHONY: test test-report
+.PHONY: test test-report certs
 
 include $(top_srcdir)/tools/check-coding-style.mk
 check-local: test check-coding-style
 
 ############################################################################
 # x509 certificates:
-%-key.pem:
+certtool:
+	@echo $(or $(shell test -x "$(CERTTOOL)" && echo $@ OK),   \
+	           $(error Need $@ to rebuild expired/inactive certificates))
+	@touch $@
+
+tardis:
+	@echo $(or $(shell test -x "$(TARDIS)" && echo $@ OK),   \
+	           $(error Need $@ to rebuild expired/inactive certificates))
+	@touch $@
+
+%-key.pem: certtool
 	$(GENKEY) $@
 
 %/ss-cert.pem: %/ss-key.pem %/ss-cert.cfg
@@ -217,14 +225,6 @@ check-local: test check-coding-style
 	            --template     $(basename $@).cfg \
 	            --outfile      $@ 2>&1 | $(FILTER_BITS)
 
-%/unknown-cert.pem: %/unknown-key.pem %/unknown-cert.cfg %/unknown-ca-cert.pem
-	$(CERTTOOL) --generate-certificate                           \
-                --load-ca-certificate $*/unknown-ca-cert.pem     \
-	            --load-ca-privkey     $*/unknown-ca-key.pem      \
-	            --load-privkey        $<                         \
-	            --template            $*/unknown-cert.cfg        \
-	            --outfile             $@ 2>&1 | $(FILTER_BITS)
-
 $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 	$(CERTTOOL) --generate-self-signed            \
 	            --load-privkey $<                 \
@@ -236,7 +236,22 @@ $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 %/new-cert.pem: export CERTCMD = $(TARDIS) "$(FUTURE)" $(CERTTOOL)
 %/exp-cert.pem: export CERTCMD = $(TARDIS) "$(PAST)"   $(CERTTOOL)
 
-%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT)
+$(NEW_CERT) $(EXP_CERT) certs/exp-cert.pem certs/new-cert.pem: tardis
+
+%/unknown-cert.pem: export CERTCMD = $(CERTTOOL)
+%/unknown-cert.pem: export CA_CERT = $*/unknown-ca-cert.pem
+%/unknown-cert.pem: export CA_KEY  = $*/unknown-ca-key.pem
+
+%/unknown-cert.pem: %/unknown-key.pem %/unknown-cert.cfg %/unknown-ca-cert.pem
+	$(CERTTOOL) --generate-certificate                       \
+                --load-ca-certificate $*/unknown-ca-cert.pem \
+	            --load-ca-privkey     $*/unknown-ca-key.pem  \
+	            --load-privkey        $*/unknown-key.pem     \
+	            --template            $*/unknown-cert.cfg    \
+	            --outfile             $@ 2>&1 | $(FILTER_BITS)
+
+%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT) certtool
+	@echo "CERTIFICATE $@ ($(CERTCMD)): $^"
 	$(CERTCMD)  --generate-certificate                   \
                 --load-ca-certificate $(CA_CERT)         \
 	            --load-ca-privkey     $(CA_KEY)	         \
@@ -265,6 +280,8 @@ $(CRL_DIR): $(CRL)
 	   fi );
 
 clean-local:
+	@rm -f certtool
+	@rm -f tardis
 	rm -fv certs/*.crl
 	rm -fv $(filter-out $(PRESERVE), $(wildcard certs/*.pem))
 	rm -fv certs/cas/*.pem
