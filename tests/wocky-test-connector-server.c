@@ -35,8 +35,6 @@
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-tls.h>
 
-#include <sasl/sasl.h>
-
 #define INITIAL_STREAM_ID "0-HAI"
 #define DEBUG(format, ...) \
   wocky_debug (DEBUG_CONNECTOR, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
