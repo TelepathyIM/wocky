@@ -84,7 +84,9 @@ wocky-signals-marshal.list: $(HANDWRITTEN_SOURCES) Makefile.am
 	} > $@
 
 
-AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@
+AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) \
+            @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ \
+            -DG_LOG_DOMAIN=\"wocky\"
 
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
 
