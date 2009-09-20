@@ -387,16 +387,6 @@ _start_element_ns (void *user_data, const xmlChar *localname,
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (self);
   int i;
 
-  if (prefix)
-    {
-       DEBUG ("Element %s:%s started, depth %d", prefix, localname,
-           priv->depth);
-    }
-  else
-    {
-      DEBUG ("Element %s started, depth %d", localname, priv->depth);
-    }
-
   if (priv->stream_mode && G_UNLIKELY (priv->depth == 0))
     {
       if (strcmp ("stream", (gchar *) localname)
@@ -513,15 +503,6 @@ _end_element_ns (void *user_data, const xmlChar *localname,
   WockyXmppReaderPrivate *priv = WOCKY_XMPP_READER_GET_PRIVATE (self);
 
   priv->depth--;
-
-  if (prefix)
-    {
-      DEBUG ("Element %s:%s ended, depth %d", prefix, localname, priv->depth);
-    }
-  else
-    {
-      DEBUG ("Element %s ended, depth %d", localname, priv->depth);
-    }
 
   if (priv->node && priv->node->content)
     {
