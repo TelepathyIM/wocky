@@ -1,6 +1,6 @@
 
-#ifndef __DEBUG_H__
-#define __DEBUG_H__
+#ifndef __WOCKY_DEBUG_H__
+#define __WOCKY_DEBUG_H__
 
 #include "config.h"
 
