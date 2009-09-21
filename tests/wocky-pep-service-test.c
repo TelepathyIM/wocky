@@ -194,6 +194,43 @@ test_get (void)
   teardown_test (test);
 }
 
+/* Test wocky_pep_service_make_publish_stanza */
+static void
+test_make_publish_stanza (void)
+{
+  WockyPepService *pep;
+  WockyXmppStanza *stanza;
+  WockyXmppNode *item = NULL, *n;
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+
+  pep = wocky_pep_service_new (TEST_NODE1, FALSE);
+
+  stanza = wocky_pep_service_make_publish_stanza (pep, &item);
+
+  g_assert (stanza != NULL);
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+  g_assert (type == WOCKY_STANZA_TYPE_IQ);
+  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  n = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
+      WOCKY_XMPP_NS_PUBSUB);
+  g_assert (n != NULL);
+
+  n = wocky_xmpp_node_get_child (n, "publish");
+  g_assert (n != NULL);
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (n, "node"),
+        TEST_NODE1));
+
+  n = wocky_xmpp_node_get_child (n, "item");
+  g_assert (n != NULL);
+  g_assert (n == item);
+
+  g_object_unref (stanza);
+  g_object_unref (pep);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -204,6 +241,8 @@ main (int argc, char **argv)
   g_test_add_func ("/pep-service/instantiation", test_instantiation);
   g_test_add_func ("/pep-service/changed-signal", test_changed_signal);
   g_test_add_func ("/pep-service/get", test_get);
+  g_test_add_func ("/pep-service/make-publish-stanza",
+      test_make_publish_stanza);
 
   result = g_test_run ();
   test_deinit ();
