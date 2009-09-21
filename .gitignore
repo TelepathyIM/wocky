@@ -82,6 +82,7 @@ tests/wocky-porter-test
 tests/wocky-xmpp-node-test
 tests/wocky-xmpp-stanza-test
 tests/wocky-connector-test
+tests/wocky-pep-service-test
 tests/*report.xml
 
 # tests/certs/ca-0-cert.pem
