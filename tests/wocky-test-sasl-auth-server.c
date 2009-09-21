@@ -468,7 +468,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
 #else
-  challenge = g_strdup("");
+  challenge = "";
   challenge_len = 0;
   g_assert (!wocky_strdiff ("PLAIN", mech));
   /* response format: ^@ u s e r ^@ p a s s    */
