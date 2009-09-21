@@ -66,8 +66,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-bare-contact-test \
   wocky-resource-contact-test \
   wocky-contact-factory-test \
-  wocky-connector-test \
-  wocky-session-test
+  wocky-session-test \
+  wocky-connector-test
 
 wocky_xmpp_connection_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_connection_test_SOURCES = \
