@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -569,6 +570,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
         }
 
       challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
+
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
@@ -721,6 +723,7 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
 
   ret = sasl_setpass (priv->sasl_conn, user, password, strlen (password),
       NULL, 0, SASL_SET_CREATE);
+
   CHECK_SASL_RETURN (ret);
 #endif
 
