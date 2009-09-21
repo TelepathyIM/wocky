@@ -476,6 +476,10 @@ iq_get_query_JABBER_AUTH (TestConnectorServer *self,
   WockyXmppStanza *iq = NULL;
   WockyXmppNode *env = xml->node;
   const gchar *id = wocky_xmpp_node_get_attribute (env, "id");
+  WockyXmppNode *query = wocky_xmpp_node_get_child (env, "query");
+  WockyXmppNode *user  = (query != NULL) ?
+    wocky_xmpp_node_get_child (query, "username") : NULL;
+  const gchar *name = (user != NULL) ? user->content : NULL;
 
   DEBUG ("");
   if (priv->problem.connector->jabber & JABBER_PROBLEM_AUTH_NIH)
@@ -486,6 +490,18 @@ iq_get_query_JABBER_AUTH (TestConnectorServer *self,
           WOCKY_NODE_ATTRIBUTE, "id", id,
           WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", "cancel",
           WOCKY_NODE, "service-unavailable",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+    }
+  else if (name == NULL || *name == '\0')
+    {
+      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+          WOCKY_STANZA_SUB_TYPE_ERROR,
+          NULL, NULL,
+          WOCKY_NODE_ATTRIBUTE, "id", id,
+          WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", "modify",
+          WOCKY_NODE, "not-acceptable",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
