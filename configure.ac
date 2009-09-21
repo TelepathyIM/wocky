@@ -110,14 +110,15 @@ dnl Check for libxml2
 PKG_CHECK_MODULES(LIBXML2, [libxml-2.0])
 
 dnl check for libsasl2 (for sasl test)
+dnl must check for headers as well as library (no .pc so can't use pkg-config)
 AC_CHECK_LIB(sasl2, sasl_server_new,
-             [LIBSASL2_LIBS="-lsasl2"
-              LIBSASL2_CFLAGS=""
-              HAVE_LIBSASL2=yes
-              AC_DEFINE(HAVE_LIBSASL2, 1,
-                        [Define if libsasl2 support is available])
-             ],
-             [ AC_MSG_WARN(libsasl2 not found: not building sasl tests) ] )
+    [ AC_CHECK_HEADER(sasl/sasl.h,
+        [ LIBSASL2_LIBS="-lsasl2"
+          LIBSASL2_CFLAGS=""
+          HAVE_LIBSASL2=yes
+          AC_DEFINE(HAVE_LIBSASL2, 1, [Define if libsasl2 is available]) ],
+        [ AC_MSG_WARN(libsasl2 headers missing: skipping sasl tests)]) ],
+    [ AC_MSG_WARN(libsasl2 not found: skipping sasl tests) ])
 
 AC_SUBST(LIBSASL2_LIBS)
 AC_SUBST(LIBSASL2_CFLAGS)

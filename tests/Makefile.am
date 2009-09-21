@@ -25,8 +25,7 @@ CAS      := $(CA_CERT) $(CA_CERT2) $(CA_CERT3)
 CRL      := $(CERT_DIR)/ca-0-crl.pem
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
-PRES     := new exp ca-0
-PRESERVE := $(foreach y,cert key,$(foreach x,$(PRES),certs/$(x)-$(y).pem))
+PRES     := new exp ca-0 ca-1 ca-2 rev ss tls unknown
 CERTS    := $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(SS_CERT) $(REV_CERT) \
             $(UNKNOWN_CERT)
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
@@ -46,9 +45,6 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
             -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
-DUMMY    := $(if $(shell which certtool),                  \
-                 $(info  certtool  installed, proceeding), \
-                 $(error certtool NOT IN PATH - please install gnutls-bin))
 DAY      := 86400
 YEAR     := 365 * $(DAY)
 TIMEWARP := 28 * $(YEAR)
@@ -87,7 +83,8 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) $(CERTS) $(LIBWOCKY)
+wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) certs $(LIBWOCKY)
+
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
    wocky-test-sasl-auth-server.c \
@@ -177,11 +174,13 @@ check_c_sources = \
   $(wocky_xmpp_readwrite_test_SOURCES) \
   $(wocky_xmpp_reader_test_SOURCES)
 
-.PRECIOUS: %-key.pem $(CA_CERT) $(PRESERVE)
+.PRECIOUS: %.pem
 
 all: $(TEST_PROGS)
 
 certs: $(CERTS)
+certs: $(CRL_DIR)/ca-0-crl.pem 
+certs: $(foreach x,0 1 2,$(CA_DIR)/ca-$(x)-cert.pem)
 
 test-report: test-report.xml
 	gtester-report $(top_builddir)/tests/$@.xml > \
@@ -195,14 +194,24 @@ test: ${TEST_PROGS}
 test-%: wocky-%-test
 	gtester -o $@-report.xml -k --verbose $<
 
-.PHONY: test test-report
+.PHONY: test test-report certs
 
 include $(top_srcdir)/tools/check-coding-style.mk
 check-local: test check-coding-style
 
 ############################################################################
 # x509 certificates:
-%-key.pem:
+certtool:
+	@echo $(or $(shell test -x "$(CERTTOOL)" && echo $@ OK),   \
+	           $(error Need $@ to rebuild expired/inactive certificates))
+	@touch $@
+
+tardis:
+	@echo $(or $(shell test -x "$(TARDIS)" && echo $@ OK),   \
+	           $(error Need $@ to rebuild expired/inactive certificates))
+	@touch $@
+
+%-key.pem: | certtool
 	$(GENKEY) $@
 
 %/ss-cert.pem: %/ss-key.pem %/ss-cert.cfg
@@ -217,15 +226,7 @@ check-local: test check-coding-style
 	            --template     $(basename $@).cfg \
 	            --outfile      $@ 2>&1 | $(FILTER_BITS)
 
-%/unknown-cert.pem: %/unknown-key.pem %/unknown-cert.cfg %/unknown-ca-cert.pem
-	$(CERTTOOL) --generate-certificate                           \
-                --load-ca-certificate $*/unknown-ca-cert.pem     \
-	            --load-ca-privkey     $*/unknown-ca-key.pem      \
-	            --load-privkey        $<                         \
-	            --template            $*/unknown-cert.cfg        \
-	            --outfile             $@ 2>&1 | $(FILTER_BITS)
-
-$(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
+certs/ca-%-cert.pem $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 	$(CERTTOOL) --generate-self-signed            \
 	            --load-privkey $<                 \
 	            --template     $(basename $@).cfg \
@@ -236,16 +237,28 @@ $(CERT_DIR)/ca-%-cert.pem: $(CERT_DIR)/ca-%-key.pem $(CERT_DIR)/ca-%-cert.cfg
 %/new-cert.pem: export CERTCMD = $(TARDIS) "$(FUTURE)" $(CERTTOOL)
 %/exp-cert.pem: export CERTCMD = $(TARDIS) "$(PAST)"   $(CERTTOOL)
 
-%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT)
+$(NEW_CERT) $(EXP_CERT) certs/exp-cert.pem certs/new-cert.pem: | tardis
+
+%/unknown-cert.pem: export CERTCMD = $(CERTTOOL)
+%/unknown-cert.pem: export CA_CERT = $*/unknown-ca-cert.pem
+%/unknown-cert.pem: export CA_KEY  = $*/unknown-ca-key.pem
+
+%/unknown-cert.pem: %/unknown-key.pem %/unknown-cert.cfg %/unknown-ca-cert.pem
+	$(CERTTOOL) --generate-certificate                       \
+                --load-ca-certificate $*/unknown-ca-cert.pem \
+	            --load-ca-privkey     $*/unknown-ca-key.pem  \
+	            --load-privkey        $*/unknown-key.pem     \
+	            --template            $*/unknown-cert.cfg    \
+	            --outfile             $@ 2>&1 | $(FILTER_BITS)
+
+%-cert.pem: %-key.pem %-cert.cfg $(CA_CERT) | certtool
+	@echo "CERTIFICATE $@ ($(CERTCMD)): $^"
 	$(CERTCMD)  --generate-certificate                   \
                 --load-ca-certificate $(CA_CERT)         \
 	            --load-ca-privkey     $(CA_KEY)	         \
 	            --load-privkey        $<                 \
 	            --template            $*-cert.cfg        \
 	            --outfile             $@ 2>&1 | $(FILTER_BITS)
-
-$(CA_DIR): $(CAS)
-	@mkdir -p $@ && cp -av $(CAS) $(CA_DIR)
 
 $(CRL): $(REV_CERT) $(CA_CERT) $(CA_KEY)
 	$(CERTTOOL) --generate-crl        \
@@ -255,18 +268,18 @@ $(CRL): $(REV_CERT) $(CA_CERT) $(CA_KEY)
 	            --load-certificate    $(REV_CERT) \
                 --outfile             $@ 2>&1 | $(FILTER_BITS)
 
-$(CRL_DIR): $(CRL)
-	@( mkdir -p $@ &&                                \
-	   if cmp $(CRL) $(CRL_DIR)/$(notdir $(CRL));    \
-	   then                                          \
-	       echo -n;                                  \
-	   else                                          \
-	       ln -sfv $(CRL) $(CRL_DIR);                \
-	   fi );
+$(CA_DIR) $(CRL_DIR):
+	@mkdir -p $@
+
+$(CA_DIR)/%.pem: $(CERT_DIR)/%.pem
+	@cp -av $< $@
+
+$(CRL_DIR)/%.pem: $(CERT_DIR)/%.pem
+	@cp -av $< $@
 
 clean-local:
-	rm -fv certs/*.crl
-	rm -fv $(filter-out $(PRESERVE), $(wildcard certs/*.pem))
+	@rm -f certtool
+	@rm -f tardis
 	rm -fv certs/cas/*.pem
 	rm -fv certs/crl/*.pem
 
@@ -312,5 +325,6 @@ EXTRA_DIST = $(SUPPRESSIONS)     \
 	$(wildcard certs/*.pem)      \
 	$(wildcard certs/cas/*.pem)  \
 	certs/crl                    \
+	certs/cas                    \
 	$(wildcard certs/crl/*.pem)
 
