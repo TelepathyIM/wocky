@@ -928,6 +928,9 @@ jabber_auth_init (WockyConnector *connector)
       NULL, priv->domain,
       WOCKY_NODE_ATTRIBUTE, "id", id,
       WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
+      WOCKY_NODE, "username",
+      WOCKY_NODE_TEXT, priv->user,
+      WOCKY_NODE_END,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
