@@ -83,7 +83,7 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) $(CERTS) $(LIBWOCKY)
+wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) certs $(LIBWOCKY)
 
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
