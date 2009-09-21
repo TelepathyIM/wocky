@@ -18,6 +18,11 @@
 #include "wocky-test-helper.h"
 #include "config.h"
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "wocky-connector-test"
+
 #define SASL_DB_NAME "sasl-test.db"
 
 #define INVISIBLE_HOST "unreachable.host"
@@ -3425,7 +3430,7 @@ main (int argc,
 
 #else
 
-#warning "Skipping SASL MD5 tests"
+  g_message ("libsasl2 not found: skipping MD5 SASL tests");
   for (i = 0; tests[i].desc != NULL; i++)
     {
       if (tests[i].result.mech == WOCKY_SASL_AUTH_DIGEST_MD5)

@@ -46,7 +46,6 @@ G_STMT_START   {                                            \
 
 #else
 
-#warning "libsasl2 or headers for same not found. faking it for tests."
 #define SASL_OK 0
 #define SASL_BADAUTH -13
 #define SASL_NOUSER  -20
