@@ -24,6 +24,9 @@
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-signals-marshal.h>
 
+#define DEBUG_FLAG DEBUG_PUBSUB
+#include "wocky-debug.h"
+
 G_DEFINE_TYPE (WockyPepService, wocky_pep_service, G_TYPE_OBJECT)
 
 /* signal enum */
@@ -220,7 +223,10 @@ msg_event_cb (WockyPorter *porter,
 
   from = wocky_xmpp_node_get_attribute (stanza->node, "from");
   if (from == NULL)
-    return FALSE;
+    {
+      DEBUG ("No 'from' attribute; ignoring event");
+      return FALSE;
+    }
 
   contact = wocky_contact_factory_ensure_bare_contact (
       priv->contact_factory, from);
