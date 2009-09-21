@@ -22,8 +22,7 @@
 #include <wocky/wocky-porter.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
-
-#include "gabble-signals-marshal.h"
+#include <wocky/wocky-signals-marshal.h>
 
 G_DEFINE_TYPE (WockyPepService, wocky_pep_service, G_TYPE_OBJECT)
 
@@ -195,7 +194,7 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
       G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
       0,
       NULL, NULL,
-      gabble_marshal_VOID__OBJECT_OBJECT,
+      _wocky_signals_marshal_VOID__OBJECT_OBJECT,
       G_TYPE_NONE, 2, G_TYPE_OBJECT, G_TYPE_OBJECT);
 }
 
