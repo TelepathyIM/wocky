@@ -69,6 +69,7 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-tls-test \
   wocky-data-forms-test \
   wocky-pubsub-service-test \
+  wocky-pubsub-node-test \
   wocky-connector-test
 
 wocky_tls_test_DEPENDENCIES = $(LIBWOCKY)
@@ -193,6 +194,12 @@ wocky_pubsub_service_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-pubsub-service-test.c
+
+wocky_pubsub_node_test_DEPENDENCIES = $(LIBWOCKY)
+wocky_pubsub_node_test_SOURCES = \
+  wocky-test-helper.c wocky-test-helper.h \
+  wocky-test-stream.c wocky-test-stream.h \
+  wocky-pubsub-node-test.c
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @TLS_CFLAGS@ @WOCKY_CFLAGS@
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @TLS_LIBS@
