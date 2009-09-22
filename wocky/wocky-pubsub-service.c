@@ -21,6 +21,7 @@
 
 #include <wocky/wocky-porter.h>
 #include <wocky/wocky-utils.h>
+#include <wocky/wocky-pubsub-node.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-signals-marshal.h>
 
@@ -54,6 +55,8 @@ struct _WockyPubsubServicePrivate
   WockyPorter *porter;
 
   gchar *jid;
+  /* owned (gchar *) => weak reffed (WockyPubsubNode *) */
+  GHashTable *nodes;
 
   gboolean dispose_has_run;
 };
@@ -65,10 +68,10 @@ struct _WockyPubsubServicePrivate
 static void
 wocky_pubsub_service_init (WockyPubsubService *obj)
 {
-  /*
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (obj);
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
-  */
+
+  priv->nodes = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 }
 
 static void
@@ -143,6 +146,7 @@ wocky_pubsub_service_finalize (GObject *object)
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
 
   g_free (priv->jid);
+  g_hash_table_unref (priv->nodes);
 
   G_OBJECT_CLASS (wocky_pubsub_service_parent_class)->finalize (object);
 }
@@ -194,4 +198,62 @@ wocky_pubsub_service_new (WockySession *session,
       "session", session,
       "jid", jid,
       NULL);
+}
+
+static gboolean
+remove_node (gpointer key,
+    gpointer value,
+    gpointer node)
+{
+  return value == node;
+}
+
+/* Called when a WockyPubsubNode has been disposed so we can remove it from
+ * the hash table. */
+static void
+node_disposed_cb (gpointer user_data,
+    GObject *node)
+{
+  WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (user_data);
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+
+  g_hash_table_foreach_remove (priv->nodes, remove_node, node);
+}
+
+static WockyPubsubNode *
+create_node (WockyPubsubService *self,
+    const gchar *name)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubNode *node;
+
+  node = wocky_pubsub_node_new (self, name);
+
+  g_object_weak_ref (G_OBJECT (node), node_disposed_cb, self);
+  g_hash_table_insert (priv->nodes, g_strdup (name), node);
+
+  return node;
+}
+
+WockyPubsubNode *
+wocky_pubsub_service_ensure_node (WockyPubsubService *self,
+    const gchar *name)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubNode *node;
+
+  node = g_hash_table_lookup (priv->nodes, name);
+  if (node != NULL)
+    return g_object_ref (node);
+
+  return create_node (self, name);
+}
+
+WockyPubsubNode *
+wocky_pubsub_service_lookup_node (WockyPubsubService *self,
+    const gchar *name)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+
+  return g_hash_table_lookup (priv->nodes, name);
 }

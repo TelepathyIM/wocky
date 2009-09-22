@@ -24,6 +24,7 @@
 #include <gio/gio.h>
 #include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-session.h>
+#include <wocky/wocky-types.h>
 
 G_BEGIN_DECLS
 
@@ -58,6 +59,12 @@ GType wocky_pubsub_service_get_type (void);
 
 WockyPubsubService * wocky_pubsub_service_new (WockySession *session,
     const gchar *jid);
+
+WockyPubsubNode * wocky_pubsub_service_ensure_node (WockyPubsubService *service,
+    const gchar *name);
+
+WockyPubsubNode * wocky_pubsub_service_lookup_node (WockyPubsubService *service,
+    const gchar *name);
 
 G_END_DECLS
 
