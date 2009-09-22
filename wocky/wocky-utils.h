@@ -21,6 +21,7 @@
 #define __WOCKY_UTIL_H__
 
 #include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -31,6 +32,27 @@ gboolean wocky_decode_jid (const gchar *jid,
     gchar **node,
     gchar **domain,
     gchar **resource);
+
+GValue *wocky_g_value_slice_new (GType type);
+
+GValue *wocky_g_value_slice_new_boolean (gboolean b);
+GValue *wocky_g_value_slice_new_int (gint n);
+GValue *wocky_g_value_slice_new_int64 (gint64 n);
+GValue *wocky_g_value_slice_new_uint (guint n);
+GValue *wocky_g_value_slice_new_uint64 (guint64 n);
+GValue *wocky_g_value_slice_new_double (double d);
+
+GValue *wocky_g_value_slice_new_string (const gchar *string);
+GValue *wocky_g_value_slice_new_static_string (const gchar *string);
+GValue *wocky_g_value_slice_new_take_string (gchar *string);
+
+GValue *wocky_g_value_slice_new_boxed (GType type, gconstpointer p);
+GValue *wocky_g_value_slice_new_static_boxed (GType type, gconstpointer p);
+GValue *wocky_g_value_slice_new_take_boxed (GType type, gpointer p);
+
+void wocky_g_value_slice_free (GValue *value);
+
+GValue *wocky_g_value_slice_dup (const GValue *value);
 
 G_END_DECLS
 
