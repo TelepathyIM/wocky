@@ -883,7 +883,7 @@ stanza_received_cb (GObject *source,
         }
       else
         {
-          DEBUG ("Error receiving stanza: %s\n", error->message);
+          DEBUG ("Error receiving stanza: %s", error->message);
         }
 
       if (priv->force_close_result)
