@@ -857,7 +857,7 @@ tcp_srv_connected (GObject *source,
               DEBUG ("SRV error is: %s:%d", domain, error->code);
             }
         }
-      DEBUG ("Falling back to HOST connection\n");
+      DEBUG ("Falling back to HOST connection");
 
       g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
@@ -900,7 +900,7 @@ tcp_host_connected (GObject *source,
 
   if (priv->sock == NULL)
     {
-      DEBUG ("HOST connect failed: %s\n", error->message);
+      DEBUG ("HOST connect failed: %s", error->message);
       abort_connect_error (connector, &error, "connection failed");
       g_error_free (error);
     }
@@ -2694,7 +2694,7 @@ wocky_connector_connect_async (WockyConnector *self,
       guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
       const gchar *srv = (priv->xmpp_host == NULL) ? host : priv->xmpp_host;
 
-      DEBUG ("host: %s; port: %d\n", priv->xmpp_host, priv->xmpp_port);
+      DEBUG ("host: %s; port: %d", priv->xmpp_host, priv->xmpp_port);
       g_socket_client_connect_to_host_async (priv->client, srv, port, NULL,
           tcp_host_connected, self);
     }
