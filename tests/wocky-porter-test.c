@@ -2171,6 +2171,74 @@ test_close_force_after_close_sent (void)
   teardown_test (test);
 }
 
+/* The remote connection is closed while we are waiting for an IQ reply */
+static void
+test_wait_iq_reply_close_reply_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  GError *error = NULL;
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
+      res, &error);
+  g_assert (reply == NULL);
+  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_wait_iq_reply_close (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  /* register an IQ handler */
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 0,
+      test_receive_stanza_received_cb, test, WOCKY_STANZA_END);
+
+  /* Send an IQ query */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "1",
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_wait_iq_reply_close_reply_cb, test);
+  g_queue_push_tail (test->expected_stanzas, iq);
+
+  /* wait that the IQ has been received */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  /* the other side closes the connection (and so won't send the IQ reply) */
+  wocky_porter_close_async (test->sched_out, NULL, test_close_sched_close_cb,
+      test);
+
+  /* the send IQ operation is finished (with an error) */
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  wocky_porter_close_async (test->sched_in, NULL, test_close_sched_close_cb,
+      test);
+
+  /* the 2 close operations are completed */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2216,6 +2284,8 @@ main (int argc, char **argv)
       test_close_force_after_error);
   g_test_add_func ("/xmpp-porter/close-force-after-close-sent",
       test_close_force_after_close_sent);
+  g_test_add_func ("/xmpp-porter/wait-iq-reply-close",
+      test_wait_iq_reply_close);
 
   result = g_test_run ();
   test_deinit ();
