@@ -796,6 +796,19 @@ remote_connection_closed (WockyPorter *self,
    * we have finished to threat the error. */
   g_object_ref (self);
 
+  /* Complete pending send IQ operations as we won't be able to receive their
+   * IQ replies */
+  g_hash_table_iter_init (&iter, priv->iq_reply_handlers);
+  while (g_hash_table_iter_next (&iter, NULL, &value))
+    {
+      StanzaIqHandler *handler = value;
+      GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED,
+          "Remote connection has been closed" };
+
+      g_simple_async_result_set_from_error (handler->result, &err);
+      g_simple_async_result_complete (handler->result);
+    }
+
   if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
     error_occured = FALSE;
@@ -830,19 +843,6 @@ remote_connection_closed (WockyPorter *self,
     }
 
   priv->remote_closed = TRUE;
-
-  /* Complete pending send IQ operations as we won't be able to receive their
-   * IQ replies */
-  g_hash_table_iter_init (&iter, priv->iq_reply_handlers);
-  while (g_hash_table_iter_next (&iter, NULL, &value))
-    {
-      StanzaIqHandler *handler = value;
-      GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED,
-          "Remote connection has been closed" };
-
-      g_simple_async_result_set_from_error (handler->result, &err);
-      g_simple_async_result_complete (handler->result);
-    }
 
   g_object_unref (self);
 }
