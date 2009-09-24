@@ -2184,7 +2184,8 @@ test_wait_iq_reply_close_reply_cb (GObject *source,
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
       res, &error);
   g_assert (reply == NULL);
-  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED);
+  g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
   g_error_free (error);
 
   test->outstanding--;

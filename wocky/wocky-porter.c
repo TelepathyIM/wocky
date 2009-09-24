@@ -802,10 +802,8 @@ remote_connection_closed (WockyPorter *self,
   while (g_hash_table_iter_next (&iter, NULL, &value))
     {
       StanzaIqHandler *handler = value;
-      GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED,
-          "Remote connection has been closed" };
 
-      g_simple_async_result_set_from_error (handler->result, &err);
+      g_simple_async_result_set_from_error (handler->result, error);
       g_simple_async_result_complete (handler->result);
     }
 
