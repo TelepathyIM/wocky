@@ -122,9 +122,6 @@ examples/wocky-unregister
 
 coverage/
 
-/shave
-/shave-libtool
-
 docs/reference/*-decl.txt
 docs/reference/*-decl-list.txt
 docs/reference/*-undeclared.txt

@@ -26,6 +26,8 @@ AM_INIT_AUTOMAKE([1.9 -Wno-portability tar-ustar])
 AM_PROG_LIBTOOL
 AM_CONFIG_HEADER(config.h)
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
+
 dnl check for tools
 AC_PROG_CC
 AC_PROG_CC_STDC
@@ -148,8 +150,6 @@ AC_SUBST(WOCKY_CFLAGS)
 
 GTK_DOC_CHECK([1.10])
 
-SHAVE_INIT(.)
-
 AC_OUTPUT( Makefile            \
            wocky/Makefile      \
            wocky/wocky-uninstalled.pc \
@@ -158,7 +158,5 @@ AC_OUTPUT( Makefile            \
            examples/Makefile   \
            tests/Makefile      \
            docs/Makefile      \
-           docs/reference/Makefile      \
-           shave               \
-           shave-libtool       \
+           docs/reference/Makefile
 )

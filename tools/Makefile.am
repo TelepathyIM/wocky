@@ -3,5 +3,4 @@ EXTRA_DIST = \
     check-c-style.sh \
     check-misc.sh \
     check-whitespace.sh \
-    shave.mk \
     flymake.mk
