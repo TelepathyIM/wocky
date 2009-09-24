@@ -2175,6 +2175,37 @@ test_close_force_after_close_sent (void)
 
 /* The remote connection is closed while we are waiting for an IQ reply */
 static void
+open_connections_and_send_one_iq (test_data_t *test,
+    GAsyncReadyCallback send_iq_callback)
+{
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  /* register an IQ handler */
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 0,
+      test_receive_stanza_received_cb, test, WOCKY_STANZA_END);
+
+  /* Send an IQ query */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "1",
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, send_iq_callback, test);
+  g_queue_push_tail (test->expected_stanzas, iq);
+
+  /* wait that the IQ has been received */
+  test->outstanding += 1;
+  test_wait_pending (test);
+}
+
+static void
 test_wait_iq_reply_close_reply_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
@@ -2198,31 +2229,8 @@ static void
 test_wait_iq_reply_close (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
 
-  test_open_both_connections (test);
-  wocky_porter_start (test->sched_out);
-  wocky_porter_start (test->sched_in);
-
-  /* register an IQ handler */
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
-      NULL, 0,
-      test_receive_stanza_received_cb, test, WOCKY_STANZA_END);
-
-  /* Send an IQ query */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
-    WOCKY_NODE_ATTRIBUTE, "id", "1",
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_in, iq,
-      NULL, test_wait_iq_reply_close_reply_cb, test);
-  g_queue_push_tail (test->expected_stanzas, iq);
-
-  /* wait that the IQ has been received */
-  test->outstanding += 1;
-  test_wait_pending (test);
+  open_connections_and_send_one_iq (test, test_wait_iq_reply_close_reply_cb);
 
   /* the other side closes the connection (and so won't send the IQ reply) */
   wocky_porter_close_async (test->sched_out, NULL, test_close_sched_close_cb,
@@ -2268,31 +2276,9 @@ static void
 test_wait_iq_reply_force_close (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
 
-  test_open_both_connections (test);
-  wocky_porter_start (test->sched_out);
-  wocky_porter_start (test->sched_in);
-
-  /* register an IQ handler */
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
-      NULL, 0,
-      test_receive_stanza_received_cb, test, WOCKY_STANZA_END);
-
-  /* Send an IQ query */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
-    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
-    WOCKY_NODE_ATTRIBUTE, "id", "1",
-    WOCKY_STANZA_END);
-
-  wocky_porter_send_iq_async (test->sched_in, iq,
-      NULL, test_wait_iq_reply_force_close_reply_cb, test);
-  g_queue_push_tail (test->expected_stanzas, iq);
-
-  /* wait that the IQ has been received */
-  test->outstanding += 1;
-  test_wait_pending (test);
+  open_connections_and_send_one_iq (test,
+      test_wait_iq_reply_force_close_reply_cb);
 
   /* force closing of our connection */
   wocky_porter_force_close_async (test->sched_in, NULL,
