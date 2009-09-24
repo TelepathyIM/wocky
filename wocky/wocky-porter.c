@@ -1366,8 +1366,7 @@ wocky_porter_force_close_async (WockyPorter *self,
   if (priv->close_result != NULL)
     {
       /* Finish pending close operation */
-      g_simple_async_result_set_error (priv->close_result, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_FORCE_CLOSING, "Force closing of the Porter");
+      g_simple_async_result_set_from_error (priv->close_result, &err);
       g_simple_async_result_complete_in_idle (priv->close_result);
       g_object_unref (priv->close_result);
       priv->close_result = NULL;
@@ -1391,8 +1390,7 @@ wocky_porter_force_close_async (WockyPorter *self,
   elem = g_queue_pop_head (priv->sending_queue);
   while (elem != NULL)
     {
-      g_simple_async_result_set_error (elem->result, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_FORCE_CLOSING, "Force closing of the Porter");
+      g_simple_async_result_set_from_error (elem->result, &err);
       g_simple_async_result_complete_in_idle (elem->result);
       sending_queue_elem_free (elem);
       elem = g_queue_pop_head (priv->sending_queue);
