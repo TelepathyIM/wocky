@@ -783,7 +783,7 @@ out:
 }
 
 static void
-complete_pending_send_iq (WockyPorter *self,
+abort_pending_iqs (WockyPorter *self,
     GError *error)
 {
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
@@ -814,7 +814,7 @@ remote_connection_closed (WockyPorter *self,
 
   /* Complete pending send IQ operations as we won't be able to receive their
    * IQ replies */
-  complete_pending_send_iq (self, error);
+  abort_pending_iqs (self, error);
 
   if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
@@ -1397,7 +1397,7 @@ wocky_porter_force_close_async (WockyPorter *self,
     }
 
   /* Terminate all the pending send IQ operations */
-  complete_pending_send_iq (self, &err);
+  abort_pending_iqs (self, &err);
 
   if (priv->remote_closed)
     {
