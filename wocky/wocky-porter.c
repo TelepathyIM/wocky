@@ -1331,6 +1331,8 @@ wocky_porter_force_close_async (WockyPorter *self,
 {
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   sending_queue_elem *elem;
+  GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCE_CLOSING,
+      "Force closing of the Porter" };
 
   if (priv->force_close_result != NULL)
     {
@@ -1395,6 +1397,9 @@ wocky_porter_force_close_async (WockyPorter *self,
       sending_queue_elem_free (elem);
       elem = g_queue_pop_head (priv->sending_queue);
     }
+
+  /* Terminate all the pending send IQ operations */
+  complete_pending_send_iq (self, &err);
 
   if (priv->remote_closed)
     {
