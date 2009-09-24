@@ -1975,7 +1975,7 @@ test_close_force_stanza_sent_cb (GObject *source,
 
   g_assert (!wocky_porter_send_finish (
       WOCKY_PORTER (source), res, &error));
-  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSING);
+  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCE_CLOSING);
 
   data->outstanding--;
   g_error_free (error);
