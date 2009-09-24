@@ -783,21 +783,13 @@ out:
 }
 
 static void
-remote_connection_closed (WockyPorter *self,
+complete_pending_send_iq (WockyPorter *self,
     GError *error)
 {
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
-  gboolean error_occured = TRUE;
   GHashTableIter iter;
   gpointer value;
 
-  /* Completing a close operation, firing the remote-error signal could make the
-   * user unref the porter. Ref it so, in such case, it would stay alive until
-   * we have finished to threat the error. */
-  g_object_ref (self);
-
-  /* Complete pending send IQ operations as we won't be able to receive their
-   * IQ replies */
   g_hash_table_iter_init (&iter, priv->iq_reply_handlers);
   while (g_hash_table_iter_next (&iter, NULL, &value))
     {
@@ -806,6 +798,23 @@ remote_connection_closed (WockyPorter *self,
       g_simple_async_result_set_from_error (handler->result, error);
       g_simple_async_result_complete (handler->result);
     }
+}
+
+static void
+remote_connection_closed (WockyPorter *self,
+    GError *error)
+{
+  WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
+  gboolean error_occured = TRUE;
+
+  /* Completing a close operation, firing the remote-error signal could make the
+   * user unref the porter. Ref it so, in such case, it would stay alive until
+   * we have finished to threat the error. */
+  g_object_ref (self);
+
+  /* Complete pending send IQ operations as we won't be able to receive their
+   * IQ replies */
+  complete_pending_send_iq (self, error);
 
   if (g_error_matches (error, WOCKY_XMPP_CONNECTION_ERROR,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
