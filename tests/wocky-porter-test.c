@@ -1975,7 +1975,8 @@ test_close_force_stanza_sent_cb (GObject *source,
 
   g_assert (!wocky_porter_send_finish (
       WOCKY_PORTER (source), res, &error));
-  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCE_CLOSING);
+  g_assert_error (error, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_FORCIBLY_CLOSED);
 
   data->outstanding--;
   g_error_free (error);
@@ -1992,7 +1993,8 @@ test_close_force_closed_cb (GObject *source,
 
   g_assert (!wocky_porter_close_finish (
       WOCKY_PORTER (source), res, &error));
-  g_assert_error (error, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCE_CLOSING);
+  g_assert_error (error, WOCKY_PORTER_ERROR,
+      WOCKY_PORTER_ERROR_FORCIBLY_CLOSED);
 
   test->outstanding--;
   g_error_free (error);
@@ -2255,7 +2257,7 @@ test_wait_iq_reply_force_close_reply_cb (GObject *source,
       res, &error);
   g_assert (reply == NULL);
   g_assert_error (error, WOCKY_PORTER_ERROR,
-      WOCKY_PORTER_ERROR_FORCE_CLOSING);
+      WOCKY_PORTER_ERROR_FORCIBLY_CLOSED);
   g_error_free (error);
 
   test->outstanding--;

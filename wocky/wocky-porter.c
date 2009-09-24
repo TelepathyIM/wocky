@@ -1331,8 +1331,8 @@ wocky_porter_force_close_async (WockyPorter *self,
 {
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
   sending_queue_elem *elem;
-  GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCE_CLOSING,
-      "Force closing of the Porter" };
+  GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCIBLY_CLOSED,
+      "Porter was closed forcibly" };
 
   if (priv->force_close_result != NULL)
     {
