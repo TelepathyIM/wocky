@@ -22,9 +22,8 @@
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 
-/* FIXME: use a Wocky debug domain */
-#define DEBUG_FLAG GABBLE_DEBUG_SEARCH
-#include "debug.h"
+#define DEBUG_FLAG DEBUG_DATA_FORMS
+#include "wocky-debug.h"
 
 G_DEFINE_TYPE (WockyDataForms, wocky_data_forms, G_TYPE_OBJECT)
 
