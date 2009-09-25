@@ -546,7 +546,11 @@ foreach_x_child (WockyXmppNode *field_node,
     return TRUE;
 
   DEBUG ("add field '%s'", field->var);
-  g_hash_table_insert (self->fields, field->var, field);
+  if (field->var != NULL)
+    /* Fixed fields don't have a 'var' attribute and so are not added to the
+     * hash table */
+    g_hash_table_insert (self->fields, field->var, field);
+
   /* list will be reveresed */
   self->fields_list = g_slist_prepend (self->fields_list, field);
   return TRUE;
