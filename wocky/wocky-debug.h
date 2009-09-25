@@ -30,6 +30,7 @@ typedef enum
   DEBUG_ROSTER            = 1 << 13,
   DEBUG_TLS               = 1 << 14,
   DEBUG_PUBSUB            = 1 << 15,
+  DEBUG_DATA_FORMS        = 1 << 16,
 } DebugFlags;
 
 #define DEBUG_XMPP (DEBUG_XMPP_READER | DEBUG_XMPP_WRITER)
