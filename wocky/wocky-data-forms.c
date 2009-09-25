@@ -807,3 +807,19 @@ wocky_data_forms_parse_result (WockyDataForms *self,
   self->results = g_slist_reverse (self->results);
   return TRUE;
 }
+
+const gchar *
+wocky_data_forms_get_title (WockyDataForms *self)
+{
+  WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
+
+  return priv->title;
+}
+
+const gchar *
+wocky_data_forms_get_instructions (WockyDataForms *self)
+{
+  WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
+
+  return priv->instructions;
+}

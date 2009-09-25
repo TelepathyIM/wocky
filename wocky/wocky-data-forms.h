@@ -118,6 +118,10 @@ gboolean wocky_data_forms_parse_result (WockyDataForms *forms,
     WockyXmppNode *node,
     GError **error);
 
+const gchar *wocky_data_forms_get_title (WockyDataForms *forms);
+
+const gchar *wocky_data_forms_get_instructions (WockyDataForms *forms);
+
 G_END_DECLS
 
 #endif /* __WOCKY_DATA_FORMS_H__ */
