@@ -291,7 +291,7 @@ str_to_type (const gchar *str)
     return WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE;
   else if (!wocky_strdiff (str, "text-multi"))
     return WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI;
-  else if (!wocky_strdiff (str, "test-private"))
+  else if (!wocky_strdiff (str, "text-private"))
     return WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE;
   else if (!wocky_strdiff (str, "text-single"))
     return WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE;
