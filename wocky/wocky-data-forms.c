@@ -141,8 +141,7 @@ wocky_data_forms_init (WockyDataForms *obj)
   WockyDataForms *self = WOCKY_DATA_FORMS (obj);
   WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
 
-  self->fields = g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
-      (GDestroyNotify) wocky_data_forms_field_free);
+  self->fields = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
   self->fields_list = NULL;
 
   priv->reported = g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
@@ -222,6 +221,8 @@ wocky_data_forms_finalize (GObject *object)
   g_free (priv->title);
   g_free (priv->instructions);
   g_hash_table_unref (self->fields);
+  g_slist_foreach (self->fields_list, (GFunc) wocky_data_forms_field_free,
+      NULL);
   g_slist_free (self->fields_list);
 
   for (l = self->results; l != NULL; l = g_slist_next (l))
