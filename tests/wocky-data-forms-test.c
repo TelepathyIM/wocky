@@ -624,6 +624,73 @@ test_parse_multi_result (void)
   g_object_unref (forms);
 }
 
+static void
+test_parse_single_result (void)
+{
+  WockyXmppStanza *stanza;
+  WockyDataForms *forms;
+  GSList *result, *l;
+  gboolean form_type = FALSE, botname = FALSE;
+
+  stanza = create_bot_creation_form_stanza ();
+  forms = wocky_data_forms_new_from_form (stanza->node);
+  g_assert (forms != NULL);
+  g_object_unref (stanza);
+
+  /* create the result stanza */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE, "x",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_DATA,
+        WOCKY_NODE_ATTRIBUTE, "type", "result",
+        /* hidden field */
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "type", "hidden",
+          WOCKY_NODE_ATTRIBUTE, "var", "FORM_TYPE",
+          WOCKY_NODE, "value", WOCKY_NODE_TEXT, "jabber:bot", WOCKY_NODE_END,
+        WOCKY_NODE_END,
+        /* text-single field */
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "type", "text-single",
+          WOCKY_NODE_ATTRIBUTE, "var", "botname",
+          WOCKY_NODE, "value", WOCKY_NODE_TEXT, "The Bot", WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  g_assert (wocky_data_forms_parse_result (forms, stanza->node, NULL));
+  g_object_unref (stanza);
+
+  g_assert_cmpuint (g_slist_length (forms->results), ==, 1);
+  result = forms->results->data;
+  g_assert_cmpuint (g_slist_length (result), ==, 2);
+
+  for (l = result; l != NULL; l = g_slist_next (l))
+    {
+      wocky_data_forms_field *field = l->data;
+
+      if (!wocky_strdiff (field->var, "FORM_TYPE"))
+        {
+          g_assert (!wocky_strdiff (g_value_get_string (field->value),
+                "jabber:bot"));
+          g_assert (field->type == WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN);
+          form_type = TRUE;
+        }
+      else if (!wocky_strdiff (field->var, "botname"))
+        {
+          g_assert (!wocky_strdiff (g_value_get_string (field->value),
+                "The Bot"));
+          g_assert (field->type == WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE);
+          botname = TRUE;
+        }
+      else
+        g_assert_not_reached ();
+    }
+  g_assert (form_type && botname);
+
+  g_object_unref (forms);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -635,6 +702,7 @@ main (int argc, char **argv)
   g_test_add_func ("/data-forms/parse-form", test_parse_form);
   g_test_add_func ("/data-forms/submit", test_submit);
   g_test_add_func ("/data-forms/parse-multi-result", test_parse_multi_result);
+  g_test_add_func ("/data-forms/parse-single-result", test_parse_single_result);
 
   result = g_test_run ();
   test_deinit ();
