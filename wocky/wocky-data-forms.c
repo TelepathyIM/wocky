@@ -550,7 +550,7 @@ foreach_x_child (WockyXmppNode *field_node,
   if (field == NULL)
     return TRUE;
 
-  DEBUG ("add field '%s'", field->var);
+  DEBUG ("add field '%s of type %s'", field->var, type_to_str (type));
   if (field->var != NULL)
     /* Fixed fields don't have a 'var' attribute and so are not added to the
      * hash table */
