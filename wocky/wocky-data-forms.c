@@ -778,11 +778,44 @@ foreach_item (WockyXmppNode *item_node,
   return TRUE;
 }
 
+static void
+parse_unique_result (WockyDataForms *self,
+    WockyXmppNode *x)
+{
+  GSList *l, *item = NULL;
+
+  for (l = x->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *node = l->data;
+      const gchar *var;
+      wocky_data_forms_field_type type;
+      wocky_data_forms_field *result;
+      GValue *value;
+
+      if (!extract_var_type_label (node, &var, &type, NULL))
+        continue;
+
+      value = get_field_value (type, node);
+      if (value == NULL)
+        continue;
+
+      result = wocky_data_forms_field_new (type, var, NULL,
+          NULL, FALSE, NULL, value, NULL);
+
+      item = g_slist_prepend (item, result);
+
+      wocky_g_value_slice_free (value);
+    }
+
+  self->results = g_slist_prepend (self->results, item);
+}
+
 gboolean
 wocky_data_forms_parse_result (WockyDataForms *self,
     WockyXmppNode *node,
     GError **error)
 {
+  WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
   WockyXmppNode *x;
   const gchar *type;
 
@@ -809,8 +842,12 @@ wocky_data_forms_parse_result (WockyDataForms *self,
    * fields */
   wocky_xmpp_node_each_child (x, foreach_reported, self);
 
-  /* then parse the result */
-  wocky_xmpp_node_each_child (x, foreach_item, self);
+  if (g_hash_table_size (priv->reported) > 0)
+    /* stanza contains reported fields; results are in item nodes */
+    wocky_xmpp_node_each_child (x, foreach_item, self);
+  else
+    /* no reporter fields, there is only one result */
+    parse_unique_result (self, x);
 
   self->results = g_slist_reverse (self->results);
   return TRUE;
