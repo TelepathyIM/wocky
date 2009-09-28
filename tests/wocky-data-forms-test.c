@@ -135,6 +135,7 @@ test_parse_form (void)
           WOCKY_NODE_ATTRIBUTE, "var", "public",
           WOCKY_NODE_ATTRIBUTE, "label", "Public bot?",
           WOCKY_NODE, "required", WOCKY_NODE_END,
+          WOCKY_NODE, "value", WOCKY_NODE_TEXT, "false", WOCKY_NODE_END,
         WOCKY_NODE_END,
         /* text-private field */
         WOCKY_NODE, "field",
@@ -264,7 +265,8 @@ test_parse_form (void)
   /* check boolean field */
   field = g_hash_table_lookup (forms->fields, "public");
   g_assert (field != NULL);
-  g_assert (field->default_value == NULL);
+  g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_BOOLEAN);
+  g_assert (!g_value_get_boolean (field->default_value));
   g_assert (field->options == NULL);
 
   /* check text-private field */
