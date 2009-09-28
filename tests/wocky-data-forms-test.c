@@ -50,7 +50,7 @@ test_new_from_form (void)
 }
 
 static WockyXmppStanza *
-create_form_stanza (void)
+create_bot_creation_form_stanza (void)
 {
   /* This stanza is inspired from Example 2 of XEP-0004: Data Forms */
   return wocky_xmpp_stanza_build (
@@ -221,7 +221,7 @@ test_parse_form (void)
     { "None", "none" },
   };
 
-  stanza = create_form_stanza ();
+  stanza = create_bot_creation_form_stanza ();
   forms = wocky_data_forms_new_from_form (stanza->node);
   g_assert (forms != NULL);
   g_object_unref (stanza);
@@ -339,7 +339,7 @@ test_submit (void)
   const gchar *features[] = { "news", "search", NULL };
   const gchar *invitees[] = { "juliet@example.org", "romeo@example.org", NULL };
 
-  stanza = create_form_stanza ();
+  stanza = create_bot_creation_form_stanza ();
   forms = wocky_data_forms_new_from_form (stanza->node);
   g_assert (forms != NULL);
   g_object_unref (stanza);
