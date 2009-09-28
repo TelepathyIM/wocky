@@ -389,6 +389,9 @@ extract_value_list (WockyXmppNode *node)
       g_ptr_array_add (tmp, g_strdup (value->content));
     }
 
+  /* Add trailing NULL */
+  g_ptr_array_add (tmp, NULL);
+
   return (GStrv) g_ptr_array_free (tmp, FALSE);
 }
 
