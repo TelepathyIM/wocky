@@ -768,6 +768,8 @@ foreach_item (WockyXmppNode *item_node,
           field->desc, field->required, field->default_value, value, NULL);
 
       item = g_slist_prepend (item, result);
+
+      wocky_g_value_slice_free (value);
     }
 
   item = g_slist_reverse (item);
