@@ -75,6 +75,8 @@ test_parse_form (void)
       "Maximum number of subscribers", NULL, FALSE, NULL, NULL, NULL },
     { WOCKY_DATA_FORMS_FIELD_TYPE_JID_MULTI, "invitelist",
       "People to invite", "Tell friends", FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_SINGLE, "botjid",
+      "The JID of the bot", NULL, FALSE, NULL, NULL, NULL },
   };
   guint i;
   wocky_data_forms_field *field;
@@ -206,6 +208,12 @@ test_parse_form (void)
           WOCKY_NODE_ATTRIBUTE, "label", "People to invite",
           WOCKY_NODE, "desc", WOCKY_NODE_TEXT, "Tell friends", WOCKY_NODE_END,
         WOCKY_NODE_END,
+        /* jid-single field */
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "type", "jid-single",
+          WOCKY_NODE_ATTRIBUTE, "var", "botjid",
+          WOCKY_NODE_ATTRIBUTE, "label", "The JID of the bot",
+        WOCKY_NODE_END,
       WOCKY_NODE_END, WOCKY_STANZA_END);
 
   forms = wocky_data_forms_new_from_form (stanza->node);
@@ -217,7 +225,7 @@ test_parse_form (void)
   g_assert (!wocky_strdiff (wocky_data_forms_get_instructions (forms),
         "Badger"));
 
-  g_assert_cmpuint (g_slist_length (forms->fields_list), ==, 9);
+  g_assert_cmpuint (g_slist_length (forms->fields_list), ==, 10);
   for (l = forms->fields_list, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
       field = l->data;
@@ -231,7 +239,7 @@ test_parse_form (void)
       g_assert (field->value == NULL);
     }
 
-  g_assert_cmpuint (g_hash_table_size (forms->fields), ==, 8);
+  g_assert_cmpuint (g_hash_table_size (forms->fields), ==, 9);
 
   /* check hidden field */
   field = g_hash_table_lookup (forms->fields, "FORM_TYPE");
@@ -299,6 +307,12 @@ test_parse_form (void)
 
   /* check jid-multi field */
   field = g_hash_table_lookup (forms->fields, "invitelist");
+  g_assert (field != NULL);
+  g_assert (field->default_value == NULL);
+  g_assert (field->options == NULL);
+
+  /* check boolean field */
+  field = g_hash_table_lookup (forms->fields, "botjid");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
