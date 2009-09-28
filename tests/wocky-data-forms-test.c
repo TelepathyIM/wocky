@@ -500,6 +500,130 @@ test_submit (void)
   g_object_unref (forms);
 }
 
+static WockyXmppStanza *
+create_search_form_stanza (void)
+{
+  /* This stanza is inspired from Example 6 of XEP-0004: Data Forms */
+  return wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE, "x",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_DATA,
+        WOCKY_NODE_ATTRIBUTE, "type", "form",
+        WOCKY_NODE, "title", WOCKY_NODE_TEXT, "My Title", WOCKY_NODE_END,
+        WOCKY_NODE, "instructions", WOCKY_NODE_TEXT, "Badger", WOCKY_NODE_END,
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "type", "text-single",
+          WOCKY_NODE_ATTRIBUTE, "var", "search_request",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+}
+
+static void
+test_parse_multi_result (void)
+{
+  WockyXmppStanza *stanza;
+  WockyDataForms *forms;
+  GSList *l;
+  gboolean item1 = FALSE, item2 = FALSE;
+
+  stanza = create_search_form_stanza ();
+  forms = wocky_data_forms_new_from_form (stanza->node);
+  g_assert (forms != NULL);
+  g_object_unref (stanza);
+
+  /* create the result stanza */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
+      NULL, NULL,
+      WOCKY_NODE, "x",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_DATA,
+        WOCKY_NODE_ATTRIBUTE, "type", "result",
+        WOCKY_NODE, "title", WOCKY_NODE_TEXT, "Search result", WOCKY_NODE_END,
+        WOCKY_NODE, "reported",
+          WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "var", "name",
+          WOCKY_NODE_ATTRIBUTE, "type", "text-single",
+          WOCKY_NODE_END,
+          WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "var", "url",
+          WOCKY_NODE_ATTRIBUTE, "type", "text-single",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+        /* first item */
+        WOCKY_NODE, "item",
+          WOCKY_NODE, "field",
+            WOCKY_NODE_ATTRIBUTE, "var", "name",
+            WOCKY_NODE, "value", WOCKY_NODE_TEXT, "name1", WOCKY_NODE_END,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "field",
+            WOCKY_NODE_ATTRIBUTE, "var", "url",
+            WOCKY_NODE, "value", WOCKY_NODE_TEXT, "url1", WOCKY_NODE_END,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+        /* second item */
+        WOCKY_NODE, "item",
+          WOCKY_NODE, "field",
+            WOCKY_NODE_ATTRIBUTE, "var", "name",
+            WOCKY_NODE, "value", WOCKY_NODE_TEXT, "name2", WOCKY_NODE_END,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "field",
+            WOCKY_NODE_ATTRIBUTE, "var", "url",
+            WOCKY_NODE, "value", WOCKY_NODE_TEXT, "url2", WOCKY_NODE_END,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  g_assert (wocky_data_forms_parse_result (forms, stanza->node, NULL));
+  g_object_unref (stanza);
+
+  g_assert_cmpuint (g_slist_length (forms->results), ==, 2);
+
+  for (l = forms->results; l != NULL; l = g_slist_next (l))
+    {
+      GSList *result = l->data, *m;
+      gboolean name = FALSE, url = FALSE;
+
+      for (m = result; m != NULL; m = g_slist_next (m))
+        {
+          wocky_data_forms_field *field = m->data;
+
+          if (!wocky_strdiff (field->var, "name"))
+            {
+              if (!wocky_strdiff (g_value_get_string (field->value), "name1"))
+                item1 = TRUE;
+              else if (!wocky_strdiff (g_value_get_string (field->value),
+                    "name2"))
+                item2 = TRUE;
+              else
+                g_assert_not_reached ();
+
+              name = TRUE;
+            }
+          else if (!wocky_strdiff (field->var, "url"))
+            {
+              if (item2)
+                g_assert (!wocky_strdiff (g_value_get_string (field->value),
+                      "url2"));
+              else if (item1)
+                g_assert (!wocky_strdiff (g_value_get_string (field->value),
+                      "url1"));
+              else
+                g_assert_not_reached ();
+
+              url = TRUE;
+            }
+          else
+            g_assert_not_reached ();
+        }
+      g_assert (name && url);
+    }
+  g_assert (item1 && item2);
+
+  g_object_unref (forms);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -510,6 +634,7 @@ main (int argc, char **argv)
   g_test_add_func ("/data-forms/instantiation", test_new_from_form);
   g_test_add_func ("/data-forms/parse-form", test_parse_form);
   g_test_add_func ("/data-forms/submit", test_submit);
+  g_test_add_func ("/data-forms/parse-multi-result", test_parse_multi_result);
 
   result = g_test_run ();
   test_deinit ();
