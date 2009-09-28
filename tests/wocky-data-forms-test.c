@@ -49,56 +49,11 @@ test_new_from_form (void)
   g_object_unref (stanza);
 }
 
-static void
-test_parse_form (void)
+static WockyXmppStanza *
+create_form_stanza (void)
 {
-  WockyXmppStanza *stanza;
-  WockyDataForms *forms;
-  GSList *l;
-  /* used to check that fields are stored in the right order */
-  wocky_data_forms_field expected_types[] = {
-    { WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN, "FORM_TYPE",
-      NULL, NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_FIXED, NULL,
-      NULL, NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE, "botname",
-      "The name of your bot", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI, "description",
-      "Helpful description of your bot", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN, "public",
-      "Public bot?", NULL, TRUE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE, "password",
-      "Password for special access", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_LIST_MULTI, "features",
-      "What features will the bot support?", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE, "maxsubs",
-      "Maximum number of subscribers", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_MULTI, "invitelist",
-      "People to invite", "Tell friends", FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_SINGLE, "botjid",
-      "The JID of the bot", NULL, FALSE, NULL, NULL, NULL },
-  };
-  guint i;
-  wocky_data_forms_field *field;
-  GStrv strv;
-  wocky_data_forms_field_option features_options[] = {
-    { "Contests", "contests" },
-    { "News", "news" },
-    { "Polls", "polls" },
-    { "Reminders", "reminders" },
-    { "Search", "search" },
-  };
-  wocky_data_forms_field_option maxsubs_options[] = {
-    { "10", "10" },
-    { "20", "20" },
-    { "30", "30" },
-    { "50", "50" },
-    { "100", "100" },
-    { "None", "none" },
-  };
-
   /* This stanza is inspired from Example 2 of XEP-0004: Data Forms */
-  stanza = wocky_xmpp_stanza_build (
+  return wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       WOCKY_NODE, "x",
@@ -216,7 +171,57 @@ test_parse_form (void)
           WOCKY_NODE_ATTRIBUTE, "label", "The JID of the bot",
         WOCKY_NODE_END,
       WOCKY_NODE_END, WOCKY_STANZA_END);
+}
 
+static void
+test_parse_form (void)
+{
+  WockyXmppStanza *stanza;
+  WockyDataForms *forms;
+  GSList *l;
+  /* used to check that fields are stored in the right order */
+  wocky_data_forms_field expected_types[] = {
+    { WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN, "FORM_TYPE",
+      NULL, NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_FIXED, NULL,
+      NULL, NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE, "botname",
+      "The name of your bot", NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI, "description",
+      "Helpful description of your bot", NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN, "public",
+      "Public bot?", NULL, TRUE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE, "password",
+      "Password for special access", NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_LIST_MULTI, "features",
+      "What features will the bot support?", NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE, "maxsubs",
+      "Maximum number of subscribers", NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_MULTI, "invitelist",
+      "People to invite", "Tell friends", FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_SINGLE, "botjid",
+      "The JID of the bot", NULL, FALSE, NULL, NULL, NULL },
+  };
+  guint i;
+  wocky_data_forms_field *field;
+  GStrv strv;
+  wocky_data_forms_field_option features_options[] = {
+    { "Contests", "contests" },
+    { "News", "news" },
+    { "Polls", "polls" },
+    { "Reminders", "reminders" },
+    { "Search", "search" },
+  };
+  wocky_data_forms_field_option maxsubs_options[] = {
+    { "10", "10" },
+    { "20", "20" },
+    { "30", "30" },
+    { "50", "50" },
+    { "100", "100" },
+    { "None", "none" },
+  };
+
+  stanza = create_form_stanza ();
   forms = wocky_data_forms_new_from_form (stanza->node);
   g_assert (forms != NULL);
   g_object_unref (stanza);
