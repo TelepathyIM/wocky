@@ -102,6 +102,7 @@ wocky_data_forms_field_new (wocky_data_forms_field_type type,
   field->type = type;
   field->var = g_strdup (var);
   field->label = g_strdup (label);
+  field->desc = g_strdup (desc);
   field->required = required;
   if (default_value != NULL)
     field->default_value = wocky_g_value_slice_dup (default_value);
@@ -120,6 +121,7 @@ wocky_data_forms_field_free (wocky_data_forms_field *field)
 
   g_free (field->var);
   g_free (field->label);
+  g_free (field->desc);
 
   if (field->default_value != NULL)
     wocky_g_value_slice_free (field->default_value);
