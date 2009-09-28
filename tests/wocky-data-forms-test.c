@@ -327,6 +327,179 @@ test_parse_form (void)
   g_object_unref (forms);
 }
 
+static void
+test_submit (void)
+{
+  WockyXmppStanza *stanza;
+  WockyDataForms *forms;
+  wocky_data_forms_field *field;
+  WockyXmppNode *x;
+  GSList *l;
+  const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
+  const gchar *features[] = { "news", "search", NULL };
+  const gchar *invitees[] = { "juliet@example.org", "romeo@example.org", NULL };
+
+  stanza = create_form_stanza ();
+  forms = wocky_data_forms_new_from_form (stanza->node);
+  g_assert (forms != NULL);
+  g_object_unref (stanza);
+
+  /* set text-single field */
+  field = g_hash_table_lookup (forms->fields, "botname");
+  field->value = wocky_g_value_slice_new_string ("The Jabber Google Bot");
+
+  /* set text-multi field */
+  field = g_hash_table_lookup (forms->fields, "description");
+  field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, description);
+
+  /* set boolean field */
+  field = g_hash_table_lookup (forms->fields, "public");
+  field->value = wocky_g_value_slice_new_boolean (FALSE);
+
+  /* set text-private field */
+  field = g_hash_table_lookup (forms->fields, "password");
+  field->value = wocky_g_value_slice_new_string ("S3cr1t");
+
+  /* set list-multi field */
+  field = g_hash_table_lookup (forms->fields, "features");
+  field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, features);
+
+  /* set list-single field */
+  field = g_hash_table_lookup (forms->fields, "maxsubs");
+  field->value = wocky_g_value_slice_new_string ("20");
+
+  /* set jid-multi field */
+  field = g_hash_table_lookup (forms->fields, "invitelist");
+  field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, invitees);
+
+  /* set jid-single field */
+  field = g_hash_table_lookup (forms->fields, "botjid");
+  field->value = wocky_g_value_slice_new_string ("bobot@example.org");
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, NULL, WOCKY_STANZA_END);
+  wocky_data_forms_submit (forms, stanza->node);
+
+  x = wocky_xmpp_node_get_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
+  g_assert (x != NULL);
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (x, "type"),
+        "submit"));
+
+  for (l = x->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *v, *node = l->data;
+      const gchar *var, *type, *value = NULL;
+
+      g_assert (!wocky_strdiff (node->name, "field"));
+      var = wocky_xmpp_node_get_attribute (node, "var");
+      g_assert (var != NULL);
+      type = wocky_xmpp_node_get_attribute (node, "type");
+
+      v = wocky_xmpp_node_get_child (node, "value");
+      if (v != NULL)
+        value = v->content;
+
+      if (!wocky_strdiff (var, "FORM_TYPE"))
+        {
+          g_assert (!wocky_strdiff (type, "hidden"));
+          g_assert (!wocky_strdiff (value, "jabber:bot"));
+        }
+      else if (!wocky_strdiff (var, "botname"))
+        {
+          g_assert (!wocky_strdiff (type, "text-single"));
+          g_assert (!wocky_strdiff (value, "The Jabber Google Bot"));
+        }
+      else if (!wocky_strdiff (var, "description"))
+        {
+          GSList *m;
+          gboolean badger = FALSE, mushroom = FALSE, snake = FALSE;
+
+          g_assert (!wocky_strdiff (type, "text-multi"));
+          for (m = node->children; m != NULL; m = g_slist_next (m))
+            {
+              WockyXmppNode *tmp = m->data;
+
+              g_assert (!wocky_strdiff (tmp->name, "value"));
+              if (!wocky_strdiff (tmp->content, "Badger"))
+                badger = TRUE;
+              else if (!wocky_strdiff (tmp->content, "Mushroom"))
+                mushroom = TRUE;
+              else if (!wocky_strdiff (tmp->content, "Snake"))
+                snake = TRUE;
+              else
+                g_assert_not_reached ();
+            }
+          g_assert (badger && mushroom && snake);
+        }
+      else if (!wocky_strdiff (var, "public"))
+        {
+          g_assert (!wocky_strdiff (type, "boolean"));
+          g_assert (!wocky_strdiff (value, "0"));
+        }
+      else if (!wocky_strdiff (var, "password"))
+        {
+          g_assert (!wocky_strdiff (type, "text-private"));
+          g_assert (!wocky_strdiff (value, "S3cr1t"));
+        }
+      else if (!wocky_strdiff (var, "features"))
+        {
+          GSList *m;
+          gboolean news = FALSE, search = FALSE;
+
+          g_assert (!wocky_strdiff (type, "list-multi"));
+          for (m = node->children; m != NULL; m = g_slist_next (m))
+            {
+              WockyXmppNode *tmp = m->data;
+
+              g_assert (!wocky_strdiff (tmp->name, "value"));
+              if (!wocky_strdiff (tmp->content, "news"))
+                news = TRUE;
+              else if (!wocky_strdiff (tmp->content, "search"))
+                search = TRUE;
+              else
+                g_assert_not_reached ();
+            }
+          g_assert (news && search);
+        }
+      else if (!wocky_strdiff (var, "maxsubs"))
+        {
+          g_assert (!wocky_strdiff (type, "list-single"));
+          g_assert (!wocky_strdiff (value, "20"));
+        }
+      else if (!wocky_strdiff (var, "invitelist"))
+        {
+          GSList *m;
+          gboolean juliet = FALSE, romeo = FALSE;
+
+          g_assert (!wocky_strdiff (type, "jid-multi"));
+          for (m = node->children; m != NULL; m = g_slist_next (m))
+            {
+              WockyXmppNode *tmp = m->data;
+
+              g_assert (!wocky_strdiff (tmp->name, "value"));
+              if (!wocky_strdiff (tmp->content, "juliet@example.org"))
+                juliet = TRUE;
+              else if (!wocky_strdiff (tmp->content, "romeo@example.org"))
+                romeo = TRUE;
+              else
+                g_assert_not_reached ();
+            }
+          g_assert (juliet && romeo);
+        }
+      else if (!wocky_strdiff (var, "botjid"))
+        {
+          g_assert (!wocky_strdiff (type, "jid-single"));
+          g_assert (!wocky_strdiff (value, "bobot@example.org"));
+        }
+      else
+        g_assert_not_reached ();
+    }
+
+  g_object_unref (stanza);
+  g_object_unref (forms);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -336,6 +509,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/data-forms/instantiation", test_new_from_form);
   g_test_add_func ("/data-forms/parse-form", test_parse_form);
+  g_test_add_func ("/data-forms/submit", test_submit);
 
   result = g_test_run ();
   test_deinit ();
