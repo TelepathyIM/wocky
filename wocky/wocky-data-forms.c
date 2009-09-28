@@ -355,7 +355,7 @@ extract_options_list (WockyXmppNode *node)
       /* the label is optionnal */
 
       value = wocky_xmpp_node_get_child (option_node, "value");
-      if (value== NULL)
+      if (value == NULL)
         continue;
 
       if (value->content == NULL)
