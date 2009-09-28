@@ -359,6 +359,7 @@ extract_options_list (WockyXmppNode *node)
       if (value->content == NULL)
         continue;
 
+      DEBUG ("Add option: %s", value->content);
       option = wocky_data_forms_field_option_new (label, value->content);
       result = g_slist_append (result, option);
     }
