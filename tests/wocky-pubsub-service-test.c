@@ -212,7 +212,8 @@ test_create_node_no_config_cb (GObject *source,
 }
 
 static void
-test_create_node_no_config (void)
+create_node_test (WockyPorterHandlerFunc iq_cb,
+    GAsyncReadyCallback create_cb)
 {
   test_data_t *test = setup_test ();
   WockyPubsubService *pubsub;
@@ -227,7 +228,7 @@ test_create_node_no_config (void)
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      test_create_node_no_config_iq_cb, test,
+      iq_cb, test,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create",
@@ -236,12 +237,19 @@ test_create_node_no_config (void)
       WOCKY_STANZA_END);
 
   wocky_pubsub_service_create_node_async (pubsub, "node1", NULL, NULL,
-      test_create_node_no_config_cb, test);
+      create_cb, test);
 
   test->outstanding += 2;
   test_wait_pending (test);
 
   g_object_unref (pubsub);
+}
+
+static void
+test_create_node_no_config (void)
+{
+  create_node_test (test_create_node_no_config_iq_cb,
+      test_create_node_no_config_cb);
 }
 
 int
