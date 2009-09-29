@@ -17,33 +17,44 @@ test_new_from_form (void)
   WockyXmppStanza *stanza;
   WockyXmppNode *node;
   WockyDataForms *forms;
+  GError *error = NULL;
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL, WOCKY_STANZA_END);
 
   /* node doesn't contain a form */
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, &error);
   g_assert (forms == NULL);
+  g_assert_error (error, WOCKY_DATA_FORMS_ERROR,
+      WOCKY_DATA_FORMS_ERROR_NOT_FORM);
+  g_clear_error (&error);
 
   /* add 'x' node */
   node = wocky_xmpp_node_add_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
 
   /* the x node doesn't have a 'type' attribute */
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, &error);
   g_assert (forms == NULL);
+  g_assert_error (error, WOCKY_DATA_FORMS_ERROR,
+      WOCKY_DATA_FORMS_ERROR_WRONG_TYPE);
+  g_clear_error (&error);
 
   /* set wrong type */
   wocky_xmpp_node_set_attribute (node, "type", "badger");
 
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, &error);
   g_assert (forms == NULL);
+  g_assert_error (error, WOCKY_DATA_FORMS_ERROR,
+      WOCKY_DATA_FORMS_ERROR_WRONG_TYPE);
+  g_clear_error (&error);
 
   /* set the right type */
   wocky_xmpp_node_set_attribute (node, "type", "form");
 
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, &error);
   g_assert (forms != NULL);
+  g_assert_no_error (error);
 
   g_object_unref (forms);
   g_object_unref (stanza);
@@ -222,7 +233,7 @@ test_parse_form (void)
   };
 
   stanza = create_bot_creation_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
   g_assert (forms != NULL);
   g_object_unref (stanza);
 
@@ -340,7 +351,7 @@ test_submit (void)
   const gchar *invitees[] = { "juliet@example.org", "romeo@example.org", NULL };
 
   stanza = create_bot_creation_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
   g_assert (forms != NULL);
   g_object_unref (stanza);
 
@@ -528,7 +539,7 @@ test_parse_multi_result (void)
   gboolean item1 = FALSE, item2 = FALSE;
 
   stanza = create_search_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
   g_assert (forms != NULL);
   g_object_unref (stanza);
 
@@ -633,7 +644,7 @@ test_parse_single_result (void)
   gboolean form_type = FALSE, botname = FALSE;
 
   stanza = create_bot_creation_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node);
+  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
   g_assert (forms != NULL);
   g_object_unref (stanza);
 

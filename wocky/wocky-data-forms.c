@@ -559,7 +559,8 @@ foreach_x_child (WockyXmppNode *field_node,
 }
 
 WockyDataForms *
-wocky_data_forms_new_from_form (WockyXmppNode *root)
+wocky_data_forms_new_from_form (WockyXmppNode *root,
+    GError **error)
 {
   WockyXmppNode *x, *node;
   const gchar *type, *title = NULL, *instructions = NULL;
@@ -569,6 +570,8 @@ wocky_data_forms_new_from_form (WockyXmppNode *root)
   if (x == NULL)
     {
       DEBUG ("No 'x' node");
+      g_set_error (error, WOCKY_DATA_FORMS_ERROR,
+          WOCKY_DATA_FORMS_ERROR_NOT_FORM, "No 'x' node");
       return NULL;
     }
 
@@ -576,6 +579,9 @@ wocky_data_forms_new_from_form (WockyXmppNode *root)
   if (wocky_strdiff (type, "form"))
     {
       DEBUG ("'type' attribute is not 'form': %s", type);
+      g_set_error (error, WOCKY_DATA_FORMS_ERROR,
+          WOCKY_DATA_FORMS_ERROR_WRONG_TYPE,
+          "'type' attribute is not 'form': %s", type);
       return NULL;
     }
 

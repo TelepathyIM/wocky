@@ -109,7 +109,8 @@ GType wocky_data_forms_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_DATA_FORMS, \
    WockyDataFormsClass))
 
-WockyDataForms * wocky_data_forms_new_from_form (WockyXmppNode *node);
+WockyDataForms * wocky_data_forms_new_from_form (WockyXmppNode *node,
+    GError **error);
 
 void wocky_data_forms_submit (WockyDataForms *forms,
     WockyXmppNode *node);
