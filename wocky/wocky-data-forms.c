@@ -462,7 +462,7 @@ create_field (WockyXmppNode *field_node,
       options = extract_options_list (field_node);
       if (options == NULL)
         {
-          DEBUG ("No option provided for '%s'", var);
+          DEBUG ("No options provided for '%s'", var);
           return NULL;
         }
     }
@@ -501,7 +501,7 @@ extract_var_type_label (WockyXmppNode *node,
   type = str_to_type (tmp);
   if (type == WOCKY_DATA_FORMS_FIELD_TYPE_INVALID)
     {
-      DEBUG ("Wrong field type for: %s", tmp);
+      DEBUG ("Invalid field type for: %s", tmp);
       return FALSE;
     }
 
@@ -558,7 +558,7 @@ foreach_x_child (WockyXmppNode *field_node,
      * hash table */
     g_hash_table_insert (self->fields, field->var, field);
 
-  /* list will be reveresed */
+  /* list will be reversed */
   self->fields_list = g_slist_prepend (self->fields_list, field);
   return TRUE;
 }
