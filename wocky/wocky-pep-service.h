@@ -22,8 +22,8 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include <wocky/wocky-xmpp-stanza.h>
-#include <wocky/wocky-session.h>
+#include "wocky-xmpp-stanza.h"
+#include "wocky-session.h"
 
 G_BEGIN_DECLS
 
