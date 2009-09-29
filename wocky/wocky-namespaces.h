@@ -121,6 +121,9 @@
 #define WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG \
   WOCKY_XMPP_NS_PUBSUB "#node_config"
 
+#define WOCKY_XMPP_NS_PUBSUB_ERRORS \
+  WOCKY_XMPP_NS_PUBSUB "#errors"
+
 #define WOCKY_NS_MUC \
   "http://jabber.org/protocol/muc"
 
