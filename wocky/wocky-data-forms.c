@@ -85,7 +85,7 @@ wocky_data_forms_field_option_free (WockyDataFormsFieldOption *option)
   g_slice_free (WockyDataFormsFieldOption, option);
 }
 
-/* pass ownership of the options list */
+/* pass ownership of the default_value, the value and the options list */
 static WockyDataFormsField *
 wocky_data_forms_field_new (wocky_data_forms_field_type type,
   const gchar *var,
@@ -104,10 +104,8 @@ wocky_data_forms_field_new (wocky_data_forms_field_type type,
   field->label = g_strdup (label);
   field->desc = g_strdup (desc);
   field->required = required;
-  if (default_value != NULL)
-    field->default_value = wocky_g_value_slice_dup (default_value);
-  if (value != NULL)
-    field->value = wocky_g_value_slice_dup (value);
+  field->default_value = default_value;
+  field->value = value;
   field->options = options;
   return field;
 }
@@ -473,9 +471,6 @@ create_field (WockyXmppNode *field_node,
   field = wocky_data_forms_field_new (type, var, label, desc, required,
       default_value, NULL, options);
 
-  if (default_value != NULL)
-    wocky_g_value_slice_free (default_value);
-
   return field;
 }
 
@@ -768,8 +763,6 @@ foreach_item (WockyXmppNode *item_node,
           field->desc, field->required, field->default_value, value, NULL);
 
       item = g_slist_prepend (item, result);
-
-      wocky_g_value_slice_free (value);
     }
 
   item = g_slist_reverse (item);
@@ -803,8 +796,6 @@ parse_unique_result (WockyDataForms *self,
           NULL, FALSE, NULL, value, NULL);
 
       item = g_slist_prepend (item, result);
-
-      wocky_g_value_slice_free (value);
     }
 
   self->results = g_slist_prepend (self->results, item);
