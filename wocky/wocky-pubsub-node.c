@@ -19,10 +19,10 @@
 
 #include "wocky-pubsub-node.h"
 
-#include <wocky/wocky-porter.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-namespaces.h>
-#include <wocky/wocky-signals-marshal.h>
+#include "wocky-porter.h"
+#include "wocky-utils.h"
+#include "wocky-namespaces.h"
+#include "wocky-signals-marshal.h"
 
 #define DEBUG_FLAG DEBUG_PUBSUB
 #include "wocky-debug.h"

@@ -22,10 +22,11 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include <wocky/wocky-xmpp-stanza.h>
-#include <wocky/wocky-session.h>
-#include <wocky/wocky-types.h>
-#include <wocky/wocky-data-forms.h>
+
+#include "wocky-xmpp-stanza.h"
+#include "wocky-session.h"
+#include "wocky-types.h"
+#include "wocky-data-forms.h"
 
 G_BEGIN_DECLS
 

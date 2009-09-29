@@ -22,9 +22,10 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include <wocky/wocky-types.h>
-#include <wocky/wocky-session.h>
-#include <wocky/wocky-pubsub-service.h>
+
+#include "wocky-types.h"
+#include "wocky-session.h"
+#include "wocky-pubsub-service.h"
 
 G_BEGIN_DECLS
 
