@@ -183,6 +183,65 @@ test_get_default_node_configuration (void)
       test_get_default_node_configuration_cb);
 }
 
+/* Try to retrieve default node configuration and get a insufficient
+ * privileges error */
+static gboolean
+test_get_default_node_configuration_insufficient_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+
+  reply = wocky_xmpp_stanza_build_iq_error (stanza,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "configure",
+          WOCKY_NODE_ATTRIBUTE, "node", "node1",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_NODE, "error",
+        WOCKY_NODE_ATTRIBUTE, "type", "auth",
+        WOCKY_NODE, "forbidden",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_get_default_node_configuration_insufficient_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyDataForms *forms;
+  GError *error = NULL;
+
+  forms = wocky_pubsub_service_get_default_node_configuration_finish (
+      WOCKY_PUBSUB_SERVICE (source), res, &error);
+  g_assert (forms == NULL);
+  g_assert_error (error, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FORBIDDEN);
+  g_error_free (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_get_default_node_configuration_insufficient (void)
+{
+  get_default_node_configuration_test (
+      test_get_default_node_configuration_insufficient_iq_cb,
+      test_get_default_node_configuration_insufficient_cb);
+}
+
 /* Create a node with default config */
 static gboolean
 test_create_node_no_config_iq_cb (WockyPorter *porter,
@@ -337,6 +396,9 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-service/ensure_node", test_ensure_node);
   g_test_add_func ("/pubsub-service/get-default-node-configuration",
       test_get_default_node_configuration);
+  g_test_add_func (
+      "/pubsub-service/get-default-node-configuration-insufficient",
+      test_get_default_node_configuration_insufficient);
   g_test_add_func ("/pubsub-service/create-node-no-config",
       test_create_node_no_config);
   g_test_add_func ("/pubsub-service/create-node-unsupported",
