@@ -371,5 +371,99 @@ wocky_pubsub_service_get_default_node_configuration_finish (
 
   return g_simple_async_result_get_op_res_gpointer (
       G_SIMPLE_ASYNC_RESULT (result));
+}
 
+static void
+create_node_iq_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyPubsubService *self;
+  GError *error = NULL;
+  WockyXmppStanza *reply;
+  WockyPubsubNode *node;
+  const gchar *name;
+
+  self = WOCKY_PUBSUB_SERVICE (g_async_result_get_source_object (user_data));
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
+  if (reply == NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
+    }
+
+  /* TODO: check success */
+
+  name = g_simple_async_result_get_op_res_gpointer (result);
+  node = wocky_pubsub_service_ensure_node (self, name);
+
+  g_simple_async_result_set_op_res_gpointer (result, node, NULL);
+
+out:
+  g_simple_async_result_complete (result);
+  g_object_unref (result);
+  if (reply != NULL)
+    g_object_unref (reply);
+  /* g_async_result_get_source_object ref the object */
+  g_object_unref (self);
+}
+
+void
+wocky_pubsub_service_create_node_async (WockyPubsubService *self,
+    const gchar *name,
+    WockyDataForms *config,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  GSimpleAsyncResult *result;
+
+  g_assert (name != NULL);
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, priv->jid,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "create",
+          WOCKY_NODE_ATTRIBUTE, "node", name,
+        WOCKY_NODE_END,
+        WOCKY_NODE, "configure", WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  /* TODO: set config if needed */
+
+  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
+    wocky_pubsub_service_create_node_finish);
+
+  /* save the name in the result as we'll need it later to create the
+   * WockyPubsubNode */
+  g_simple_async_result_set_op_res_gpointer (result, g_strdup (name), g_free);
+
+  wocky_porter_send_iq_async (priv->porter, stanza, NULL,
+      create_node_iq_cb, result);
+
+  g_object_unref (stanza);
+}
+
+WockyPubsubNode *
+wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return NULL;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_pubsub_service_create_node_finish), NULL);
+
+  return g_simple_async_result_get_op_res_gpointer (
+      G_SIMPLE_ASYNC_RESULT (result));
 }
