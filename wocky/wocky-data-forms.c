@@ -414,9 +414,9 @@ get_field_value (wocky_data_forms_field_type type,
   switch (type)
     {
       case WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN:
-        if (!wocky_strdiff (value, "true"))
+        if (!wocky_strdiff (value, "true") || !wocky_strdiff (value, "1"))
           return wocky_g_value_slice_new_boolean (TRUE);
-        else if (!wocky_strdiff (value, "false"))
+        else if (!wocky_strdiff (value, "false") || !wocky_strdiff (value, "0"))
           return wocky_g_value_slice_new_boolean (FALSE);
         else
           DEBUG ("Invalid boolean value: %s", value);
