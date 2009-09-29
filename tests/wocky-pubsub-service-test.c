@@ -144,7 +144,8 @@ test_get_default_node_configuration_cb (GObject *source,
 }
 
 static void
-test_get_default_node_configuration (void)
+get_default_node_configuration_test (WockyPorterHandlerFunc iq_cb,
+    GAsyncReadyCallback get_cb)
 {
   test_data_t *test = setup_test ();
   WockyPubsubService *pubsub;
@@ -159,19 +160,27 @@ test_get_default_node_configuration (void)
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      test_get_default_node_configuration_iq_cb, test,
+      iq_cb, test,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
       WOCKY_NODE, "default",
       WOCKY_NODE_END, WOCKY_STANZA_END);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
-      test_get_default_node_configuration_cb, test);
+      get_cb, test);
 
   test->outstanding += 2;
   test_wait_pending (test);
 
   g_object_unref (pubsub);
+}
+
+static void
+test_get_default_node_configuration (void)
+{
+  get_default_node_configuration_test (
+      test_get_default_node_configuration_iq_cb,
+      test_get_default_node_configuration_cb);
 }
 
 /* Create a node with default config */
