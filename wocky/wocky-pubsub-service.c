@@ -290,6 +290,13 @@ default_configuration_iq_cb (GObject *source,
       goto out;
     }
 
+  if (wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
+    }
+
   node = wocky_xmpp_node_get_child_ns (reply->node, "pubsub",
       WOCKY_XMPP_NS_PUBSUB_OWNER);
   if (node == NULL)
