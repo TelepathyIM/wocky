@@ -180,7 +180,7 @@ test_parse_form (void)
   WockyDataForms *forms;
   GSList *l;
   /* used to check that fields are stored in the right order */
-  wocky_data_forms_field expected_types[] = {
+  WockyDataFormsField expected_types[] = {
     { WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN, "FORM_TYPE",
       NULL, NULL, FALSE, NULL, NULL, NULL },
     { WOCKY_DATA_FORMS_FIELD_TYPE_FIXED, NULL,
@@ -203,16 +203,16 @@ test_parse_form (void)
       "The JID of the bot", NULL, FALSE, NULL, NULL, NULL },
   };
   guint i;
-  wocky_data_forms_field *field;
+  WockyDataFormsField *field;
   GStrv strv;
-  wocky_data_forms_field_option features_options[] = {
+  WockyDataFormsFieldOption features_options[] = {
     { "Contests", "contests" },
     { "News", "news" },
     { "Polls", "polls" },
     { "Reminders", "reminders" },
     { "Search", "search" },
   };
-  wocky_data_forms_field_option maxsubs_options[] = {
+  WockyDataFormsFieldOption maxsubs_options[] = {
     { "10", "10" },
     { "20", "20" },
     { "30", "30" },
@@ -291,7 +291,7 @@ test_parse_form (void)
   g_assert_cmpuint (g_slist_length (field->options), ==, 5);
   for (l = field->options, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
-      wocky_data_forms_field_option *option = l->data;
+      WockyDataFormsFieldOption *option = l->data;
 
       g_assert (!wocky_strdiff (option->value, features_options[i].value));
       g_assert (!wocky_strdiff (option->label, features_options[i].label));
@@ -306,7 +306,7 @@ test_parse_form (void)
   g_assert_cmpuint (g_slist_length (field->options), ==, 6);
   for (l = field->options, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
-      wocky_data_forms_field_option *option = l->data;
+      WockyDataFormsFieldOption *option = l->data;
 
       g_assert (!wocky_strdiff (option->value, maxsubs_options[i].value));
       g_assert (!wocky_strdiff (option->label, maxsubs_options[i].label));
@@ -332,7 +332,7 @@ test_submit (void)
 {
   WockyXmppStanza *stanza;
   WockyDataForms *forms;
-  wocky_data_forms_field *field;
+  WockyDataFormsField *field;
   WockyXmppNode *x;
   GSList *l;
   const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
@@ -587,7 +587,7 @@ test_parse_multi_result (void)
 
       for (m = result; m != NULL; m = g_slist_next (m))
         {
-          wocky_data_forms_field *field = m->data;
+          WockyDataFormsField *field = m->data;
 
           if (!wocky_strdiff (field->var, "name"))
             {
@@ -667,7 +667,7 @@ test_parse_single_result (void)
 
   for (l = result; l != NULL; l = g_slist_next (l))
     {
-      wocky_data_forms_field *field = l->data;
+      WockyDataFormsField *field = l->data;
 
       if (!wocky_strdiff (field->var, "FORM_TYPE"))
         {

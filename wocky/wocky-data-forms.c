@@ -42,7 +42,7 @@ struct _WockyDataFormsPrivate
   gchar *title;
   gchar *instructions;
 
-  /* (gchar *) => owned (wocky_data_forms_field *) */
+  /* (gchar *) => owned (WockyDataFormsField *) */
   GHashTable *reported;
 
   gboolean dispose_has_run;
@@ -63,30 +63,30 @@ wocky_data_forms_error_quark (void)
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_DATA_FORMS, \
     WockyDataFormsPrivate))
 
-static wocky_data_forms_field_option *
+static WockyDataFormsFieldOption *
 wocky_data_forms_field_option_new (const gchar *label,
     const gchar *value)
 {
-  wocky_data_forms_field_option *option;
+  WockyDataFormsFieldOption *option;
 
   g_assert (value != NULL);
 
-  option = g_slice_new0 (wocky_data_forms_field_option);
+  option = g_slice_new0 (WockyDataFormsFieldOption);
   option->label = g_strdup (label);
   option->value = g_strdup (value);
   return option;
 }
 
 static void
-wocky_data_forms_field_option_free (wocky_data_forms_field_option *option)
+wocky_data_forms_field_option_free (WockyDataFormsFieldOption *option)
 {
   g_free (option->label);
   g_free (option->value);
-  g_slice_free (wocky_data_forms_field_option, option);
+  g_slice_free (WockyDataFormsFieldOption, option);
 }
 
 /* pass ownership of the options list */
-static wocky_data_forms_field *
+static WockyDataFormsField *
 wocky_data_forms_field_new (wocky_data_forms_field_type type,
   const gchar *var,
   const gchar *label,
@@ -96,9 +96,9 @@ wocky_data_forms_field_new (wocky_data_forms_field_type type,
   GValue *value,
   GSList *options)
 {
-  wocky_data_forms_field *field;
+  WockyDataFormsField *field;
 
-  field = g_slice_new0 (wocky_data_forms_field);
+  field = g_slice_new0 (WockyDataFormsField);
   field->type = type;
   field->var = g_strdup (var);
   field->label = g_strdup (label);
@@ -113,7 +113,7 @@ wocky_data_forms_field_new (wocky_data_forms_field_type type,
 }
 
 static void
-wocky_data_forms_field_free (wocky_data_forms_field *field)
+wocky_data_forms_field_free (WockyDataFormsField *field)
 {
   GSList *l;
   if (field == NULL)
@@ -130,11 +130,11 @@ wocky_data_forms_field_free (wocky_data_forms_field *field)
 
   for (l = field->options; l != NULL; l = g_slist_next (l))
     {
-      wocky_data_forms_field_option *option = l->data;
+      WockyDataFormsFieldOption *option = l->data;
       wocky_data_forms_field_option_free (option);
     }
   g_slist_free (field->options);
-  g_slice_free (wocky_data_forms_field, field);
+  g_slice_free (WockyDataFormsField, field);
 }
 
 static void
@@ -234,7 +234,7 @@ wocky_data_forms_finalize (GObject *object)
 
       for (i = item; i != NULL; i = g_slist_next (i))
         {
-          wocky_data_forms_field *field = i->data;
+          WockyDataFormsField *field = i->data;
           wocky_data_forms_field_free (field);
         }
       g_slist_free (item);
@@ -333,7 +333,7 @@ type_to_str (wocky_data_forms_field_type type)
   return NULL;
 }
 
-/* Return a list of (wocky_data_forms_field_option *) containing all the
+/* Return a list of (WockyDataFormsFieldOption *) containing all the
  * options defined in the node */
 static GSList *
 extract_options_list (WockyXmppNode *node)
@@ -344,7 +344,7 @@ extract_options_list (WockyXmppNode *node)
     {
       WockyXmppNode *option_node = (WockyXmppNode *) l->data;
       WockyXmppNode *value;
-      wocky_data_forms_field_option *option;
+      WockyDataFormsFieldOption *option;
       const gchar *label;
 
       if (wocky_strdiff (option_node->name, "option"))
@@ -443,7 +443,7 @@ get_field_value (wocky_data_forms_field_type type,
   return NULL;
 }
 
-static wocky_data_forms_field *
+static WockyDataFormsField *
 create_field (WockyXmppNode *field_node,
     const gchar *var,
     wocky_data_forms_field_type type,
@@ -453,7 +453,7 @@ create_field (WockyXmppNode *field_node,
 {
   GValue *default_value = NULL;
   GSList *options = NULL;
-  wocky_data_forms_field *field;
+  WockyDataFormsField *field;
 
   if (type == WOCKY_DATA_FORMS_FIELD_TYPE_LIST_MULTI ||
       type == WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE)
@@ -534,7 +534,7 @@ foreach_x_child (WockyXmppNode *field_node,
   wocky_data_forms_field_type type;
   const gchar *desc = NULL;
   gboolean required = FALSE;
-  wocky_data_forms_field *field;
+  WockyDataFormsField *field;
 
   if (!extract_var_type_label (field_node, &var, &type, &label))
     return TRUE;
@@ -607,7 +607,7 @@ wocky_data_forms_new_from_form (WockyXmppNode *root)
 }
 
 static void
-add_field_to_node (wocky_data_forms_field *field,
+add_field_to_node (WockyDataFormsField *field,
     WockyXmppNode *node)
 {
   WockyXmppNode *field_node, *value_node;
@@ -691,7 +691,7 @@ wocky_data_forms_submit (WockyDataForms *self,
 
   for (l = self->fields_list; l != NULL; l = g_slist_next (l))
     {
-      wocky_data_forms_field *field = l->data;
+      WockyDataFormsField *field = l->data;
 
       add_field_to_node (field, x);
     }
@@ -712,7 +712,7 @@ foreach_reported (WockyXmppNode *reported_node,
     {
       WockyXmppNode *node = l->data;
       const gchar *var, *label;
-      wocky_data_forms_field *field;
+      WockyDataFormsField *field;
       wocky_data_forms_field_type type;
 
       if (!extract_var_type_label (node, &var, &type, &label))
@@ -743,7 +743,7 @@ foreach_item (WockyXmppNode *item_node,
     {
       WockyXmppNode *node = l->data;
       const gchar *var;
-      wocky_data_forms_field *field, *result;
+      WockyDataFormsField *field, *result;
       GValue *value;
 
       if (wocky_strdiff (node->name, "field"))
@@ -789,7 +789,7 @@ parse_unique_result (WockyDataForms *self,
       WockyXmppNode *node = l->data;
       const gchar *var;
       wocky_data_forms_field_type type;
-      wocky_data_forms_field *result;
+      WockyDataFormsField *result;
       GValue *value;
 
       if (!extract_var_type_label (node, &var, &type, NULL))

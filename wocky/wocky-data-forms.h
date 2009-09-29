@@ -45,7 +45,7 @@ typedef struct
 {
   gchar *label;
   gchar *value;
-} wocky_data_forms_field_option;
+} WockyDataFormsFieldOption;
 
 typedef struct
 {
@@ -57,9 +57,9 @@ typedef struct
   GValue *default_value;
   GValue *value;
   /* for LIST_MULTI and LIST_SINGLE only.
-   * List of (wocky_data_forms_field_option *)*/
+   * List of (WockyDataFormsFieldOption *)*/
   GSList *options;
-} wocky_data_forms_field;
+} WockyDataFormsField;
 
 typedef struct _WockyDataForms WockyDataForms;
 typedef struct _WockyDataFormsClass WockyDataFormsClass;
