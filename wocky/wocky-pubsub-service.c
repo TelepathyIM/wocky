@@ -61,6 +61,17 @@ struct _WockyPubsubServicePrivate
   gboolean dispose_has_run;
 };
 
+GQuark
+wocky_pubsub_service_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string ("wocky-pubsub-service-error");
+
+  return quark;
+}
+
 #define WOCKY_PUBSUB_SERVICE_GET_PRIVATE(o)  \
     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_PUBSUB_SERVICE, \
     WockyPubsubServicePrivate))
@@ -258,4 +269,107 @@ wocky_pubsub_service_lookup_node (WockyPubsubService *self,
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
 
   return g_hash_table_lookup (priv->nodes, name);
+}
+
+static void
+default_configuration_iq_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  GError *error = NULL;
+  WockyXmppStanza *reply;
+  WockyXmppNode *node;
+  WockyDataForms *forms;
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
+  if (reply == NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
+    }
+
+  node = wocky_xmpp_node_get_child_ns (reply->node, "pubsub",
+      WOCKY_XMPP_NS_PUBSUB_OWNER);
+  if (node == NULL)
+    {
+      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "Reply doesn't contain 'pubsub' node");
+      goto out;
+    }
+
+  node = wocky_xmpp_node_get_child (node, "default");
+  if (node == NULL)
+    {
+      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "Reply doesn't contain 'default' node");
+      goto out;
+    }
+
+  forms = wocky_data_forms_new_from_form (node, &error);
+  if (forms == NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
+    }
+
+  g_simple_async_result_set_op_res_gpointer (result, forms, NULL);
+
+out:
+  g_simple_async_result_complete (result);
+  g_object_unref (result);
+  if (reply != NULL)
+    g_object_unref (reply);
+}
+
+void
+wocky_pubsub_service_get_default_node_configuration_async (
+    WockyPubsubService *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  GSimpleAsyncResult *result;
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, priv->jid,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "default",
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
+    wocky_pubsub_service_get_default_node_configuration_finish);
+
+  wocky_porter_send_iq_async (priv->porter, stanza, NULL,
+      default_configuration_iq_cb, result);
+
+  g_object_unref (stanza);
+}
+
+WockyDataForms *
+wocky_pubsub_service_get_default_node_configuration_finish (
+    WockyPubsubService *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return NULL;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self),
+    wocky_pubsub_service_get_default_node_configuration_finish), NULL);
+
+  return g_simple_async_result_get_op_res_gpointer (
+      G_SIMPLE_ASYNC_RESULT (result));
+
 }

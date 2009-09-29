@@ -25,11 +25,20 @@
 #include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-session.h>
 #include <wocky/wocky-types.h>
+#include <wocky/wocky-data-forms.h>
 
 G_BEGIN_DECLS
 
 typedef struct _WockyPubsubService WockyPubsubService;
 typedef struct _WockyPubsubServiceClass WockyPubsubServiceClass;
+
+typedef enum {
+  WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+} WockyPubsubServiceError;
+
+GQuark wocky_pubsub_service_error_quark (void);
+
+#define WOCKY_PUBSUB_SERVICE_ERROR (wocky_pubsub_service_error_quark ())
 
 struct _WockyPubsubServiceClass {
   GObjectClass parent_class;
@@ -65,6 +74,17 @@ WockyPubsubNode * wocky_pubsub_service_ensure_node (WockyPubsubService *service,
 
 WockyPubsubNode * wocky_pubsub_service_lookup_node (WockyPubsubService *service,
     const gchar *name);
+
+void wocky_pubsub_service_get_default_node_configuration_async (
+    WockyPubsubService *service,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+WockyDataForms * wocky_pubsub_service_get_default_node_configuration_finish (
+    WockyPubsubService *service,
+    GAsyncResult *result,
+    GError **error);
 
 G_END_DECLS
 
