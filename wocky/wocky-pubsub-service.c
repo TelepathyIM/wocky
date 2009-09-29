@@ -120,7 +120,6 @@ wocky_pubsub_service_get_property (GObject *object,
     }
 }
 
-
 static void
 wocky_pubsub_service_dispose (GObject *object)
 {
@@ -159,6 +158,9 @@ wocky_pubsub_service_constructed (GObject *object)
 
   g_assert (priv->session != NULL);
   g_assert (priv->jid != NULL);
+
+  priv->porter = wocky_session_get_porter (priv->session);
+  g_object_ref (priv->porter);
 }
 
 static void
