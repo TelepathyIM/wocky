@@ -19,8 +19,8 @@
 
 #include "wocky-data-forms.h"
 
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-namespaces.h>
+#include "wocky-utils.h"
+#include "wocky-namespaces.h"
 
 #define DEBUG_FLAG DEBUG_DATA_FORMS
 #include "wocky-debug.h"

@@ -22,7 +22,7 @@
 
 #include <glib-object.h>
 
-#include <wocky/wocky-xmpp-node.h>
+#include "wocky-xmpp-node.h"
 
 G_BEGIN_DECLS
 
