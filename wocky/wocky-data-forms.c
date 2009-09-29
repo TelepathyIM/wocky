@@ -824,7 +824,7 @@ wocky_data_forms_parse_result (WockyDataForms *self,
     {
       DEBUG ("'type' attribute is not 'result': %s", type);
       g_set_error (error, WOCKY_DATA_FORMS_ERROR,
-          WOCKY_DATA_FORMS_ERROR_NOT_RESULT,
+          WOCKY_DATA_FORMS_ERROR_WRONG_TYPE,
           "'type' attribute is not 'result': %s", type);
       return FALSE;
     }

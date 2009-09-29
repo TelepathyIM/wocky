@@ -66,7 +66,7 @@ typedef struct _WockyDataFormsClass WockyDataFormsClass;
 
 typedef enum {
   WOCKY_DATA_FORMS_ERROR_NOT_FORM,
-  WOCKY_DATA_FORMS_ERROR_NOT_RESULT,
+  WOCKY_DATA_FORMS_ERROR_WRONG_TYPE,
 } WockyDataFormsError;
 
 GQuark wocky_data_forms_error_quark (void);
