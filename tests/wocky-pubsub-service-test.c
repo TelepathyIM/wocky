@@ -5,6 +5,7 @@
 #include <glib.h>
 
 #include <wocky/wocky-pubsub-service.h>
+#include <wocky/wocky-pubsub-node.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 
@@ -172,6 +173,77 @@ test_get_default_node_configuration (void)
   g_object_unref (pubsub);
 }
 
+/* Create a node with default config */
+static gboolean
+test_create_node_no_config_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_create_node_no_config_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyPubsubNode *node;
+
+  node = wocky_pubsub_service_create_node_finish (WOCKY_PUBSUB_SERVICE (source),
+      res, NULL);
+  g_assert (node != NULL);
+
+  g_assert (!wocky_strdiff (wocky_pubsub_node_get_name (node), "node1"));
+
+  g_object_unref (node);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_create_node_no_config (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_create_node_no_config_iq_cb, test,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "create",
+          WOCKY_NODE_ATTRIBUTE, "node", "node1",
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_pubsub_service_create_node_async (pubsub, "node1", NULL, NULL,
+      test_create_node_no_config_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (pubsub);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -183,6 +255,8 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-service/ensure_node", test_ensure_node);
   g_test_add_func ("/pubsub-service/get-default-node-configuration",
       test_get_default_node_configuration);
+  g_test_add_func ("/pubsub-service/create-node-no-config",
+      test_create_node_no_config);
 
   result = g_test_run ();
   test_deinit ();
