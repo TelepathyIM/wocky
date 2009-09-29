@@ -197,3 +197,11 @@ wocky_pubsub_node_new (WockyPubsubService *service,
       "name", name,
       NULL);
 }
+
+const gchar *
+wocky_pubsub_node_get_name (WockyPubsubNode *self)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+
+  return priv->name;
+}

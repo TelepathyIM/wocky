@@ -32,6 +32,8 @@ test_instantiation (void)
   node = wocky_pubsub_node_new (pubsub, "node1");
   g_assert (node != NULL);
 
+  g_assert (!wocky_strdiff (wocky_pubsub_node_get_name (node), "node1"));
+
   g_object_unref (node);
   g_object_unref (pubsub);
   g_object_unref (session);

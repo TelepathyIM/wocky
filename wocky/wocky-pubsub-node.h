@@ -59,6 +59,8 @@ GType wocky_pubsub_node_get_type (void);
 WockyPubsubNode * wocky_pubsub_node_new (WockyPubsubService *service,
     const gchar *name);
 
+const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *node);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */
