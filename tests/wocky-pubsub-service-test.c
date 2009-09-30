@@ -295,7 +295,7 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
   wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       iq_cb, test,
       WOCKY_NODE, "pubsub",

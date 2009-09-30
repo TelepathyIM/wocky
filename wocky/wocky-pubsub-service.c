@@ -438,7 +438,7 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
   g_assert (name != NULL);
 
   stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       NULL, priv->jid,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
