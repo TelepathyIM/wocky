@@ -209,13 +209,13 @@ check-local: test check-coding-style
 ############################################################################
 # x509 certificates:
 certtool:
-	@echo $(or $(shell test -x "$(CERTTOOL)" && echo $@ OK),   \
-	           $(error Need $@ to rebuild expired/inactive certificates))
+	@echo $(or $(shell test -x "$(CERTTOOL)" && echo $@ OK), \
+	           $(warning Need $@ to rebuild test certs))
 	@touch $@
 
 tardis:
 	@echo $(or $(shell test -x "$(TARDIS)" && echo $@ OK),   \
-	           $(error Need $@ to rebuild expired/inactive certificates))
+	           $(warning Need datefudge to rebuild expired/inactive test certs))
 	@touch $@
 
 %-key.pem: | certtool
