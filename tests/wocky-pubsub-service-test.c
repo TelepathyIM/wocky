@@ -250,6 +250,15 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppStanza *reply;
+  WockyXmppNode *node;
+
+  node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
+      WOCKY_XMPP_NS_PUBSUB);
+  g_assert (node != NULL);
+  node = wocky_xmpp_node_get_child (node, "create");
+  g_assert (node != NULL);
+  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
+        "node1"));
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
       WOCKY_NODE, "pubsub",
@@ -287,7 +296,8 @@ test_create_node_no_config_cb (GObject *source,
 
 static void
 create_node_test (WockyPorterHandlerFunc iq_cb,
-    GAsyncReadyCallback create_cb)
+    GAsyncReadyCallback create_cb,
+    const gchar *node_name)
 {
   test_data_t *test = setup_test ();
   WockyPubsubService *pubsub;
@@ -305,12 +315,10 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
       iq_cb, test,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create",
-          WOCKY_NODE_ATTRIBUTE, "node", "node1",
-        WOCKY_NODE_END,
+        WOCKY_NODE, "create", WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
-  wocky_pubsub_service_create_node_async (pubsub, "node1", NULL, NULL,
+  wocky_pubsub_service_create_node_async (pubsub, node_name, NULL, NULL,
       create_cb, test);
 
   test->outstanding += 2;
@@ -323,7 +331,7 @@ static void
 test_create_node_no_config (void)
 {
   create_node_test (test_create_node_no_config_iq_cb,
-      test_create_node_no_config_cb);
+      test_create_node_no_config_cb, "node1");
 }
 
 /* creation of a node fails because service does not support node creation */
@@ -387,7 +395,57 @@ static void
 test_create_node_unsupported (void)
 {
   create_node_test (test_create_node_unsupported_iq_cb,
-      test_create_node_unsupported_cb);
+      test_create_node_unsupported_cb, "node1");
+}
+
+/* Create an instant node (no name passed) */
+static gboolean
+test_create_instant_node_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "create",
+          WOCKY_NODE_ATTRIBUTE, "node", "instant_node",
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_create_instant_node_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyPubsubNode *node;
+
+  node = wocky_pubsub_service_create_node_finish (WOCKY_PUBSUB_SERVICE (source),
+      res, NULL);
+  g_assert (node != NULL);
+
+  g_assert (!wocky_strdiff (wocky_pubsub_node_get_name (node), "instant_node"));
+
+  g_object_unref (node);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_create_instant_node (void)
+{
+  create_node_test (test_create_instant_node_iq_cb,
+      test_create_instant_node_cb, NULL);
 }
 
 int
@@ -408,6 +466,8 @@ main (int argc, char **argv)
       test_create_node_no_config);
   g_test_add_func ("/pubsub-service/create-node-unsupported",
       test_create_node_unsupported);
+  g_test_add_func ("/pubsub-service/create-instant-node",
+      test_create_instant_node);
 
   result = g_test_run ();
   test_deinit ();
