@@ -391,6 +391,7 @@ create_node_iq_cb (GObject *source,
   WockyXmppStanza *reply;
   WockyPubsubNode *node;
   const gchar *name;
+  WockyXmppNode *n;
 
   self = WOCKY_PUBSUB_SERVICE (g_async_result_get_source_object (user_data));
 
@@ -409,8 +410,36 @@ create_node_iq_cb (GObject *source,
       goto out;
     }
 
-  name = g_simple_async_result_get_op_res_gpointer (result);
+  n = wocky_xmpp_node_get_child_ns (reply->node, "pubsub",
+      WOCKY_XMPP_NS_PUBSUB);
+  if (n == NULL)
+    {
+      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "reply doesn't contain pubsub node");
+      goto out;
+    }
+
+  n = wocky_xmpp_node_get_child (n, "create");
+  if (n == NULL)
+    {
+      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "reply doesn't contain create node");
+      goto out;
+    }
+
+  name = wocky_xmpp_node_get_attribute (n, "node");
+  if (name == NULL)
+    {
+      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "reply doesn't contain node attribute");
+      goto out;
+    }
+
   node = wocky_pubsub_service_ensure_node (self, name);
+  DEBUG ("node %s created\n", name);
 
   g_simple_async_result_set_op_res_gpointer (result, node, NULL);
 
@@ -434,8 +463,7 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GSimpleAsyncResult *result;
-
-  g_assert (name != NULL);
+  WockyXmppNode *node;
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
@@ -443,20 +471,19 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create",
-          WOCKY_NODE_ATTRIBUTE, "node", name,
+          WOCKY_NODE_ASSIGN_TO, &node,
         WOCKY_NODE_END,
         WOCKY_NODE, "configure", WOCKY_NODE_END,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  if (name != NULL)
+    wocky_xmpp_node_set_attribute (node, "node", name);
+
   /* TODO: set config if needed */
 
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
     wocky_pubsub_service_create_node_finish);
-
-  /* save the name in the result as we'll need it later to create the
-   * WockyPubsubNode */
-  g_simple_async_result_set_op_res_gpointer (result, g_strdup (name), g_free);
 
   wocky_porter_send_iq_async (priv->porter, stanza, NULL,
       create_node_iq_cb, result);

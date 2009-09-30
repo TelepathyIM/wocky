@@ -251,7 +251,12 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "create",
+          WOCKY_NODE_ATTRIBUTE, "node", "node1",
+      WOCKY_NODE_END, WOCKY_STANZA_END);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
