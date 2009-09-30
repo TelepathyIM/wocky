@@ -53,6 +53,7 @@ struct _WockyPubsubNodePrivate
   WockyPubsubService *service;
   WockyPorter *porter;
 
+  gchar *service_jid;
   gchar *name;
 
   gboolean dispose_has_run;
@@ -145,6 +146,7 @@ wocky_pubsub_node_finalize (GObject *object)
   WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
 
   g_free (priv->name);
+  g_free (priv->service_jid);
 
   G_OBJECT_CLASS (wocky_pubsub_node_parent_class)->finalize (object);
 }
@@ -154,9 +156,21 @@ wocky_pubsub_node_constructed (GObject *object)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (object);
   WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockySession *session;
 
   g_assert (priv->service != NULL);
   g_assert (priv->name != NULL);
+
+  g_object_get (priv->service,
+      "jid", &(priv->service_jid),
+      "session", &session,
+      NULL);
+  g_assert (priv->service_jid != NULL);
+
+  g_assert (session != NULL);
+  priv->porter = wocky_session_get_porter (session);
+  g_object_ref (priv->porter);
+  g_object_unref (session);
 }
 
 static void
