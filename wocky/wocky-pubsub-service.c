@@ -463,7 +463,7 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GSimpleAsyncResult *result;
-  WockyXmppNode *node;
+  WockyXmppNode *node, *configure;
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
@@ -473,14 +473,17 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
         WOCKY_NODE, "create",
           WOCKY_NODE_ASSIGN_TO, &node,
         WOCKY_NODE_END,
-        WOCKY_NODE, "configure", WOCKY_NODE_END,
+        WOCKY_NODE, "configure",
+          WOCKY_NODE_ASSIGN_TO, &configure,
+        WOCKY_NODE_END,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
   if (name != NULL)
     wocky_xmpp_node_set_attribute (node, "node", name);
 
-  /* TODO: set config if needed */
+  if (config != NULL)
+    wocky_data_forms_submit (config, configure);
 
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
     wocky_pubsub_service_create_node_finish);
