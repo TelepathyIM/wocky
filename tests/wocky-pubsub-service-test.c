@@ -448,6 +448,146 @@ test_create_instant_node (void)
       test_create_instant_node_cb, NULL);
 }
 
+/* Create a node with configuration */
+static void
+test_create_node_config_config_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyDataForms *forms;
+  WockyDataFormsField *field;
+
+  forms = wocky_pubsub_service_get_default_node_configuration_finish (
+      WOCKY_PUBSUB_SERVICE (source), res, NULL);
+  g_assert (forms != NULL);
+
+  field = g_hash_table_lookup (forms->fields, "pubsub#title");
+  g_assert (field != NULL);
+  field->value = wocky_g_value_slice_new_string ("Badger");
+  field = g_hash_table_lookup (forms->fields, "pubsub#deliver_notifications");
+  g_assert (field != NULL);
+  field->value = wocky_g_value_slice_new_boolean (FALSE);
+
+  wocky_pubsub_service_create_node_async (WOCKY_PUBSUB_SERVICE (source),
+      "node1", forms, NULL, test_create_node_no_config_cb, test);
+
+  g_object_unref (forms);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static gboolean
+test_create_node_config_create_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  WockyXmppNode *node;
+  GSList *l;
+  gboolean form_type = FALSE, title = FALSE, notif = FALSE;
+
+  node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
+      WOCKY_XMPP_NS_PUBSUB);
+  g_assert (node != NULL);
+  node = wocky_xmpp_node_get_child (node, "configure");
+  g_assert (node != NULL);
+  node = wocky_xmpp_node_get_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
+  g_assert (node != NULL);
+
+  for (l = node->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *field = l->data;
+      const gchar *type, *var, *value = NULL;
+      WockyXmppNode *v;
+
+      g_assert (!wocky_strdiff (field->name, "field"));
+      var = wocky_xmpp_node_get_attribute (field, "var");
+      type = wocky_xmpp_node_get_attribute (field, "type");
+
+      v = wocky_xmpp_node_get_child (field, "value");
+      g_assert (v != NULL);
+      value = v->content;
+
+      if (!wocky_strdiff (var, "FORM_TYPE"))
+        {
+          g_assert (!wocky_strdiff (type, "hidden"));
+          g_assert (!wocky_strdiff (value, WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG));
+          form_type = TRUE;
+        }
+      else if (!wocky_strdiff (var, "pubsub#title"))
+        {
+          g_assert (!wocky_strdiff (type, "text-single"));
+          g_assert (!wocky_strdiff (value, "Badger"));
+          title = TRUE;
+        }
+      else if (!wocky_strdiff (var, "pubsub#deliver_notifications"))
+        {
+          g_assert (!wocky_strdiff (type, "boolean"));
+          g_assert (!wocky_strdiff (value, "0"));
+          notif = TRUE;
+        }
+      else
+        g_assert_not_reached ();
+    }
+  g_assert (form_type && title && notif);
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "create",
+          WOCKY_NODE_ATTRIBUTE, "node", "node1",
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_create_node_config (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_get_default_node_configuration_iq_cb, test,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+      WOCKY_NODE, "default",
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_create_node_config_create_iq_cb, test,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "create", WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
+      test_create_node_config_config_cb, test);
+
+  test->outstanding += 4;
+  test_wait_pending (test);
+
+  g_object_unref (pubsub);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -468,6 +608,8 @@ main (int argc, char **argv)
       test_create_node_unsupported);
   g_test_add_func ("/pubsub-service/create-instant-node",
       test_create_instant_node);
+  g_test_add_func ("/pubsub-service/create-node-config",
+      test_create_node_config);
 
   result = g_test_run ();
   test_deinit ();
