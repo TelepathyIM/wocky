@@ -219,3 +219,80 @@ wocky_pubsub_node_get_name (WockyPubsubNode *self)
 
   return priv->name;
 }
+
+static void
+delete_node_iq_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  GError *error = NULL;
+  WockyXmppStanza *reply;
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
+  if (reply == NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
+    }
+
+  if (wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_error_free (error);
+      goto out;
+    }
+
+  DEBUG ("node deleted");
+
+out:
+  g_simple_async_result_complete (result);
+  g_object_unref (result);
+  if (reply != NULL)
+    g_object_unref (reply);
+}
+
+void
+wocky_pubsub_node_delete_async (WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  GSimpleAsyncResult *result;
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, priv->service_jid,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "delete",
+          WOCKY_NODE_ATTRIBUTE, "node", priv->name,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
+    wocky_pubsub_node_delete_finish);
+
+  wocky_porter_send_iq_async (priv->porter, stanza, NULL, delete_node_iq_cb,
+      result);
+
+  g_object_unref (stanza);
+}
+
+gboolean
+wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    return FALSE;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_pubsub_node_delete_finish), FALSE);
+
+  return TRUE;
+}

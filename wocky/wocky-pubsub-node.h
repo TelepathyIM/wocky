@@ -62,6 +62,15 @@ WockyPubsubNode * wocky_pubsub_node_new (WockyPubsubService *service,
 
 const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *node);
 
+void wocky_pubsub_node_delete_async (WockyPubsubNode *node,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_delete_finish (WockyPubsubNode *node,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */
