@@ -21,12 +21,19 @@
 #ifndef __WOCKY_CONNECTOR_H__
 #define __WOCKY_CONNECTOR_H__
 
+#include "config.h"
+
 #include <glib-object.h>
 
 #include "wocky-sasl-auth.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-stanza.h"
+
+#if USING_OPENSSL
+#include "wocky-openssl.h"
+#else
 #include "wocky-tls.h"
+#endif
 
 G_BEGIN_DECLS
 

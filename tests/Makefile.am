@@ -168,8 +168,9 @@ wocky_pep_service_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-pep-service-test.c
 
-AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @WOCKY_CFLAGS@
-AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@
+AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @TLS_CFLAGS@ @WOCKY_CFLAGS@
+AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @TLS_LIBS@
+
 LDADD = $(top_builddir)/wocky/libwocky.la
 
 check_PROGRAMS = $(TEST_PROGS)

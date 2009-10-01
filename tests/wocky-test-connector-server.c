@@ -17,6 +17,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +34,12 @@
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-debug.h>
 #include <wocky/wocky-utils.h>
+
+#if USING_OPENSSL
+#include <wocky/wocky-openssl.h>
+#else
 #include <wocky/wocky-tls.h>
+#endif
 
 #define INITIAL_STREAM_ID "0-HAI"
 #define DEBUG(format, ...) \

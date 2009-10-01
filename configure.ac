@@ -19,7 +19,6 @@ m4_define([wocky_version],
           [m4_if(wocky_nano_version, 0, [wocky_base_version], [wocky_base_version].[wocky_nano_version])])dnl
 
 AC_INIT([Wocky], [wocky_version])
-
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.9 -Wno-portability tar-ustar])
@@ -100,10 +99,31 @@ AC_C_BIGENDIAN
 
 dnl Check for Glib
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.16, gobject-2.0 >= 2.16, gthread-2.0 >=
-2.4, gio-2.0 >= 2.21, gnutls >= 2.8.2])
+2.4, gio-2.0 >= 2.21])
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
+
+dnl Choose an SSL/TLS backend (default gnutls)
+AC_ARG_WITH([tls], [--with-tls=BACKEND (gnutls, openssl) @<:@default=auto@:>@],
+  [],
+  [with_tls=auto])
+
+
+AS_CASE([$with_tls],
+    [gnutls],  [PKG_CHECK_MODULES(TLS, [gnutls  >= 2.8.2 ])],
+    [openssl], [PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g])],
+    [auto],    [PKG_CHECK_MODULES(TLS, [gnutls  >= 2.8.2 ],
+                    [],
+                    [USING_OPENSSL=yes
+                     AC_DEFINE(USING_OPENSSL, 1, [Define if using openssl])
+                     PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g],[],
+                         AC_MSG_ERROR([Neither gnutls nor openssl found]))])],
+    [*],       AC_MSG_ERROR([Must have a TLS backend (gnutls or openssl)]))
+
+AC_SUBST(TLS_CFLAGS)
+AC_SUBST(TLS_LIBS)
+AM_CONDITIONAL(USING_OPENSSL, test x$USING_OPENSSL = xyes)
 
 GLIB_GENMARSHAL=`$PKG_CONFIG --variable=glib_genmarshal glib-2.0`
 AC_SUBST(GLIB_GENMARSHAL)
