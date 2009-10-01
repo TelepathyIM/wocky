@@ -10,6 +10,7 @@
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-sasl-auth.h>
+#include <wocky/wocky.h>
 
 GMainLoop *mainloop;
 WockyXmppConnection *conn;
@@ -390,6 +391,7 @@ main (int argc,
   if (!strcmp ("connector",type))
     {
       WockyConnector *wcon = NULL;
+      wocky_init ();
       wcon = wocky_connector_new (argv[1], argv[2], NULL);
 
       wocky_connector_connect_async (wcon, connector_callback, NULL);
