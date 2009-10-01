@@ -3065,11 +3065,11 @@ start_dummy_xmpp_server (test_t *test)
   int res = -1;
   guint port = test->server.port;
   int i;
+  char *server_debug;
 
   if (port == 0)
     return;
 
-  /* setenv ("WOCKY_DEBUG","all",TRUE); */
   memset (&server, 0, sizeof (server));
 
   server.sin_family = AF_INET;
@@ -3120,6 +3120,8 @@ start_dummy_xmpp_server (test_t *test)
       return;
     }
 
+  if ((server_debug = getenv ("WOCKY_TEST_SERVER_DEBUG")) != NULL)
+    setenv ("WOCKY_DEBUG", server_debug, TRUE);
   /* this test is guaranteed to produce an uninteresting error message
    * from the dummy XMPP server process: mask it (we can't just close stderr
    * because that makes it fail in a way which is detected as a different
