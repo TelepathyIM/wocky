@@ -108,8 +108,8 @@ tests/*report.xml
 
 tests/certtool
 tests/tardis
-tests/certs/cas/*
-tests/certs/crl/*
+# tests/certs/cas/*
+# tests/certs/crl/*
 tests/wocky-roster-test
 tests/wocky-bare-contact-test
 tests/wocky-resource-contact-test
