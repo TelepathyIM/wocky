@@ -232,7 +232,7 @@ static const gchar *error_to_string (long error)
   return (const gchar *) ssl_error;
 }
 
-static GSimpleAsyncResult * //!!
+static GSimpleAsyncResult *
 wocky_tls_job_make_result (WockyTLSJob *job,
                            gssize   result)
 {
@@ -1464,8 +1464,14 @@ wocky_tls_session_constructed (GObject *object)
     }
 
   session->ssl = SSL_new (session->ctx);
-  session->rbio = BIO_new (BIO_s_mem ()); //!! check these returns
+  session->rbio = BIO_new (BIO_s_mem ());
   session->wbio = BIO_new (BIO_s_mem ());
+
+  if (session->rbio == NULL)
+    DEBUG ("Could not allocate memory BIO for SSL reads");
+
+  if (session->wbio == NULL)
+    DEBUG ("Could not allocate memory BIO for SSL writes");
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     {
