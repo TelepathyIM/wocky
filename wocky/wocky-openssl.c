@@ -221,15 +221,31 @@ wocky_tls_error_quark (void)
   return quark;
 }
 
+/* Ok: This function tries to retrieve the error that caused a problem from  *
+ * bottom of the openssl error stack: The errnum argument is the error code  *
+ * returned by the last openssl operation which MAY NOT have come from the   *
+ * openssl error stack (cf SSL_get_error) and which MAY be SSL_ERROR_NONE:   *
+ * it's not supposed to be SSL_ERROR_NONE if a problem occurred, but this is *
+ * not actually guaranteed anywhere so we have to check for it here:         */
 static const gchar *error_to_string (long error)
 {
   static const gchar ssl_error[256];
   int e;
   int x;
+  /* SSL_ERROR_NONE from ERR_get_error means we have emptied the stack, *
+   * in which case we should back up and use the last error we saw:     */
   for (e = x = error; x != SSL_ERROR_NONE; x = ERR_get_error ())
     e = x;
-  ERR_error_string_n ((gulong) e, (gchar *) ssl_error, sizeof (ssl_error));
-  return (const gchar *) ssl_error;
+
+  /* we found an error in the stack, or were passed one in errnum: */
+  if (e != SSL_ERROR_NONE)
+    {
+      ERR_error_string_n ((gulong) e, (gchar *) ssl_error, sizeof (ssl_error));
+      return (const gchar *) ssl_error;
+    }
+
+  /* No useful/informative/relevant error found */
+  return NULL;
 }
 
 static GSimpleAsyncResult *
