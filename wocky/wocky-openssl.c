@@ -330,7 +330,8 @@ handshake_write (WockyTLSSession *session)
   GOutputStream *output = g_io_stream_get_output_stream (session->stream);
   long wsize = BIO_get_mem_data (session->wbio, &wbuf);
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
 
   g_output_stream_write_async (output, wbuf, wsize, prio, cancel,
                                wocky_tls_session_write_ready, session);
@@ -342,7 +343,9 @@ handshake_read (WockyTLSSession *session)
   GInputStream *input = g_io_stream_get_input_stream (session->stream);
   WockyTLSJob *handshake = (WockyTLSJob *) &session->job.handshake.job;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
+
   g_input_stream_read_async (input,
                              &(handshake->rbuf),
                              MAX_SSLV3_BLOCK_SIZE,
@@ -363,7 +366,8 @@ ssl_handshake (WockyTLSSession *session)
   gboolean done = session->job.handshake.done;
   gboolean fatal = FALSE;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
 
   if (!done)
     {
@@ -459,7 +463,8 @@ ssl_fill (WockyTLSSession *session)
   gint prio = session->job.read.io_priority;
   GCancellable *cancel = session->job.read.cancellable;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
 
   g_input_stream_read_async (input, rbuf, MAX_SSLV3_BLOCK_SIZE, prio, cancel,
                              wocky_tls_session_read_ready, session);
@@ -474,7 +479,8 @@ ssl_flush (WockyTLSSession *session)
   GOutputStream *output = g_io_stream_get_output_stream (session->stream);
   GCancellable *cancel = session->job.read.cancellable;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
 
   wsize = BIO_get_mem_data (session->wbio, &wbuf);
 
@@ -795,7 +801,6 @@ check_peer_name (const char *target, X509 *cert)
   X509_CINF *ci = cert->cert_info;
   static const long nid[] = { NID_commonName, NID_subject_alt_name, NID_undef };
 
-  DEBUG ();
   /* first, see if the x509 name contains the info we want: */
   for (i = 0; nid[i] != NID_undef; i++)
     {
@@ -1024,7 +1029,9 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
 {
   WockyTLSSession *session = WOCKY_TLS_INPUT_STREAM (stream)->session;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
+
   wocky_tls_job_start (&session->job.read, stream,
                        io_priority, cancellable, callback, user_data,
                        wocky_tls_input_stream_read_async);
@@ -1041,7 +1048,8 @@ wocky_tls_input_stream_read_finish (GInputStream  *stream,
 {
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
   {
     GObject *source_object;
 
@@ -1104,7 +1112,8 @@ wocky_tls_output_stream_write_finish (GOutputStream   *stream,
 {
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
   {
     GObject *source_object;
 
@@ -1261,7 +1270,8 @@ wocky_tls_session_read_ready (GObject      *object,
   gchar *buf = session->job.handshake.job.active ?
     session->job.handshake.job.rbuf : session->job.read.rbuf;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
 
   rsize = g_input_stream_read_finish (input, result, error);
 
@@ -1300,7 +1310,8 @@ wocky_tls_session_write_ready (GObject      *object,
   gint buffered = BIO_pending (session->wbio);
   gssize written;
 
-  DEBUG ();
+  if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+    DEBUG ();
 
   written = g_output_stream_write_finish (G_OUTPUT_STREAM (object), result,
                                           &(session->job.write.error));
