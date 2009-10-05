@@ -1463,8 +1463,11 @@ wocky_tls_session_constructed (GObject *object)
   X509_STORE_set_flags (SSL_CTX_get_cert_store (session->ctx),
                         X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
 
-  /* DEBUG ("cipher-load: %d",
-     SSL_CTX_set_cipher_list (session->ctx, CIPHER_LIST)); */
+  /* If you want to restrict/alter the list of supported ciphers, do so *
+   * with this function: (CIPHER_LIST is a ':' separated list of names) *
+   * in which elements can be negated with a ! prefix                   *
+   * eg "all:!some-crypto-we-hate"                                      *
+   * SSL_CTX_set_cipher_list (session->ctx, CIPHER_LIST);               */
 
   if (session->server)
     {
