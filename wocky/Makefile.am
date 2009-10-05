@@ -2,12 +2,24 @@ include $(top_srcdir)/tools/flymake.mk
 
 noinst_LTLIBRARIES = libwocky.la
 
+EXTRA_DIST =
+
 BUILT_SOURCES = \
   wocky-signals-marshal.list \
   wocky-signals-marshal.h \
   wocky-signals-marshal.c \
   wocky-xmpp-reader-enumtypes.h \
   wocky-xmpp-reader-enumtypes.c
+
+OPENSSL_SRC = \
+  wocky-openssl.c        \
+  wocky-openssl.h        \
+  wocky-openssl-dh512.c  \
+  wocky-openssl-dh1024.c \
+  wocky-openssl-dh2048.c \
+  wocky-openssl-dh4096.c
+
+GNUTLS_SRC = wocky-tls.c wocky-tls.h
 
 HANDWRITTEN_SOURCES =            \
   wocky-types.h                  \
@@ -52,14 +64,11 @@ HANDWRITTEN_SOURCES =            \
   wocky-pep-service.h
 
 if USING_OPENSSL
-  HANDWRITTEN_SOURCES += wocky-openssl.c        \
-                         wocky-openssl.h        \
-	                     wocky-openssl-dh512.c  \
-                         wocky-openssl-dh1024.c \
-                         wocky-openssl-dh2048.c \
-                         wocky-openssl-dh4096.c
+  HANDWRITTEN_SOURCES += $(OPENSSL_SRC)
+  EXTRA_DIST += $(GNUTLS_SRC)
 else
-  HANDWRITTEN_SOURCES += wocky-tls.c wocky-tls.h
+  HANDWRITTEN_SOURCES += $(GNUTLS_SRC)
+  EXTRA_DIST += $(OPENSSL_SRC)
 endif
 
 libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES) $(BUILT_SOURCES)
