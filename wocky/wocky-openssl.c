@@ -863,8 +863,10 @@ check_peer_name (const char *target, X509 *cert)
             sk_CONF_VALUE_pop_free(nval, X509V3_conf_free);
           }
 
-        if(convert->it) ASN1_item_free(ext_str, ASN1_ITEM_ptr(convert->it));
-        else convert->ext_free(ext_str);
+        if (convert->it)
+          ASN1_item_free (ext_str, ASN1_ITEM_ptr (convert->it));
+        else
+          convert->ext_free (ext_str);
       }
 
   return rval;
