@@ -25,7 +25,7 @@
  * @title: Wocky OpenSSL TLS
  * @short_description: Establish TLS sessions
  *
- * The WOCKY_TLS_DEBUG_LEVEL environnement variable can be used to print debug
+ * The WOCKY_TLS_DEBUG_LEVEL environment variable can be used to print debug
  * output from OpenSSL. To enable it, set it to a value from 1 to 9.
  * Higher values will print more information.
  *

@@ -17,17 +17,17 @@
  * Branched at: 42b00d143fcf644880456d06d3a20b6e990a7fa3
  *   "toss out everything that moved to glib"
  *
- * This file follows the orignal coding style from upstream, not house
+ * This file follows the original coding style from upstream, not house
  * collabora style: It is a copy of unmerged gnio TLS support with the
  * 'g' prefixes changes to 'wocky' and server-side TLS support added.
  */
 
 /**
  * SECTION: wocky-tls
- * @title: Wocky TLS
+ * @title: Wocky GnuTLS TLS
  * @short_description: Establish TLS sessions
  *
- * The WOCKY_TLS_DEBUG_LEVEL environnement variable can be used to print debug
+ * The WOCKY_TLS_DEBUG_LEVEL environment variable can be used to print debug
  * output from GNU TLS. To enable it, set it to a value from 1 to 9.
  * Higher values will print more information. See the documentation of
  * gnutls_global_set_log_level for more details.
