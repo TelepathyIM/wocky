@@ -38,7 +38,7 @@
  * The WOCKY_GNUTLS_OPTIONS environment variable can be set to a gnutls
  * priority string [See gnutls-cli(1) or the gnutls_priority_init docs]
  * to control most tls protocol details. An empty or unset value is
- * equivalent to a priority string of "NORMAL".
+ * equivalent to a priority string of "SECURE:+COMP-DEFLATE:+CTYPE-OPENPGP".
  */
 
 #include "wocky-tls.h"
@@ -46,6 +46,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+
+#define DEFAULT_TLS_OPTIONS "SECURE:+COMP-DEFLATE:+CTYPE-OPENPGP"
 
 #define DEBUG_FLAG DEBUG_TLS
 #define DEBUG_HANDSHAKE_LEVEL 5
@@ -1282,10 +1284,10 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
 }
 
 static const char *
-tls_options ()
+tls_options (void)
 {
   const char *options = getenv ("WOCKY_GNUTLS_OPTIONS");
-  return (options != NULL && *options != '\0') ? options : "NORMAL";
+  return (options != NULL && *options != '\0') ? options : DEFAULT_TLS_OPTIONS;
 }
 
 static void
@@ -1329,10 +1331,12 @@ wocky_tls_session_constructed (GObject *object)
       DEBUG ("could not set priority string: %s", error_to_string (code));
       DEBUG ("    '%s'", opt);
       if (pos >= opt)
-        DEBUG ("     %*s^", (pos - opt), "");
+        DEBUG ("     %*s^", (int) (pos - opt), "");
     }
   else
-    DEBUG ("priority set to: '%s'", opt);
+    {
+      DEBUG ("priority set to: '%s'", opt);
+    }
 
   code = gnutls_credentials_set (session->session,
                                  GNUTLS_CRD_CERTIFICATE,
