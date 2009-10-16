@@ -37,7 +37,7 @@
  *
  * The WOCKY_GNUTLS_OPTIONS environment variable can be set to a gnutls
  * priority string [See gnutls-cli(1) or the gnutls_priority_init docs]
- * to control most tls protocol details. An empty or unset value is
+ * to control most tls protocol details. An empty or unset value is roughly
  * equivalent to a priority string of "SECURE:+COMP-DEFLATE:+CTYPE-OPENPGP".
  */
 
@@ -47,7 +47,12 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#define DEFAULT_TLS_OPTIONS "SECURE:+COMP-DEFLATE:+CTYPE-OPENPGP"
+#define DEFAULT_TLS_OPTIONS \
+  "SECURE:"         /* all algorithms on in most->least secure order     */ \
+  "-COMP-NULL:"     /* remove null compression                           */ \
+  "+COMP-DEFLATE:"  /* prefer deflate                                    */ \
+  "+COMP-NULL:"     /* fall back to null                                 */ \
+  "+CTYPE-OPENPGP"  /* add openpgp cert support, since we have it        */
 
 #define DEBUG_FLAG DEBUG_TLS
 #define DEBUG_HANDSHAKE_LEVEL 5
