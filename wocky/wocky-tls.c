@@ -34,6 +34,11 @@
  *
  * Increasing the value past certain thresholds will also trigger increased
  * debugging output from within wocky-tls.c as well.
+ *
+ * The WOCKY_GNUTLS_OPTIONS environment variable can be set to a gnutls
+ * priority string [See gnutls-cli(1) or the gnutls_priority_init docs]
+ * to control most tls protocol details. An empty or unset value is
+ * equivalent to a priority string of "NORMAL".
  */
 
 #include "wocky-tls.h"
@@ -171,7 +176,6 @@ struct OPAQUE_TYPE__WockyTLSSession
 
   gnutls_session_t session;
 
-  gnutls_priority_t gnutls_prio_cache;
   gnutls_certificate_credentials gnutls_cert_cred;
 };
 
@@ -1277,12 +1281,22 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
     }
 }
 
+static const char *
+tls_options ()
+{
+  const char *options = getenv ("WOCKY_GNUTLS_OPTIONS");
+  return (options != NULL && *options != '\0') ? options : "NORMAL";
+}
+
 static void
 wocky_tls_session_constructed (GObject *object)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (object);
 
   gboolean server = session->server;
+  gint code;
+  const gchar *opt = tls_options ();
+  const gchar *pos = NULL;
 
   /* gnutls_handshake_set_private_extensions (session->session, 1); */
   gnutls_certificate_allocate_credentials (&(session->gnutls_cert_cred));
@@ -1309,10 +1323,23 @@ wocky_tls_session_constructed (GObject *object)
   else
     gnutls_init (&session->session, GNUTLS_CLIENT);
 
-  gnutls_priority_init (&session->gnutls_prio_cache, "NORMAL", NULL);
-  gnutls_credentials_set (session->session,
-    GNUTLS_CRD_CERTIFICATE, session->gnutls_cert_cred);
-  gnutls_set_default_priority (session->session);
+  code = gnutls_priority_set_direct (session->session, opt, &pos);
+  if (code != GNUTLS_E_SUCCESS)
+    {
+      DEBUG ("could not set priority string: %s", error_to_string (code));
+      DEBUG ("    '%s'", opt);
+      if (pos >= opt)
+        DEBUG ("     %*s^", (pos - opt), "");
+    }
+  else
+    DEBUG ("priority set to: '%s'", opt);
+
+  code = gnutls_credentials_set (session->session,
+                                 GNUTLS_CRD_CERTIFICATE,
+                                 session->gnutls_cert_cred);
+  if (code != GNUTLS_E_SUCCESS)
+    DEBUG ("could not set credentials: %s", error_to_string (code));
+
   gnutls_transport_set_push_function (session->session,
                                       wocky_tls_session_push_func);
   gnutls_transport_set_pull_function (session->session,
@@ -1327,7 +1354,6 @@ wocky_tls_session_finalize (GObject *object)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (object);
 
-  gnutls_priority_deinit (session->gnutls_prio_cache);
   gnutls_deinit (session->session);
   gnutls_certificate_free_credentials (session->gnutls_cert_cred);
   g_object_unref (session->stream);
