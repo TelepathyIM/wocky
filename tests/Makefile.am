@@ -289,10 +289,6 @@ $(CA_DIR)/%.pem: $(CERT_DIR)/%.pem
 $(CRL_DIR)/%.pem: $(CERT_DIR)/%.pem
 	@cp -av $< $@
 
-clean-local:
-	rm -fv certs/cas/*.pem
-	rm -fv certs/crl/*.pem
-
 ############################################################################
 
 SUPPRESSIONS=threadlocal.supp
