@@ -46,7 +46,8 @@ void wocky_debug_stanza (DebugFlags flag, WockyXmppStanza *stanza,
 #ifdef DEBUG_FLAG
 
 #define DEBUG(format, ...) \
-  wocky_debug (DEBUG_FLAG, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
+  wocky_debug (DEBUG_FLAG, "%s: %s: " format, G_STRFUNC, G_STRLOC, \
+      ##__VA_ARGS__)
 
 #define DEBUG_STANZA(stanza, format, ...) \
   wocky_debug_stanza (DEBUG_FLAG, stanza, "%s: " format, G_STRFUNC,\
