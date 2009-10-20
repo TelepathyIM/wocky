@@ -243,6 +243,7 @@ static void
 stanza_iq_handler_free (StanzaIqHandler *handler)
 {
   g_object_unref (handler->result);
+  handler->result = NULL;
   if (handler->cancellable != NULL)
     {
       g_signal_handler_disconnect (handler->cancellable,
@@ -795,8 +796,12 @@ abort_pending_iqs (WockyPorter *self,
     {
       StanzaIqHandler *handler = value;
 
+      if (handler == NULL || handler->result == NULL)
+        continue;
+
       g_simple_async_result_set_from_error (handler->result, error);
       g_simple_async_result_complete (handler->result);
+      g_hash_table_iter_remove (&iter);
     }
 }
 
@@ -1185,8 +1190,11 @@ send_iq_cancelled_cb (GCancellable *cancellable,
   GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED,
       "IQ sending was cancelled" };
 
-  g_simple_async_result_set_from_error (handler->result, &error);
-  g_simple_async_result_complete (handler->result);
+  if (handler->result != NULL)
+    {
+      g_simple_async_result_set_from_error (handler->result, &error);
+      g_simple_async_result_complete (handler->result);
+    }
 
   /* Remove the handlers associated with this GCancellable */
   g_hash_table_foreach_remove (priv->iq_reply_handlers,
@@ -1225,8 +1233,11 @@ iq_sent_cb (GObject *source,
     }
 
   /* Raise an error */
-  g_simple_async_result_set_from_error (handler->result, error);
-  g_simple_async_result_complete (handler->result);
+  if (handler != NULL && handler->result != NULL)
+    {
+      g_simple_async_result_set_from_error (handler->result, error);
+      g_simple_async_result_complete (handler->result);
+    }
 
   g_hash_table_foreach_remove (priv->iq_reply_handlers,
       remove_iq_reply, handler);
