@@ -914,7 +914,7 @@ stanza_received_cb (GObject *source,
           DEBUG ("Error receiving stanza: %s", error->message);
         }
 
-      if (priv->force_close_result)
+      if (priv->force_close_result != NULL)
         {
           /* We are forcing the closing. Actually close the connection. */
           DEBUG ("Receive operation has been cancelled; "
@@ -948,7 +948,7 @@ stanza_received_cb (GObject *source,
     {
       DEBUG ("Remote connection has been closed, don't wait for next stanza");
 
-      if (priv->force_close_result)
+      if (priv->force_close_result != NULL)
         {
           DEBUG ("Remote connection has been closed; "
               "force closing of the XMPP connection");
