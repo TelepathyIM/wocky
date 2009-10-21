@@ -825,6 +825,8 @@ remote_connection_closed (WockyPorter *self,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
     error_occured = FALSE;
 
+  priv->remote_closed = TRUE;
+
   if (error_occured)
     {
       g_signal_emit (self, signals[REMOTE_ERROR], 0, error->domain,
@@ -853,8 +855,6 @@ remote_connection_closed (WockyPorter *self,
       g_object_unref (priv->receive_cancellable);
       priv->receive_cancellable = NULL;
     }
-
-  priv->remote_closed = TRUE;
 
   g_object_unref (self);
 }
