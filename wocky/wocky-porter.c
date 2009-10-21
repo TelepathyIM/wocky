@@ -869,12 +869,13 @@ connection_force_close_cb (GObject *source,
   GSimpleAsyncResult *r = priv->force_close_result;
   GError *error = NULL;
 
+  priv->force_close_result = NULL;
   priv->local_closed = TRUE;
 
   if (!wocky_xmpp_connection_force_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
     {
-      g_simple_async_result_set_from_error (priv->force_close_result, error);
+      g_simple_async_result_set_from_error (r, error);
       g_error_free (error);
     }
 
@@ -885,7 +886,6 @@ connection_force_close_cb (GObject *source,
     }
 
   DEBUG ("XMPP connection has been closed; complete the force close operation");
-  priv->force_close_result = NULL;
   g_simple_async_result_complete (r);
   g_object_unref (r);
 }
