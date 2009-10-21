@@ -1261,10 +1261,17 @@ wocky_porter_send_iq_async (WockyPorter *self,
 
   if (priv->close_result != NULL || priv->force_close_result != NULL)
     {
+      gchar *node = NULL;
+
+      g_assert (stanza != NULL && stanza->node != NULL);
+
+      node = wocky_xmpp_node_to_string (stanza->node);
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_PORTER_ERROR,
           WOCKY_PORTER_ERROR_CLOSING,
-          "Porter is closing");
+          "Porter is closing: iq '%s' aborted", node);
+      g_free (node);
+
       return;
     }
 
