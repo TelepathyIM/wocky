@@ -826,6 +826,9 @@ remote_connection_closed (WockyPorter *self,
             WOCKY_XMPP_CONNECTION_ERROR_CLOSED))
     error_occured = FALSE;
 
+  /* This flag MUST be set before we emit the remote-* signals: If it is not *
+   * some very subtle and hard to debug problems are created, which can in   *
+   * turn conceal further problems in the code. You have been warned.        */
   priv->remote_closed = TRUE;
 
   if (error_occured)
