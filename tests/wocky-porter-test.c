@@ -2298,6 +2298,42 @@ test_wait_iq_reply_force_close (void)
   teardown_test (test);
 }
 
+static void
+test_remote_error (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *error =
+    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+        WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAM,
+        WOCKY_NODE, "conflict",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAMS,
+        WOCKY_NODE_END,
+        WOCKY_STANZA_END);
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  g_signal_connect (test->sched_out, "remote-error",
+      G_CALLBACK (test_stream_error_cb), test);
+
+  wocky_porter_send_async (test->sched_in, error, NULL, send_stanza_cb, test);
+  test->outstanding++;
+  test_wait_pending (test);
+
+  test->outstanding++; /* this is for the signal connect above */
+
+  wocky_porter_force_close_async (test->sched_in, NULL,
+      test_close_force_force_closed_cb, test);
+  test->outstanding++;
+
+  test_wait_pending (test);
+
+  g_object_unref (error);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2347,6 +2383,7 @@ main (int argc, char **argv)
       test_wait_iq_reply_close);
   g_test_add_func ("/xmpp-porter/wait-iq-reply-force-close",
       test_wait_iq_reply_force_close);
+  g_test_add_func ("/xmpp-porter/avoid-double-force-close", test_remote_error);
 
   result = g_test_run ();
   test_deinit ();
