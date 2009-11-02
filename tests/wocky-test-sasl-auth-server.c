@@ -421,6 +421,84 @@ check_sasl_return (TestSaslAuthServer *self, int ret)
   return TRUE;
 }
 
+enum
+{
+  BEFORE_KEY,
+  INSIDE_KEY,
+  AFTER_KEY,
+  AFTER_EQ,
+  INSIDE_VALUE,
+  AFTER_VALUE,
+};
+
+/* insert space, CRLF, TAB etc at strategic locations in the challenge *
+ * to make sure our challenge parser is sufficently robust             */
+static gchar * space_challenge (const gchar *challenge, unsigned *len)
+{
+  GString *spaced = g_string_new_len (challenge, (gssize) *len);
+  gchar *c = spaced->str;
+  gchar q = '\0';
+  gsize pos;
+  gulong state = BEFORE_KEY;
+  gchar spc[] = { ' ', '\t', '\r', '\n' };
+
+  for (pos = 0; pos < spaced->len; pos++)
+    {
+      c = spaced->str + pos;
+
+      switch (state)
+        {
+          case BEFORE_KEY:
+            if (!g_ascii_isspace (*c) && *c != '\0' && *c != '=')
+              state = INSIDE_KEY;
+            break;
+          case INSIDE_KEY:
+            if (*c != '=')
+              break;
+            g_string_insert_c (spaced, pos++, spc [rand () % sizeof (spc)]);
+            state = AFTER_EQ;
+            break;
+          case AFTER_KEY:
+            if (*c != '=')
+              break;
+            state = AFTER_EQ;
+            break;
+          case AFTER_EQ:
+            if (g_ascii_isspace (*c))
+              break;
+            q = *c;
+            g_string_insert_c (spaced, pos++, spc [rand () % sizeof (spc)]);
+            state = INSIDE_VALUE;
+            break;
+          case INSIDE_VALUE:
+            if (q == '"' && *c != '"')
+              break;
+            if (q != '"' && !g_ascii_isspace (*c) && *c != ',')
+              break;
+            if (q != '"')
+              {
+                g_string_insert_c (spaced, pos++, spc [rand () % sizeof (spc)]);
+                g_string_insert_c (spaced, ++pos, spc [rand () % sizeof (spc)]);
+              }
+            state = AFTER_VALUE;
+            break;
+          case AFTER_VALUE:
+            if (*c == ',')
+              {
+                g_string_insert_c (spaced, pos++, spc [rand () % sizeof (spc)]);
+                g_string_insert_c (spaced, ++pos, spc [rand () % sizeof (spc)]);
+              }
+            state = BEFORE_KEY;
+            break;
+          default:
+            g_assert_not_reached ();
+        }
+    }
+
+  *len = spaced->len;
+  return g_string_free (spaced, FALSE);
+}
+
 static void
 handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 {
@@ -500,7 +578,18 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           priv->state = AUTH_STATE_FINAL_CHALLENGE;
         }
 
-      challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
+      if (priv->problem == SERVER_PROBLEM_SPACE_CHALLENGE)
+        {
+          unsigned slen = challenge_len;
+          gchar *spaced = space_challenge (challenge, &slen);
+          challenge64 = g_base64_encode ((guchar *) spaced, slen);
+          g_free (spaced);
+        }
+      else
+        {
+          challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
+        }
+
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
@@ -569,7 +658,17 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           priv->state = AUTH_STATE_FINAL_CHALLENGE;
         }
 
-      challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
+      if (priv->problem == SERVER_PROBLEM_SPACE_CHALLENGE)
+        {
+          unsigned slen = challenge_len;
+          gchar *spaced = space_challenge (challenge, &slen);
+          challenge64 = g_base64_encode ((guchar *) spaced, slen);
+          g_free (spaced);
+        }
+      else
+        {
+          challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
+        }
 
       c = wocky_xmpp_stanza_new ("challenge");
       wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);

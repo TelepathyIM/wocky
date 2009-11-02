@@ -241,7 +241,7 @@ run_test (gconstpointer user_data)
  { desc, mech, allow_plain, domain, code, problem, FALSE, FALSE, \
   "test", "test123", NULL }
 
-#define NUMBER_OF_TEST 12
+#define NUMBER_OF_TEST 13
 
 int
 main (int argc,
@@ -285,6 +285,11 @@ main (int argc,
     { "/xmpp-sasl/digest-md5-A1-null-byte", "DIGEST-MD5", TRUE,
        0, 0, SERVER_PROBLEM_NO_PROBLEM, FALSE, FALSE,
        "moose", "something", "cass-x200s" },
+
+    /* Redo the MD5-DIGEST test with extra whitespace in the challenge */
+    { "/xmpp-sasl/digest-md5-spaced-challenge", "DIGEST-MD5", FALSE,
+      0, 0, SERVER_PROBLEM_SPACE_CHALLENGE, FALSE, FALSE,
+      "moose", "something", "cass-x200s" },
   };
 
   test_init (argc, argv);
