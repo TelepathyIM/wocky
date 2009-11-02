@@ -429,6 +429,10 @@ digest_md5_challenge_to_hash (const gchar * challenge)
     keyend = c;
     c++;
 
+    /* eat any whitespace between the '=' and the '"' */
+    for (; g_ascii_isspace (*c); c++)
+      ;
+
     if (*c == '"')
       {
         c++;
@@ -450,9 +454,17 @@ digest_md5_challenge_to_hash (const gchar * challenge)
         val = g_strndup (valstart, c - valstart);
       }
 
+    /* the key is unguarded by '"' delimiters so any whitespace *
+     * at either end should be discarded as irrelevant          */
     key = g_strndup (keystart, keyend - keystart);
+    key = g_strstrip (key);
 
+    DEBUG ("challenge '%s' = '%s'", key, val);
     g_hash_table_insert (result, key, val);
+
+    /* eat any whitespace between the '"' and the next ',' */
+    for (; g_ascii_isspace (*c); c++)
+      ;
 
     if (*c == ',')
       c++;
