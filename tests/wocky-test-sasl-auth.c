@@ -241,14 +241,12 @@ run_test (gconstpointer user_data)
  { desc, mech, allow_plain, domain, code, problem, FALSE, FALSE, \
   "test", "test123", NULL }
 
-#define NUMBER_OF_TEST 13
-
 int
 main (int argc,
     char **argv)
 {
   int result;
-  test_t tests[NUMBER_OF_TEST] = {
+  test_t tests[] = {
     SUCCESS("/xmpp-sasl/normal-auth", NULL, TRUE),
     SUCCESS("/xmpp-sasl/no-plain", NULL, FALSE),
     SUCCESS("/xmpp-sasl/only-plain", "PLAIN", TRUE),
@@ -290,15 +288,20 @@ main (int argc,
     { "/xmpp-sasl/digest-md5-spaced-challenge", "DIGEST-MD5", FALSE,
       0, 0, SERVER_PROBLEM_SPACE_CHALLENGE, FALSE, FALSE,
       "moose", "something", "cass-x200s" },
+
+    /* Redo the MD5-DIGEST test with extra \ escapes in the challenge */
+    { "/xmpp-sasl/digest-md5-slash-challenge", "DIGEST-MD5", FALSE,
+      0, 0, SERVER_PROBLEM_SLASH_CHALLENGE, FALSE, FALSE,
+      "moose", "something", "cass-x200s" },
   };
 
   test_init (argc, argv);
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
-  for (int i = 0; i < NUMBER_OF_TEST; i++)
+  for (guint i = 0; i < G_N_ELEMENTS (tests); i++)
     g_test_add_data_func (tests[i].description,
-      &tests[i], run_test);
+        &tests[i], run_test);
 
   result = g_test_run ();
   test_deinit ();

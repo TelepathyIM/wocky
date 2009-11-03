@@ -499,6 +499,62 @@ static gchar * space_challenge (const gchar *challenge, unsigned *len)
   return g_string_free (spaced, FALSE);
 }
 
+/* insert a bogus parameter with a \" and a \\ sequence in it
+ * scatter some \ characters through the " quoted challenge values */
+static gchar * slash_challenge (const gchar *challenge, unsigned *len)
+{
+  GString *slashed = g_string_new_len (challenge, (gssize) *len);
+  gchar *c = slashed->str;
+  gchar q = '\0';
+  gsize pos;
+  gulong state = BEFORE_KEY;
+
+  for (pos = 0; pos < slashed->len; pos++)
+    {
+      c = slashed->str + pos;
+
+      switch (state)
+        {
+          case BEFORE_KEY:
+            if (!g_ascii_isspace (*c) && *c != '\0' && *c != '=')
+              state = INSIDE_KEY;
+            break;
+          case INSIDE_KEY:
+            if (*c != '=')
+              break;
+            state = AFTER_EQ;
+            break;
+          case AFTER_EQ:
+            if (g_ascii_isspace (*c))
+              break;
+            q = *c;
+            state = INSIDE_VALUE;
+            break;
+          case INSIDE_VALUE:
+            if (q == '"' && *c != '"')
+              {
+                if ((rand () % 3) == 0)
+                  g_string_insert_c (slashed, pos++, '\\');
+                break;
+              }
+            if (q != '"' && !g_ascii_isspace (*c) && *c != ',')
+              break;
+            state = AFTER_VALUE;
+            break;
+          case AFTER_VALUE:
+            state = BEFORE_KEY;
+            break;
+          default:
+            g_assert_not_reached ();
+        }
+    }
+
+  g_string_prepend (slashed, "ignore-me = \"(a slash \\\\ a quote \\\")\", ");
+
+  *len = slashed->len;
+  return g_string_free (slashed, FALSE);
+}
+
 static void
 handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 {
@@ -585,6 +641,13 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           challenge64 = g_base64_encode ((guchar *) spaced, slen);
           g_free (spaced);
         }
+      else if (priv->problem == SERVER_PROBLEM_SLASH_CHALLENGE)
+        {
+          unsigned slen = challenge_len;
+          gchar *slashc = slash_challenge (challenge, &slen);
+          challenge64 = g_base64_encode ((guchar *) slashc, slen);
+          g_free (slashc);
+        }
       else
         {
           challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
@@ -664,6 +727,13 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           gchar *spaced = space_challenge (challenge, &slen);
           challenge64 = g_base64_encode ((guchar *) spaced, slen);
           g_free (spaced);
+        }
+      else if (priv->problem == SERVER_PROBLEM_SLASH_CHALLENGE)
+        {
+          unsigned slen = challenge_len;
+          gchar *slashc = slash_challenge (challenge, &slen);
+          challenge64 = g_base64_encode ((guchar *) slashc, slen);
+          g_free (slashc);
         }
       else
         {
