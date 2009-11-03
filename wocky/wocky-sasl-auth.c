@@ -438,9 +438,16 @@ digest_md5_challenge_to_hash (const gchar * challenge)
         gboolean esc = FALSE;
         c++;
         valstart = c;
-        for (; *c != '\0' && (esc || *c != '"'); c++)
-          esc = esc ? FALSE : *c == '\\';
 
+        /* " terminates a quoted value _unless_ we are in a \ escape */
+        /* \0 always terminates (end of string encountered)          */
+        for (; *c != '\0' && (esc || *c != '"'); c++)
+          {
+            if (esc)
+              esc = FALSE;      /* we are in a \ char escape, finish it   */
+            else
+              esc = *c == '\\'; /* is this char \ (ie starting an escape) */
+          }
         if (*c == '\0' || c == valstart)
           goto error;
         val = strndup_unescaped (valstart, c - valstart);
