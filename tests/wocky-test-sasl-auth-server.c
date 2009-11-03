@@ -193,11 +193,14 @@ features_sent (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
+  TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (user_data);
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+
   g_assert (wocky_xmpp_connection_send_stanza_finish (
     WOCKY_XMPP_CONNECTION (source), res, NULL));
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
-    NULL, received_stanza, user_data);
+    priv->recv_cancel, received_stanza, user_data);
 }
 
 
@@ -220,7 +223,7 @@ stream_open_sent (GObject *source,
   test_sasl_auth_server_set_mechs (G_OBJECT (self), stanza);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, stanza,
-    NULL, features_sent, user_data);
+    priv->recv_cancel, features_sent, user_data);
   g_object_unref (stanza);
 }
 
