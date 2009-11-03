@@ -435,10 +435,12 @@ digest_md5_challenge_to_hash (const gchar * challenge)
 
     if (*c == '"')
       {
+        gboolean esc = FALSE;
         c++;
         valstart = c;
-        for (; *c != '\0' && *c != '"'; c++)
-          ;
+        for (; *c != '\0' && (esc || *c != '"'); c++)
+          esc = esc ? FALSE : *c == '\\';
+
         if (*c == '\0' || c == valstart)
           goto error;
         val = strndup_unescaped (valstart, c - valstart);
