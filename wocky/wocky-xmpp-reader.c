@@ -20,10 +20,11 @@
 
 /**
  * SECTION: wocky-xmpp-reader
- * @title: #WockyXmppReader
+ * @title: WockyXmppReader
  * @short_description: Xmpp XML to stanza deserializer
  *
- * The #WockyXmppReader deserializes XML to #WockyXmppStanzas, misc, other
+ * The #WockyXmppReader deserializes XML to #WockyXmppStanza<!-- -->s,
+ * misc, other
  */
 
 #include <stdio.h>
