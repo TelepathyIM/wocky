@@ -279,6 +279,15 @@ wocky_bare_contact_class_init (WockyBareContactClass *wocky_bare_contact_class)
   g_object_class_install_property (object_class, PROP_GROUPS, spec);
 }
 
+/**
+ * wocky_bare_contact_new:
+ * @jid: the JID of the contact to create
+ *
+ * Creates a new #WockyBareContact for a given JID.
+ *
+ * Returns: a newly constructed #WockyBareContact
+ */
+
 WockyBareContact *
 wocky_bare_contact_new (const gchar *jid)
 {
@@ -291,7 +300,7 @@ wocky_bare_contact_new (const gchar *jid)
  * wocky_bare_contact_get_jid:
  * @contact: a #WockyBareContact instance
  *
- * <!-- -->
+ * Returns the JID of the contact wrapped by @contact.
  *
  * Returns: @contact's JID.
  */
@@ -311,7 +320,7 @@ wocky_bare_contact_get_jid (WockyBareContact *contact)
  * wocky_bare_contact_get_name:
  * @contact: #WockyBareContact instance
  *
- * <!-- -->
+ * Returns the name of the contact wrapped by @contact.
  *
  * Returns: @contact's name
  */
@@ -359,7 +368,7 @@ wocky_bare_contact_set_name (WockyBareContact *contact,
  * wocky_bare_contact_get_subscription:
  * @contact: a #WockyBareContact instance
  *
- * <!-- -->
+ * Gets the subscription type @contact has.
  *
  * Returns: @contact's subscription.
  */
@@ -404,7 +413,7 @@ wocky_bare_contact_set_subscription (WockyBareContact *contact,
  * wocky_bare_contact_get_groups:
  * @contact: a #WockyBareContact instance
  *
- * <!-- -->
+ * Returns the list of the groups of @contact.
  *
  * Returns: a list of @contact's groups
  */
@@ -507,6 +516,16 @@ wocky_bare_contact_set_groups (WockyBareContact *contact,
   g_object_notify (G_OBJECT (contact), "groups");
 }
 
+/**
+ * wocky_bare_contact_equal:
+ * @a: a #WockyBareContact instance
+ * @b: a #WockyBareContact instance to compare with @a
+ *
+ * Compares whether two #WockyBareContact instances refer to the same
+ * roster item.
+ *
+ * Returns: #TRUE if the two contacts match.
+ */
 gboolean
 wocky_bare_contact_equal (WockyBareContact *a,
     WockyBareContact *b)
@@ -535,6 +554,13 @@ wocky_bare_contact_equal (WockyBareContact *a,
   return groups_equal (groups_a, groups_b);
 }
 
+/**
+ * wocky_bare_contact_add_group:
+ * @contact: a #WockyBareContact instance
+ * @group: a group
+ *
+ * Adds @group to contact's groups.
+ */
 void
 wocky_bare_contact_add_group (WockyBareContact *self,
     const gchar *group)
@@ -575,6 +601,15 @@ wocky_bare_contact_add_group (WockyBareContact *self,
   priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
 }
 
+/**
+ * wocky_bare_contact_in_group:
+ * @contact: a #WockyBareContact instance
+ * @group: a group
+ *
+ * Determines whether the given contact is in @group.
+ *
+ * Returns: #TRUE if the contact is in the given group.
+ */
 gboolean
 wocky_bare_contact_in_group (WockyBareContact *self,
     const gchar *group)
@@ -594,6 +629,13 @@ wocky_bare_contact_in_group (WockyBareContact *self,
   return FALSE;
 }
 
+/**
+ * wocky_bare_contact_remove_group:
+ * @contact: a #WockyBareContact instance
+ * @group: a group
+ *
+ * Removes @group from the contact's groups.
+ */
 void
 wocky_bare_contact_remove_group (WockyBareContact *self,
     const gchar *group)
@@ -624,6 +666,15 @@ wocky_bare_contact_remove_group (WockyBareContact *self,
   priv->groups = (GStrv) g_ptr_array_free (arr, FALSE);
 }
 
+/**
+ * wocky_bare_contact_copy:
+ * @contact: a #WockyBareContact instance
+ *
+ * Convenience function to obtain a copy of the given #WockyBareContact.
+ *
+ * Returns: a newly created #WockyBareContact which is a copy of the given
+ * one.
+ */
 WockyBareContact *
 wocky_bare_contact_copy (WockyBareContact *contact)
 {
@@ -635,6 +686,12 @@ wocky_bare_contact_copy (WockyBareContact *contact)
       NULL);
 }
 
+/**
+ * wocky_bare_contact_debug_print:
+ * @contact: a #WockyBareContact instance
+ *
+ * Prints debug information for the given #WockyBareContact.
+ */
 void
 wocky_bare_contact_debug_print (WockyBareContact *self)
 {
@@ -649,6 +706,14 @@ wocky_bare_contact_debug_print (WockyBareContact *self)
     DEBUG ("  - %s", priv->groups[i]);
 }
 
+/**
+ * wocky_bare_contact_add_resource:
+ * @contact: a #WockyBareContact instance
+ * @resource: a #WockyResourceContact instance
+ *
+ * Adds @resource to the contact's resources.
+ * The #WockyBareContact instance doesn't assume a reference to @resource.
+ */
 void
 wocky_bare_contact_add_resource (WockyBareContact *self,
     WockyResourceContact *resource)
@@ -659,6 +724,15 @@ wocky_bare_contact_add_resource (WockyBareContact *self,
   priv->resources = g_slist_append (priv->resources, resource);
 }
 
+/**
+ * wocky_bare_contact_get_resources:
+ * @contact: a #WockyBareContact instance
+ *
+ * Gets a #GSList of all the contact's resources.
+ * You should call #g_slist_free on the list when done with it.
+ *
+ * Returns: a #GSList of #WockyResourceContact objects.
+ */
 GSList *
 wocky_bare_contact_get_resources (WockyBareContact *self)
 {
