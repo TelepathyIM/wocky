@@ -43,7 +43,7 @@ typedef struct _WockyPorterClass WockyPorterClass;
  * @WOCKY_PORTER_ERROR_CLOSING : The #WockyPorter is closing
  * @WOCKY_PORTER_ERROR_CLOSED : The #WockyPorter is closed
  * @WOCKY_PORTER_ERROR_NOT_IQ : The #WockyXmppStanza is not an IQ
- * @WOCKY_PORTER_ERROR_FORCE_CLOSING : The #WockyPorter has been forced to
+ * @WOCKY_PORTER_ERROR_FORCIBLY_CLOSED : The #WockyPorter has been forced to
  * close
  *
  * The #WockyPorter specific errors.
@@ -121,7 +121,7 @@ void wocky_porter_start (WockyPorter *porter);
  * @stanza: the #WockyXmppStanza being dispatched
  * @user_data: the data passed when the handler has been registered
  *
- * Handler called when a matchinWOCKY_STANZA_SUB_TYPE_NONEg stanza has been received by the
+ * Handler called when a matchig stanza has been received by the
  * #WockyPorter.
  *
  * Returns: %TRUE if the stanza has been handled, %FALSE if not

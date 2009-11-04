@@ -96,7 +96,7 @@ struct _WockyPorterPrivate
 };
 
 /**
- * wocky_porter_error_quark
+ * wocky_porter_error_quark:
  *
  * Get the error quark used by the porter.
  *
@@ -628,7 +628,7 @@ send_cancelled_cb (GCancellable *cancellable,
  * wocky_porter_send_async:
  * @porter: a #WockyPorter
  * @stanza: the #WockyXmppStanza to send
- * @cancellable: optional #GCancellable object, NULL to ignore
+ * @cancellable: optional #GCancellable object, %NULL <!-- --> to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
  *
@@ -675,7 +675,8 @@ wocky_porter_send_async (WockyPorter *self,
  * wocky_porter_send_finish:
  * @porter: a #WockyPorter
  * @result: a #GAsyncResult
- * @error: a GError location to store the error occuring, or NULL to ignore.
+ * @error: a #GError location to store the error occuring, or %NULL <!-- -->to
+ * ignore.
  *
  * Finishes sending a #WockyXmppStanza.
  *
@@ -703,7 +704,7 @@ wocky_porter_send_finish (WockyPorter *self,
  *
  * Send a #WockyXmppStanza.
  * This is a convenient function to not have to call
- * wocky_porter_send_async with lot of %NULL arguments if you don't care to
+ * wocky_porter_send_async() with lot of %NULL arguments if you don't care to
  * know when the stanza has been actually sent.
  */
 void
@@ -1131,14 +1132,14 @@ send_close (WockyPorter *self)
 /**
  * wocky_porter_close_async:
  * @porter: a #WockyPorter
- * @cancellable: optional #GCancellable object, NULL to ignore
+ * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
  *
- * Request asynchronous sending of a #WockyPorter. This fire the
- * WockyPorter::closing signal, flush the sending queue, close the XMPP stream
- * and wait that the other side closes the XMPP stream as well. When this is
- * done, @callback is called.
+ * Request asynchronous closing of a #WockyPorter. This fires the
+ * WockyPorter::closing signal, flushes the sending queue, closes the XMPP
+ * stream and waits that the other side closes the XMPP stream as well.
+ * When this is done, @callback is called.
  * You can then call wocky_porter_close_finish() to get the result of
  * the operation.
  */
@@ -1206,7 +1207,7 @@ wocky_porter_close_async (WockyPorter *self,
  * wocky_porter_close_finish:
  * @porter: a #WockyPorter
  * @result: a #GAsyncResult
- * @error: a GError location to store the error occuring, or NULL to ignore.
+ * @error: a #GError location to store the error occuring, or %NULL to ignore.
  *
  * Finishes a close operation.
  *
@@ -1246,15 +1247,15 @@ compare_handler (StanzaHandler *a,
  * @porter: a #WockyPorter
  * @type: the type of stanza dispatched by this handler
  * @sub_type: the subtype of stanza dispatched by this handler or
- * WOCKY_STANZA_SUB_TYPE_NONE to match any subtype
+ * %WOCKY_STANZA_SUB_TYPE_NONE to match any subtype
  * @from: if not %NULL, the handler will be called only if the from attribute
  * attribute of the stanza is the same as @from
  * @priority: the priority of the handler; handler with a higher priority are
  * called first
  * @callback: the function called when dispatching a matching stanza
  * @user_data: the data to pass to @callback when dispatching a stanza
- * @spec: an optionnal set of nodes and their attributes as in
- * wocky_xmpp_stanza_build and terminated by WOCKY_STANZA_END
+ * @spec: an optional set of nodes and their attributes as in
+ * wocky_xmpp_stanza_build, terminated by %WOCKY_STANZA_END
  *
  * Register a new stanza handler.
  * Stanza handlers are called when the Porter receives a new stanza matching
@@ -1422,7 +1423,7 @@ iq_sent_cb (GObject *source,
  * wocky_porter_send_iq_async:
  * @porter: a #WockyPorter
  * @stanza: the #WockyXmppStanza to send
- * @cancellable: optional #GCancellable object, NULL to ignore
+ * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
  *
@@ -1430,7 +1431,7 @@ iq_sent_cb (GObject *source,
  * %WOCKY_STANZA_TYPE_IQ and sub-type %WOCKY_STANZA_SUB_TYPE_GET or
  * %WOCKY_STANZA_SUB_TYPE_SET.
  * When the reply to this IQ has been received callback will be called.
- * You can then call wocky_porter_send_iq_finish() to get the reply stanza.
+ * You can then call #wocky_porter_send_iq_finish to get the reply stanza.
  */
 void
 wocky_porter_send_iq_async (WockyPorter *self,
@@ -1513,11 +1514,11 @@ wrong_stanza:
  * wocky_porter_send_iq_finish:
  * @porter: a #WockyPorter
  * @result: a #GAsyncResult
- * @error: a GError location to store the error occuring, or NULL to ignore.
+ * @error: a #GError location to store the error occuring, or %NULL to ignore.
  *
  * Get the reply of an IQ query.
  *
- * Returns: a reffed #WockyXmppStanza on success, NULL on error
+ * Returns: a reffed #WockyXmppStanza on success, %NULL on error
  */
 WockyXmppStanza * wocky_porter_send_iq_finish (
     WockyPorter *self,
@@ -1542,16 +1543,16 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
 /**
  * wocky_porter_force_close_async:
  * @porter: a #WockyPorter
- * @cancellable: optional #GCancellable object, NULL to ignore
+ * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
  *
  * Force the #WockyPorter to close the TCP connection of the underlying
  * #WockyXmppConnection.
  * If a close operation is pending, it will be completed with the
- * #WOCKY_PORTER_ERROR_FORCE_CLOSING error.
+ * %WOCKY_PORTER_ERROR_FORCE_CLOSING error.
  * When the connection has been closed, @callback will be called.
- * You can then call wocky_porter_force_close_finish() to get the result of
+ * You can then call #wocky_porter_force_close_finish to get the result of
  * the operation.
  */
 void
@@ -1662,7 +1663,7 @@ wocky_porter_force_close_async (WockyPorter *self,
  * wocky_porter_force_close_finish:
  * @porter: a #WockyPorter
  * @result: a #GAsyncResult
- * @error: a GError location to store the error occuring, or NULL to ignore.
+ * @error: a #GError location to store the error occuring, or %NULL to ignore.
  *
  * Finishes a force close operation.
  *
