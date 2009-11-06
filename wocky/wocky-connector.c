@@ -22,7 +22,7 @@
  * SECTION: wocky-connector
  * @title: WockyConnector
  * @short_description: Low-level XMPP connection generator.
- * @include wocky/wocky-connector.h
+ * @include: wocky/wocky-connector.h
  *
  * See: RFC3920 XEP-0077
  *
