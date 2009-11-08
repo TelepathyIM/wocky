@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "wocky-sasl-auth.h"
+#include "wocky-sasl-handler.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
@@ -65,6 +66,7 @@ struct _WockySaslAuthPrivate
   gchar *digest_md5_rspauth;
   WockySaslAuthState state;
   gchar *mech;
+  WockySaslHandler *handler;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
 };
@@ -207,6 +209,11 @@ wocky_sasl_auth_dispose (GObject *object)
   /* release any references held by the object here */
 
   g_free (priv->mech);
+
+  if (priv->handler != NULL)
+    {
+      wocky_sasl_handler_free (priv->handler);
+    }
 
   if (priv->connection != NULL)
     {
@@ -703,9 +710,10 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge,
 }
 
 static void
-digest_md5_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza,
-    GError **error)
+digest_md5_handle_challenge (WockySaslHandler *handler,
+    WockyXmppStanza *stanza, GError **error)
 {
+  WockySaslAuth *sasl = handler->context;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gchar *challenge = NULL;
   gsize len;
@@ -748,7 +756,7 @@ digest_md5_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza,
 }
 
 static void
-digest_md5_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+digest_md5_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
   WockyXmppNode *reason = NULL;
@@ -768,9 +776,10 @@ digest_md5_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza,
 }
 
 static void
-digest_md5_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
+  WockySaslAuth *sasl = handler->context;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   if (priv->state != WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_FINAL_RESPONSE)
     {
@@ -797,7 +806,7 @@ plain_generate_initial_response (const gchar *username, const gchar *password)
 }
 
 static void
-plain_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
   g_set_error (error, WOCKY_SASL_AUTH_ERROR,
@@ -806,9 +815,10 @@ plain_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza,
 }
 
 static void
-plain_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
+  WockySaslAuth *sasl = handler->context;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   if (priv->state != WOCKY_SASL_AUTH_STATE_PLAIN_STARTED)
     {
@@ -820,7 +830,7 @@ plain_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
 }
 
 static void
-plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
   WockyXmppNode *reason = NULL;
@@ -841,13 +851,6 @@ plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza,
       reason == NULL ? "Unknown reason" : reason->name);
 }
 
-
-#define HANDLE(x, y) { #x, y##_handle_##x }
-#define HANDLERS(x) { HANDLE(challenge, x),  \
-                      HANDLE(failure, x),     \
-                      HANDLE(success, x),    \
-                      { NULL, NULL }         \
-                    }
 static void
 sasl_auth_stanza_received (GObject *source,
   GAsyncResult *res,
@@ -856,11 +859,7 @@ sasl_auth_stanza_received (GObject *source,
   WockySaslAuth *sasl = WOCKY_SASL_AUTH (user_data);
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppStanza *stanza;
-  int i;
-  struct {
-    const gchar *name;
-    void (*func)(WockySaslAuth *sasl, WockyXmppStanza *stanza, GError **error);
-  } *handler = NULL, handlers[][4] = { HANDLERS(plain), HANDLERS(digest_md5) };
+  GError *error = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
@@ -877,69 +876,61 @@ sasl_auth_stanza_received (GObject *source,
       return;
     }
 
-  if (0 == strcmp (priv->mech, "PLAIN"))
-    {
-      handler = handlers[0];
-    }
-  else if (0 == strcmp (priv->mech, "DIGEST-MD5"))
-    {
-      handler = handlers[1];
-    }
-  else
-    {
-      g_assert_not_reached ();
-    }
-
-  g_assert (handler != NULL);
-
   /* If the SASL async result is _complete()d in the handler, the SASL object *
    * will be unref'd, which means the ref count could fall to zero while we   *
    * are still using it. grab  aref to it and drop it after we are sure that  *
    * we don't need it anymore:                                                */
   g_object_ref (sasl);
-  for (i = 0 ; handler[i].name != NULL; i++)
+
+  if (0 == strcmp (stanza->node->name, "challenge"))
     {
-      if (!strcmp (stanza->node->name, handler[i].name))
-        {
-          GError *error = NULL;
-
-          handler[i].func (sasl, stanza, &error);
-
-          if (error != NULL)
-            {
-              auth_failed (sasl, error->code, error->message);
-              g_error_free (error);
-            }
-          else if (0 == strcmp (handler[i].name, "success"))
-            {
-              auth_succeeded (sasl);
-            }
-          else
-            {
-              wocky_xmpp_connection_recv_stanza_async (priv->connection,
-                  NULL, sasl_auth_stanza_received, sasl);
-            }
-          g_object_unref (sasl);
-          g_object_unref (stanza);
-          return;
-        }
+      wocky_sasl_handler_handle_challenge (priv->handler, stanza, &error);
+    }
+  else if (0 == strcmp (stanza->node->name, "success"))
+    {
+      wocky_sasl_handler_handle_success (priv->handler, stanza, &error);
+    }
+  else if (0 == strcmp (stanza->node->name, "failure"))
+    {
+      wocky_sasl_handler_handle_failure (priv->handler, stanza, &error);
+    }
+  else
+    {
+      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server send an invalid reply (%s)",
+          stanza->node->name);
     }
 
-  auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-      "Server send an invalid reply (%s)",
-      stanza->node->name);
+  if (error != NULL)
+    {
+      auth_failed (sasl, error->code, error->message);
+      g_error_free (error);
+    }
+  else if (0 == strcmp (stanza->node->name, "success"))
+    {
+      auth_succeeded (sasl);
+    }
+  else
+    {
+      wocky_xmpp_connection_recv_stanza_async (priv->connection,
+          NULL, sasl_auth_stanza_received, sasl);
+    }
+
   g_object_unref (sasl);
+  g_object_unref (stanza);
+  return;
 }
 
 static gboolean
 wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
-    const gchar *mech)
+    WockySaslHandler *handler)
 {
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gboolean ret = TRUE;
 
-  priv->mech = g_strdup (mech);
+  priv->mech = g_strdup (wocky_sasl_handler_get_mechanism (handler));
+  priv->handler = handler;
 
   stanza = wocky_xmpp_stanza_new ("auth");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
@@ -948,7 +939,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   wocky_xmpp_node_set_attribute_ns (stanza->node,
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
-  if (0 == strcmp (mech, "PLAIN"))
+  if (0 == strcmp (priv->mech, "PLAIN"))
     {
       gchar *cstr;
 
@@ -967,7 +958,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
       priv->state = WOCKY_SASL_AUTH_STATE_PLAIN_STARTED;
     }
-  else if (0 == strcmp (mech, "DIGEST-MD5"))
+  else if (0 == strcmp (priv->mech, "DIGEST-MD5"))
     {
       priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_STARTED;
     }
@@ -993,7 +984,9 @@ const gchar *
 wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
-  return priv->mech;
+
+  return priv->handler ?
+    wocky_sasl_handler_get_mechanism (priv->handler) : NULL;
 }
 
 gboolean
@@ -1011,6 +1004,20 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   auth_reset (sasl);
 
   return TRUE;
+}
+
+static WockySaslHandler *
+wocky_sasl_digest_md5_new (WockySaslAuth *sasl)
+{
+  return wocky_sasl_handler_new ("DIGEST-MD5", digest_md5_handle_challenge,
+      digest_md5_handle_success, digest_md5_handle_failure, sasl);
+}
+
+static WockySaslHandler *
+wocky_sasl_plain_new (WockySaslAuth *sasl)
+{
+  return wocky_sasl_handler_new ("PLAIN", plain_handle_challenge,
+      plain_handle_success, plain_handle_failure, sasl);
 }
 
 /* Initiate sasl auth. features should contain the stream features stanza as
@@ -1049,13 +1056,15 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
   if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
     {
       DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
-      wocky_sasl_auth_start_mechanism (sasl, "DIGEST-MD5");
+      wocky_sasl_auth_start_mechanism (sasl,
+          wocky_sasl_digest_md5_new (sasl));
     }
   else if (allow_plain &&
       wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
     {
       DEBUG ("Choosing PLAIN as auth mechanism");
-      wocky_sasl_auth_start_mechanism (sasl, "PLAIN");
+      wocky_sasl_auth_start_mechanism (sasl,
+          wocky_sasl_plain_new (sasl));
     }
   else
     {

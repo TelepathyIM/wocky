@@ -46,6 +46,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-xmpp-error.h             \
   wocky-sasl-auth.c              \
   wocky-sasl-auth.h              \
+  wocky-sasl-handler.c           \
+  wocky-sasl-handler.h           \
   wocky-porter.c                 \
   wocky-porter.h                 \
   wocky-contact.c                \
