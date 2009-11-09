@@ -773,6 +773,20 @@ digest_md5_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza)
   auth_succeeded (sasl);
 }
 
+static gchar *
+plain_generate_initial_response (const gchar *username, const gchar *password)
+{
+  GString *str = g_string_new ("");
+  gchar *cstr;
+
+  g_string_append_c (str, '\0');
+  g_string_append (str, username);
+  g_string_append_c (str, '\0');
+  g_string_append (str, password);
+  cstr = g_base64_encode ((guchar *) str->str, str->len);
+  g_string_free (str, TRUE);
+  return cstr;
+}
 
 static void
 plain_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza)
@@ -899,7 +913,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   switch (mech) {
     case WOCKY_SASL_AUTH_PLAIN:
       {
-        GString *str = g_string_new ("");
         gchar *cstr;
 
         if (priv->username == NULL || priv->password == NULL)
@@ -910,16 +923,10 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
           }
 
         DEBUG ("Got username and password");
-        g_string_append_c (str, '\0');
-        g_string_append (str, priv->username);
-        g_string_append_c (str, '\0');
-        g_string_append (str, priv->password);
-        cstr = g_base64_encode ((guchar *) str->str, str->len);
-
         wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "PLAIN");
+        cstr = plain_generate_initial_response (
+            priv->username, priv->password);
         wocky_xmpp_node_set_content (stanza->node, cstr);
-
-        g_string_free (str, TRUE);
         g_free (cstr);
 
         priv->state = WOCKY_SASL_AUTH_STATE_PLAIN_STARTED;
