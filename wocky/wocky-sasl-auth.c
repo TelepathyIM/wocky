@@ -779,8 +779,6 @@ digest_md5_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
           "Server send success before finishing authentication");
       return;
     }
-
-  auth_succeeded (sasl);
 }
 
 static gchar *
@@ -819,7 +817,6 @@ plain_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
           "Server send success before finishing authentication");
       return;
     }
-  auth_succeeded (sasl);
 }
 
 static void
@@ -913,7 +910,11 @@ sasl_auth_stanza_received (GObject *source,
               auth_failed (sasl, error->code, error->message);
               g_error_free (error);
             }
-          else if (priv->state < WOCKY_SASL_AUTH_STATE_SUCCEEDED)
+          else if (0 == strcmp (handler[i].name, "success"))
+            {
+              auth_succeeded (sasl);
+            }
+          else
             {
               wocky_xmpp_connection_recv_stanza_async (priv->connection,
                   NULL, sasl_auth_stanza_received, sasl);
