@@ -534,7 +534,8 @@ digest_md5_generate_cnonce (void)
 }
 
 static gchar *
-md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
+md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge,
+    GError **error)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   GString *response = g_string_new ("");
@@ -547,14 +548,9 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
 
   if (priv->username == NULL || priv->password == NULL)
     {
-      g_simple_async_result_set_error (priv->result, WOCKY_SASL_AUTH_ERROR,
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
           "No username or password provided");
-
-      g_simple_async_result_complete_in_idle (priv->result);
-
-      g_object_unref (priv->result);
-      priv->result = NULL;
       goto error;
     }
 
@@ -563,8 +559,9 @@ md5_prepare_response (WockySaslAuth *sasl, GHashTable *challenge)
   nonce = g_hash_table_lookup (challenge, "nonce");
   if (nonce == NULL || nonce == '\0')
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-        "Server didn't provide a nonce in the challenge");
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server didn't provide a nonce in the challenge");
       goto error;
     }
 
@@ -636,13 +633,14 @@ error:
 }
 
 static void
-digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge)
+digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge,
+    GError **error)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppStanza *stanza;
   gchar *response, *response64;
 
-  response = md5_prepare_response (sasl, challenge);
+  response = md5_prepare_response (sasl, challenge, error);
   if (response == NULL)
     {
       return;
@@ -668,7 +666,8 @@ digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge)
 }
 
 static void
-digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge)
+digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge,
+    GError **error)
 {
   WockyXmppStanza *stanza;
   const gchar *rspauth;
@@ -677,15 +676,17 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge)
   rspauth = g_hash_table_lookup (challenge, "rspauth");
   if (rspauth == NULL)
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-                 "Server send an invalid reply (no rspauth)");
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server send an invalid reply (no rspauth)");
       return;
     }
 
   if (strcmp (priv->digest_md5_rspauth, rspauth))
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-                 "Server send an invalid reply (rspauth not matching)");
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server send an invalid reply (rspauth not matching)");
       return;
     }
 
@@ -702,7 +703,8 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge)
 }
 
 static void
-digest_md5_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+digest_md5_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+    GError **error)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gchar *challenge = NULL;
@@ -724,27 +726,30 @@ digest_md5_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza)
 
   if (h == NULL)
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-        "Server send an invalid challenge");
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server send an invalid challenge");
       return;
     }
 
   switch (priv->state) {
     case WOCKY_SASL_AUTH_STATE_DIGEST_MD5_STARTED:
-      digest_md5_send_initial_response (sasl, h);
+      digest_md5_send_initial_response (sasl, h, error);
       break;
     case WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_AUTH_RESPONSE:
-      digest_md5_check_server_response (sasl, h);
+      digest_md5_check_server_response (sasl, h, error);
       break;
     default:
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send a challenge at the wrong time");
   }
   g_hash_table_destroy (h);
 }
 
 static void
-digest_md5_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+digest_md5_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+    GError **error)
 {
   WockyXmppNode *reason = NULL;
   if (stanza->node->children != NULL)
@@ -757,18 +762,20 @@ digest_md5_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
    * make it clear for the user if it's credentials were wrong, if the server
    * just has a temporary error or if the authentication procedure itself was
    * at fault (too weak, invalid mech etc) */
-  auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_FAILURE,
+  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
       "Authentication failed: %s",
       reason == NULL ? "Unknown reason" : reason->name);
 }
 
 static void
-digest_md5_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+digest_md5_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+    GError **error)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   if (priv->state != WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_FINAL_RESPONSE)
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send success before finishing authentication");
       return;
     }
@@ -792,19 +799,23 @@ plain_generate_initial_response (const gchar *username, const gchar *password)
 }
 
 static void
-plain_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+plain_handle_challenge (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+    GError **error)
 {
-  auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+  g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+      WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
       "Server send an unexpected challenge");
 }
 
 static void
-plain_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+plain_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+    GError **error)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   if (priv->state != WOCKY_SASL_AUTH_STATE_PLAIN_STARTED)
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send success before finishing authentication");
       return;
     }
@@ -812,7 +823,8 @@ plain_handle_success (WockySaslAuth *sasl, WockyXmppStanza *stanza)
 }
 
 static void
-plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza,
+    GError **error)
 {
   WockyXmppNode *reason = NULL;
 
@@ -827,7 +839,7 @@ plain_handle_failure (WockySaslAuth *sasl, WockyXmppStanza *stanza)
      * just has a temporary error or if the authentication procedure itself was
      * at fault (too weak, invalid mech etc) */
 
-  auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_FAILURE,
+  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
       "Authentication failed: %s",
       reason == NULL ? "Unknown reason" : reason->name);
 }
@@ -850,7 +862,7 @@ sasl_auth_stanza_received (GObject *source,
   int i;
   struct {
     const gchar *name;
-    void (*func)(WockySaslAuth *sasl, WockyXmppStanza *stanza);
+    void (*func)(WockySaslAuth *sasl, WockyXmppStanza *stanza, GError **error);
   } *handler = NULL, handlers[][4] = { HANDLERS(plain), HANDLERS(digest_md5) };
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
@@ -892,8 +904,16 @@ sasl_auth_stanza_received (GObject *source,
     {
       if (!strcmp (stanza->node->name, handler[i].name))
         {
-          handler[i].func (sasl, stanza);
-          if (priv->state < WOCKY_SASL_AUTH_STATE_SUCCEEDED)
+          GError *error = NULL;
+
+          handler[i].func (sasl, stanza, &error);
+
+          if (error != NULL)
+            {
+              auth_failed (sasl, error->code, error->message);
+              g_error_free (error);
+            }
+          else if (priv->state < WOCKY_SASL_AUTH_STATE_SUCCEEDED)
             {
               wocky_xmpp_connection_recv_stanza_async (priv->connection,
                   NULL, sasl_auth_stanza_received, sasl);
