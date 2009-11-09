@@ -64,7 +64,7 @@ struct _WockySaslAuthPrivate
   gchar *server;
   gchar *digest_md5_rspauth;
   WockySaslAuthState state;
-  WockySaslAuthMechanism mech;
+  gchar *mech;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
 };
@@ -205,6 +205,9 @@ wocky_sasl_auth_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
+
+  g_free (priv->mech);
+
   if (priv->connection != NULL)
     {
       g_object_unref (priv->connection);
@@ -848,8 +851,7 @@ sasl_auth_stanza_received (GObject *source,
   struct {
     const gchar *name;
     void (*func)(WockySaslAuth *sasl, WockyXmppStanza *stanza);
-  } handlers[WOCKY_SASL_AUTH_NR_MECHANISMS][4] = { HANDLERS(plain),
-                                                   HANDLERS(digest_md5) };
+  } *handler = NULL, handlers[][4] = { HANDLERS(plain), HANDLERS(digest_md5) };
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
@@ -866,16 +868,31 @@ sasl_auth_stanza_received (GObject *source,
       return;
     }
 
+  if (0 == strcmp (priv->mech, "PLAIN"))
+    {
+      handler = handlers[0];
+    }
+  else if (0 == strcmp (priv->mech, "DIGEST-MD5"))
+    {
+      handler = handlers[1];
+    }
+  else
+    {
+      g_assert_not_reached ();
+    }
+
+  g_assert (handler != NULL);
+
   /* If the SASL async result is _complete()d in the handler, the SASL object *
    * will be unref'd, which means the ref count could fall to zero while we   *
    * are still using it. grab  aref to it and drop it after we are sure that  *
    * we don't need it anymore:                                                */
   g_object_ref (sasl);
-  for (i = 0 ; handlers[priv->mech][i].name != NULL; i++)
+  for (i = 0 ; handler[i].name != NULL; i++)
     {
-      if (!strcmp (stanza->node->name, handlers[priv->mech][i].name))
+      if (!strcmp (stanza->node->name, handler[i].name))
         {
-          handlers[priv->mech][i].func (sasl, stanza);
+          handler[i].func (sasl, stanza);
           if (priv->state < WOCKY_SASL_AUTH_STATE_SUCCEEDED)
             {
               wocky_xmpp_connection_recv_stanza_async (priv->connection,
@@ -895,13 +912,13 @@ sasl_auth_stanza_received (GObject *source,
 
 static gboolean
 wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
-    WockySaslAuthMechanism mech)
+    const gchar *mech)
 {
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gboolean ret = TRUE;
 
-  priv->mech = mech;
+  priv->mech = g_strdup (mech);
 
   stanza = wocky_xmpp_stanza_new ("auth");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
@@ -910,35 +927,35 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   wocky_xmpp_node_set_attribute_ns (stanza->node,
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
-  switch (mech) {
-    case WOCKY_SASL_AUTH_PLAIN:
-      {
-        gchar *cstr;
+  if (0 == strcmp (mech, "PLAIN"))
+    {
+      gchar *cstr;
 
-        if (priv->username == NULL || priv->password == NULL)
-          {
-            auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-                      "No username or password provided");
-            goto out;
-          }
+      if (priv->username == NULL || priv->password == NULL)
+        {
+          auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+                    "No username or password provided");
+          goto out;
+        }
 
-        DEBUG ("Got username and password");
-        wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "PLAIN");
-        cstr = plain_generate_initial_response (
-            priv->username, priv->password);
-        wocky_xmpp_node_set_content (stanza->node, cstr);
-        g_free (cstr);
+      DEBUG ("Got username and password");
+      wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "PLAIN");
+      cstr = plain_generate_initial_response (
+          priv->username, priv->password);
+      wocky_xmpp_node_set_content (stanza->node, cstr);
+      g_free (cstr);
 
-        priv->state = WOCKY_SASL_AUTH_STATE_PLAIN_STARTED;
-        break;
-      }
-    case WOCKY_SASL_AUTH_DIGEST_MD5:
+      priv->state = WOCKY_SASL_AUTH_STATE_PLAIN_STARTED;
+    }
+  else if (0 == strcmp (mech, "DIGEST-MD5"))
+    {
       wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "DIGEST-MD5");
       priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_STARTED;
-      break;
-    default:
+    }
+  else
+    {
       g_assert_not_reached ();
-  }
+    }
 
   /* FIXME handle send error */
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
@@ -952,8 +969,7 @@ out:
   return ret;
 }
 
-
-WockySaslAuthMechanism
+const gchar *
 wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
@@ -1013,13 +1029,13 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
   if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
     {
       DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
-      wocky_sasl_auth_start_mechanism (sasl, WOCKY_SASL_AUTH_DIGEST_MD5);
+      wocky_sasl_auth_start_mechanism (sasl, "DIGEST-MD5");
     }
   else if (allow_plain &&
       wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
     {
       DEBUG ("Choosing PLAIN as auth mechanism");
-      wocky_sasl_auth_start_mechanism (sasl, WOCKY_SASL_AUTH_PLAIN);
+      wocky_sasl_auth_start_mechanism (sasl, "PLAIN");
     }
   else
     {

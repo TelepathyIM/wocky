@@ -86,7 +86,7 @@ typedef void (*test_setup) (gpointer);
 typedef struct {
   gchar *desc;
   gboolean quiet;
-  struct { gchar *domain; int code; WockySaslAuthMechanism mech; gpointer xmpp; gchar *jid; gchar *sid; } result;
+  struct { gchar *domain; int code; gchar *mech; gpointer xmpp; gchar *jid; gchar *sid; } result;
   struct {
     struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
     struct { ServerProblem sasl; ConnectorProblem conn; } problem;
@@ -143,7 +143,7 @@ test_t tests[] =
 
     { CONNECTOR_INTERNALS_TEST,
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -156,7 +156,7 @@ test_t tests[] =
     /* No SRV or connect host specified */
     { "/connector/basic/noserv/nohost/noport",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -169,7 +169,7 @@ test_t tests[] =
     /* No SRV or connect host specified, connect port specified */
     { "/connector/basic/noserv/nohost/port",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -195,7 +195,7 @@ test_t tests[] =
     /* No SRV record, connect host specified */
     { "/connector/basic/noserv/host/noport",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -208,7 +208,7 @@ test_t tests[] =
     /* No SRV record, connect host and port specified */
     { "/connector/basic/noserv/host/port",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -260,7 +260,7 @@ test_t tests[] =
     /* SRV record specified */
     { "/connector/basic/serv/nohost/noport",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -273,7 +273,7 @@ test_t tests[] =
     /* SRV record specified, port specified: ignore SRV and connect */
     { "/connector/basic/serv/nohost/port",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -299,7 +299,7 @@ test_t tests[] =
     /* SRV record, connect host specified: use connect host */
     { "/connector/basic/serv/host/noport",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -312,7 +312,7 @@ test_t tests[] =
     /* SRV, connect host and port specified: use host and port */
     { "/connector/basic/serv/host/port",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -377,7 +377,7 @@ test_t tests[] =
     /* Bad SRV record, port specified, ignore SRV and connect to domain host */
     { "/connector/basic/duffserv/nohost/port",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -403,7 +403,7 @@ test_t tests[] =
     /* Bad SRV record, connect host specified, ignore SRV */
     { "/connector/basic/duffserv/host/noport",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -416,7 +416,7 @@ test_t tests[] =
     /* Bad SRV record, connect host and port given: ignore SRV */
     { "/connector/basic/duffserv/host/port",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { NULL, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -482,7 +482,7 @@ test_t tests[] =
 
     { "/connector/auth/secure/no-tlsplain/notls/digest",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { NULL, 0, "DIGEST-MD5" },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -494,7 +494,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/no-tlsplain/notls/nodigest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -506,7 +506,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/no-tlsplain/notls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -583,7 +583,7 @@ test_t tests[] =
 
     { "/connector/auth/secure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -595,7 +595,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -607,7 +607,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -631,7 +631,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/secure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -643,7 +643,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/insecure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -655,7 +655,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/insecure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -668,7 +668,7 @@ test_t tests[] =
      * these should all be digest auth successes                        */
     { "/connector/auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -680,7 +680,7 @@ test_t tests[] =
 
     { "/connector/auth/secure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -692,7 +692,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -704,7 +704,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -716,7 +716,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -728,7 +728,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/secure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -740,7 +740,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -752,7 +752,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -882,7 +882,7 @@ test_t tests[] =
     /* we actually tolerate > 1.0 versions */
     { "/connector/problem/xmpp/version/1.x",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL, "1.1" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -1056,7 +1056,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/bind/no-jid",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, BIND_PROBLEM_NO_JID, OK, OK, OK } },
@@ -1069,7 +1069,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/session/none",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_NO_SESSION, OK, OK, OK, OK } },
@@ -1217,7 +1217,7 @@ test_t tests[] =
     /* quirks                                                               */
     { "/connector/google/domain-discovery/require",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_REQUIRE_GOOGLE_JDD, CONNECTOR_OK },
         { "moose", "something" },
@@ -1243,7 +1243,7 @@ test_t tests[] =
     /* XEP 0077                                                             */
     { "/connector/xep77/register/ok",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -1313,7 +1313,7 @@ test_t tests[] =
 
     { "/connector/xep77/register/email-arg-ok",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, OK, OK, OK, XEP77_PROBLEM_EMAIL_ARG } },
@@ -1386,7 +1386,7 @@ test_t tests[] =
 
     { "/connector/xep77/register/already/get",
       NOISY,
-      { DOMAIN_NONE, 0 , WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0 , "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, OK, OK, OK, XEP77_PROBLEM_QUERY_ALREADY } },
@@ -1400,7 +1400,7 @@ test_t tests[] =
 
     { "/connector/xep77/register/already/set",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, OK, OK, OK, XEP77_PROBLEM_ALREADY } },
@@ -1499,7 +1499,7 @@ test_t tests[] =
     /* old school jabber tests (pre XMPP 1.0)                               */
     { "/connector/jabber/no-ssl/auth/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK } },
@@ -1619,7 +1619,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, "password" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK } },
@@ -1658,7 +1658,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/old+sasl",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK } },
@@ -1671,7 +1671,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/old-sasl",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL,
           { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK } },
@@ -1686,7 +1686,7 @@ test_t tests[] =
     /* old SSL                                                              */
     { "/connector/jabber/ssl/auth/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -1809,7 +1809,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, "password" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -1850,7 +1850,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/old+sasl",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
           { SERVER_PROBLEM_NO_PROBLEM,
             { XMPP_PROBLEM_OLD_AUTH_FEATURE|XMPP_PROBLEM_OLD_SSL,
@@ -1864,7 +1864,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/old-sasl",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL,
           { XMPP_PROBLEM_OLD_AUTH_FEATURE|XMPP_PROBLEM_OLD_SSL,
@@ -1892,7 +1892,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/secure/no-tlsplain/notls/digest",
       NOISY,
-      { NULL, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { NULL, 0, "DIGEST-MD5" },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1904,7 +1904,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/no-tlsplain/notls/nodigest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1916,7 +1916,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/no-tlsplain/notls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1943,7 +1943,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/secure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1955,7 +1955,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1967,7 +1967,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1991,7 +1991,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/secure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2003,7 +2003,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/insecure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2015,7 +2015,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/insecure/tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_PLAIN },
+      { DOMAIN_NONE, 0, "PLAIN" },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2029,7 +2029,7 @@ test_t tests[] =
      * these should all be digest auth successes                        */
     { "/connector+ssl/auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2041,7 +2041,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/secure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2053,7 +2053,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2065,7 +2065,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2077,7 +2077,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2089,7 +2089,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/secure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2101,7 +2101,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2113,7 +2113,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2203,7 +2203,7 @@ test_t tests[] =
     /* we actually tolerate > 1.0 versions */
     { "/connector+ssl/problem/xmpp/version/1.x",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL, "1.1" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2364,7 +2364,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/bind/no-jid",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SSL, BIND_PROBLEM_NO_JID, OK, OK, OK } },
@@ -2377,7 +2377,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/session/none",
       NOISY,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_DIGEST_MD5 },
+      { DOMAIN_NONE, 0, "DIGEST-MD5" },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_NO_SESSION|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -2526,7 +2526,7 @@ test_t tests[] =
     /* certificate verification tests                                        */
     { "/connector/cert-verification/tls/nohost/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2538,7 +2538,7 @@ test_t tests[] =
 
     { "/connector/multica-verification/tls/nohost/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2550,7 +2550,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/tls/host/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2648,7 +2648,7 @@ test_t tests[] =
     /* as above but with legacy ssl                                          */
     { "/connector/cert-verification/ssl/nohost/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2660,7 +2660,7 @@ test_t tests[] =
 
     { "/connector/cert-verification/ssl/host/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2758,7 +2758,7 @@ test_t tests[] =
     /* certificate non-verification tests                                    */
     { "/connector/cert-nonverification/tls/nohost/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2770,7 +2770,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/host/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2782,7 +2782,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/nohost/ok/name-mismatch",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2794,7 +2794,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/host/ok/name-mismatch",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2818,7 +2818,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/expired/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2830,7 +2830,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/inactive/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2842,7 +2842,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/selfsigned/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2854,7 +2854,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/tls/unknown/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -2868,7 +2868,7 @@ test_t tests[] =
     /* as above but with legacy ssl                                          */
     { "/connector/cert-nonverification/ssl/nohost/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2880,7 +2880,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/host/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2892,7 +2892,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/nohost/ok/name-mismatch",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2904,7 +2904,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/host/ok/name-mismatch",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2928,7 +2928,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/expired/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2940,7 +2940,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/inactive/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2952,7 +2952,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/selfsigned/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2964,7 +2964,7 @@ test_t tests[] =
 
     { "/connector/cert-nonverification/ssl/unknown/ok",
       QUIET,
-      { DOMAIN_NONE, 0, WOCKY_SASL_AUTH_NR_MECHANISMS },
+      { DOMAIN_NONE, 0, NULL },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -3275,11 +3275,10 @@ run_test (gpointer data)
           g_assert (test->result.xmpp != NULL);
 
           /* make sure we selected the right auth mechanism */
-          if (test->result.mech < WOCKY_SASL_AUTH_NR_MECHANISMS)
+          if (test->result.mech != NULL)
             {
-              WockySaslAuthMechanism mech =
-                wocky_connector_auth_mechanism (wcon);
-              g_assert (test->result.mech == mech);
+              g_assert_cmpstr (test->result.mech, ==,
+                  wocky_connector_auth_mechanism (wcon));
             }
 
           /* we got a JID back, I hope */
@@ -3435,7 +3434,7 @@ main (int argc,
   g_message ("libsasl2 not found: skipping MD5 SASL tests");
   for (i = 0; tests[i].desc != NULL; i++)
     {
-      if (tests[i].result.mech == WOCKY_SASL_AUTH_DIGEST_MD5)
+      if (tests[i].result.mech == "DIGEST-MD5")
         continue;
       g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
     }
