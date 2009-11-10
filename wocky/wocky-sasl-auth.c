@@ -960,7 +960,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
         }
 
       DEBUG ("Got username and password");
-      wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "PLAIN");
       cstr = plain_generate_initial_response (
           priv->username, priv->password);
       wocky_xmpp_node_set_content (stanza->node, cstr);
@@ -970,7 +969,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     }
   else if (0 == strcmp (mech, "DIGEST-MD5"))
     {
-      wocky_xmpp_node_set_attribute (stanza->node, "mechanism", "DIGEST-MD5");
       priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_STARTED;
     }
   else
@@ -979,6 +977,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     }
 
   /* FIXME handle send error */
+  wocky_xmpp_node_set_attribute (stanza->node, "mechanism", priv->mech);
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
     NULL, NULL, NULL);
   wocky_xmpp_connection_recv_stanza_async (priv->connection,
