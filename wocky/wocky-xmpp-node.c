@@ -597,63 +597,55 @@ wocky_xmpp_node_append_content_n (WockyXmppNode *node, const gchar *content,
   g_strlcpy (node->content + csize, content, size + 1);
 }
 
-typedef struct
-{
-  GString *string;
-  gchar *indent;
-} _NodeToStringData;
-
 static gboolean
 attribute_to_string (const gchar *key, const gchar *value,
     const gchar *prefix, const gchar *ns,
     gpointer user_data)
 {
-  _NodeToStringData *data = user_data;
+  GString *str = user_data;
 
-  g_string_append_c (data->string, ' ');
+  g_string_append_c (str, ' ');
   if (ns != NULL)
-    g_string_append_printf (data->string, "xmlns:%s='%s' ", prefix, ns);
+    g_string_append_printf (str, "xmlns:%s='%s' ", prefix, ns);
 
   if (prefix != NULL)
     {
-      g_string_append (data->string, prefix);
-      g_string_append_c (data->string, ':');
+      g_string_append (str, prefix);
+      g_string_append_c (str, ':');
     }
-  g_string_append_printf (data->string, "%s='%s'", key, value);
+  g_string_append_printf (str, "%s='%s'", key, value);
 
   return TRUE;
 }
 
 static gboolean
-node_to_string (WockyXmppNode *node, gpointer user_data)
+node_to_string (WockyXmppNode *node,
+    GQuark parent_ns,
+    const gchar *prefix,
+    GString *str)
 {
-  _NodeToStringData *data = user_data;
-  gchar *old_indent;
-  const gchar *ns;
+  GSList *l;
+  const gchar *nprefix;
 
-  g_string_append_printf (data->string, "%s<%s", data->indent, node->name);
-  ns = wocky_xmpp_node_get_ns (node);
+  g_string_append_printf (str, "%s* %s", prefix, node->name);
 
-  if (ns != NULL)
-    g_string_append_printf (data->string, " xmlns='%s'", ns);
+  if (parent_ns != node->ns)
+    {
+      const gchar *ns = wocky_xmpp_node_get_ns (node);
+      g_string_append_printf (str, " xmlns='%s'", ns);
+    }
 
-  wocky_xmpp_node_each_attribute (node, attribute_to_string, data);
-  g_string_append_printf (data->string, ">\n");
+  wocky_xmpp_node_each_attribute (node, attribute_to_string, str);
+  g_string_append_c (str, '\n');
 
-  old_indent = data->indent;
-  data->indent = g_strconcat (data->indent, "  ", NULL);
+  nprefix = g_strdup_printf ("%s    ", prefix);
+  if (node->content != NULL && *node->content != '\0')
+    g_string_append_printf (str, "%s\"%s\"\n", nprefix, node->content);
 
-  if (node->content != NULL)
-    g_string_append_printf (data->string, "%s%s\n", data->indent,
-        node->content);
+  for (l = node->children ; l != NULL; l = g_slist_next (l))
+    node_to_string (l->data, node->ns, nprefix, str);
 
-  wocky_xmpp_node_each_child (node, node_to_string, data);
-  g_free (data->indent);
-  data->indent = old_indent;
-
-  g_string_append_printf (data->string, "%s</%s>", data->indent, node->name);
-  if (data->indent[0] != '\0')
-    g_string_append_c (data->string, '\n');
+  g_free (nprefix);
 
   return TRUE;
 }
@@ -661,16 +653,15 @@ node_to_string (WockyXmppNode *node, gpointer user_data)
 gchar *
 wocky_xmpp_node_to_string (WockyXmppNode *node)
 {
-  _NodeToStringData data;
+  GString *str;
   gchar *result;
 
-  data.string = g_string_new ("");
-  data.indent = "";
-  node_to_string (node, &data);
-  g_string_append_c (data.string, '\n');
+  str = g_string_new ("");
+  node_to_string (node, 0, "", str);
 
-  result = data.string->str;
-  g_string_free (data.string, FALSE);
+  g_string_truncate (str, str->len - 1);
+  result = str->str;
+  g_string_free (str, FALSE);
   return result;
 }
 
