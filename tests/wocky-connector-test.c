@@ -3263,7 +3263,7 @@ run_test (gpointer data)
             g_quark_to_string (error->domain),
             error->code,
             error->message);
-      g_assert (error == NULL);
+      g_assert_no_error (error);
 
       if (test->client.op == OP_CANCEL)
         {
