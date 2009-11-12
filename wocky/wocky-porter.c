@@ -1164,6 +1164,28 @@ compare_handler (StanzaHandler *a,
     return 0;
 }
 
+/**
+ * wocky_porter_register_handler:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: A #WockyStanzaSubType value, stanza type to be handled WOCKY_STANZA_TYPE_NONE for all.
+ * @sub_type: A #WockyStanzaSubType value, stanza sub type to be handled, WOCKY_STANZA_SUB_TYPE_NONE for all.
+ * @from: the JID whose messages this handler is intended for (or %NULL for any).
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL).
+ * @callback: A #WockyPorterHandlerFunc, should return %FALSE to decline the stanza and %TRUE to stop further processing and free the stanza.
+ * @user_data: Passed to @callback.
+ * @spec: the start of a wocky_xmpp_stanza_build() specification. The handler will be a candidate only if the stanza received is a superset of the one built with @spec and its subsequent arguments, as per wocky_xmpp_node_is_superset().
+ * @Varargs: the rest of the args to wocky_xmpp_stanza_build().
+ *
+ * @spec should be WOCKY_STANZA_END to specify no XMPP node matching details.
+ *
+ * If @from is a bare JID, then the resource of the JID in the from attribute
+ * will be ignored: In other words, a handler registered against a bare JID
+ * will match _all_ stanzas from a JID with the same node and domain:
+ * "foo@<!-- -->bar.org" will match:
+ * "foo@<!-- -->bar.org", "foo@<!-- -->bar.org/moose" and so forth.
+ *
+ * Returns: a #guint handler-id, for use with wocky_porter_unregister_handler().
+ **/
 guint
 wocky_porter_register_handler (WockyPorter *self,
     WockyStanzaType type,
