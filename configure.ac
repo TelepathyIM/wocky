@@ -34,9 +34,10 @@ AM_PROG_AS
 AM_PROG_MKDIR_P
 
 dnl decide error flags
-ifelse(wocky_nano_version, 0,
-    [ official_release=yes ],
-    [ official_release=no ])
+dnl ifelse(wocky_nano_version, 0,
+dnl     [ official_release=yes ],
+dnl     [ official_release=no ])
+official_release=no
 
 TP_COMPILER_WARNINGS([ERROR_CFLAGS], [test "x$official_release" = xno],
   [all \
