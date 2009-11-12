@@ -10,7 +10,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockySaslHandler WockySaslHandler;
 
-typedef void (*WockySaslChallengeFunc) (
+typedef gchar * (*WockySaslChallengeFunc) (
     WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
 
 typedef void (*WockySaslSuccessFunc) (
@@ -41,7 +41,7 @@ wocky_sasl_handler_free (WockySaslHandler *handler);
 const gchar *
 wocky_sasl_handler_get_mechanism (WockySaslHandler *handler);
 
-void
+gchar *
 wocky_sasl_handler_handle_challenge (
     WockySaslHandler *handler,
     WockyXmppStanza *stanza,

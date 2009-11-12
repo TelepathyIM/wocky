@@ -639,44 +639,31 @@ error:
   goto out;
 }
 
-static void
-digest_md5_send_initial_response (WockySaslAuth *sasl, GHashTable *challenge,
+static gchar *
+digest_md5_make_initial_response (WockySaslAuth *sasl, GHashTable *challenge,
     GError **error)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
-  WockyXmppStanza *stanza;
   gchar *response, *response64;
 
   response = md5_prepare_response (sasl, challenge, error);
   if (response == NULL)
     {
-      return;
+      return NULL;
     }
 
   DEBUG ("Prepared response: %s", response);
 
   response64 = g_base64_encode ((guchar *) response, strlen (response));
-
-  stanza = wocky_xmpp_stanza_new ("response");
-  wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
-  wocky_xmpp_node_set_content (stanza->node, response64);
-
-  priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_AUTH_RESPONSE;
-
-  /* FIXME handle send error */
-  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
-    NULL, NULL, NULL);
-
   g_free (response);
-  g_free (response64);
-  g_object_unref (stanza);
+  priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_AUTH_RESPONSE;
+  return response64;
 }
 
-static void
+static gchar *
 digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge,
     GError **error)
 {
-  WockyXmppStanza *stanza;
   const gchar *rspauth;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
 
@@ -686,7 +673,7 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge,
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send an invalid reply (no rspauth)");
-      return;
+      return NULL;
     }
 
   if (strcmp (priv->digest_md5_rspauth, rspauth))
@@ -694,22 +681,14 @@ digest_md5_check_server_response (WockySaslAuth *sasl, GHashTable *challenge,
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send an invalid reply (rspauth not matching)");
-      return;
+      return NULL;
     }
 
-  stanza = wocky_xmpp_stanza_new ("response");
-  wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
-
   priv->state = WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_FINAL_RESPONSE;
-
-  /* FIXME handle send error */
-  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
-    NULL, NULL, NULL);
-
-  g_object_unref (stanza);
+  return g_strdup ("");
 }
 
-static void
+static gchar *
 digest_md5_handle_challenge (WockySaslHandler *handler,
     WockyXmppStanza *stanza, GError **error)
 {
@@ -718,6 +697,7 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
   gchar *challenge = NULL;
   gsize len;
   GHashTable *h = NULL;
+  gchar *ret = NULL;
 
   if (stanza->node->content != NULL)
     {
@@ -737,15 +717,15 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send an invalid challenge");
-      return;
+      return NULL;
     }
 
   switch (priv->state) {
     case WOCKY_SASL_AUTH_STATE_DIGEST_MD5_STARTED:
-      digest_md5_send_initial_response (sasl, h, error);
+      ret = digest_md5_make_initial_response (sasl, h, error);
       break;
     case WOCKY_SASL_AUTH_STATE_DIGEST_MD5_SENT_AUTH_RESPONSE:
-      digest_md5_check_server_response (sasl, h, error);
+      ret = digest_md5_check_server_response (sasl, h, error);
       break;
     default:
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
@@ -753,6 +733,7 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
           "Server send a challenge at the wrong time");
   }
   g_hash_table_destroy (h);
+  return ret;
 }
 
 static void
@@ -805,13 +786,14 @@ plain_generate_initial_response (const gchar *username, const gchar *password)
   return cstr;
 }
 
-static void
+static gchar *
 plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
   g_set_error (error, WOCKY_SASL_AUTH_ERROR,
       WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
       "Server send an unexpected challenge");
+  return NULL;
 }
 
 static void
@@ -860,6 +842,7 @@ sasl_auth_stanza_received (GObject *source,
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppStanza *stanza;
   GError *error = NULL;
+  gchar *response = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
@@ -884,7 +867,24 @@ sasl_auth_stanza_received (GObject *source,
 
   if (0 == strcmp (stanza->node->name, "challenge"))
     {
-      wocky_sasl_handler_handle_challenge (priv->handler, stanza, &error);
+      response = wocky_sasl_handler_handle_challenge (
+          priv->handler, stanza, &error);
+
+      if ((response == NULL) == (error == NULL))
+        {
+          if (response != NULL)
+            {
+              g_warning (
+                  "SASL handler returned both a response and an error (%s)",
+                  error->message);
+              g_free (response);
+            }
+          else
+            {
+              g_warning (
+                  "SASL handler returned no result and no error");
+            }
+        }
     }
   else if (0 == strcmp (stanza->node->name, "success"))
     {
@@ -912,6 +912,22 @@ sasl_auth_stanza_received (GObject *source,
     }
   else
     {
+      if (response != NULL)
+        {
+          WockyXmppStanza *response_stanza;
+
+          response_stanza = wocky_xmpp_stanza_new ("response");
+          wocky_xmpp_node_set_ns (
+              response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
+          wocky_xmpp_node_set_content (response_stanza->node, response);
+
+          /* FIXME handle send error */
+          wocky_xmpp_connection_send_stanza_async (
+              priv->connection, response_stanza, NULL, NULL, NULL);
+          g_object_unref (response_stanza);
+          g_free (response);
+        }
+
       wocky_xmpp_connection_recv_stanza_async (priv->connection,
           NULL, sasl_auth_stanza_received, sasl);
     }

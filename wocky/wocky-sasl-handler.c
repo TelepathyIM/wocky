@@ -30,13 +30,13 @@ wocky_sasl_handler_get_mechanism (WockySaslHandler *handler)
   return handler->mechanism;
 }
 
-void
+gchar *
 wocky_sasl_handler_handle_challenge (
     WockySaslHandler *handler,
     WockyXmppStanza *stanza,
     GError **error)
 {
-  handler->challenge_func (handler, stanza, error);
+  return handler->challenge_func (handler, stanza, error);
 }
 
 void
