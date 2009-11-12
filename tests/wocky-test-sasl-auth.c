@@ -223,7 +223,7 @@ run_test (gconstpointer user_data)
   g_object_unref (conn);
 
   if (test->domain == 0)
-    g_assert (error == NULL);
+    g_assert_no_error (error);
   else
     g_assert_error (error, test->domain, test->code);
 

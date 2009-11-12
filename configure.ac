@@ -34,9 +34,10 @@ AM_PROG_AS
 AM_PROG_MKDIR_P
 
 dnl decide error flags
-ifelse(wocky_nano_version, 0,
-    [ official_release=yes ],
-    [ official_release=no ])
+dnl ifelse(wocky_nano_version, 0,
+dnl     [ official_release=yes ],
+dnl     [ official_release=no ])
+official_release=no
 
 TP_COMPILER_WARNINGS([ERROR_CFLAGS], [test "x$official_release" = xno],
   [all \
@@ -105,7 +106,9 @@ AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
 dnl Choose an SSL/TLS backend (default gnutls)
-AC_ARG_WITH([tls], [--with-tls=BACKEND (gnutls, openssl) @<:@default=auto@:>@],
+AC_ARG_WITH([tls],
+  AC_HELP_STRING([--with-tls=BACKEND],
+      [which TLS backend to use (gnutls, openssl, or auto) @<:@default=auto@:>@]),
   [],
   [with_tls=auto])
 

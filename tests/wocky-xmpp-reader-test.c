@@ -88,7 +88,7 @@ test_stream_no_stanzas (void)
 
   error = wocky_xmpp_reader_get_error (reader);
 
-  g_assert (error == NULL);
+  g_assert_no_error (error);
 
   g_object_unref (reader);
 }
@@ -112,7 +112,7 @@ test_stream_open_error (void)
 
   error = wocky_xmpp_reader_get_error (reader);
 
-  g_assert (error != NULL);
+  g_assert_no_error (error);
   g_assert_error (error, WOCKY_XMPP_READER_ERROR,
       WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START);
 
@@ -154,7 +154,7 @@ test_parse_error (void)
 
   error = wocky_xmpp_reader_get_error (reader);
 
-  g_assert (error != NULL);
+  g_assert_no_error (error);
   g_assert_error (error, WOCKY_XMPP_READER_ERROR,
     WOCKY_XMPP_READER_ERROR_PARSE_ERROR);
 
