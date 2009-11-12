@@ -298,7 +298,9 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
   priv->current_ns = g_quark_from_string ("jabber:client");
   priv->stream_ns = g_quark_from_string ("http://etherx.jabber.org/streams");
 
-  DEBUG ("Writing xml: %.*s", (int)*length, *data);
+#ifdef ENABLE_DEBUGGING
+  wocky_debug (DEBUG_NET, "Writing xml: %.*s", (int)*length, *data);
+#endif
 }
 
 /**
@@ -444,6 +446,8 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
 
   xmlBufferEmpty (priv->buffer);
 
+  DEBUG_STANZA (stanza, "Serializing stanza:");
+
   if (!priv->stream_mode)
     {
       xmlTextWriterStartDocument (priv->xmlwriter, "1.0", "utf-8", NULL);
@@ -460,7 +464,7 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
   *data = (const guint8 *)priv->buffer->content;
   *length  = priv->buffer->use;
 
-  DEBUG ("Writing xml: %.*s.", (int)*length, *data);
+  wocky_debug (DEBUG_NET, "Writing xml: %.*s.", (int)*length, *data);
 }
 
 /**

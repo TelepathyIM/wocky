@@ -523,7 +523,7 @@ _end_element_ns (void *user_data, const xmlChar *localname,
   else if (priv->depth == (priv->stream_mode ? 1 : 0))
     {
       g_assert (g_queue_get_length (priv->nodes) == 0);
-      DEBUG ("Received stanza");
+      DEBUG_STANZA (priv->stanza, "Received stanza");
       g_queue_push_tail (priv->stanzas, priv->stanza);
       priv->stanza = NULL;
       priv->node = NULL;
@@ -601,7 +601,9 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
 
   g_return_if_fail (priv->state < WOCKY_XMPP_READER_STATE_CLOSED);
 
-  DEBUG ("Parsing chunk: %.*s", (int)length, data);
+#ifdef ENABLE_DEBUGGING
+  wocky_debug (DEBUG_NET, "Parsing chunk: %.*s", (int)length, data);
+#endif
 
   parser = priv->parser;
   xmlParseChunk (parser, (const char*)data, length, FALSE);
