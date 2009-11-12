@@ -106,7 +106,9 @@ AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
 dnl Choose an SSL/TLS backend (default gnutls)
-AC_ARG_WITH([tls], [--with-tls=BACKEND (gnutls, openssl) @<:@default=auto@:>@],
+AC_ARG_WITH([tls],
+  AC_HELP_STRING([--with-tls=BACKEND],
+      [which TLS backend to use (gnutls, openssl, or auto) @<:@default=auto@:>@]),
   [],
   [with_tls=auto])
 
