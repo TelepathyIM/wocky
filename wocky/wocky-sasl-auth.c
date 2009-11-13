@@ -806,15 +806,6 @@ static void
 plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
-  WockySaslAuth *sasl = handler->context;
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
-  if (priv->state != WOCKY_SASL_AUTH_STATE_PLAIN_STARTED)
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send success before finishing authentication");
-      return;
-    }
 }
 
 static void
