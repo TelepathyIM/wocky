@@ -250,6 +250,12 @@ auth_reset (WockySaslAuth *sasl)
   g_free (priv->digest_md5_rspauth);
   priv->digest_md5_rspauth = NULL;
 
+  if (priv->handler != NULL)
+    {
+      wocky_sasl_handler_free (priv->handler);
+      priv->handler = NULL;
+    }
+
   if (priv->connection != NULL)
     {
       g_object_unref (priv->connection);
