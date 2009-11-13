@@ -722,6 +722,10 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
   GHashTable *h = NULL;
   gchar *ret = NULL;
 
+  if (stanza == NULL)
+    /* We don't have any data to send with the auth initiation. */
+    return NULL;
+
   if (stanza->node->content != NULL)
     {
       challenge = (gchar *) g_base64_decode (stanza->node->content, &len);
@@ -813,6 +817,22 @@ static gchar *
 plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
+  WockySaslPlainPrivate *priv = handler->context;
+
+  if (stanza == NULL)
+    {
+      if (priv->username == NULL || priv->password == NULL)
+        {
+          g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+              WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+              "No username or password provided");
+          return NULL;
+        }
+
+      DEBUG ("Got username and password");
+      return plain_generate_initial_response (priv->username, priv->password);
+    }
+
   g_set_error (error, WOCKY_SASL_AUTH_ERROR,
       WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
       "Server send an unexpected challenge");
@@ -958,6 +978,8 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gboolean ret = TRUE;
+  gchar *initial_response;
+  GError *error = NULL;
 
   priv->mech = g_strdup (wocky_sasl_handler_get_mechanism (handler));
   priv->handler = handler;
@@ -969,22 +991,19 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   wocky_xmpp_node_set_attribute_ns (stanza->node,
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
-  if (0 == strcmp (priv->mech, "PLAIN"))
+  initial_response =
+      wocky_sasl_handler_handle_challenge ( priv->handler, NULL, &error);
+
+  if (error != NULL)
     {
-      gchar *cstr;
+      auth_failed (sasl, error->domain, error->message);
+      goto out;
+    }
 
-      if (priv->username == NULL || priv->password == NULL)
-        {
-          auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-                    "No username or password provided");
-          goto out;
-        }
-
-      DEBUG ("Got username and password");
-      cstr = plain_generate_initial_response (
-          priv->username, priv->password);
-      wocky_xmpp_node_set_content (stanza->node, cstr);
-      g_free (cstr);
+  if (initial_response != NULL)
+    {
+      wocky_xmpp_node_set_content (stanza->node, initial_response);
+      g_free (initial_response);
     }
 
   /* FIXME handle send error */
