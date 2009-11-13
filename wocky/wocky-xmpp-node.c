@@ -625,7 +625,7 @@ node_to_string (WockyXmppNode *node,
     GString *str)
 {
   GSList *l;
-  const gchar *nprefix;
+  gchar *nprefix;
 
   g_string_append_printf (str, "%s* %s", prefix, node->name);
 
