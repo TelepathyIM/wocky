@@ -1,36 +1,39 @@
 
 #include "wocky-sasl-handler.h"
 
-WockySaslHandler *
-wocky_sasl_handler_new (const gchar *mechanism,
-    WockySaslChallengeFunc challenge_func, WockySaslSuccessFunc success_func,
-    WockySaslFailureFunc failure_func, GFreeFunc context_free_func,
-    gpointer context)
+GType
+wocky_sasl_handler_get_type (void)
 {
-  WockySaslHandler *handler;
+  static volatile gsize g_define_type_id__volatile = 0;
 
-  handler = g_slice_new0 (WockySaslHandler);
-  handler->mechanism = g_strdup (mechanism);
-  handler->challenge_func = challenge_func;
-  handler->success_func = success_func;
-  handler->failure_func = failure_func;
-  handler->context_free_func = context_free_func;
-  handler->context = context;
-  return handler;
-}
+  if (g_once_init_enter (&g_define_type_id__volatile))
+    {
+      const GTypeInfo info =
+      {
+        .class_size = sizeof (WockySaslHandlerIface),
+        .base_init = NULL,
+        .base_finalize = NULL,
+        .class_init = NULL,
+        .class_finalize = NULL,
+        .class_data = NULL,
+        .instance_size = 0,
+        .n_preallocs = 0,
+        .instance_init = NULL
+      };
+      GType g_define_type_id = g_type_register_static (
+          G_TYPE_INTERFACE, "WockySaslHandler", &info, 0);
 
-void
-wocky_sasl_handler_free (WockySaslHandler *handler)
-{
-  handler->context_free_func (handler->context);
-  g_free (handler->mechanism);
-  g_slice_free (WockySaslHandler, handler);
+      g_type_interface_add_prerequisite (g_define_type_id, G_TYPE_OBJECT);
+      g_once_init_leave (&g_define_type_id__volatile, g_define_type_id);
+    }
+
+  return g_define_type_id__volatile;
 }
 
 const gchar *
 wocky_sasl_handler_get_mechanism (WockySaslHandler *handler)
 {
-  return handler->mechanism;
+  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->mechanism;
 }
 
 gchar *
@@ -39,7 +42,8 @@ wocky_sasl_handler_handle_challenge (
     WockyXmppStanza *stanza,
     GError **error)
 {
-  return handler->challenge_func (handler, stanza, error);
+  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->challenge_func (
+      handler, stanza, error);
 }
 
 void
@@ -48,7 +52,8 @@ wocky_sasl_handler_handle_success (
     WockyXmppStanza *stanza,
     GError **error)
 {
-  handler->success_func (handler, stanza, error);
+  WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func (
+      handler, stanza, error);
 }
 
 void
@@ -57,5 +62,6 @@ wocky_sasl_handler_handle_failure (
     WockyXmppStanza *stanza,
     GError **error)
 {
-  handler->failure_func (handler, stanza, error);
+  WOCKY_SASL_HANDLER_GET_IFACE (handler)->failure_func (
+      handler, stanza, error);
 }

@@ -25,7 +25,9 @@
 #include <string.h>
 
 #include "wocky-sasl-auth.h"
+#include "wocky-sasl-digest-md5.h"
 #include "wocky-sasl-handler.h"
+#include "wocky-sasl-plain.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
@@ -65,31 +67,6 @@ struct _WockySaslAuthPrivate
   WockySaslHandler *handler;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
-};
-
-typedef struct _WockySaslDigestMd5Private WockySaslDigestMd5Private;
-
-typedef enum {
-  WOCKY_SASL_DIGEST_MD5_STATE_STARTED,
-  WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE,
-  WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE,
-} WockySaslDigestMd5State;
-
-struct _WockySaslDigestMd5Private
-{
-  WockySaslDigestMd5State state;
-  gchar *server;
-  gchar *username;
-  gchar *password;
-  gchar *digest_md5_rspauth;
-};
-
-typedef struct _WockySaslPlainPrivate WockySaslPlainPrivate;
-
-struct _WockySaslPlainPrivate
-{
-  gchar *username;
-  gchar *password;
 };
 
 #define WOCKY_SASL_AUTH_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_SASL_AUTH, WockySaslAuthPrivate))
@@ -232,7 +209,7 @@ wocky_sasl_auth_dispose (GObject *object)
 
   if (priv->handler != NULL)
     {
-      wocky_sasl_handler_free (priv->handler);
+      g_object_unref (priv->handler);
     }
 
   if (priv->connection != NULL)
@@ -268,7 +245,7 @@ auth_reset (WockySaslAuth *sasl)
 
   if (priv->handler != NULL)
     {
-      wocky_sasl_handler_free (priv->handler);
+      g_object_unref (priv->handler);
       priv->handler = NULL;
     }
 
@@ -423,448 +400,6 @@ wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
     }
   }
   return FALSE;
-}
-
-static gchar *
-strndup_unescaped (const gchar *str, gsize len)
-{
-  const gchar *s;
-  gchar *d, *ret;
-
-  ret = g_malloc0 (len + 1);
-  for (s = str, d = ret ; s < (str + len) ; s++, d++) {
-    if (*s == '\\')
-      s++;
-    *d = *s;
-  }
-
-  return ret;
-}
-
-static GHashTable *
-digest_md5_challenge_to_hash (const gchar * challenge)
-{
-  GHashTable *result = g_hash_table_new_full (g_str_hash, g_str_equal,
-      g_free, g_free);
-  const gchar *keystart, *keyend, *valstart;
-  const gchar *c = challenge;
-  gchar *key, *val;
-
-  do {
-    keystart = c;
-    for (; *c != '\0' && *c != '='; c++)
-      ;
-
-    if (*c == '\0' || c == keystart)
-      goto error;
-
-    keyend = c;
-    c++;
-
-    /* eat any whitespace between the '=' and the '"' */
-    for (; g_ascii_isspace (*c); c++)
-      ;
-
-    if (*c == '"')
-      {
-        gboolean esc = FALSE;
-        c++;
-        valstart = c;
-
-        /* " terminates a quoted value _unless_ we are in a \ escape */
-        /* \0 always terminates (end of string encountered)          */
-        for (; *c != '\0' && (esc || *c != '"'); c++)
-          {
-            if (esc)
-              esc = FALSE;      /* we are in a \ char escape, finish it   */
-            else
-              esc = *c == '\\'; /* is this char \ (ie starting an escape) */
-          }
-        if (*c == '\0' || c == valstart)
-          goto error;
-        val = strndup_unescaped (valstart, c - valstart);
-        c++;
-      }
-    else
-      {
-        valstart = c;
-        for (; *c !=  '\0' && *c != ','; c++)
-          ;
-        if (c == valstart)
-          goto error;
-        val = g_strndup (valstart, c - valstart);
-      }
-
-    /* the key is unguarded by '"' delimiters so any whitespace *
-     * at either end should be discarded as irrelevant          */
-    key = g_strndup (keystart, keyend - keystart);
-    key = g_strstrip (key);
-
-    DEBUG ("challenge '%s' = '%s'", key, val);
-    g_hash_table_insert (result, key, val);
-
-    /* eat any whitespace between the '"' and the next ',' */
-    for (; g_ascii_isspace (*c); c++)
-      ;
-
-    if (*c == ',')
-      c++;
-  } while (*c != '\0');
-
-  return result;
-
-error:
-  DEBUG ("Failed to parse challenge: %s", challenge);
-  g_hash_table_destroy (result);
-  return NULL;
-}
-
-static guint8 *
-md5_hash (gchar *value)
-{
-  GChecksum *checksum;
-  guint8 *result;
-  gsize len;
-
-  len = g_checksum_type_get_length (G_CHECKSUM_MD5);
-  g_assert (len == 16);
-
-  result = g_malloc (len);
-
-  checksum = g_checksum_new (G_CHECKSUM_MD5);
-  g_checksum_update (checksum, (guchar *) value, -1);
-  g_checksum_get_digest (checksum, result, &len);
-  g_checksum_free (checksum);
-
-  g_assert (len == 16);
-
-  return result;
-}
-
-static gchar *
-md5_hex_hash (gchar *value, gsize length)
-{
-  return g_compute_checksum_for_string (G_CHECKSUM_MD5, value, length);
-}
-
-static gchar *
-digest_md5_generate_cnonce (void)
-{
-  /* RFC 2831 recommends the the nonce to be either hexadecimal or base64 with
-   * at least 64 bits of entropy */
-#define NR 8
-  guint32 n[NR];
-  int i;
-
-  for (i = 0; i < NR; i++)
-    n[i] = g_random_int ();
-
-  return g_base64_encode ((guchar *) n, sizeof (n));
-}
-
-static gchar *
-md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
-    GError **error)
-{
-  GString *response = g_string_new ("");
-  const gchar *realm, *nonce;
-  gchar *a1, *a1h, *a2, *a2h, *kd, *kdh;
-  gchar *cnonce = NULL;
-  gchar *tmp;
-  guint8 *digest_md5;
-  gsize len;
-
-  if (priv->username == NULL || priv->password == NULL)
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-          "No username or password provided");
-      goto error;
-    }
-
-  DEBUG ("Got username and password");
-
-  nonce = g_hash_table_lookup (challenge, "nonce");
-  if (nonce == NULL || nonce == '\0')
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server didn't provide a nonce in the challenge");
-      goto error;
-    }
-
-  cnonce = digest_md5_generate_cnonce ();
-
-  /* FIXME challenge can contain multiple realms */
-  realm = g_hash_table_lookup (challenge, "realm");
-  if (realm == NULL)
-    {
-      realm = priv->server;
-    }
-
-  /* FIXME properly escape values */
-  g_string_append_printf (response, "username=\"%s\"", priv->username);
-  g_string_append_printf (response, ",realm=\"%s\"", realm);
-  g_string_append_printf (response, ",digest-uri=\"xmpp/%s\"", realm);
-  g_string_append_printf (response, ",nonce=\"%s\",nc=00000001", nonce);
-  g_string_append_printf (response, ",cnonce=\"%s\"", cnonce);
-  /* FIXME should check if auth is in the cop challenge val */
-  g_string_append_printf (response, ",qop=auth,charset=utf-8");
-
-  tmp = g_strdup_printf ("%s:%s:%s", priv->username, realm, priv->password);
-  digest_md5 = md5_hash (tmp);
-  g_free (tmp);
-
-  a1 = g_strdup_printf ("0123456789012345:%s:%s", nonce, cnonce);
-  len = strlen (a1);
-  /* MD5 hash is 16 bytes */
-  memcpy (a1, digest_md5, 16);
-  a1h = md5_hex_hash (a1, len);
-
-  g_free (digest_md5);
-
-  a2 = g_strdup_printf ("AUTHENTICATE:xmpp/%s", realm);
-  a2h = md5_hex_hash (a2, -1);
-
-  kd = g_strdup_printf ("%s:%s:00000001:%s:auth:%s", a1h, nonce, cnonce, a2h);
-  kdh = md5_hex_hash (kd, -1);
-  g_string_append_printf (response, ",response=%s", kdh);
-
-  g_free (kd);
-  g_free (kdh);
-  g_free (a2);
-  g_free (a2h);
-
-  /* Calculate the response we expect from the server */
-  a2 = g_strdup_printf (":xmpp/%s", realm);
-  a2h = md5_hex_hash (a2, -1);
-
-  kd =  g_strdup_printf ("%s:%s:00000001:%s:auth:%s", a1h, nonce, cnonce, a2h);
-  g_free (priv->digest_md5_rspauth);
-  priv->digest_md5_rspauth = md5_hex_hash (kd, -1);
-
-  g_free (a1);
-  g_free (a1h);
-  g_free (a2);
-  g_free (a2h);
-  g_free (kd);
-
-out:
-  g_free (cnonce);
-
-  return response != NULL ? g_string_free (response, FALSE) : NULL;
-
-error:
-  g_string_free (response, TRUE);
-  response = NULL;
-  goto out;
-}
-
-static gchar *
-digest_md5_make_initial_response (
-    WockySaslDigestMd5Private *priv,
-    GHashTable *challenge,
-    GError **error)
-{
-  gchar *response, *response64;
-
-  response = md5_prepare_response (priv, challenge, error);
-  if (response == NULL)
-    {
-      return NULL;
-    }
-
-  DEBUG ("Prepared response: %s", response);
-
-  response64 = g_base64_encode ((guchar *) response, strlen (response));
-
-  g_free (response);
-  priv->state = WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE;
-  return response64;
-}
-
-static gchar *
-digest_md5_check_server_response (
-    WockySaslDigestMd5Private *priv,
-    GHashTable *challenge,
-    GError **error)
-{
-  const gchar *rspauth;
-
-  rspauth = g_hash_table_lookup (challenge, "rspauth");
-  if (rspauth == NULL)
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid reply (no rspauth)");
-      return NULL;
-    }
-
-  if (strcmp (priv->digest_md5_rspauth, rspauth))
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid reply (rspauth not matching)");
-      return NULL;
-    }
-
-  priv->state = WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE;
-  return g_strdup ("");
-}
-
-static gchar *
-digest_md5_handle_challenge (WockySaslHandler *handler,
-    WockyXmppStanza *stanza, GError **error)
-{
-  WockySaslDigestMd5Private *priv = handler->context;
-  gchar *challenge = NULL;
-  gsize len;
-  GHashTable *h = NULL;
-  gchar *ret = NULL;
-
-  if (stanza == NULL)
-    /* We don't have any data to send with the auth initiation. */
-    return NULL;
-
-  if (stanza->node->content != NULL)
-    {
-      challenge = (gchar *) g_base64_decode (stanza->node->content, &len);
-      DEBUG("Got digest-md5 challenge: %s", challenge);
-      h = digest_md5_challenge_to_hash (challenge);
-      g_free (challenge);
-    }
-  else
-    {
-      DEBUG ("Got empty challenge!");
-    }
-
-
-  if (h == NULL)
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid challenge");
-      return NULL;
-    }
-
-  switch (priv->state) {
-    case WOCKY_SASL_DIGEST_MD5_STATE_STARTED:
-      ret = digest_md5_make_initial_response (priv, h, error);
-      break;
-    case WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE:
-      ret = digest_md5_check_server_response (priv, h, error);
-      break;
-    default:
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send a challenge at the wrong time");
-  }
-  g_hash_table_destroy (h);
-  return ret;
-}
-
-static void
-digest_md5_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockyXmppNode *reason = NULL;
-  if (stanza->node->children != NULL)
-    {
-      /* TODO add a wocky xmpp node utility to either get the first child or
-       * iterate the children list */
-      reason = (WockyXmppNode *) stanza->node->children->data;
-    }
-  /* TODO Handle the different error cases in a different way. i.e.
-   * make it clear for the user if it's credentials were wrong, if the server
-   * just has a temporary error or if the authentication procedure itself was
-   * at fault (too weak, invalid mech etc) */
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-      "Authentication failed: %s",
-      reason == NULL ? "Unknown reason" : reason->name);
-}
-
-static void
-digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockySaslDigestMd5Private *priv = handler->context;
-
-  if (priv->state != WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE)
-    {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send success before finishing authentication");
-      return;
-    }
-}
-
-static gchar *
-plain_generate_initial_response (const gchar *username, const gchar *password)
-{
-  GString *str = g_string_new ("");
-  gchar *cstr;
-
-  g_string_append_c (str, '\0');
-  g_string_append (str, username);
-  g_string_append_c (str, '\0');
-  g_string_append (str, password);
-  cstr = g_base64_encode ((guchar *) str->str, str->len);
-  g_string_free (str, TRUE);
-  return cstr;
-}
-
-static gchar *
-plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockySaslPlainPrivate *priv = handler->context;
-
-  if (stanza == NULL)
-    {
-      if (priv->username == NULL || priv->password == NULL)
-        {
-          g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-              WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-              "No username or password provided");
-          return NULL;
-        }
-
-      DEBUG ("Got username and password");
-      return plain_generate_initial_response (priv->username, priv->password);
-    }
-
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-      WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-      "Server send an unexpected challenge");
-  return NULL;
-}
-
-static void
-plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-}
-
-static void
-plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockyXmppNode *reason = NULL;
-
-  if (stanza->node->children != NULL)
-    {
-      /* TODO add a wocky xmpp node utility to either get the first child or
-       * iterate the children list */
-      reason = (WockyXmppNode *) stanza->node->children->data;
-    }
-    /* TODO Handle the different error cases in a different way. i.e.
-     * make it clear for the user if it's credentials were wrong, if the server
-     * just has a temporary error or if the authentication procedure itself was
-     * at fault (too weak, invalid mech etc) */
-
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-      "Authentication failed: %s",
-      reason == NULL ? "Unknown reason" : reason->name);
 }
 
 static void
@@ -1046,58 +581,6 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   return TRUE;
 }
 
-static void
-digest_md5_free_context (gpointer context)
-{
-  WockySaslDigestMd5Private *priv = context;
-
-  g_free (priv->server);
-  g_free (priv->username);
-  g_free (priv->password);
-  g_free (priv->digest_md5_rspauth);
-  g_slice_free (WockySaslDigestMd5Private, priv);
-}
-
-static WockySaslHandler *
-wocky_sasl_digest_md5_new (
-    const gchar *server,
-    const gchar *username,
-    const gchar *password)
-{
-  WockySaslDigestMd5Private *priv;
-
-  priv = g_slice_new0 (WockySaslDigestMd5Private);
-  priv->state = WOCKY_SASL_DIGEST_MD5_STATE_STARTED;
-  priv->server = g_strdup (server);
-  priv->username = g_strdup (username);
-  priv->password = g_strdup (password);
-  return wocky_sasl_handler_new ("DIGEST-MD5", digest_md5_handle_challenge,
-      digest_md5_handle_success, digest_md5_handle_failure,
-      digest_md5_free_context, priv);
-}
-
-static void
-plain_free_context (gpointer context)
-{
-  WockySaslPlainPrivate *priv = context;
-
-  g_free (priv->username);
-  g_free (priv->password);
-  g_slice_free (WockySaslPlainPrivate, context);
-}
-
-static WockySaslHandler *
-wocky_sasl_plain_new (const gchar *username, const gchar *password)
-{
-  WockySaslPlainPrivate *priv;
-
-  priv = g_slice_new0 (WockySaslPlainPrivate);
-  priv->username = g_strdup (username);
-  priv->password = g_strdup (password);
-  return wocky_sasl_handler_new ("PLAIN", plain_handle_challenge,
-      plain_handle_success, plain_handle_failure, plain_free_context, priv);
-}
-
 /* Initiate sasl auth. features should contain the stream features stanza as
  * receiver from the server */
 void
@@ -1136,8 +619,8 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
       /* XXX: check for username and password here? */
       DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
       wocky_sasl_auth_start_mechanism (sasl,
-          wocky_sasl_digest_md5_new (
-              priv->server, priv->username, priv->password));
+          WOCKY_SASL_HANDLER (wocky_sasl_digest_md5_new (
+              priv->server, priv->username, priv->password)));
     }
   else if (allow_plain &&
       wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
@@ -1145,7 +628,8 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
       /* XXX: check for username and password here? */
       DEBUG ("Choosing PLAIN as auth mechanism");
       wocky_sasl_auth_start_mechanism (sasl,
-          wocky_sasl_plain_new (priv->username, priv->password));
+          WOCKY_SASL_HANDLER (wocky_sasl_plain_new (
+              priv->username, priv->password)));
     }
   else
     {

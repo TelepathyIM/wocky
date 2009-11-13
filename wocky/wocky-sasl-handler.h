@@ -8,6 +8,14 @@
 
 G_BEGIN_DECLS
 
+#define WOCKY_TYPE_SASL_HANDLER (wocky_sasl_handler_get_type ())
+#define WOCKY_SASL_HANDLER(obj) (G_TYPE_CHECK_INSTANCE_CAST( \
+    (obj), WOCKY_TYPE_SASL_HANDLER, WockySaslHandler))
+#define WOCKY_IS_SASL_HANDLER(obj) \
+    (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_SASL_HANDLER))
+#define WOCKY_SASL_HANDLER_GET_IFACE(obj) (G_TYPE_INSTANCE_GET_INTERFACE ( \
+    (obj), WOCKY_TYPE_SASL_HANDLER, WockySaslHandlerIface))
+
 typedef struct _WockySaslHandler WockySaslHandler;
 
 typedef gchar * (*WockySaslChallengeFunc) (
@@ -19,26 +27,11 @@ typedef void (*WockySaslSuccessFunc) (
 typedef void (*WockySaslFailureFunc) (
     WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
 
-struct _WockySaslHandler {
-    gchar *mechanism;
-    WockySaslChallengeFunc challenge_func;
-    WockySaslSuccessFunc success_func;
-    WockySaslFailureFunc failure_func;
-    GFreeFunc context_free_func;
-    gpointer context;
-};
-
-WockySaslHandler *
-wocky_sasl_handler_new (
-    const gchar *mechanism,
-    WockySaslChallengeFunc challenge_func,
-    WockySaslSuccessFunc success_func,
-    WockySaslFailureFunc failure_func,
-    GFreeFunc context_free_func,
-    gpointer context);
-
 void
 wocky_sasl_handler_free (WockySaslHandler *handler);
+
+GType
+wocky_sasl_handler_get_type (void);
 
 const gchar *
 wocky_sasl_handler_get_mechanism (WockySaslHandler *handler);
@@ -60,6 +53,17 @@ wocky_sasl_handler_handle_failure (
     WockySaslHandler *handler,
     WockyXmppStanza *stanza,
     GError **error);
+
+typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
+
+struct _WockySaslHandlerIface
+{
+    GTypeInterface *parent;
+    gchar *mechanism;
+    WockySaslChallengeFunc challenge_func;
+    WockySaslSuccessFunc success_func;
+    WockySaslFailureFunc failure_func;
+};
 
 G_END_DECLS
 
