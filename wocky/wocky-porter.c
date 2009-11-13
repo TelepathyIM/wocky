@@ -285,7 +285,8 @@ wocky_porter_init (WockyPorter *obj)
 
   priv->handlers_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
       NULL, (GDestroyNotify) stanza_handler_free);
-  priv->next_handler_id = 0;
+  /* these are guints, reserve 0 for "not a valid handler" */
+  priv->next_handler_id = 1;
   priv->handlers = NULL;
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
@@ -1184,7 +1185,7 @@ compare_handler (StanzaHandler *a,
  * "foo@<!-- -->bar.org" will match:
  * "foo@<!-- -->bar.org", "foo@<!-- -->bar.org/moose" and so forth.
  *
- * Returns: a #guint handler-id, for use with wocky_porter_unregister_handler().
+ * Returns: a non-zero #guint id for use with wocky_porter_unregister_handler().
  **/
 guint
 wocky_porter_register_handler (WockyPorter *self,
