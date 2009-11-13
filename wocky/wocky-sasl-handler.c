@@ -4,7 +4,8 @@
 WockySaslHandler *
 wocky_sasl_handler_new (const gchar *mechanism,
     WockySaslChallengeFunc challenge_func, WockySaslSuccessFunc success_func,
-    WockySaslFailureFunc failure_func, gpointer context)
+    WockySaslFailureFunc failure_func, GFreeFunc context_free_func,
+    gpointer context)
 {
   WockySaslHandler *handler;
 
@@ -13,6 +14,7 @@ wocky_sasl_handler_new (const gchar *mechanism,
   handler->challenge_func = challenge_func;
   handler->success_func = success_func;
   handler->failure_func = failure_func;
+  handler->context_free_func = context_free_func;
   handler->context = context;
   return handler;
 }
@@ -20,6 +22,7 @@ wocky_sasl_handler_new (const gchar *mechanism,
 void
 wocky_sasl_handler_free (WockySaslHandler *handler)
 {
+  handler->context_free_func (handler->context);
   g_free (handler->mechanism);
   g_slice_free (WockySaslHandler, handler);
 }

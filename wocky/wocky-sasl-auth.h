@@ -87,6 +87,9 @@ WockySaslAuth *wocky_sasl_auth_new (const gchar *server,
     const gchar *password,
     WockyXmppConnection *connection);
 
+void wocky_sasl_auth_add_handler (WockySaslAuth *sasl,
+    WockySaslHandler *handler);
+
 void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     WockyXmppStanza *features,
     gboolean allow_plain,

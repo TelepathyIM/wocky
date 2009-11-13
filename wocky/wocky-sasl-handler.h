@@ -24,6 +24,7 @@ struct _WockySaslHandler {
     WockySaslChallengeFunc challenge_func;
     WockySaslSuccessFunc success_func;
     WockySaslFailureFunc failure_func;
+    GFreeFunc context_free_func;
     gpointer context;
 };
 
@@ -33,6 +34,7 @@ wocky_sasl_handler_new (
     WockySaslChallengeFunc challenge_func,
     WockySaslSuccessFunc success_func,
     WockySaslFailureFunc failure_func,
+    GFreeFunc context_free_func,
     gpointer context);
 
 void
