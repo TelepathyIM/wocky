@@ -581,6 +581,33 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   return TRUE;
 }
 
+static WockySaslHandler *
+wocky_sasl_auth_select_handler (
+    WockySaslAuth *sasl, gboolean allow_plain, GSList *mechanisms)
+{
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+
+  if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
+    {
+      /* XXX: check for username and password here? */
+      DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
+      return WOCKY_SASL_HANDLER (wocky_sasl_digest_md5_new (
+          priv->server, priv->username, priv->password));
+    }
+  else if (allow_plain &&
+      wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
+    {
+      /* XXX: check for username and password here? */
+      DEBUG ("Choosing PLAIN as auth mechanism");
+      return WOCKY_SASL_HANDLER (wocky_sasl_plain_new (
+          priv->username, priv->password));
+    }
+  else
+    {
+      return NULL;
+    }
+}
+
 /* Initiate sasl auth. features should contain the stream features stanza as
  * receiver from the server */
 void
@@ -593,6 +620,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppNode *mech_node;
   GSList *mechanisms, *t;
+  WockySaslHandler *handler = NULL;
 
   g_assert (sasl != NULL);
   g_assert (features != NULL);
@@ -613,25 +641,9 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
 
   priv->result = g_simple_async_result_new (G_OBJECT (sasl),
     callback, user_data, wocky_sasl_auth_authenticate_finish);
+  handler = wocky_sasl_auth_select_handler (sasl, allow_plain, mechanisms);
 
-  if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
-    {
-      /* XXX: check for username and password here? */
-      DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
-      wocky_sasl_auth_start_mechanism (sasl,
-          WOCKY_SASL_HANDLER (wocky_sasl_digest_md5_new (
-              priv->server, priv->username, priv->password)));
-    }
-  else if (allow_plain &&
-      wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
-    {
-      /* XXX: check for username and password here? */
-      DEBUG ("Choosing PLAIN as auth mechanism");
-      wocky_sasl_auth_start_mechanism (sasl,
-          WOCKY_SASL_HANDLER (wocky_sasl_plain_new (
-              priv->username, priv->password)));
-    }
-  else
+  if (handler == NULL)
     {
       DEBUG ("No supported mechanisms found");
 
@@ -646,6 +658,8 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
 
       goto out;
     }
+
+  wocky_sasl_auth_start_mechanism (sasl, handler);
 
 out:
   for (t = mechanisms ; t != NULL; t = g_slist_next (t))
