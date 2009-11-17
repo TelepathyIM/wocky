@@ -58,7 +58,7 @@ typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
 
 struct _WockySaslHandlerIface
 {
-    GTypeInterface *parent;
+    GTypeInterface parent;
     gchar *mechanism;
     WockySaslChallengeFunc challenge_func;
     WockySaslSuccessFunc success_func;
