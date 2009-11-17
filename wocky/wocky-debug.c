@@ -28,7 +28,6 @@ static GDebugKey keys[] = {
   { "roster",            DEBUG_ROSTER            },
   { "tls",               DEBUG_TLS               },
   { "pubsub",            DEBUG_PUBSUB            },
-  { "all",               ~0                      },
   { 0, },
 };
 
