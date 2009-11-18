@@ -108,6 +108,8 @@ wocky_test_sasl_auth_DEPENDENCIES = $(LIBWOCKY)
 wocky_test_sasl_auth_SOURCES = \
    wocky-test-helper.c wocky-test-helper.h \
    wocky-test-sasl-auth.c \
+   wocky-test-sasl-handler.c \
+   wocky-test-sasl-handler.h \
    wocky-test-sasl-auth-server.c \
    wocky-test-sasl-auth-server.h \
    wocky-test-stream.c \

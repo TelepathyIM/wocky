@@ -602,27 +602,37 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 
   priv->state = AUTH_STATE_CHALLENGE;
 
-#if HAVE_LIBSASL2
-  ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
-      (unsigned) response_len, &challenge, &challenge_len);
-#else
-  challenge = "";
-  challenge_len = 0;
-  g_assert (!wocky_strdiff ("PLAIN", mech));
-  /* response format: ^@ u s e r ^@ p a s s    */
-  /* require at least 1 char user and password */
-  if (response_len >= 4)
+  if (!wocky_strdiff ("X-TEST", mech))
     {
-      const gchar *user = ((gchar *) response) + 1;
-      int ulen = strlen (user);
-      gchar *pass = g_strndup (user + ulen + 1, response_len - ulen - 2);
-      ret = ( wocky_strdiff (user, priv->username) ? SASL_NOUSER  :
-              wocky_strdiff (pass, priv->password) ? SASL_BADAUTH : SASL_OK );
-      g_free (pass);
+      challenge = "";
+      challenge_len = 0;
+      ret = wocky_strdiff ((gchar *) response, priv->password) ?
+          SASL_BADAUTH : SASL_OK;
     }
   else
-    ret = SASL_BADAUTH;
+    {
+#if HAVE_LIBSASL2
+      ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
+          (unsigned) response_len, &challenge, &challenge_len);
+#else
+      challenge = "";
+      challenge_len = 0;
+      g_assert (!wocky_strdiff ("PLAIN", mech));
+      /* response format: ^@ u s e r ^@ p a s s    */
+      /* require at least 1 char user and password */
+      if (response_len >= 4)
+        {
+          const gchar *user = ((gchar *) response) + 1;
+          int ulen = strlen (user);
+          gchar *pass = g_strndup (user + ulen + 1, response_len - ulen - 2);
+          ret = ( wocky_strdiff (user, priv->username) ? SASL_NOUSER  :
+                  wocky_strdiff (pass, priv->password) ? SASL_BADAUTH : SASL_OK );
+          g_free (pass);
+        }
+      else
+        ret = SASL_BADAUTH;
 #endif
+    }
 
   if (!check_sasl_return (self, ret))
     goto out;

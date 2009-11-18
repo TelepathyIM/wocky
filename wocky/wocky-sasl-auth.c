@@ -67,6 +67,7 @@ struct _WockySaslAuthPrivate
   WockySaslHandler *handler;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
+  GSList *handlers;
 };
 
 #define WOCKY_SASL_AUTH_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_SASL_AUTH, WockySaslAuthPrivate))
@@ -210,6 +211,12 @@ wocky_sasl_auth_dispose (GObject *object)
   if (priv->handler != NULL)
     {
       g_object_unref (priv->handler);
+    }
+
+  if (priv->handlers != NULL)
+    {
+      g_slist_foreach (priv->handlers, (GFunc) g_object_unref, NULL);
+      g_slist_free (priv->handlers);
     }
 
   if (priv->connection != NULL)
@@ -594,6 +601,24 @@ wocky_sasl_auth_select_handler (
     WockySaslAuth *sasl, gboolean allow_plain, GSList *mechanisms)
 {
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  GSList *i, *k;
+
+  for (k = priv->handlers; k != NULL; k = k->next)
+    {
+      WockySaslHandler *handler = k->data;
+      const gchar *handler_mech = wocky_sasl_handler_get_mechanism (handler);
+
+      for (i = mechanisms; i != NULL; i = i->next)
+        {
+          const gchar *mechanism = i->data;
+
+          if (!wocky_strdiff (handler_mech, mechanism))
+            {
+              g_object_ref (handler);
+              return handler;
+            }
+        }
+    }
 
   if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
     {
@@ -677,3 +702,13 @@ out:
 
   g_slist_free (mechanisms);
 }
+
+void
+wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler)
+{
+  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (auth);
+
+  g_object_ref (handler);
+  priv->handlers = g_slist_append (priv->handlers, handler);
+}
+

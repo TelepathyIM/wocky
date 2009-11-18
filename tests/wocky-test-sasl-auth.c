@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "wocky-test-sasl-auth-server.h"
+#include "wocky-test-sasl-handler.h"
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
@@ -135,6 +136,7 @@ feature_stanza_received (GObject *source,
     gpointer user_data)
 {
   WockyXmppStanza *stanza;
+  WockySaslHandler *test_handler;
   test_t *test = (test_t *) user_data;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
@@ -147,6 +149,10 @@ feature_stanza_received (GObject *source,
     test->wrong_username ? "wrong" : test->username,
     test->wrong_password ? "wrong" : test->password,
     WOCKY_XMPP_CONNECTION (source));
+
+  test_handler = WOCKY_SASL_HANDLER (wocky_test_sasl_handler_new ());
+  wocky_sasl_auth_add_handler (sasl, test_handler);
+  g_object_unref (test_handler);
 
   wocky_sasl_auth_authenticate_async (sasl,
       stanza,
@@ -299,6 +305,15 @@ main (int argc,
     { "/xmpp-sasl/digest-md5-slash-challenge", "DIGEST-MD5", FALSE,
       0, 0, SERVER_PROBLEM_SLASH_CHALLENGE, FALSE, FALSE,
       "moose", "something", "cass-x200s" },
+
+    { "/xmpp-sasl/external-handler-fail", "X-TEST", FALSE,
+      WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+      SERVER_PROBLEM_INVALID_PASSWORD, FALSE, FALSE,
+      "dave", "daisy daisy", "hal" },
+
+    { "/xmpp-sasl/external-handler-succeed", "X-TEST", FALSE,
+      0, 0, SERVER_PROBLEM_NO_PROBLEM, FALSE, FALSE,
+      "ripley", "open sesame", "mother" },
   };
 
   test_init (argc, argv);
