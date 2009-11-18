@@ -479,6 +479,14 @@ sasl_auth_stanza_received (GObject *source,
     {
       auth_succeeded (sasl);
     }
+  else if (0 == strcmp (stanza->node->name, "failure"))
+    {
+      /* Handler didn't return error from failure function. Fail with a
+       * general error.
+       */
+      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_FAILURE,
+          "Authentication failed.");
+    }
   else
     {
       if (response != NULL)
