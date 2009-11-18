@@ -223,9 +223,15 @@ run_test (gconstpointer user_data)
   g_object_unref (conn);
 
   if (test->domain == 0)
-    g_assert_no_error (error);
+    {
+      g_assert (authenticated);
+      g_assert_no_error (error);
+    }
   else
-    g_assert_error (error, test->domain, test->code);
+    {
+      g_assert (!authenticated);
+      g_assert_error (error, test->domain, test->code);
+    }
 
   if (error != NULL)
     g_error_free (error);
