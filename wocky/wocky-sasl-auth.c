@@ -446,20 +446,15 @@ sasl_auth_stanza_received (GObject *source,
       response = wocky_sasl_handler_handle_challenge (
           priv->handler, stanza, &error);
 
-      if ((response == NULL) == (error == NULL))
+      if (response != NULL && error != NULL)
         {
-          if (response != NULL)
-            {
-              g_warning (
-                  "SASL handler returned both a response and an error (%s)",
-                  error->message);
-              g_free (response);
-            }
-          else
-            {
-              g_warning (
-                  "SASL handler returned no result and no error");
-            }
+          g_warning ("SASL handler returned both a response and an error (%s)",
+              error->message);
+          g_free (response);
+        }
+      else if (response == NULL && error == NULL)
+        {
+          g_warning ("SASL handler returned no result and no error");
         }
     }
   else if (!wocky_strdiff (stanza->node->name, "success"))
