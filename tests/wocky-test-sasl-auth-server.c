@@ -583,14 +583,14 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   switch (priv->problem)
     {
       case SERVER_PROBLEM_REQUIRE_GOOGLE_JDD:
-        if ((gjdd == NULL) || strcmp ("true", gjdd))
+        if ((gjdd == NULL) || wocky_strdiff ("true", gjdd))
           {
             not_authorized (self);
             goto out;
           }
         break;
       case SERVER_PROBLEM_DISLIKE_GOOGLE_JDD:
-        if (gjdd && !strcmp ("true", gjdd))
+        if (gjdd && !wocky_strdiff ("true", gjdd))
           {
             not_authorized (self);
             goto out;
@@ -809,7 +809,7 @@ received_stanza (GObject *source,
 
   g_assert (stanza != NULL);
 
-  if (strcmp (wocky_xmpp_node_get_ns (stanza->node),
+  if (wocky_strdiff (wocky_xmpp_node_get_ns (stanza->node),
       WOCKY_XMPP_NS_SASL_AUTH))
     {
       g_assert_not_reached ();
@@ -817,7 +817,7 @@ received_stanza (GObject *source,
 
   for (i = 0 ; handlers[i].name != NULL; i++)
     {
-      if (!strcmp (stanza->node->name, handlers[i].name))
+      if (!wocky_strdiff (stanza->node->name, handlers[i].name))
         {
           handlers[i].func (self, stanza);
           if (priv->state < AUTH_STATE_AUTHENTICATED)
@@ -856,7 +856,7 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
 
   for (i = 0; options[i].name != NULL; i++)
     {
-      if (!strcmp (option, options[i].name))
+      if (!wocky_strdiff (option, options[i].name))
         {
           *result = options[i].value;
           if (len != NULL)

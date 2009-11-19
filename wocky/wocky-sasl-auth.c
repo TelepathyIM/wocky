@@ -378,7 +378,7 @@ static gboolean
 each_mechanism (WockyXmppNode *node, gpointer user_data)
 {
   GSList **list = (GSList **)user_data;
-  if (strcmp (node->name, "mechanism"))
+  if (wocky_strdiff (node->name, "mechanism"))
     {
       return TRUE;
     }
@@ -402,7 +402,7 @@ static gboolean
 wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
   GSList *t;
   for (t = list ; t != NULL ; t = g_slist_next (t)) {
-    if (!strcmp ((gchar *) t->data, mech)) {
+    if (!wocky_strdiff ((gchar *) t->data, mech)) {
       return TRUE;
     }
   }
@@ -426,7 +426,7 @@ sasl_auth_stanza_received (GObject *source,
   if (stream_error (sasl, stanza))
     return;
 
-  if (strcmp (
+  if (wocky_strdiff (
       wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_SASL_AUTH))
     {
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
@@ -441,7 +441,7 @@ sasl_auth_stanza_received (GObject *source,
    * we don't need it anymore:                                                */
   g_object_ref (sasl);
 
-  if (0 == strcmp (stanza->node->name, "challenge"))
+  if (!wocky_strdiff (stanza->node->name, "challenge"))
     {
       response = wocky_sasl_handler_handle_challenge (
           priv->handler, stanza, &error);
@@ -462,11 +462,11 @@ sasl_auth_stanza_received (GObject *source,
             }
         }
     }
-  else if (0 == strcmp (stanza->node->name, "success"))
+  else if (!wocky_strdiff (stanza->node->name, "success"))
     {
       wocky_sasl_handler_handle_success (priv->handler, stanza, &error);
     }
-  else if (0 == strcmp (stanza->node->name, "failure"))
+  else if (!wocky_strdiff (stanza->node->name, "failure"))
     {
       wocky_sasl_handler_handle_failure (priv->handler, stanza, &error);
     }
@@ -482,11 +482,11 @@ sasl_auth_stanza_received (GObject *source,
       auth_failed (sasl, error->code, error->message);
       g_error_free (error);
     }
-  else if (0 == strcmp (stanza->node->name, "success"))
+  else if (!wocky_strdiff (stanza->node->name, "success"))
     {
       auth_succeeded (sasl);
     }
-  else if (0 == strcmp (stanza->node->name, "failure"))
+  else if (!wocky_strdiff (stanza->node->name, "failure"))
     {
       /* Handler didn't return error from failure function. Fail with a
        * general error.
