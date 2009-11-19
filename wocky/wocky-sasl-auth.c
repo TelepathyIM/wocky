@@ -430,7 +430,7 @@ sasl_auth_stanza_received (GObject *source,
       wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_SASL_AUTH))
     {
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send a reply not in the %s namespace",
+          "Server sent a reply not in the %s namespace",
           WOCKY_XMPP_NS_SASL_AUTH);
       return;
     }
@@ -473,7 +473,7 @@ sasl_auth_stanza_received (GObject *source,
   else
     {
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid reply (%s)",
+          "Server sent an invalid reply (%s)",
           stanza->node->name);
     }
 

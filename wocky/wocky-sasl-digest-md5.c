@@ -450,7 +450,7 @@ digest_md5_check_server_response (
     {
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid reply (no rspauth)");
+          "Server sent an invalid reply (no rspauth)");
       return NULL;
     }
 
@@ -458,7 +458,7 @@ digest_md5_check_server_response (
     {
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid reply (rspauth not matching)");
+          "Server sent an invalid reply (rspauth not matching)");
       return NULL;
     }
 
@@ -498,7 +498,7 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
     {
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send an invalid challenge");
+          "Server sent an invalid challenge");
       return NULL;
     }
 
@@ -512,7 +512,7 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
     default:
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send a challenge at the wrong time");
+          "Server sent a challenge at the wrong time");
   }
   g_hash_table_destroy (h);
   return ret;
@@ -529,7 +529,7 @@ digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     {
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server send success before finishing authentication");
+          "Server sent success before finishing authentication");
       return;
     }
 }

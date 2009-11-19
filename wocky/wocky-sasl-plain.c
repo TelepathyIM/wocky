@@ -180,7 +180,7 @@ plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
 
   g_set_error (error, WOCKY_SASL_AUTH_ERROR,
       WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-      "Server send an unexpected challenge");
+      "Server sent an unexpected challenge");
   return NULL;
 }
 
