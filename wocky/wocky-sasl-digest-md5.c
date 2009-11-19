@@ -152,6 +152,7 @@ sasl_handler_iface_init (gpointer g_iface)
   WockySaslHandlerIface *iface = g_iface;
 
   iface->mechanism = "DIGEST-MD5";
+  iface->plain = FALSE;
   iface->challenge_func = digest_md5_handle_challenge;
   iface->success_func = digest_md5_handle_success;
   iface->failure_func = digest_md5_handle_failure;

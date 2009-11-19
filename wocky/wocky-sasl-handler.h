@@ -62,6 +62,9 @@ wocky_sasl_handler_get_type (void);
 const gchar *
 wocky_sasl_handler_get_mechanism (WockySaslHandler *handler);
 
+gboolean
+wocky_sasl_handler_is_plain (WockySaslHandler *handler);
+
 gchar *
 wocky_sasl_handler_handle_challenge (
     WockySaslHandler *handler,
@@ -87,6 +90,8 @@ typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
  * @parent: The parent interface.
  * @mechanism: The SASL mechanism which this handler responds to challenges
  *    for.
+ * @plain: Whether the mechanism this handler handles sends secrets in
+ *    plaintext.
  * @challenge_func: Called when a <challenge/> stanza is received.
  * @success_func: Called when a <success/> stanza is received.
  * @ @failure_func: Called when a <failure/> stanza is received.
@@ -95,6 +100,7 @@ struct _WockySaslHandlerIface
 {
     GTypeInterface parent;
     gchar *mechanism;
+    gboolean plain;
     WockySaslChallengeFunc challenge_func;
     WockySaslSuccessFunc success_func;
     WockySaslFailureFunc failure_func;

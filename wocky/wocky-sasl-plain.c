@@ -121,6 +121,7 @@ sasl_handler_iface_init (gpointer g_iface)
   WockySaslHandlerIface *iface = g_iface;
 
   iface->mechanism = "PLAIN";
+  iface->plain = TRUE;
   iface->challenge_func = plain_handle_challenge;
   iface->success_func = plain_handle_success;
   iface->failure_func = plain_handle_failure;

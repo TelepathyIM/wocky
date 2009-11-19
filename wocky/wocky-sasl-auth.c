@@ -603,6 +603,9 @@ wocky_sasl_auth_select_handler (
       WockySaslHandler *handler = k->data;
       const gchar *handler_mech = wocky_sasl_handler_get_mechanism (handler);
 
+      if (wocky_sasl_handler_is_plain (handler) && !allow_plain)
+        continue;
+
       for (i = mechanisms; i != NULL; i = i->next)
         {
           const gchar *mechanism = i->data;

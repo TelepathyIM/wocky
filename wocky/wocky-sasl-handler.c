@@ -36,6 +36,12 @@ wocky_sasl_handler_get_mechanism (WockySaslHandler *handler)
   return WOCKY_SASL_HANDLER_GET_IFACE (handler)->mechanism;
 }
 
+gboolean
+wocky_sasl_handler_is_plain (WockySaslHandler *handler)
+{
+  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->plain;
+}
+
 gchar *
 wocky_sasl_handler_handle_challenge (
     WockySaslHandler *handler,

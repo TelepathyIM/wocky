@@ -38,6 +38,7 @@ sasl_handler_iface_init (gpointer g_iface)
   WockySaslHandlerIface *iface = g_iface;
 
   iface->mechanism = "X-TEST";
+  iface->plain = FALSE;
   iface->challenge_func = test_handle_challenge;
   iface->success_func = test_handle_success;
   iface->failure_func = test_handle_failure;
