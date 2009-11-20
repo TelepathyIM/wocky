@@ -3434,7 +3434,7 @@ main (int argc,
   g_message ("libsasl2 not found: skipping MD5 SASL tests");
   for (i = 0; tests[i].desc != NULL; i++)
     {
-      if (tests[i].result.mech == "DIGEST-MD5")
+      if (!wocky_strdiff (tests[i].result.mech, "DIGEST-MD5"))
         continue;
       g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
     }
