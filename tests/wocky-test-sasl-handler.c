@@ -44,7 +44,7 @@ sasl_handler_iface_init (gpointer g_iface)
   iface->failure_func = test_handle_failure;
 }
 
-WockyTestSaslHandler*
+WockyTestSaslHandler *
 wocky_test_sasl_handler_new (void)
 {
   return g_object_new (WOCKY_TYPE_TEST_SASL_HANDLER, NULL);
