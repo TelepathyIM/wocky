@@ -94,7 +94,7 @@ typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
  *    plaintext.
  * @challenge_func: Called when a <challenge/> stanza is received.
  * @success_func: Called when a <success/> stanza is received.
- * @ @failure_func: Called when a <failure/> stanza is received.
+ * @failure_func: Called when a <failure/> stanza is received.
  **/
 struct _WockySaslHandlerIface
 {
