@@ -3069,7 +3069,6 @@ start_dummy_xmpp_server (test_t *test)
   struct sockaddr_in server;
   int res = -1;
   guint port = test->server_parameters.port;
-  int i;
 
   if (port == 0)
     return;
@@ -3082,12 +3081,7 @@ start_dummy_xmpp_server (test_t *test)
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
 
-  for (i = 0; res != 0 && i < 3; i++)
-    {
-      res = bind (ssock, (struct sockaddr *) &server, sizeof (server));
-      if (res != 0)
-        sleep (1);
-    }
+  res = bind (ssock, (struct sockaddr *) &server, sizeof (server));
 
   if (res != 0)
     {
