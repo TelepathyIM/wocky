@@ -155,6 +155,12 @@ typedef GObjectClass WockyTLSSessionClass;
 typedef GInputStreamClass WockyTLSInputStreamClass;
 typedef GOutputStreamClass WockyTLSOutputStreamClass;
 
+static gnutls_dh_params_t dh_0768 = NULL;
+static gnutls_dh_params_t dh_1024 = NULL;
+static gnutls_dh_params_t dh_2048 = NULL;
+static gnutls_dh_params_t dh_3072 = NULL;
+static gnutls_dh_params_t dh_4096 = NULL;
+
 struct OPAQUE_TYPE__WockyTLSSession
 {
   GObject parent;
@@ -1312,6 +1318,8 @@ wocky_tls_session_constructed (GObject *object)
      but IANA cryptographer */
   if (server)
     {
+      gnutls_dh_params_t *dhp;
+
       if ((session->key_file != NULL) && (session->cert_file != NULL))
         {
           DEBUG ("cert/key pair: %s/%s", session->cert_file, session->key_file);
@@ -1320,10 +1328,38 @@ wocky_tls_session_constructed (GObject *object)
                                                 session->key_file,
                                                 GNUTLS_X509_FMT_PEM);
         }
-      gnutls_dh_params_init (&session->dh_params);
-      gnutls_dh_params_generate2 (session->dh_params, session->dh_bits);
-      gnutls_certificate_set_dh_params (session->gnutls_cert_cred,
-                                        session->dh_params);
+
+      switch (session->dh_bits)
+        {
+        case 768:
+          dhp = &dh_0768;
+          break;
+        case 1024:
+          dhp = &dh_1024;
+          break;
+        case 2048:
+          dhp = &dh_2048;
+          break;
+        case 3072:
+          dhp = &dh_3072;
+          break;
+        case 4096:
+          dhp = &dh_4096;
+          break;
+        default:
+          dhp = &dh_1024;
+          break;
+        }
+
+      if (*dhp == NULL)
+        {
+          g_message ("Initialising DH parameters %d", session->dh_bits);
+          gnutls_dh_params_init (dhp);
+          gnutls_dh_params_generate2 (*dhp, session->dh_bits);
+        }
+
+      session->dh_params = *dhp;
+      gnutls_certificate_set_dh_params (session->gnutls_cert_cred, *dhp);
       gnutls_init (&session->session, GNUTLS_SERVER);
     }
   else
