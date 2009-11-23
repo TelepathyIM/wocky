@@ -1481,6 +1481,16 @@ wocky_tls_connection_set_property (GObject *object, guint prop_id,
     }
 }
 
+static gboolean
+wocky_tls_connection_close (GIOStream *stream,
+  GCancellable *cancellable,
+  GError **error)
+{
+  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (stream);
+
+  return g_io_stream_close (connection->session->stream, cancellable, error);
+}
+
 static GInputStream *
 wocky_tls_connection_get_input_stream (GIOStream *io_stream)
 {
@@ -1561,6 +1571,7 @@ wocky_tls_connection_class_init (WockyTLSConnectionClass *class)
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
   stream_class->get_input_stream = wocky_tls_connection_get_input_stream;
   stream_class->get_output_stream = wocky_tls_connection_get_output_stream;
+  stream_class->close_fn = wocky_tls_connection_close;
 }
 
 WockyTLSSession *
