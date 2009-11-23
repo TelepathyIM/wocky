@@ -201,6 +201,9 @@ wocky_xmpp_connection_dispose (GObject *object)
   if (priv->dispose_has_run)
     return;
 
+  g_warn_if_fail (priv->input_result == NULL);
+  g_warn_if_fail (priv->output_result == NULL);
+
   priv->dispose_has_run = TRUE;
   if (priv->stream != NULL)
     {
