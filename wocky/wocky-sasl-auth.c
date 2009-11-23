@@ -258,6 +258,7 @@ auth_succeeded (WockySaslAuth *sasl)
   GSimpleAsyncResult *r;
 
   DEBUG ("Authentication succeeded");
+  auth_reset (sasl);
 
   r = priv->result;
   priv->result = NULL;
@@ -561,8 +562,6 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (sasl), wocky_sasl_auth_authenticate_finish), FALSE);
-
-  auth_reset (sasl);
 
   return TRUE;
 }
