@@ -106,6 +106,8 @@ struct _TestConnectorServerPrivate
   gchar *pass;
   gchar *version;
 
+  gchar *used_mech;
+
   CertSet cert;
   WockyTLSSession *tls_sess;
   WockyTLSConnection *tls_conn;
@@ -159,6 +161,7 @@ test_connector_server_finalise (GObject *object)
   g_free (priv->user);
   g_free (priv->pass);
   g_free (priv->version);
+  g_free (priv->used_mech);
 
   G_OBJECT_CLASS (test_connector_server_parent_class)->finalize (object);
 }
@@ -1224,6 +1227,9 @@ after_auth (GObject *source,
       return;
     }
 
+  priv->used_mech = g_strdup (test_sasl_auth_server_get_selected_mech
+    (priv->sasl));
+
   g_object_unref (priv->sasl);
   priv->sasl = NULL;
 
@@ -1615,4 +1621,12 @@ test_connector_server_start (TestConnectorServer *self)
     {
       xmpp_init (NULL,NULL,self);
     }
+}
+
+const gchar *
+test_connector_server_get_used_mech (TestConnectorServer *self)
+{
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+
+  return priv->used_mech;
 }

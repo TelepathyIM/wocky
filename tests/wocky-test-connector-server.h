@@ -181,6 +181,8 @@ gboolean test_connector_server_teardown_finish (TestConnectorServer *self,
   GAsyncResult *result,
   GError *error);
 
+const gchar *test_connector_server_get_used_mech (TestConnectorServer *self);
+
 G_END_DECLS
 
 #endif /* #ifndef __TEST_CONNECTOR_SERVER_H__*/
