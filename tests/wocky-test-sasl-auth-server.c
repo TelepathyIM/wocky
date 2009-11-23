@@ -384,8 +384,19 @@ failure_sent (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
+  TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (tsas);
+  GSimpleAsyncResult *r = priv->result;
+
+  priv->result = NULL;
   g_assert (wocky_xmpp_connection_send_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), result, NULL));
+
+  if (r != NULL)
+    {
+      g_simple_async_result_complete (r);
+      g_object_unref (r);
+    }
 }
 
 static void
@@ -402,7 +413,7 @@ not_authorized (TestSaslAuthServer *self)
       WOCKY_NODE, "not-authorized", WOCKY_NODE_END,
     WOCKY_STANZA_END);
   wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
-    failure_sent, NULL);
+    failure_sent, self);
 
   g_object_unref (s);
 }
