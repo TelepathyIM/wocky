@@ -45,13 +45,6 @@ enum
     PROP_CONNECTION,
 };
 
-typedef enum {
-  WOCKY_SASL_AUTH_STATE_NO_MECH = 0,
-  WOCKY_SASL_AUTH_STATE_STARTED,
-  WOCKY_SASL_AUTH_STATE_SUCCEEDED,
-  WOCKY_SASL_AUTH_STATE_FAILED,
-} WockySaslAuthState;
-
 /* private structure */
 typedef struct _WockySaslAuthPrivate WockySaslAuthPrivate;
 
@@ -62,7 +55,6 @@ struct _WockySaslAuthPrivate
   gchar *username;
   gchar *password;
   gchar *server;
-  WockySaslAuthState state;
   WockySaslHandler *handler;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
@@ -266,7 +258,6 @@ auth_succeeded (WockySaslAuth *sasl)
   GSimpleAsyncResult *r;
 
   DEBUG ("Authentication succeeded");
-  priv->state = WOCKY_SASL_AUTH_STATE_SUCCEEDED;
 
   r = priv->result;
   priv->result = NULL;
@@ -290,7 +281,6 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   va_end (args);
 
   DEBUG ("Authentication failed!: %s", message);
-  priv->state = WOCKY_SASL_AUTH_STATE_FAILED;
 
   r = priv->result;
   priv->result = NULL;
@@ -553,7 +543,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     NULL, NULL, NULL);
   wocky_xmpp_connection_recv_stanza_async (priv->connection,
     NULL, sasl_auth_stanza_received, sasl);
-  priv->state = WOCKY_SASL_AUTH_STATE_STARTED;
 
 out:
   g_object_unref (stanza);
