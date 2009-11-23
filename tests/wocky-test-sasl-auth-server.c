@@ -166,9 +166,7 @@ test_sasl_auth_server_dispose (GObject *object)
   priv->sasl_conn = NULL;
 #endif
 
-  if (priv->result != NULL)
-    g_object_unref (priv->result);
-  priv->result = NULL;
+  g_warn_if_fail (priv->result == NULL);
 
   if (G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose (object);
