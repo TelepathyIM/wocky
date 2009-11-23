@@ -3050,7 +3050,7 @@ client_connected (GIOChannel *channel,
       cproblem,
       test->server.problem.sasl,
       test->server.cert);
-  test_connector_server_start (G_OBJECT (server));
+  test_connector_server_start (server);
   return FALSE;
 }
 

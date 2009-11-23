@@ -171,7 +171,15 @@ TestConnectorServer * test_connector_server_new (GIOStream *stream,
     ServerProblem sasl_problem,
     CertSet cert);
 
-void test_connector_server_start (GObject *object);
+void test_connector_server_start (TestConnectorServer *self);
+
+void test_connector_server_teardown (TestConnectorServer *self,
+  GAsyncReadyCallback callback,
+  gpointer user_data);
+
+gboolean test_connector_server_teardown_finish (TestConnectorServer *self,
+  GAsyncResult *result,
+  GError *error);
 
 G_END_DECLS
 
