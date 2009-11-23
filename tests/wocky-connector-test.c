@@ -93,7 +93,7 @@ typedef struct {
     struct { gchar *user; gchar *pass; } auth;
     guint port;
     CertSet cert;
-  } server;
+  } server_parameters;
   struct { char *srv; guint port; char *host; char *addr; char *srvhost; } dns;
   struct {
     gboolean require_tls;
@@ -102,9 +102,11 @@ typedef struct {
     int op;
     test_setup setup;
   } client;
-  pid_t  server_pid;
+  TestConnectorServer *server;
   WockyConnector *connector;
   gboolean ok;
+  GIOChannel *channel;
+  guint watch;
 } test_t;
 
 static void _set_connector_email_prop (test_t *test)
@@ -3019,10 +3021,9 @@ client_connected (GIOChannel *channel,
   int csock = accept (ssock, (struct sockaddr *) &client, &clen);
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
   test_t *test = data;
-  ConnectorProblem *cproblem = &test->server.problem.conn;
+  ConnectorProblem *cproblem = &test->server_parameters.problem.conn;
 
   GSocketConnection *gconn;
-  TestConnectorServer *server;
   long flags;
 
   if (csock < 0)
@@ -3032,25 +3033,24 @@ client_connected (GIOChannel *channel,
       return TRUE;
     }
 
-  while (g_source_remove_by_user_data (test));
-  g_io_channel_close (channel);
-
-  if (!test->server.features.tls)
+  if (!test->server_parameters.features.tls)
       cproblem->xmpp |= XMPP_PROBLEM_NO_TLS;
 
   flags = fcntl (csock, F_GETFL );
   flags = flags & ~O_NONBLOCK;
   fcntl (csock, F_SETFL, flags);
   gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
-  server = test_connector_server_new (G_IO_STREAM (gconn),
-      test->server.features.auth_mech,
-      test->server.auth.user,
-      test->server.auth.pass,
-      test->server.features.version,
+  test->server = test_connector_server_new (G_IO_STREAM (gconn),
+      test->server_parameters.features.auth_mech,
+      test->server_parameters.auth.user,
+      test->server_parameters.auth.pass,
+      test->server_parameters.features.version,
       cproblem,
-      test->server.problem.sasl,
-      test->server.cert);
-  test_connector_server_start (server);
+      test->server_parameters.problem.sasl,
+      test->server_parameters.cert);
+  test_connector_server_start (test->server);
+  g_object_unref (gconn);
+  test->watch = 0;
   return FALSE;
 }
 
@@ -3060,12 +3060,9 @@ start_dummy_xmpp_server (test_t *test)
   int ssock;
   int reuse = 1;
   struct sockaddr_in server;
-  GIOChannel *channel;
-  pid_t server_pid;
   int res = -1;
-  guint port = test->server.port;
+  guint port = test->server_parameters.port;
   int i;
-  char *server_debug;
 
   if (port == 0)
     return;
@@ -3104,42 +3101,34 @@ start_dummy_xmpp_server (test_t *test)
       exit (code);
     }
 
-  server_pid = fork ();
-
-  if (server_pid < 0)
-    {
-      perror ("fork() of dummy server failed\n");
-      g_main_loop_quit (mainloop);
-      exit (server_pid);
-    }
-
-  if (server_pid)
-    {
-      test->server_pid = server_pid;
-      close (ssock);
-      return;
-    }
-
-  if ((server_debug = getenv ("WOCKY_TEST_SERVER_DEBUG")) != NULL)
-    setenv ("WOCKY_DEBUG", server_debug, TRUE);
-  /* this test is guaranteed to produce an uninteresting error message
-   * from the dummy XMPP server process: mask it (we can't just close stderr
-   * because that makes it fail in a way which is detected as a different
-   * error, which causes the test to fail) */
-  if (test->quiet)
-    {
-      int nullfd = open ("/dev/null", O_WRONLY);
-      int errfd  = fileno (stderr);
-      dup2 (nullfd, errfd);
-    }
-  channel = g_io_channel_unix_new (ssock);
-  g_io_add_watch (channel, G_IO_IN|G_IO_PRI, client_connected, (gpointer)test);
-  g_main_loop_run (mainloop);
-  g_io_channel_close (channel);
-  g_io_channel_unref (channel);
-  exit (0);
+  test->channel = g_io_channel_unix_new (ssock);
+  g_io_channel_set_flags (test->channel, G_IO_FLAG_NONBLOCK, NULL);
+  test->watch = g_io_add_watch (test->channel, G_IO_IN|G_IO_PRI,
+    client_connected, (gpointer)test);
+  g_io_channel_set_close_on_unref (test->channel, TRUE);
+  return;
 }
 /* ************************************************************************* */
+static void
+test_server_teardown_cb (GObject *source,
+  GAsyncResult *result,
+  gpointer user_data)
+{
+  test_t *test = user_data;
+
+  g_assert (test_connector_server_teardown_finish (
+    TEST_CONNECTOR_SERVER (source), result, NULL));
+
+  running_test = FALSE;
+
+  if (test->server != NULL)
+    g_object_unref (test->server);
+  test->server = NULL;
+
+  if (g_main_loop_is_running (mainloop))
+    g_main_loop_quit (mainloop);
+}
+
 static void
 test_done (GObject *source,
     GAsyncResult *res,
@@ -3171,17 +3160,21 @@ test_done (GObject *source,
   if (conn != NULL)
     test->result.xmpp = g_object_ref (conn);
 
-  if (test->server_pid > 0)
-    {
-      /* kick it and wait for the thing to die */
-      kill (test->server_pid, SIGKILL);
-      waitpid (test->server_pid, NULL, WNOHANG);
-    }
 
-  if (g_main_loop_is_running (mainloop))
+  if (test->watch != 0)
+    g_source_remove (test->watch);
+
+  test->watch = 0;
+
+  if (test->channel != NULL)
+    g_io_channel_unref (test->channel);
+  test->channel = NULL;
+
+  if (test->server != NULL)
+    test_connector_server_teardown (test->server,
+      test_server_teardown_cb, test);
+  else if (g_main_loop_is_running (mainloop))
     g_main_loop_quit (mainloop);
-
-  running_test = FALSE;
 }
 
 typedef void (*test_func) (gconstpointer);
@@ -3302,7 +3295,7 @@ run_test (gpointer data)
           WockyXmppStanza *feat = NULL;
           gboolean jabber;
           gboolean oldssl;
-          XmppProblem xproblem = test->server.problem.conn.xmpp;
+          XmppProblem xproblem = test->server_parameters.problem.conn.xmpp;
           const gchar *prop = NULL;
           const gchar *str_prop[] = { "jid", "password",
                                       "xmpp-server", "email", NULL };
@@ -3387,13 +3380,13 @@ run_test (gpointer data)
       g_assert_error (error, domain, test->result.code);
     }
 
-  if (G_IS_OBJECT (wcon))
+  if (wcon != NULL)
     g_object_unref (wcon);
 
   if (error != NULL)
     g_error_free (error);
 
-  if (G_IS_OBJECT (test->result.xmpp))
+  if (test->result.xmpp != NULL)
     g_object_unref (test->result.xmpp);
 
   error = NULL;
