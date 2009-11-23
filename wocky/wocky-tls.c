@@ -1353,7 +1353,7 @@ wocky_tls_session_constructed (GObject *object)
 
       if (*dhp == NULL)
         {
-          g_message ("Initialising DH parameters %d", session->dh_bits);
+          DEBUG ("Initialising DH parameters (%d bits)", session->dh_bits);
           gnutls_dh_params_init (dhp);
           gnutls_dh_params_generate2 (*dhp, session->dh_bits);
         }
