@@ -93,6 +93,7 @@ struct _TestSaslAuthServerPrivate
   gchar *username;
   gchar *password;
   gchar *mech;
+  gchar *selected_mech;
   AuthState state;
   ServerProblem problem;
   GSimpleAsyncResult *result;
@@ -177,6 +178,7 @@ test_sasl_auth_server_finalize (GObject *object)
   g_free (priv->username);
   g_free (priv->password);
   g_free (priv->mech);
+  g_free (priv->selected_mech);
 
   G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->finalize (object);
 }
@@ -584,8 +586,6 @@ static void
 handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 {
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
-  const gchar *mech = wocky_xmpp_node_get_attribute (stanza->node,
-      "mechanism");
   guchar *response = NULL;
   const gchar *challenge;
   unsigned challenge_len;
@@ -593,6 +593,10 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   int ret;
   WockyXmppNode *auth = stanza->node;
   const gchar *gjdd = NULL;
+
+  g_free (priv->selected_mech);
+  priv->selected_mech = g_strdup (wocky_xmpp_node_get_attribute (stanza->node,
+    "mechanism"));
 
   if (stanza->node->content != NULL)
     {
@@ -624,7 +628,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 
   priv->state = AUTH_STATE_CHALLENGE;
 
-  if (!wocky_strdiff ("X-TEST", mech))
+  if (!wocky_strdiff ("X-TEST", priv->selected_mech))
     {
       challenge = "";
       challenge_len = 0;
@@ -634,7 +638,8 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   else
     {
 #if HAVE_LIBSASL2
-      ret = sasl_server_start (priv->sasl_conn, mech, (gchar *) response,
+      ret = sasl_server_start (priv->sasl_conn,
+          priv->selected_mech, (gchar *) response,
           (unsigned) response_len, &challenge, &challenge_len);
 #else
       challenge = "";
@@ -1046,4 +1051,12 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat)
         }
     }
   return ret;
+}
+
+const gchar *
+test_sasl_auth_server_get_selected_mech (TestSaslAuthServer *self)
+{
+  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+
+  return priv->selected_mech;
 }

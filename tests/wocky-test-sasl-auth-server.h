@@ -84,6 +84,8 @@ gboolean
 test_sasl_auth_server_auth_finish (TestSaslAuthServer *self, GAsyncResult *res,
     GError **error);
 
+const gchar *test_sasl_auth_server_get_selected_mech (TestSaslAuthServer *self);
+
 TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *password,
     const gchar *servername, ServerProblem problem, gboolean start);
