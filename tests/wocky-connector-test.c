@@ -86,7 +86,14 @@ typedef void (*test_setup) (gpointer);
 typedef struct {
   gchar *desc;
   gboolean quiet;
-  struct { gchar *domain; int code; gchar *mech; gpointer xmpp; gchar *jid; gchar *sid; } result;
+  struct { gchar *domain;
+           int code;
+           gchar *mech;
+           gchar *used_mech;
+           gpointer xmpp;
+           gchar *jid;
+           gchar *sid;
+  } result;
   struct {
     struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
     struct { ServerProblem sasl; ConnectorProblem conn; } problem;
@@ -3171,10 +3178,16 @@ test_done (GObject *source,
   test->channel = NULL;
 
   if (test->server != NULL)
-    test_connector_server_teardown (test->server,
-      test_server_teardown_cb, test);
+    {
+      test->result.used_mech = g_strdup (
+        test_connector_server_get_used_mech (test->server));
+      test_connector_server_teardown (test->server,
+        test_server_teardown_cb, test);
+    }
   else if (g_main_loop_is_running (mainloop))
-    g_main_loop_quit (mainloop);
+    {
+      g_main_loop_quit (mainloop);
+    }
 }
 
 typedef void (*test_func) (gconstpointer);
@@ -3271,7 +3284,7 @@ run_test (gpointer data)
           if (test->result.mech != NULL)
             {
               g_assert_cmpstr (test->result.mech, ==,
-                  wocky_connector_auth_mechanism (wcon));
+                  test->result.used_mech);
             }
 
           /* we got a JID back, I hope */
@@ -3389,6 +3402,7 @@ run_test (gpointer data)
   if (test->result.xmpp != NULL)
     g_object_unref (test->result.xmpp);
 
+  g_free (test->result.used_mech);
   error = NULL;
 }
 
