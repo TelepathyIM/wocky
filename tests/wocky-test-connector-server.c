@@ -1009,38 +1009,63 @@ quit (GObject *source,
   exit (0);
 }
 
+static void
+handshake_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (user_data);
+  TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
+  GError *error = NULL;
+
+  DEBUG ("TLS/SSL handshake finished");
+
+  priv->tls_conn = wocky_tls_session_handshake_finish (
+    WOCKY_TLS_SESSION (source),
+    result,
+    &error);
+
+  if (priv->tls_conn == NULL)
+    {
+      DEBUG ("SSL or TLS Server Setup failed: %s", error->message);
+      g_io_stream_close (priv->stream, NULL, NULL);
+      return;
+    }
+
+  if (priv->conn != NULL)
+    g_object_unref (priv->conn);
+
+  priv->state = SERVER_STATE_START;
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
+  priv->tls_started = TRUE;
+  xmpp_init (NULL,NULL,self);
+}
+
 
 static void
 starttls (GObject *source,
     GAsyncResult *result,
     gpointer data)
 {
-  GError *error = NULL;
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  GError *error = NULL;
 
   DEBUG ("");
+
   if (!wocky_xmpp_connection_send_stanza_finish (conn, result, &error))
     {
       DEBUG ("Sending starttls '<proceed...>' failed: %s", error->message);
       return;
     }
 
-  priv->tls_conn = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
 
-  if (priv->tls_conn == NULL)
-    {
-      g_error ("TLS Server Setup failed: %s", error->message);
-      exit (0);
-    }
-
-  if (priv->conn != NULL)
-    g_object_unref (priv->conn);
-  priv->state = SERVER_STATE_START;
-  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
-  priv->tls_started = TRUE;
-  xmpp_init (NULL,NULL,self);
+  wocky_tls_session_handshake_async (priv->tls_sess,
+    G_PRIORITY_DEFAULT,
+    NULL,
+    handshake_cb,
+    self);
 }
 
 
@@ -1208,19 +1233,16 @@ xmpp_closed (GObject *source,
   GError *error = NULL;
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
-  DEBUG ("");
+  DEBUG ("Connection closed");
   wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
 }
 
 static void startssl (TestConnectorServer *self)
 {
-  GError *error = NULL;
   TestConnectorServerPrivate *priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
-  WockyXmppConnection *conn = priv->conn;
   ConnectorProblem *problem = priv->problem.connector;
 
-  if (priv->tls_started)
-    return;
+  g_assert (!priv->tls_started);
 
   DEBUG ("creating SSL Session [server]");
   if (problem->death & SERVER_DEATH_TLS_NEG)
@@ -1247,20 +1269,11 @@ static void startssl (TestConnectorServer *self)
     }
 
   DEBUG ("starting server SSL handshake");
-  priv->tls_conn = wocky_tls_session_handshake (priv->tls_sess, NULL, &error);
-  if (priv->tls_conn == NULL)
-    {
-      g_error ("SSL Server Setup failed: %p %s",
-          priv->tls_sess, error->message);
-      exit (0);
-    }
-  DEBUG ("server SSL handshake complete");
-
-  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
-  priv->tls_started = TRUE;
-  if (conn != NULL)
-    g_object_unref (conn);
-
+  wocky_tls_session_handshake_async (priv->tls_sess,
+    G_PRIORITY_DEFAULT,
+    priv->cancellable,
+    handshake_cb,
+    self);
 }
 
 static void
@@ -1285,13 +1298,6 @@ xmpp_init (GObject *source,
       /* wait for <stream:stream… from the client */
     case SERVER_STATE_START:
       DEBUG ("SERVER_STATE_START");
-
-      if (priv->problem.connector->xmpp & XMPP_PROBLEM_OLD_SSL)
-        {
-          startssl (self);
-          conn = priv->conn;
-        }
-      DEBUG ("SERVER_STATE_START: SSL");
       priv->state = SERVER_STATE_CLIENT_OPENED;
 
       wocky_xmpp_connection_recv_open_async (conn, NULL, xmpp_init, self);
@@ -1404,5 +1410,12 @@ test_connector_server_start (GObject *object)
   priv = TEST_CONNECTOR_SERVER_GET_PRIVATE (self);
   priv->state = SERVER_STATE_START;
   DEBUG ("connection: %p", priv->conn);
-  xmpp_init (NULL,NULL,self);
+  if (priv->problem.connector->xmpp & XMPP_PROBLEM_OLD_SSL)
+    {
+      startssl (self);
+    }
+  else
+    {
+      xmpp_init (NULL,NULL,self);
+    }
 }
