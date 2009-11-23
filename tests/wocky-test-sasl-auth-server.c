@@ -95,8 +95,8 @@ struct _TestSaslAuthServerPrivate
   gchar *mech;
   AuthState state;
   ServerProblem problem;
-  GCancellable *recv_cancel;
   GSimpleAsyncResult *result;
+  GCancellable *cancellable;
 };
 
 #define TEST_SASL_AUTH_SERVER_GET_PRIVATE(o)  \
@@ -114,7 +114,6 @@ test_sasl_auth_server_init (TestSaslAuthServer *obj)
   priv->password = NULL;
   priv->mech = NULL;
   priv->state = AUTH_STATE_STARTED;
-  priv->recv_cancel = g_cancellable_new ();
 
   /* allocate any data required by the object here */
 }
@@ -146,10 +145,6 @@ test_sasl_auth_server_dispose (GObject *object)
     return;
 
   priv->dispose_has_run = TRUE;
-
-  g_cancellable_cancel (priv->recv_cancel);
-  g_object_unref (priv->recv_cancel);
-  priv->recv_cancel = NULL;
 
   /* release any references held by the object here */
   if (priv->conn != NULL)
@@ -198,7 +193,7 @@ features_sent (GObject *source,
     WOCKY_XMPP_CONNECTION (source), res, NULL));
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
-    priv->recv_cancel, received_stanza, user_data);
+    priv->cancellable, received_stanza, user_data);
 }
 
 
@@ -221,7 +216,7 @@ stream_open_sent (GObject *source,
   test_sasl_auth_server_set_mechs (G_OBJECT (self), stanza);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, stanza,
-    priv->recv_cancel, features_sent, user_data);
+    priv->cancellable, features_sent, user_data);
   g_object_unref (stanza);
 }
 
@@ -257,6 +252,8 @@ post_auth_recv_stanza (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
+  TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
+  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
@@ -268,15 +265,26 @@ post_auth_recv_stanza (GObject *source,
     {
       g_object_unref (stanza);
       wocky_xmpp_connection_recv_stanza_async (
-          WOCKY_XMPP_CONNECTION (source), NULL,
+          WOCKY_XMPP_CONNECTION (source), priv->cancellable,
           post_auth_recv_stanza, user_data);
+    }
+  else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+    {
+      GSimpleAsyncResult *r = priv->result;
+
+      priv->result = NULL;
+      g_simple_async_result_set_from_error (r, error);
+
+      g_simple_async_result_complete (r);
+      g_object_unref (r);
+      g_error_free (error);
     }
   else
     {
       g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
           WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
       wocky_xmpp_connection_send_close_async (WOCKY_XMPP_CONNECTION (source),
-          NULL, post_auth_close_sent, user_data);
+          priv->cancellable, post_auth_close_sent, user_data);
       g_error_free (error);
     }
 }
@@ -286,11 +294,13 @@ post_auth_features_sent (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
+  TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
+  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
   g_assert (wocky_xmpp_connection_send_stanza_finish (
     WOCKY_XMPP_CONNECTION (source), result, NULL));
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
-      NULL, post_auth_recv_stanza, user_data);
+      priv->cancellable, post_auth_recv_stanza, user_data);
 }
 
 static void
@@ -947,6 +957,7 @@ test_sasl_auth_server_auth_async (GObject *obj,
     WockyXmppConnection *conn,
     WockyXmppStanza *auth,
     GAsyncReadyCallback cb,
+    GCancellable *cancellable,
     gpointer data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
@@ -958,7 +969,8 @@ test_sasl_auth_server_auth_async (GObject *obj,
     g_object_unref (priv->conn);
 
   priv->state = AUTH_STATE_STARTED;
-  priv->conn = conn;
+  priv->conn = g_object_ref (conn);
+  priv->cancellable = cancellable;
 
   /* save the details of the point ot which we will hand back control */
   if (cb != NULL)
@@ -969,7 +981,7 @@ test_sasl_auth_server_auth_async (GObject *obj,
   if (priv->state < AUTH_STATE_AUTHENTICATED)
     {
       wocky_xmpp_connection_recv_stanza_async (priv->conn,
-          NULL, received_stanza, self);
+          priv->cancellable, received_stanza, self);
     }
   g_object_unref (auth);
 }

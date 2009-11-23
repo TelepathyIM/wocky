@@ -107,6 +107,8 @@ struct _TestConnectorServerPrivate
   WockyTLSSession *tls_sess;
   WockyTLSConnection *tls_conn;
 
+  GCancellable *cancellable;
+
   struct { ServerProblem sasl; ConnectorProblem *connector; } problem;
 };
 
@@ -916,7 +918,8 @@ handle_auth (TestConnectorServer *self,
      when we need to send our final feature stanza:
      the stream does not return to us */
   /* this will also unref *xml when it has finished with it */
-  test_sasl_auth_server_auth_async (sasl, priv->conn, xml, after_auth, self);
+  test_sasl_auth_server_auth_async (sasl, priv->conn, xml,
+    after_auth, priv->cancellable, self);
 }
 
 static void
