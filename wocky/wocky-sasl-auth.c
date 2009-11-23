@@ -63,7 +63,6 @@ struct _WockySaslAuthPrivate
   gchar *password;
   gchar *server;
   WockySaslAuthState state;
-  gchar *mech;
   WockySaslHandler *handler;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
@@ -205,9 +204,6 @@ wocky_sasl_auth_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-
-  g_free (priv->mech);
-
   if (priv->handler != NULL)
     {
       g_object_unref (priv->handler);
@@ -526,7 +522,6 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   gchar *initial_response;
   GError *error = NULL;
 
-  priv->mech = g_strdup (wocky_sasl_handler_get_mechanism (handler));
   priv->handler = handler;
 
   stanza = wocky_xmpp_stanza_new ("auth");
@@ -552,7 +547,8 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     }
 
   /* FIXME handle send error */
-  wocky_xmpp_node_set_attribute (stanza->node, "mechanism", priv->mech);
+  wocky_xmpp_node_set_attribute (stanza->node, "mechanism",
+    wocky_sasl_handler_get_mechanism (priv->handler));
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
     NULL, NULL, NULL);
   wocky_xmpp_connection_recv_stanza_async (priv->connection,
@@ -563,15 +559,6 @@ out:
   g_object_unref (stanza);
 
   return ret;
-}
-
-const gchar *
-wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl)
-{
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
-
-  return priv->handler ?
-    wocky_sasl_handler_get_mechanism (priv->handler) : NULL;
 }
 
 gboolean
@@ -715,4 +702,3 @@ wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler)
   g_object_ref (handler);
   priv->handlers = g_slist_append (priv->handlers, handler);
 }
-

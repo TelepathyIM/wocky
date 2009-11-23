@@ -101,9 +101,6 @@ gboolean wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error);
 
-const gchar *
-wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl);
-
 void
 wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler);
 
