@@ -316,8 +316,11 @@ post_auth_open_sent (GObject *source,
   /* if our caller wanted control back, hand it back here: */
   if (priv->result != NULL)
     {
-      g_simple_async_result_complete (priv->result);
-      g_object_unref (priv->result);
+      GSimpleAsyncResult *r = priv->result;
+
+      priv->result = NULL;
+      g_simple_async_result_complete (r);
+      g_object_unref (r);
     }
   else
     {
@@ -941,10 +944,11 @@ test_sasl_auth_server_auth_finish (TestSaslAuthServer *self,
   gboolean ok = FALSE;
   TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
 
-  if (g_simple_async_result_propagate_error (priv->result, error))
+  if (g_simple_async_result_propagate_error (
+      G_SIMPLE_ASYNC_RESULT (res), error))
     return FALSE;
 
-  ok = g_simple_async_result_is_valid (G_ASYNC_RESULT (priv->result),
+  ok = g_simple_async_result_is_valid (G_ASYNC_RESULT (res),
       G_OBJECT (self),
       test_sasl_auth_server_auth_finish);
   g_return_val_if_fail (ok, FALSE);
