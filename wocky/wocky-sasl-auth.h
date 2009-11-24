@@ -23,6 +23,7 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
+#include "wocky-sasl-handler.h"
 #include "wocky-xmpp-stanza.h"
 #include "wocky-xmpp-connection.h"
 
@@ -46,19 +47,13 @@ typedef enum
   WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
   /* Failure to provide user credentials */
   WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-  /* Server send a failure */
+  /* Server sent a failure */
   WOCKY_SASL_AUTH_ERROR_FAILURE,
   /* disconnected */
   WOCKY_SASL_AUTH_ERROR_CONNRESET,
   /* XMPP stream error while authing */
   WOCKY_SASL_AUTH_ERROR_STREAM,
 } WockySaslAuthError;
-
-typedef enum {
-  WOCKY_SASL_AUTH_PLAIN = 0,
-  WOCKY_SASL_AUTH_DIGEST_MD5,
-  WOCKY_SASL_AUTH_NR_MECHANISMS,
-} WockySaslAuthMechanism;
 
 typedef struct _WockySaslAuth WockySaslAuth;
 typedef struct _WockySaslAuthClass WockySaslAuthClass;
@@ -92,6 +87,9 @@ WockySaslAuth *wocky_sasl_auth_new (const gchar *server,
     const gchar *password,
     WockyXmppConnection *connection);
 
+void wocky_sasl_auth_add_handler (WockySaslAuth *sasl,
+    WockySaslHandler *handler);
+
 void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     WockyXmppStanza *features,
     gboolean allow_plain,
@@ -103,8 +101,11 @@ gboolean wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error);
 
-WockySaslAuthMechanism
+const gchar *
 wocky_sasl_auth_mechanism_used (WockySaslAuth *sasl);
+
+void
+wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler);
 
 G_END_DECLS
 

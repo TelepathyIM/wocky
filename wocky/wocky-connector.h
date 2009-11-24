@@ -181,7 +181,7 @@ gboolean wocky_connector_unregister_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error);
 
-WockySaslAuthMechanism wocky_connector_auth_mechanism (WockyConnector *self);
+const gchar *wocky_connector_auth_mechanism (WockyConnector *self);
 
 gboolean wocky_connector_add_crl (WockyConnector *self,
     const gchar *path);

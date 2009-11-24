@@ -298,7 +298,7 @@ struct _WockyConnectorPrivate
   /* register/cancel account, or normal login */
   WockyConnectorXEP77Op reg_op;
   GSimpleAsyncResult *result;
-  WockySaslAuthMechanism mech;
+  gchar *mech;
 
   /* socket/tls/etc structures */
   GSList *cas;
@@ -786,6 +786,7 @@ wocky_connector_dispose (GObject *object)
   UNREF_AND_FORGET (priv->tls);
   UNREF_AND_FORGET (priv->features);
 
+  g_free (priv->mech);
   g_slist_foreach (priv->cas, free_ca_crl_path, NULL);
   g_slist_foreach (priv->crl, free_ca_crl_path, NULL);
   g_slist_free (priv->cas);
@@ -1188,7 +1189,7 @@ jabber_auth_reply (GObject *source,
         g_free (priv->identity);
         priv->state = WCON_XMPP_BOUND;
         priv->authed = TRUE;
-        priv->mech = WOCKY_SASL_AUTH_NR_MECHANISMS;
+        priv->mech = NULL;
         priv->identity = g_strdup_printf ("%s@%s/%s",
             priv->user, priv->domain, priv->resource);
         /* if there has been no features stanza, this will just finish up *
@@ -1721,7 +1722,7 @@ auth_done (GObject *source,
   DEBUG ("SASL complete (success)");
   priv->state = WCON_XMPP_AUTHED;
   priv->authed = TRUE;
-  priv->mech = wocky_sasl_auth_mechanism_used (sasl);
+  priv->mech = g_strdup (wocky_sasl_auth_mechanism_used (sasl));
   wocky_xmpp_connection_reset (priv->conn);
   xmpp_init (self, FALSE);
  out:
@@ -2602,7 +2603,7 @@ wocky_connector_unregister_finish (WockyConnector *self,
  * Returns: a #WockySaslAuthMechanism value indicating the auth mechanism.
  * actually used during the connection process.
  */
-WockySaslAuthMechanism
+const gchar *
 wocky_connector_auth_mechanism (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
