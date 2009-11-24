@@ -7,6 +7,7 @@
 #include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
+#include <wocky/wocky-xmpp-error.h>
 
 #include "wocky-test-helper.h"
 
@@ -195,7 +196,8 @@ test_unpack_error (void)
               WockyXmppNode *uo = (WockyXmppNode *) fake;
               WockyXmppNode *um = (WockyXmppNode *) fake;
 
-              cond = wocky_xmpp_node_unpack_error (error, &type, &ut, &uo, &um);
+              cond = wocky_xmpp_error_unpack_node (error,
+                  &type, &ut, &uo, &um, NULL);
 
               g_assert (cond != NULL);
               g_assert (!strcmp (cond, label));
@@ -226,8 +228,8 @@ test_unpack_error (void)
               else
                 g_assert (um == NULL);
 
-              cond = wocky_xmpp_node_unpack_error (error,
-                  NULL, NULL, NULL, NULL);
+              cond = wocky_xmpp_error_unpack_node (error,
+                  NULL, NULL, NULL, NULL, NULL);
 
               g_assert (cond != NULL);
               g_assert (!strcmp (cond, label));

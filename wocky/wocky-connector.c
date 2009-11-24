@@ -1003,15 +1003,16 @@ jabber_auth_fields (GObject *source,
       WockyConnectorError code;
       gboolean passwd;
       gboolean digest;
+      WockyXmppError ec;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         node = fields->node;
-        tag = wocky_xmpp_node_unpack_error (node, NULL, &text, NULL, NULL);
+        tag = wocky_xmpp_error_unpack_node (node, NULL, &text, NULL, NULL, &ec);
         if (tag == NULL)
           tag = "unknown-error";
         msg = (text != NULL) ? text->content : "";
 
-        if (!wocky_strdiff ("service-unavailable", tag))
+        if (ec == WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE)
           code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE;
         else
           code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED;
@@ -1163,23 +1164,29 @@ jabber_auth_reply (GObject *source,
       const gchar *tag = NULL;
       const gchar *msg = NULL;
       WockyConnectorError code;
+      WockyXmppError ec;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         node = reply->node;
-        tag = wocky_xmpp_node_unpack_error (node, NULL, &text, NULL, NULL);
+        tag = wocky_xmpp_error_unpack_node (node, NULL, &text, NULL, NULL, &ec);
         if (tag == NULL)
           tag = "unknown-error";
         msg = (text != NULL) ? text->content : "";
 
-        if (!wocky_strdiff ("not-authorized", tag))
-          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED;
-        else if (!wocky_strdiff ("conflict", tag))
-          code = WOCKY_CONNECTOR_ERROR_BIND_CONFLICT;
-        else if (!wocky_strdiff ("not-acceptable", tag))
-          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE;
-        else
-          code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED;
-
+        switch (ec)
+          {
+            case WOCKY_XMPP_ERROR_NOT_AUTHORIZED:
+              code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED;
+              break;
+            case WOCKY_XMPP_ERROR_CONFLICT:
+              code = WOCKY_CONNECTOR_ERROR_BIND_CONFLICT;
+              break;
+            case WOCKY_XMPP_ERROR_NOT_ACCEPTABLE:
+              code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE;
+              break;
+            default:
+              code = WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED;
+          }
         abort_connect_code (self, code, "Jabber Auth: %s %s", tag, msg);
         break;
 
@@ -1831,23 +1838,30 @@ xep77_cancel_recv (GObject *source,
 
   switch (sub_type)
     {
+      WockyXmppError ec;
       WockyXmppNode *txt;
       const gchar *err;
       const gchar *msg;
       int code;
 
+
       case WOCKY_STANZA_SUB_TYPE_ERROR:
-        err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
+        err = wocky_xmpp_error_unpack_node (iq->node,
+            NULL, &txt, NULL, NULL, &ec);
 
         if (err == NULL)
           err = "unknown-error";
         msg = (txt != NULL) ? txt->content : "";
 
-        if (!wocky_strdiff ("forbidden", err) ||
-            !wocky_strdiff ("not-allowed", err))
-          code = WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED;
-        else
-          code = WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED;
+        switch (ec)
+          {
+            case WOCKY_XMPP_ERROR_FORBIDDEN:
+            case WOCKY_XMPP_ERROR_NOT_ALLOWED:
+              code = WOCKY_CONNECTOR_ERROR_UNREGISTER_DENIED;
+              break;
+            default:
+              code = WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED;
+          }
 
         g_simple_async_result_set_error (priv->result,
             WOCKY_CONNECTOR_ERROR, code, "Unregister: %s", msg);
@@ -1970,6 +1984,7 @@ xep77_begin_recv (GObject *source,
 
   switch (sub_type)
     {
+      WockyXmppError ec;
       WockyXmppNode *txt;
       const gchar *err;
       const gchar *msg;
@@ -1977,13 +1992,14 @@ xep77_begin_recv (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         DEBUG ("WOCKY_STANZA_SUB_TYPE_ERROR");
-        err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
+        err = wocky_xmpp_error_unpack_node (iq->node,
+            NULL, &txt, NULL, NULL, &ec);
 
         if (err == NULL)
           err = "unknown-error";
         msg = (txt != NULL) ? txt->content : "";
 
-        if (!wocky_strdiff ("service-unavailable", err))
+        if (ec == WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE)
           code = WOCKY_CONNECTOR_ERROR_REGISTRATION_UNAVAILABLE;
         else
           code = WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED;
@@ -2162,6 +2178,7 @@ xep77_signup_recv (GObject *source,
 
     switch (sub_type)
     {
+      WockyXmppError ec;
       WockyXmppNode *txt;
       const gchar *err;
       const gchar *msg;
@@ -2169,18 +2186,24 @@ xep77_signup_recv (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         DEBUG ("WOCKY_STANZA_SUB_TYPE_ERROR");
-        err = wocky_xmpp_node_unpack_error (iq->node, NULL, &txt, NULL, NULL);
+        err = wocky_xmpp_error_unpack_node (iq->node,
+            NULL, &txt, NULL, NULL, &ec);
 
         if (err == NULL)
           err = "unknown-error";
         msg = (txt != NULL) ? txt->content : "";
 
-        if (!wocky_strdiff ("conflict", err))
-            code = WOCKY_CONNECTOR_ERROR_REGISTRATION_CONFLICT;
-        else if (!wocky_strdiff ("not-acceptable", err))
-          code = WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED;
-        else
-          code = WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED;
+        switch (ec)
+          {
+            case WOCKY_XMPP_ERROR_CONFLICT:
+              code = WOCKY_CONNECTOR_ERROR_REGISTRATION_CONFLICT;
+              break;
+            case WOCKY_XMPP_ERROR_NOT_ACCEPTABLE:
+              code = WOCKY_CONNECTOR_ERROR_REGISTRATION_REJECTED;
+              break;
+            default:
+              code = WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED;
+          }
 
         abort_connect_code (self, code, "Registration: %s %s", err, msg);
         break;
