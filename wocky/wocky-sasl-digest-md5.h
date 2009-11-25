@@ -8,7 +8,7 @@
 G_BEGIN_DECLS
 
 #define WOCKY_TYPE_SASL_DIGEST_MD5 \
-    wocky_sasl_digest_md5_get_type()
+    wocky_sasl_digest_md5_get_type ()
 
 #define WOCKY_SASL_DIGEST_MD5(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST ((obj), WOCKY_TYPE_SASL_DIGEST_MD5, \

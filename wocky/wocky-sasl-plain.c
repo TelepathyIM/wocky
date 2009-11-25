@@ -134,7 +134,7 @@ wocky_sasl_plain_init (WockySaslPlain *self)
       self, WOCKY_TYPE_SASL_PLAIN, WockySaslPlainPrivate);
 }
 
-WockySaslPlain*
+WockySaslPlain *
 wocky_sasl_plain_new (const gchar *username, const gchar *password)
 {
   return g_object_new (WOCKY_TYPE_SASL_PLAIN,
