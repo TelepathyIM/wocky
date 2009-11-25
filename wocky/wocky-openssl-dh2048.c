@@ -1,6 +1,7 @@
 #ifndef HEADER_DH_H
 #include <openssl/dh.h>
 #endif
+DH *get_dh2048(void);
 DH *get_dh2048(void)
 	{
 	static unsigned char dh2048_p[]={

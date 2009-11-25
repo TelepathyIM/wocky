@@ -1,6 +1,7 @@
 #ifndef HEADER_DH_H
 #include <openssl/dh.h>
 #endif
+DH *get_dh1024(void);
 DH *get_dh1024(void)
 	{
 	static unsigned char dh1024_p[]={
