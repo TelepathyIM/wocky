@@ -258,9 +258,9 @@ wocky_tls_job_make_result (WockyTLSJob *job,
                                       job->callback,
                                       job->user_data,
                                       job->source_tag);
-  if (job->error)
+  if (job->error != NULL)
     {
-      DEBUG ("setting error from job");
+      DEBUG ("setting error from job '%s'", job->error->message);
       g_simple_async_result_set_from_error (simple, job->error);
       g_error_free (job->error);
       job->error = NULL;
@@ -289,11 +289,25 @@ wocky_tls_job_result_gssize (WockyTLSJob *job,
     }
 }
 
+/* only used for handshake results: read + write use result_gssize */
 static void
 wocky_tls_job_result_boolean (WockyTLSJob *job,
                               gint     result)
 {
   GSimpleAsyncResult *simple;
+
+  /* an SSL_ERROR_* value */
+  if (job->error == NULL)
+    switch (result)
+      {
+      case SSL_ERROR_NONE:
+      case SSL_ERROR_WANT_READ:
+      case SSL_ERROR_WANT_WRITE:
+        break;
+      default:
+        DEBUG ("setting up handshake error");
+        job->error = g_error_new (WOCKY_TLS_ERROR, result, "Handshake Error");
+      }
 
   if ((simple = wocky_tls_job_make_result (job, result)))
     {
@@ -1297,7 +1311,21 @@ wocky_tls_session_read_ready (GObject      *object,
     }
   else
     {
+      /* note that we never issue a read of 0, so this _must_ be EOF (0) *
+       * or a fatal error (-ve rval)                                     */
       DEBUG ("read of SSL cipherbytes failed: %ld", rsize);
+      DEBUG ("error: %s", *error ? (*error)->message : "--");
+      if (session->job.handshake.job.active)
+        {
+          session->job.handshake.state = SSL_ERROR_SSL;
+        }
+      /* in order for non-handshake reads to return an error properly *
+       * we need to make sure the error in the job error is set       */
+      else if (*error == NULL)
+        {
+          *error =
+            g_error_new (WOCKY_TLS_ERROR, SSL_ERROR_SSL, "connection closed");
+        }
     }
 
   wocky_tls_session_try_operation (session, WOCKY_TLS_OP_READ);
