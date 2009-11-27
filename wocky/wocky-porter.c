@@ -714,7 +714,8 @@ handle_iq_reply (WockyPorter *self,
 
       if (wocky_strdiff (nfrom, handler->recipient))
         {
-          DEBUG ("%s (normal: %s) attempts to spoof an IQ reply", from, nfrom);
+          DEBUG ("'%s' (normal: '%s') attempts to spoof an IQ reply from '%s'",
+              from, nfrom, handler->recipient);
           g_free (nfrom);
           return FALSE;
         }
