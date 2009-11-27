@@ -183,6 +183,56 @@ wocky_decode_jid (const gchar *jid,
 }
 
 /**
+ * wocky_normalise_jid:
+ * @jid: a JID
+ *
+ * Returns: a normalised JID, using the same rules as wocky_decode_jid(),
+ * or %NULL if the JID could not be sensibly decoded.
+ * This value should be freed when you are done with it.
+ */
+gchar *
+wocky_normalise_jid (const gchar *jid)
+{
+  gchar *node = NULL;
+  gchar *domain = NULL;
+  gchar *resource = NULL;
+  GString *normal = NULL;
+  gchar *rval = NULL;
+
+  if (jid == NULL)
+    return NULL;
+
+  if (!wocky_decode_jid (jid, &node, &domain, &resource))
+    return NULL;
+
+  normal = g_string_sized_new (strlen (jid));
+
+  if (node != NULL && *node != '\0')
+    g_string_printf (normal, "%s@%s", node, domain);
+  else
+    g_string_printf (normal, "%s", domain);
+
+  if (resource != NULL && *resource != '\0')
+    {
+      if (normal->len > 0)
+        {
+          g_string_append_printf (normal, "/%s", domain);
+          rval = g_string_free (normal, FALSE);
+        }
+    }
+  else
+    {
+      rval = g_string_free (normal, FALSE);
+    }
+
+  g_free (node);
+  g_free (domain);
+  g_free (resource);
+
+  return rval;
+}
+
+/**
  * wocky_g_value_slice_new:
  * @type: The type desired for the new GValue
  *

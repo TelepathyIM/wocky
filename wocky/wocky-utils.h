@@ -28,6 +28,8 @@ G_BEGIN_DECLS
 gboolean wocky_strdiff (const gchar *left,
     const gchar *right);
 
+gchar * wocky_normalise_jid (const gchar *jid);
+
 gboolean wocky_decode_jid (const gchar *jid,
     gchar **node,
     gchar **domain,
