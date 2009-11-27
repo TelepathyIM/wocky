@@ -230,12 +230,19 @@ stanza_iq_handler_new (WockyPorter *self,
     const gchar *recipient)
 {
   StanzaIqHandler *handler = g_slice_new0 (StanzaIqHandler);
+  gchar *to = wocky_normalise_jid (recipient);
+
+  if (to == NULL)
+    {
+      DEBUG ("Failed to normalise stanza recipient '%s'", recipient);
+      to = g_strdup (recipient);
+    }
 
   handler->self = self;
   handler->result = result;
   if (cancellable != NULL)
     handler->cancellable = g_object_ref (cancellable);
-  handler->recipient = g_strdup (recipient);
+  handler->recipient = to;
 
   return handler;
 }
@@ -703,8 +710,16 @@ handle_iq_reply (WockyPorter *self,
   if (handler->recipient != NULL &&
       wocky_strdiff (from, handler->recipient))
     {
-      DEBUG ("%s attempts to spoof an IQ reply", from);
-      return FALSE;
+      gchar *nfrom = wocky_normalise_jid (from);
+
+      if (wocky_strdiff (nfrom, handler->recipient))
+        {
+          DEBUG ("%s (normal: %s) attempts to spoof an IQ reply", from, nfrom);
+          g_free (nfrom);
+          return FALSE;
+        }
+
+      g_free (nfrom);
     }
 
   if (!g_cancellable_is_cancelled (handler->cancellable))
