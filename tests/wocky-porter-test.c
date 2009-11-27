@@ -1309,14 +1309,13 @@ test_send_iq_cb (WockyPorter *porter,
 }
 
 static gboolean
-test_send_iq_cb_abnormal (WockyPorter *porter,
+test_send_iq_abnormal_cb (WockyPorter *porter,
     WockyXmppStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppStanza *reply;
   const gchar *id;
-  gboolean cancelled;
   WockyStanzaSubType sub_type;
 
   test_expected_stanza_received (test, stanza);
@@ -1324,12 +1323,6 @@ test_send_iq_cb_abnormal (WockyPorter *porter,
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
 
   wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
-
-  /* Reply of the "set" IQ is not expected as we are going to cancel it */
-  cancelled = (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
-
-  if (cancelled)
-    g_cancellable_cancel (test->cancellable);
 
   /* Send a spoofed reply; should be ignored */
   reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -1354,10 +1347,8 @@ test_send_iq_cb_abnormal (WockyPorter *porter,
 
   wocky_porter_send_async (porter, reply,
       NULL, test_send_iq_sent_cb, test);
-  if (!cancelled)
-    g_queue_push_tail (test->expected_stanzas, reply);
-  else
-    g_object_unref (reply);
+
+  g_queue_push_tail (test->expected_stanzas, reply);
 
   test->outstanding++;
   return TRUE;
@@ -1459,7 +1450,7 @@ test_send_iq_abnormal (void)
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
       NULL, 0,
-      test_send_iq_cb_abnormal, test, WOCKY_STANZA_END);
+      test_send_iq_abnormal_cb, test, WOCKY_STANZA_END);
 
   /* Send an IQ query */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
