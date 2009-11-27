@@ -1308,6 +1308,62 @@ test_send_iq_cb (WockyPorter *porter,
   return TRUE;
 }
 
+static gboolean
+test_send_iq_cb_abnormal (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  const gchar *id;
+  gboolean cancelled;
+  WockyStanzaSubType sub_type;
+
+  test_expected_stanza_received (test, stanza);
+
+  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+
+  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+
+  /* Reply of the "set" IQ is not expected as we are going to cancel it */
+  cancelled = (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  if (cancelled)
+    g_cancellable_cancel (test->cancellable);
+
+  /* Send a spoofed reply; should be ignored */
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, "oscar@example.net", "juliet@example.com",
+    WOCKY_NODE_ATTRIBUTE, "id", id,
+    WOCKY_STANZA_END);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  /* Send a reply without 'id' attribute; should be ignored */
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, "rOmeO@examplE.neT", "juLiet@Example.cOm",
+    WOCKY_STANZA_END);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  /* Send reply */
+  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_RESULT, "roMeo@eXampLe.net", "JulieT@ExamplE.com",
+    WOCKY_NODE_ATTRIBUTE, "id", id,
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_async (porter, reply,
+      NULL, test_send_iq_sent_cb, test);
+  if (!cancelled)
+    g_queue_push_tail (test->expected_stanzas, reply);
+  else
+    g_object_unref (reply);
+
+  test->outstanding++;
+  return TRUE;
+}
+
+
 static void
 test_send_iq_reply_cb (GObject *source,
     GAsyncResult *res,
@@ -1375,6 +1431,39 @@ test_send_iq (void)
   /* Send an IQ query */
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    WOCKY_NODE_ATTRIBUTE, "id", "1",
+    WOCKY_STANZA_END);
+
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_send_iq_reply_cb, test);
+  g_queue_push_tail (test->expected_stanzas, iq);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
+static void
+test_send_iq_abnormal (void)
+{
+  test_data_t *test = setup_test ();
+  WockyXmppStanza *iq;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  /* register an IQ handler (to send both the good and spoofed reply) */
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, 0,
+      test_send_iq_cb_abnormal, test, WOCKY_STANZA_END);
+
+  /* Send an IQ query */
+  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "julIet@exampLe.com", "RoMeO@eXample.net",
     WOCKY_NODE_ATTRIBUTE, "id", "1",
     WOCKY_STANZA_END);
 
@@ -2378,6 +2467,7 @@ main (int argc, char **argv)
       test_cancel_sent_stanza);
   g_test_add_func ("/xmpp-porter/writing-error", test_writing_error);
   g_test_add_func ("/xmpp-porter/send-iq", test_send_iq);
+  g_test_add_func ("/xmpp-porter/send-iq-denormalised", test_send_iq_abnormal);
   g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
   g_test_add_func ("/xmpp-porter/handler-filter", test_handler_filter);
   g_test_add_func ("/xmpp-porter/send-invalid-iq", test_send_invalid_iq);
