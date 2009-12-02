@@ -480,6 +480,19 @@ ssl_fill (WockyTLSSession *session)
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ();
 
+  /* It is possible for a complete SSL record to be present in the read BIO *
+   * already as a result of a previous read, since SSL_read may extract     *
+   * just the first complete record, or some or all of them:                *
+   * as a result, we may not want to issue an actual read request as the    *
+   * data we are expecting may already have been read, causing us to wait   *
+   * until the next block of data arrives over the network (which may not   *
+   * ever happen): short-circuit the actual read if this is the case        */
+  if (SSL_pending (session->ssl) > 0)
+    {
+      DEBUG ("SSL record already available");
+      wocky_tls_session_try_operation (session, WOCKY_TLS_OP_READ);
+      return;
+    }
   g_input_stream_read_async (input, rbuf, MAX_SSLV3_BLOCK_SIZE, prio, cancel,
                              wocky_tls_session_read_ready, session);
 }
