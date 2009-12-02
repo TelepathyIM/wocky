@@ -557,6 +557,33 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
       pending = (gulong)BIO_pending (session->rbio);
       result = SSL_read (session->ssl, session->job.read.buffer, wanted);
       DEBUG ("read %ld clearbytes (from %ld cipherbytes)", result, pending);
+
+      /* if the job error is set, we should bail out now, we have failed   *
+       * otherwise:                                                        *
+       * a -ve return with an SSL error of WANT_READ implies an incomplete *
+       * crypto record: we need to go round again and get more data        *
+       * or:                                                               *
+       * a 0 return means the SSL connection was shut down cleanly         */
+      if ((session->job.read.error == NULL) && (result <= 0))
+        {
+          int error = SSL_get_error (session->ssl, result);
+          switch (error)
+            {
+            case SSL_ERROR_WANT_READ:
+              DEBUG ("Incomplete SSL record, read again");
+              ssl_fill (session);
+              return;
+            case SSL_ERROR_WANT_WRITE:
+              g_warning ("read caused write: unsupported TLS re-negotiation?");
+            default:
+              /* if we haven't already generated an error, set one here: */
+              if(session->job.read.error == NULL)
+                session->job.read.error =
+                  g_error_new (WOCKY_TLS_ERROR, error,
+                               "OpenSSL read: protocol error %d", error);
+            }
+        }
+
       wocky_tls_job_result_gssize (&session->job.read, result);
     }
 
@@ -1121,6 +1148,7 @@ wocky_tls_output_stream_write_async (GOutputStream       *stream,
                                      GAsyncReadyCallback  callback,
                                      gpointer             user_data)
 {
+  int code;
   WockyTLSSession *session = WOCKY_TLS_OUTPUT_STREAM (stream)->session;
 
   DEBUG ("%ld clearbytes to send", count);
@@ -1130,7 +1158,29 @@ wocky_tls_output_stream_write_async (GOutputStream       *stream,
 
   session->job.write.count = count;
 
-  SSL_write (session->ssl, buffer, count);
+  code = SSL_write (session->ssl, buffer, count);
+  if (code < 0)
+    {
+      int error = SSL_get_error (session->ssl, code);
+      switch (error)
+        {
+        case SSL_ERROR_WANT_WRITE:
+          DEBUG ("Incomplete SSL write to BIO (theoretically impossible)");
+          ssl_flush (session);
+          return;
+        case SSL_ERROR_WANT_READ:
+          g_warning ("write caused read: unsupported TLS re-negotiation?");
+        default:
+          DEBUG ("SSL write failed, setting error %d", error);
+          /* if we haven't already generated an error, set one here: */
+          if(session->job.write.error == NULL)
+            session->job.write.error =
+              g_error_new (WOCKY_TLS_ERROR, error,
+                           "OpenSSL write: protocol error %d", error);
+          wocky_tls_session_try_operation (session, WOCKY_TLS_OP_WRITE);
+          return;
+        }
+    }
   ssl_flush (session);
 }
 
@@ -1322,22 +1372,41 @@ wocky_tls_session_read_ready (GObject      *object,
             fprintf (stderr, "\n");
           }
     }
+  /* note that we never issue a read of 0, so this _must_ be EOF (0) *
+   * or a fatal error (-ve rval)                                     */
+  else if (session->job.handshake.job.active)
+    {
+      if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+        DEBUG("read SSL cipherbytes (handshake) failed: %ld", rsize);
+      session->job.handshake.state = SSL_ERROR_SSL;
+    }
   else
     {
-      /* note that we never issue a read of 0, so this _must_ be EOF (0) *
-       * or a fatal error (-ve rval)                                     */
       DEBUG ("read of SSL cipherbytes failed: %ld", rsize);
-      DEBUG ("error: %s", *error ? (*error)->message : "--");
-      if (session->job.handshake.job.active)
+
+      if ((*error != NULL) && ((*error)->domain == g_io_error_quark ()))
         {
-          session->job.handshake.state = SSL_ERROR_SSL;
+          switch ((*error)->code)
+            {
+            case G_IO_ERROR_WOULD_BLOCK:
+            case G_IO_ERROR_PENDING:
+              /* these are "try again" errors, pretend they didn't happen: *
+              * _session_try_operation will restart the read if necessary  */
+              DEBUG ("retry op: [%d] %s", (*error)->code, (*error)->message);
+              g_error_free (*error);
+              *error = NULL;
+              break;
+            default:
+              DEBUG ("failed op: [%d] %s", (*error)->code, (*error)->message);
+              break;
+            }
         }
       /* in order for non-handshake reads to return an error properly *
-       * we need to make sure the error in the job error is set       */
+       * we need to make sure the error in the job is set             */
       else if (*error == NULL)
         {
           *error =
-            g_error_new (WOCKY_TLS_ERROR, SSL_ERROR_SSL, "connection closed");
+            g_error_new (WOCKY_TLS_ERROR, SSL_ERROR_SSL, "unknown error");
         }
     }
 
