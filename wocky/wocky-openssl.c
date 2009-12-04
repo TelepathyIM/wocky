@@ -476,6 +476,8 @@ ssl_fill (WockyTLSSession *session)
   gchar *rbuf = session->job.read.rbuf;
   gint prio = session->job.read.io_priority;
   GCancellable *cancel = session->job.read.cancellable;
+  gint already = 0;
+  gchar buf[2] = { 0, 0 };
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ();
@@ -487,7 +489,14 @@ ssl_fill (WockyTLSSession *session)
    * data we are expecting may already have been read, causing us to wait   *
    * until the next block of data arrives over the network (which may not   *
    * ever happen): short-circuit the actual read if this is the case        */
-  if (SSL_pending (session->ssl) > 0)
+
+  /* In theory, we can use SSL_pending here, but it does not work reliably. *
+   * apparently SSL_pending only tells you if OpenSSL _has already_ decoded *
+   * a complete, pre-buffered record, which it may or may not choose to do, *
+   * whereas SSL_peek attempts to decode a further record and lets you know *
+   * if that succeeded:                                                     */
+  already = SSL_peek (session->ssl, &buf, 1);
+  if (already > 0)
     {
       DEBUG ("SSL record already available");
       wocky_tls_session_try_operation (session, WOCKY_TLS_OP_READ);
