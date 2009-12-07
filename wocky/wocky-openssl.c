@@ -1123,16 +1123,9 @@ wocky_tls_input_stream_read_finish (GInputStream  *stream,
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ();
-  {
-    GObject *source_object;
 
-    source_object = g_async_result_get_source_object (result);
-    g_object_unref (source_object);
-    g_return_val_if_fail (G_OBJECT (stream) == source_object, -1);
-  }
-
-  g_return_val_if_fail (wocky_tls_input_stream_read_async ==
-                        g_simple_async_result_get_source_tag (simple), -1);
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (stream), wocky_tls_input_stream_read_async), -1);
 
   if (g_simple_async_result_propagate_error (simple, error))
     return -1;
