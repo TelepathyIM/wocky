@@ -622,6 +622,22 @@ sched_close_cancelled_cb (GObject *source,
 }
 
 static void
+test_close_cancel_force_closed_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+
+  wocky_porter_force_close_finish (
+      WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
 test_close_cancel (void)
 {
   test_data_t *test = setup_test ();
@@ -638,6 +654,12 @@ test_close_cancel (void)
   g_cancellable_cancel (test->cancellable);
 
   test->outstanding += 2;
+  test_wait_pending (test);
+
+  wocky_porter_force_close_async (test->sched_out, NULL,
+        test_close_cancel_force_closed_cb, test);
+
+  test->outstanding++;
   test_wait_pending (test);
 
   teardown_test (test);
