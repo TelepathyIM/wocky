@@ -68,6 +68,8 @@ void wocky_test_input_stream_set_read_error (GInputStream *stream);
 
 void wocky_test_output_stream_set_write_error (GOutputStream *stream);
 
+void wocky_test_stream_cork (GInputStream *stream, gboolean cork);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_STREAM_H__*/

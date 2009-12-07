@@ -72,6 +72,7 @@ typedef struct {
   gsize count;
   GError *read_error /* no, this is not a coding style violation */;
   gboolean dispose_has_run;
+  gboolean corked;
 } WockyTestInputStream;
 
 typedef struct {
@@ -385,6 +386,9 @@ wocky_test_input_stream_try_read (WockyTestInputStream *self)
   if (self->out_array != NULL || g_async_queue_length (self->queue) == 0)
     return FALSE;
 
+  if (self->corked)
+    return FALSE;
+
   read_async_complete (self);
   return TRUE;
 }
@@ -592,4 +596,16 @@ wocky_test_output_stream_set_write_error (GOutputStream *stream)
 
    self->write_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
        "write error");
+}
+
+void
+wocky_test_stream_cork (GInputStream *stream,
+  gboolean cork)
+{
+  WockyTestInputStream *tstream = WOCKY_TEST_INPUT_STREAM (stream);
+  tstream->corked = cork;
+
+  if (cork == FALSE)
+    wocky_test_input_stream_try_read (tstream);
+
 }
