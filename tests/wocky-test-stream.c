@@ -383,7 +383,7 @@ wocky_test_input_stream_try_read (WockyTestInputStream *self)
     /* No pending read operation */
     return FALSE;
 
-  if (self->out_array != NULL || g_async_queue_length (self->queue) == 0)
+  if (self->out_array == NULL && g_async_queue_length (self->queue) == 0)
     return FALSE;
 
   if (self->corked)
