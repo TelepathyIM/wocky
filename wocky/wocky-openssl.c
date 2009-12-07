@@ -1411,20 +1411,9 @@ wocky_tls_session_read_ready (GObject      *object,
 
       if ((*error != NULL) && ((*error)->domain == g_io_error_quark ()))
         {
-          switch ((*error)->code)
-            {
-            case G_IO_ERROR_WOULD_BLOCK:
-            case G_IO_ERROR_PENDING:
-              /* these are "try again" errors, pretend they didn't happen: *
-              * _session_try_operation will restart the read if necessary  */
-              DEBUG ("retry op: [%d] %s", (*error)->code, (*error)->message);
-              g_error_free (*error);
-              *error = NULL;
-              break;
-            default:
-              DEBUG ("failed op: [%d] %s", (*error)->code, (*error)->message);
-              break;
-            }
+          /* if there were any errors we could ignore, we'd do it like this: *
+           * g_error_free (*error); *error = NULL;                           */
+          DEBUG ("failed op: [%d] %s", (*error)->code, (*error)->message);
         }
       /* in order for non-handshake reads to return an error properly *
        * we need to make sure the error in the job is set             */
