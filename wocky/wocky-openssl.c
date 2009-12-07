@@ -512,11 +512,8 @@ ssl_read_is_complete (WockyTLSSession *session, gint result)
         case SSL_ERROR_WANT_WRITE:
           g_warning ("read caused write: unsupported TLS re-negotiation?");
         default:
-          /* if we haven't already generated an error, set one here: */
-          if(session->job.read.error == NULL)
-            session->job.read.error =
-              g_error_new (WOCKY_TLS_ERROR, err,
-                           "OpenSSL read: protocol error %d", err);
+          g_set_error (&session->job.read.error, WOCKY_TLS_ERROR, err,
+                       "OpenSSL read: protocol error %d", err);
         }
     }
 
