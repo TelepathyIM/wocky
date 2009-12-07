@@ -1100,18 +1100,16 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
       if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
         DEBUG ("already have %d clearbytes buffered", ret);
 
-      if (session->job.read.error == NULL)
-        r = g_simple_async_result_new (G_OBJECT (stream),
-                                       callback,
-                                       user_data,
-                                       wocky_tls_input_stream_read_async);
-      else
-        r = g_simple_async_result_new_from_error (G_OBJECT (stream),
-                                                  callback,
-                                                  user_data,
-                                                  session->job.read.error);
+      r = g_simple_async_result_new (G_OBJECT (stream),
+                                     callback,
+                                     user_data,
+                                     wocky_tls_input_stream_read_async);
 
-      g_simple_async_result_set_op_res_gssize (r, ret);
+      if (session->job.read.error == NULL)
+        g_simple_async_result_set_op_res_gssize (r, ret);
+      else
+        g_simple_async_result_set_from_error (r, session->job.read.error);
+
       g_simple_async_result_complete_in_idle (r);
       g_object_unref (r);
       return;
