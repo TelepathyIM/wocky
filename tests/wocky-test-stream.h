@@ -70,6 +70,19 @@ void wocky_test_output_stream_set_write_error (GOutputStream *stream);
 
 void wocky_test_stream_cork (GInputStream *stream, gboolean cork);
 
+typedef enum {
+  /* one read can have data from two  writes, but never has all the data
+   * from one specific write */
+  WOCK_TEST_STREAM_READ_COMBINE_SLICE = 0,
+  /* one read reads as much as is available */
+  WOCK_TEST_STREAM_READ_COMBINE,
+  /* one read reads only data from one write */
+  WOCK_TEST_STREAM_READ_EXACT,
+} WockyTestSTreamReadMode;
+
+void wocky_test_stream_set_mode (GInputStream *stream,
+  WockyTestSTreamReadMode mode);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_STREAM_H__*/

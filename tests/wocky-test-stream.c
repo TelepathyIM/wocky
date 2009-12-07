@@ -72,6 +72,7 @@ typedef struct {
   gsize count;
   GError *read_error /* no, this is not a coding style violation */;
   gboolean dispose_has_run;
+  WockyTestSTreamReadMode mode;
   gboolean corked;
 } WockyTestInputStream;
 
@@ -260,7 +261,7 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
   GCancellable *cancellable, GError  **error)
 {
   WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
-  gssize len;
+  gsize written = 0;
 
   if (self->out_array == NULL)
     {
@@ -268,18 +269,35 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
       self->out_array = g_async_queue_pop (self->queue);
     }
 
-  len = MIN (self->out_array->len - self->offset, count);
-  memcpy (buffer, self->out_array->data, len);
-  self->offset += len;
+  do {
+    gsize towrite;
 
-  if (self->offset == self->out_array->len)
-    {
-      g_array_free (self->out_array, TRUE);
-      self->out_array = NULL;
-      self->offset = 0;
-    }
+    if (self->mode == WOCK_TEST_STREAM_READ_COMBINE_SLICE && self->offset == 0)
+      towrite = MIN (count - written, self->out_array->len/2);
+    else
+      towrite = MIN (count - written, self->out_array->len - self->offset);
 
-  return len;
+    memcpy ((guchar *) buffer + written,
+      self->out_array->data + self->offset,
+      towrite);
+
+    self->offset += towrite;
+    written += towrite;
+
+    if (self->offset == self->out_array->len)
+      {
+        g_array_free (self->out_array, TRUE);
+        self->out_array = g_async_queue_try_pop (self->queue);
+        self->offset = 0;
+      }
+    else if (self->mode == WOCK_TEST_STREAM_READ_COMBINE_SLICE)
+      {
+        break;
+      }
+  } while (self->mode != WOCK_TEST_STREAM_READ_EXACT
+    && written < count && self->out_array != NULL);
+
+  return written;
 }
 
 static gssize
@@ -596,6 +614,13 @@ wocky_test_output_stream_set_write_error (GOutputStream *stream)
 
    self->write_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
        "write error");
+}
+
+void
+wocky_test_stream_set_mode (GInputStream *stream,
+  WockyTestSTreamReadMode mode)
+{
+  WOCKY_TEST_INPUT_STREAM (stream)->mode = mode;
 }
 
 void
