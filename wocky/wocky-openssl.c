@@ -296,19 +296,6 @@ wocky_tls_job_result_boolean (WockyTLSJob *job,
 {
   GSimpleAsyncResult *simple;
 
-  /* an SSL_ERROR_* value */
-  if (job->error == NULL)
-    switch (result)
-      {
-      case SSL_ERROR_NONE:
-      case SSL_ERROR_WANT_READ:
-      case SSL_ERROR_WANT_WRITE:
-        break;
-      default:
-        DEBUG ("setting up handshake error");
-        job->error = g_error_new (WOCKY_TLS_ERROR, result, "Handshake Error");
-      }
-
   if ((simple = wocky_tls_job_make_result (job, result)))
     {
       g_simple_async_result_complete (simple);
@@ -558,8 +545,14 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
           ssl_handshake (session);
           break;
         case SSL_ERROR_NONE:
+          DEBUG ("Handshake complete (success): %d", result);
+          wocky_tls_job_result_boolean (handshake, result);
+          break;
         default:
-          DEBUG ("Handshake complete: %d", result);
+          DEBUG ("Handshake complete (failure): %d", result);
+          if (handshake->error == NULL)
+            handshake->error =
+              g_error_new (WOCKY_TLS_ERROR, result, "Handshake Error");
           wocky_tls_job_result_boolean (handshake, result);
         }
     }
