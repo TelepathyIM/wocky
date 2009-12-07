@@ -476,32 +476,10 @@ ssl_fill (WockyTLSSession *session)
   gchar *rbuf = session->job.read.rbuf;
   gint prio = session->job.read.io_priority;
   GCancellable *cancel = session->job.read.cancellable;
-  gint already = 0;
-  gchar buf[2] = { 0, 0 };
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ();
 
-  /* It is possible for a complete SSL record to be present in the read BIO *
-   * already as a result of a previous read, since SSL_read may extract     *
-   * just the first complete record, or some or all of them:                *
-   * as a result, we may not want to issue an actual read request as the    *
-   * data we are expecting may already have been read, causing us to wait   *
-   * until the next block of data arrives over the network (which may not   *
-   * ever happen): short-circuit the actual read if this is the case        */
-
-  /* In theory, we can use SSL_pending here, but it does not work reliably. *
-   * apparently SSL_pending only tells you if OpenSSL _has already_ decoded *
-   * a complete, pre-buffered record, which it may or may not choose to do, *
-   * whereas SSL_peek attempts to decode a further record and lets you know *
-   * if that succeeded:                                                     */
-  already = SSL_peek (session->ssl, &buf, 1);
-  if (already > 0)
-    {
-      DEBUG ("SSL record already available");
-      wocky_tls_session_try_operation (session, WOCKY_TLS_OP_READ);
-      return;
-    }
   g_input_stream_read_async (input, rbuf, MAX_SSLV3_BLOCK_SIZE, prio, cancel,
                              wocky_tls_session_read_ready, session);
 }
@@ -1093,9 +1071,39 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
                                    gpointer             user_data)
 {
   WockyTLSSession *session = WOCKY_TLS_INPUT_STREAM (stream)->session;
+  int ret;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ();
+
+  /* It is possible for a complete SSL record to be present in the read BIO *
+   * already as a result of a previous read, since SSL_read may extract     *
+   * just the first complete record, or some or all of them:                *
+   * as a result, we may not want to issue an actual read request as the    *
+   * data we are expecting may already have been read, causing us to wait   *
+   * until the next block of data arrives over the network (which may not   *
+   * ever happen): short-circuit the actual read if this is the case        */
+
+  /* In theory, we can use SSL_pending here, but it does not work reliably. *
+   * apparently SSL_pending only tells you if OpenSSL _has already_ decoded *
+   * a complete, pre-buffered record, which it may or may not choose to do, *
+   * whereas SSL_peek attempts to decode a further record and lets you know *
+   * if that succeeded:                                                     */
+  ret = SSL_peek (session->ssl, buffer, count);
+  if (ret > 0)
+    {
+      GSimpleAsyncResult *r;
+
+      r = g_simple_async_result_new (G_OBJECT (stream),
+        callback,
+        user_data,
+        wocky_tls_input_stream_read_async);
+
+      g_simple_async_result_set_op_res_gssize (r, ret);
+      g_simple_async_result_complete_in_idle (r);
+      g_object_unref (r);
+      return;
+    }
 
   wocky_tls_job_start (&session->job.read, stream,
                        io_priority, cancellable, callback, user_data,
