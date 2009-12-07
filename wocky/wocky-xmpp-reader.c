@@ -601,7 +601,7 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
 
   g_return_if_fail (priv->state < WOCKY_XMPP_READER_STATE_CLOSED);
 
-#ifdef ENABLE_DEBUGGING
+#ifdef ENABLE_DEBUG
   wocky_debug (DEBUG_NET, "Parsing chunk: %.*s", (int)length, data);
 #endif
 
