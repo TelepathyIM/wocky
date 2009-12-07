@@ -503,6 +503,39 @@ ssl_flush (WockyTLSSession *session)
                                  wocky_tls_session_write_ready, session);
 }
 
+/* FALSE indicates we should go round again and try to get more data */
+static gboolean
+ssl_read_is_complete (WockyTLSSession *session, gint result)
+{
+  /* if the job error is set, we should bail out now, we have failed   *
+   * otherwise:                                                        *
+   * a -ve return with an SSL error of WANT_READ implies an incomplete *
+   * crypto record: we need to go round again and get more data        *
+   * or:                                                               *
+   * a 0 return means the SSL connection was shut down cleanly         */
+  if ((session->job.read.error == NULL) && (result <= 0))
+    {
+      int err = SSL_get_error (session->ssl, result);
+
+      switch (err)
+        {
+        case SSL_ERROR_WANT_READ:
+          DEBUG ("Incomplete SSL record, read again");
+          return FALSE;
+        case SSL_ERROR_WANT_WRITE:
+          g_warning ("read caused write: unsupported TLS re-negotiation?");
+        default:
+          /* if we haven't already generated an error, set one here: */
+          if(session->job.read.error == NULL)
+            session->job.read.error =
+              g_error_new (WOCKY_TLS_ERROR, err,
+                           "OpenSSL read: protocol error %d", err);
+        }
+    }
+
+  return TRUE;
+}
+
 static void
 wocky_tls_session_try_operation (WockyTLSSession   *session,
                                  WockyTLSOperation  operation)
@@ -545,33 +578,10 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
       result = SSL_read (session->ssl, session->job.read.buffer, wanted);
       DEBUG ("read %ld clearbytes (from %ld cipherbytes)", result, pending);
 
-      /* if the job error is set, we should bail out now, we have failed   *
-       * otherwise:                                                        *
-       * a -ve return with an SSL error of WANT_READ implies an incomplete *
-       * crypto record: we need to go round again and get more data        *
-       * or:                                                               *
-       * a 0 return means the SSL connection was shut down cleanly         */
-      if ((session->job.read.error == NULL) && (result <= 0))
-        {
-          int error = SSL_get_error (session->ssl, result);
-          switch (error)
-            {
-            case SSL_ERROR_WANT_READ:
-              DEBUG ("Incomplete SSL record, read again");
-              ssl_fill (session);
-              return;
-            case SSL_ERROR_WANT_WRITE:
-              g_warning ("read caused write: unsupported TLS re-negotiation?");
-            default:
-              /* if we haven't already generated an error, set one here: */
-              if(session->job.read.error == NULL)
-                session->job.read.error =
-                  g_error_new (WOCKY_TLS_ERROR, error,
-                               "OpenSSL read: protocol error %d", error);
-            }
-        }
-
-      wocky_tls_job_result_gssize (&session->job.read, result);
+      if (ssl_read_is_complete (session, result))
+        wocky_tls_job_result_gssize (&session->job.read, result);
+      else
+        ssl_fill (session);
     }
 
   else
@@ -1076,6 +1086,8 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ();
 
+  g_assert (session->job.read.active == FALSE);
+
   /* It is possible for a complete SSL record to be present in the read BIO *
    * already as a result of a previous read, since SSL_read may extract     *
    * just the first complete record, or some or all of them:                *
@@ -1090,14 +1102,24 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
    * whereas SSL_peek attempts to decode a further record and lets you know *
    * if that succeeded:                                                     */
   ret = SSL_peek (session->ssl, buffer, count);
-  if (ret > 0)
+
+  if (ssl_read_is_complete (session, ret))
     {
       GSimpleAsyncResult *r;
 
-      r = g_simple_async_result_new (G_OBJECT (stream),
-        callback,
-        user_data,
-        wocky_tls_input_stream_read_async);
+      if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+        DEBUG ("already have %d clearbytes buffered", ret);
+
+      if (session->job.read.error == NULL)
+        r = g_simple_async_result_new (G_OBJECT (stream),
+                                       callback,
+                                       user_data,
+                                       wocky_tls_input_stream_read_async);
+      else
+        r = g_simple_async_result_new_from_error (G_OBJECT (stream),
+                                                  callback,
+                                                  user_data,
+                                                  session->job.read.error);
 
       g_simple_async_result_set_op_res_gssize (r, ret);
       g_simple_async_result_complete_in_idle (r);
