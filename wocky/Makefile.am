@@ -66,6 +66,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-contact-factory.h        \
   wocky-session.c                \
   wocky-session.h                \
+  wocky-muc.h                    \
+  wocky-muc.c					 \
   wocky-pep-service.c            \
   wocky-pep-service.h
 
