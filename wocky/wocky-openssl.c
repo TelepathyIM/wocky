@@ -1084,17 +1084,7 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
    * as a result, we may not want to issue an actual read request as the    *
    * data we are expecting may already have been read, causing us to wait   *
    * until the next block of data arrives over the network (which may not   *
-   * ever happen): short-circuit the actual read if this is the case        */
-
-  /* In theory, we can use SSL_pending here, but it does not work reliably. *
-   * apparently SSL_pending only tells you if OpenSSL _has already_ decoded *
-   * a complete, pre-buffered record, which it may or may not choose to do, *
-   * whereas SSL_peek attempts to decode a further record and lets you know *
-   * if that succeeded:                                                     */
-
-  /* can't use SSL_peek on its own like this unless we clear out the BIO *
-   * afterwards; Either use SSL_peek to check and divert back into the   *
-   * normal SSL code path, or use SSL_read instead:                      */
+   * ever happen): short-circuit the actual read if this is the case:       */
   ret = SSL_read (session->ssl, buffer, count);
 
   if (ssl_read_is_complete (session, ret))
