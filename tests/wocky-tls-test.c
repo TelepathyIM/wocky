@@ -92,14 +92,14 @@ client_read_cb (GObject *source,
       case 4:
         break;
       case 5:
-       {
-         GIOStream *io = G_IO_STREAM (ssl_test->client);
-         GOutputStream *output = g_io_stream_get_output_stream (io);
-         g_output_stream_write_async (output,
-           TEST_SSL_DATA_A, TEST_SSL_DATA_LEN, G_PRIORITY_DEFAULT,
-           ssl_test->test->cancellable, client_write_cb, data);
-         return;
-       }
+        {
+          GIOStream *io = G_IO_STREAM (ssl_test->client);
+          GOutputStream *output = g_io_stream_get_output_stream (io);
+          g_output_stream_write_async (output,
+              TEST_SSL_DATA_A, TEST_SSL_DATA_LEN, G_PRIORITY_DEFAULT,
+              ssl_test->test->cancellable, client_write_cb, data);
+          return;
+        }
       default:
         g_error ("Read too many records: test broken?");
     }
