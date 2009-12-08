@@ -1091,7 +1091,11 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
    * a complete, pre-buffered record, which it may or may not choose to do, *
    * whereas SSL_peek attempts to decode a further record and lets you know *
    * if that succeeded:                                                     */
-  ret = SSL_peek (session->ssl, buffer, count);
+
+  /* can't use SSL_peek on its own like this unless we clear out the BIO *
+   * afterwards; Either use SSL_peek to check and divert back into the   *
+   * normal SSL code path, or use SSL_read instead:                      */
+  ret = SSL_read (session->ssl, buffer, count);
 
   if (ssl_read_is_complete (session, ret))
     {
