@@ -13,8 +13,11 @@
 
 #define BUF_SIZE 8192
 
-#define TEST_SSL_DATA "badgerbadgerbadger"
-#define TEST_SSL_DATA_LEN sizeof (TEST_SSL_DATA)
+#define TEST_SSL_DATA_A "badgerbadgerbadger"
+#define TEST_SSL_DATA_B "mushroom, mushroom"
+#define TEST_SSL_DATA_LEN sizeof (TEST_SSL_DATA_A)
+
+static const gchar *test_data[] = { TEST_SSL_DATA_A, TEST_SSL_DATA_B, NULL };
 
 typedef struct {
   test_data_t *test;
@@ -74,26 +77,31 @@ client_read_cb (GObject *source,
          */
         wocky_test_stream_set_mode (ssl_test->test->stream->stream0_input,
          WOCK_TEST_STREAM_READ_COMBINE);
-       break;
-     case 2:
+        break;
+      case 2:
 #ifdef USING_OPENSSL
         /* Our openssl backend should have read all ssl records by now and
          * thus shouldn't request more data from the input stream. The GnuTLS
          * backend requests more granularily what it needs so will still read
          * from the input stream */
         wocky_test_input_stream_set_read_error (
-         ssl_test->test->stream->stream0_input);
+            ssl_test->test->stream->stream0_input);
 #endif /* USING_OPENSSL */
         break;
-     case 3:
+      case 3:
+      case 4:
+        break;
+      case 5:
        {
          GIOStream *io = G_IO_STREAM (ssl_test->client);
          GOutputStream *output = g_io_stream_get_output_stream (io);
          g_output_stream_write_async (output,
-           TEST_SSL_DATA, TEST_SSL_DATA_LEN, G_PRIORITY_DEFAULT,
+           TEST_SSL_DATA_A, TEST_SSL_DATA_LEN, G_PRIORITY_DEFAULT,
            ssl_test->test->cancellable, client_write_cb, data);
          return;
        }
+      default:
+        g_error ("Read too many records: test broken?");
     }
 
   ssl_test->in_read = TRUE;
@@ -154,9 +162,10 @@ server_write_cb (GObject *source,
   g_assert (written == TEST_SSL_DATA_LEN);
 
   ssl_test->write_op_count++;
-  if (ssl_test->write_op_count < 3)
+  if (ssl_test->write_op_count < 5)
     {
-      g_output_stream_write_async (output, TEST_SSL_DATA, TEST_SSL_DATA_LEN,
+      const char *payload = test_data[ssl_test->write_op_count & 1];
+      g_output_stream_write_async (output, payload, TEST_SSL_DATA_LEN,
         G_PRIORITY_LOW, ssl_test->test->cancellable, server_write_cb, data);
     }
   else
@@ -188,7 +197,7 @@ server_handshake_cb (GObject *source,
   /* cork the client reading stream */
   wocky_test_stream_cork (ssl_test->test->stream->stream0_input, TRUE);
 
-  g_output_stream_write_async (output, TEST_SSL_DATA, TEST_SSL_DATA_LEN,
+  g_output_stream_write_async (output, TEST_SSL_DATA_A, TEST_SSL_DATA_LEN,
       G_PRIORITY_LOW, ssl_test->test->cancellable, server_write_cb, data);
 }
 
@@ -198,6 +207,13 @@ server_handshake_cb (GObject *source,
 static void
 setup_ssl_test (ssl_test_t *ssl_test, test_data_t *test)
 {
+  guint x;
+
+  /* the tests currently rely on all the chunks being the same size */
+  /* note that we include the terminating \0 in the payload         */
+  for(x = 0; test_data[x] != NULL; x++)
+    g_assert (strlen (test_data[x]) == (TEST_SSL_DATA_LEN - 1));
+
   ssl_test->test = test;
   ssl_test->cli_data = g_string_new ("");
   ssl_test->srv_data = g_string_new ("");
@@ -222,9 +238,10 @@ test_openssl_handshake_rw (void)
   WockyTLSSession *client = wocky_tls_session_new (test->stream->stream0);
   WockyTLSSession *server = wocky_tls_session_server_new (
     test->stream->stream1, 1024, TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE);
-  gsize expected = TEST_SSL_DATA_LEN * 3;
+  gsize expected = TEST_SSL_DATA_LEN * 5;
   gchar *target =
-    TEST_SSL_DATA "\0" TEST_SSL_DATA "\0" TEST_SSL_DATA;
+    TEST_SSL_DATA_A "\0" TEST_SSL_DATA_B "\0"
+    TEST_SSL_DATA_A "\0" TEST_SSL_DATA_B "\0" TEST_SSL_DATA_A;
 
   setup_ssl_test (&ssl_test, test);
 
@@ -243,7 +260,7 @@ test_openssl_handshake_rw (void)
   g_assert (ssl_test.srv_data->len == TEST_SSL_DATA_LEN);
   g_assert (!memcmp (ssl_test.cli_data->str, target, expected));
   g_assert (!memcmp (ssl_test.srv_data->str,
-    TEST_SSL_DATA, TEST_SSL_DATA_LEN));
+    TEST_SSL_DATA_A, TEST_SSL_DATA_LEN));
 
   teardown_test (test);
   teardown_ssl_test (&ssl_test);
