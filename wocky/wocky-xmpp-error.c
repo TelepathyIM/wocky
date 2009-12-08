@@ -19,6 +19,7 @@
  */
 
 #include "wocky-xmpp-error.h"
+#include "wocky-utils.h"
 
 #include <stdlib.h>
 #include <stdio.h>
