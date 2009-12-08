@@ -96,4 +96,20 @@
 #define WOCKY_XMPP_NS_PUBSUB_EVENT \
   WOCKY_XMPP_NS_PUBSUB "#event"
 
+#define WOCKY_NS_MUC \
+  "http://jabber.org/protocol/muc"
+
+#define WOCKY_NS_MUC_USR \
+  WOCKY_NS_MUC "#user"
+
+#define WOCKY_NS_MUC_ADM \
+  WOCKY_NS_MUC "#admin"
+
+#define WOCKY_NS_MUC_OWN \
+  WOCKY_NS_MUC "#owner"
+
+#define WOCKY_NS_MUC_UNIQ \
+  WOCKY_NS_MUC "#unique"
+
+
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
