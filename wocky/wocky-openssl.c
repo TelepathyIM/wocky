@@ -43,13 +43,13 @@
 #include <openssl/err.h>
 #include <openssl/engine.h>
 #include <openssl/x509v3.h>
-#include <wocky/wocky-utils.h>
 
 #define DEBUG_FLAG DEBUG_TLS
 #define DEBUG_HANDSHAKE_LEVEL 5
 #define DEBUG_ASYNC_DETAIL_LEVEL 6
 
 #include "wocky-debug.h"
+#include "wocky-utils.h"
 
 #include <openssl/ssl.h>
 #include <openssl/x509_vfy.h>
