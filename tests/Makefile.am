@@ -4,7 +4,7 @@ CERTTOOL := $(shell which certtool)
 TARDIS   := $(shell which datefudge)
 GENKEY   := $(CERTTOOL) --generate-privkey --outfile
 TEST_DIR := @abs_top_srcdir@/tests
-SUMMARY  := $(TEST_DIR)/summarise-tests.sh
+SUMMARY  := $(TEST_DIR)/summarise-tests.py
 CERT_DIR := $(TEST_DIR)/certs
 CA_CERT2 := $(CERT_DIR)/ca-1-cert.pem
 CA_CERT3 := $(CERT_DIR)/ca-2-cert.pem
@@ -210,11 +210,11 @@ test-report.xml: ${TEST_PROGS} test
 
 test: ${TEST_PROGS}
 	gtester -o test-report.xml -k --verbose ${TEST_PROGS}
-	@cat test-report.xml | $(SUMMARY)
+	@$(SUMMARY) test-report.xml
 
 test-%: wocky-%-test
 	gtester -o $@-report.xml -k --verbose $<
-	@cat $@-report.xml | $(SUMMARY)
+	@$(SUMMARY) $@-report.xml
 
 .PHONY: test test-report certs
 
