@@ -568,7 +568,8 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
       wanted = session->job.read.count;
       pending = (gulong)BIO_pending (session->rbio);
       result = SSL_read (session->ssl, session->job.read.buffer, wanted);
-      DEBUG ("read %ld clearbytes (from %ld cipherbytes)", result, pending);
+      DEBUG ("read %" G_GSSIZE_FORMAT " clearbytes (from %ld cipherbytes)",
+          result, pending);
 
       if (ssl_read_is_complete (session, result))
         wocky_tls_job_result_gssize (&session->job.read, result);
@@ -587,7 +588,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
         DEBUG ("async job OP_WRITE");
 
       g_assert (operation == WOCKY_TLS_OP_WRITE);
-      DEBUG ("wrote %ld clearbytes", result);
+      DEBUG ("wrote %" G_GSSIZE_FORMAT " clearbytes", result);
       wocky_tls_job_result_gssize (&session->job.write, result);
     }
 }
@@ -669,7 +670,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
           DEBUG ("sending %ld cipherbytes", wsize);
           if (wsize > 0)
             sent = g_output_stream_write (out, wbuf, wsize, NULL, error);
-          DEBUG ("sent %ld cipherbytes", sent);
+          DEBUG ("sent %" G_GSSIZE_FORMAT " cipherbytes", sent);
           ignored = BIO_reset (session->wbio);
         }
 
@@ -679,7 +680,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
           GInputStream *in = g_io_stream_get_input_stream (session->stream);
           gssize bytes =
             g_input_stream_read (in, &rbuf, sizeof(rbuf), NULL, error);
-          DEBUG ("read %ld cipherbytes", bytes);
+          DEBUG ("read %" G_GSSIZE_FORMAT " cipherbytes", bytes);
           BIO_write (session->rbio, &rbuf, bytes);
         }
 
@@ -1167,7 +1168,7 @@ wocky_tls_output_stream_write_async (GOutputStream       *stream,
   int code;
   WockyTLSSession *session = WOCKY_TLS_OUTPUT_STREAM (stream)->session;
 
-  DEBUG ("%ld clearbytes to send", count);
+  DEBUG ("%" G_GSIZE_FORMAT " clearbytes to send", count);
   wocky_tls_job_start (&session->job.write, stream,
                        io_priority, cancellable, callback, user_data,
                        wocky_tls_output_stream_write_async);
@@ -1374,7 +1375,8 @@ wocky_tls_session_read_ready (GObject      *object,
     {
       int x;
       int y;
-      DEBUG ("received %ld cipherbytes, filling SSL BIO", rsize);
+      DEBUG ("received %" G_GSSIZE_FORMAT " cipherbytes, filling SSL BIO",
+          rsize);
       BIO_write (session->rbio, buf, rsize);
       if (tls_debug_level > DEBUG_ASYNC_DETAIL_LEVEL + 1)
         for (x = 0; x < rsize; x += 16)
@@ -1393,12 +1395,13 @@ wocky_tls_session_read_ready (GObject      *object,
   else if (session->job.handshake.job.active)
     {
       if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-        DEBUG("read SSL cipherbytes (handshake) failed: %ld", rsize);
+        DEBUG("read SSL cipherbytes (handshake) failed: %" G_GSSIZE_FORMAT,
+            rsize);
       session->job.handshake.state = SSL_ERROR_SSL;
     }
   else
     {
-      DEBUG ("read of SSL cipherbytes failed: %ld", rsize);
+      DEBUG ("read of SSL cipherbytes failed: %" G_GSSIZE_FORMAT, rsize);
 
       if ((*error != NULL) && ((*error)->domain == g_io_error_quark ()))
         {
