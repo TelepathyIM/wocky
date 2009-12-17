@@ -644,7 +644,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 #else
       challenge = "";
       challenge_len = 0;
-      g_assert (!wocky_strdiff ("PLAIN", mech));
+      g_assert (!wocky_strdiff ("PLAIN", priv->selected_mech));
       /* response format: ^@ u s e r ^@ p a s s    */
       /* require at least 1 char user and password */
       if (response_len >= 4)
