@@ -42,6 +42,10 @@
  */
 
 #include "wocky-tls.h"
+
+#include <gnutls/x509.h>
+#include <gnutls/openpgp.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -56,6 +60,16 @@
 #define DEBUG_FLAG DEBUG_TLS
 #define DEBUG_HANDSHAKE_LEVEL 5
 #define DEBUG_ASYNC_DETAIL_LEVEL 6
+
+#define VERIFY_STRICT  GNUTLS_VERIFY_DO_NOT_ALLOW_SAME
+#define VERIFY_NORMAL  ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT | \
+                         GNUTLS_VERIFY_DO_NOT_ALLOW_SAME )
+#define VERIFY_LENIENT ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT     | \
+                         GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT | \
+                         GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2       | \
+                         GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5       | \
+                         GNUTLS_VERIFY_DISABLE_TIME_CHECKS      | \
+                         GNUTLS_VERIFY_DISABLE_CA_SIGN          )
 
 #include "wocky-debug.h"
 
@@ -598,6 +612,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   guint _stat = 0;
   gboolean peer_name_ok = TRUE;
   const gchar *check_level;
+  gnutls_certificate_verify_flags check;
 
   /* list gnutls cert error conditions in descending order of noteworthiness *
    * and map them to wocky cert error conditions                             */
@@ -624,19 +639,23 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
     {
     case WOCKY_TLS_VERIFY_STRICT:
       check_level = "WOCKY_TLS_VERIFY_STRICT";
+      check = VERIFY_STRICT;
       break;
     case WOCKY_TLS_VERIFY_NORMAL:
       check_level = "WOCKY_TLS_VERIFY_NORMAL";
+      check = VERIFY_NORMAL;
       break;
     case WOCKY_TLS_VERIFY_LENIENT:
       check_level = "WOCKY_TLS_VERIFY_LENIENT";
+      check = VERIFY_LENIENT;
       break;
     default:
       check_level = "*custom setting*";
+      check = flags;
     }
 
   DEBUG ("setting gnutls verify flags level to: %s", check_level);
-  gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, flags);
+  gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, check);
   rval = gnutls_certificate_verify_peers2 (session->session, &_stat);
 
   if (rval != GNUTLS_E_SUCCESS)

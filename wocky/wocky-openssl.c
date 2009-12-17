@@ -33,7 +33,9 @@
  * debugging output from within wocky-openssl.c as well.
  */
 
-#include "wocky-openssl.h"
+#include "wocky-tls.h"
+
+#include <openssl/ssl.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>

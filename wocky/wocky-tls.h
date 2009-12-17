@@ -27,8 +27,6 @@
 #define _wocky_tls_h_
 
 #include <gio/gio.h>
-#include <gnutls/x509.h>
-#include <gnutls/openpgp.h>
 
 #define WOCKY_TYPE_TLS_CONNECTION (wocky_tls_connection_get_type ())
 #define WOCKY_TYPE_TLS_SESSION    (wocky_tls_session_get_type ())
@@ -42,18 +40,15 @@
 typedef struct OPAQUE_TYPE__WockyTLSConnection WockyTLSConnection;
 typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
 
-#define WOCKY_TLS_VERIFY_STRICT  GNUTLS_VERIFY_DO_NOT_ALLOW_SAME
-#define WOCKY_TLS_VERIFY_NORMAL  ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT | \
-                                   GNUTLS_VERIFY_DO_NOT_ALLOW_SAME )
-#define WOCKY_TLS_VERIFY_LENIENT ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT     | \
-                                   GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT | \
-                                   GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2       | \
-                                   GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5       | \
-                                   GNUTLS_VERIFY_DISABLE_TIME_CHECKS      | \
-                                   GNUTLS_VERIFY_DISABLE_CA_SIGN          )
+#define WOCKY_TLS_VERIFY_STRICT  0x100000000
+#define WOCKY_TLS_VERIFY_NORMAL  0x080000000
+#define WOCKY_TLS_VERIFY_LENIENT 0x040000000
 
 GQuark wocky_tls_cert_error_quark (void);
 #define WOCKY_TLS_CERT_ERROR (wocky_tls_cert_error_quark ())
+
+GQuark wocky_tls_error_quark (void);
+#define WOCKY_TLS_ERROR (wocky_tls_error_quark ())
 
 typedef enum
 {
@@ -103,7 +98,7 @@ WockyTLSSession *wocky_tls_session_server_new (GIOStream   *stream,
                                                guint        dhbits,
                                                const gchar* key,
                                                const gchar* cert);
-#endif
+#endif /* _wocky_tls_h_ */
 
 /* this file is "borrowed" from an unmerged gnio feature: */
 /* Local Variables:                                       */

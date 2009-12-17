@@ -35,11 +35,7 @@
 #include <wocky/wocky-debug.h>
 #include <wocky/wocky-utils.h>
 
-#if USING_OPENSSL
-#include <wocky/wocky-openssl.h>
-#else
 #include <wocky/wocky-tls.h>
-#endif
 
 #define INITIAL_STREAM_ID "0-HAI"
 #define DEBUG(format, ...) \

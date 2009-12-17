@@ -13,7 +13,7 @@ BUILT_SOURCES = \
 
 OPENSSL_SRC = \
   wocky-openssl.c        \
-  wocky-openssl.h        \
+  wocky-tls.h            \
   wocky-openssl-dh512.c  \
   wocky-openssl-dh1024.c \
   wocky-openssl-dh2048.c \
