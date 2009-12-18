@@ -210,11 +210,19 @@ test-report.xml: ${TEST_PROGS} test
 
 test: ${TEST_PROGS}
 	gtester -o test-report.xml -k --verbose ${TEST_PROGS}
-	@$(SUMMARY) test-report.xml
+	@if [ -x $(which python) ] ; then \
+		$(SUMMARY) $@-report.xml ; \
+	else \
+		echo "No python available, not summarizing test results" ; \
+	fi
 
 test-%: wocky-%-test
 	gtester -o $@-report.xml -k --verbose $<
-	@$(SUMMARY) $@-report.xml
+	@if [ -x $(which python) ] ; then \
+		$(SUMMARY) $@-report.xml ; \
+	else \
+		echo "No python available, not summarizing test results" ; \
+	fi
 
 .PHONY: test test-report certs
 
