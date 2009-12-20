@@ -852,8 +852,8 @@ tcp_srv_connected (GObject *source,
             }
           else
             {
-              const gchar *domain = g_quark_to_string (error->domain);
-              DEBUG ("SRV error is: %s:%d", domain, error->code);
+              DEBUG ("SRV error is: %s:%d", g_quark_to_string (error->domain),
+                error->code);
             }
         }
       DEBUG ("Falling back to HOST connection");
