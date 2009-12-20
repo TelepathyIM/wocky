@@ -254,6 +254,7 @@ wocky_tls_cert_error_quark (void)
   return quark;
 }
 
+#ifdef ENABLE_DEBUG
 static const gchar *hdesc_to_string (long desc)
 {
 #define HDESC(x) case GNUTLS_HANDSHAKE_##x: return #x; break;
@@ -273,6 +274,7 @@ static const gchar *hdesc_to_string (long desc)
     }
   return "Unknown State";
 }
+#endif
 
 static const gchar *error_to_string (long error)
 {
