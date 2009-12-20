@@ -32,14 +32,14 @@
 #include <wocky/wocky-xmpp-connection.h>
 
 #include <wocky/wocky-namespaces.h>
-#include <wocky/wocky-debug.h>
 #include <wocky/wocky-utils.h>
 
 #include <wocky/wocky-tls.h>
 
 #define INITIAL_STREAM_ID "0-HAI"
-#define DEBUG(format, ...) \
-  wocky_debug (DEBUG_CONNECTOR, "%s: " format, G_STRFUNC, ##__VA_ARGS__)
+
+#define DEBUG_FLAG DEBUG_CONNECTOR
+#include <wocky/wocky-debug.h>
 
 G_DEFINE_TYPE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT);
 
