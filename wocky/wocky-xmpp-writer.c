@@ -464,7 +464,9 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
   *data = (const guint8 *)priv->buffer->content;
   *length  = priv->buffer->use;
 
+#ifdef ENABLE_DEBUG
   wocky_debug (DEBUG_NET, "Writing xml: %.*s.", (int)*length, *data);
+#endif
 }
 
 /**
