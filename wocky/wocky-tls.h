@@ -40,9 +40,12 @@
 typedef struct OPAQUE_TYPE__WockyTLSConnection WockyTLSConnection;
 typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
 
-#define WOCKY_TLS_VERIFY_STRICT  0x100000000
-#define WOCKY_TLS_VERIFY_NORMAL  0x080000000
-#define WOCKY_TLS_VERIFY_LENIENT 0x040000000
+typedef enum
+{
+  WOCKY_TLS_VERIFY_STRICT = 0,
+  WOCKY_TLS_VERIFY_NORMAL,
+  WOCKY_TLS_VERIFY_LENIENT,
+} WockyTLSVerificationLevel;
 
 GQuark wocky_tls_cert_error_quark (void);
 #define WOCKY_TLS_CERT_ERROR (wocky_tls_cert_error_quark ())
@@ -72,7 +75,7 @@ GType wocky_tls_session_get_type (void);
 
 int wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                    const gchar        *peername,
-                                   long                flags,
+                                   WockyTLSVerificationLevel flags,
                                    WockyTLSCertStatus *status);
 
 WockyTLSConnection *wocky_tls_session_handshake (WockyTLSSession   *session,

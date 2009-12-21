@@ -919,7 +919,7 @@ check_peer_name (const char *target, X509 *cert)
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
-                               long                flags,
+                               WockyTLSVerificationLevel flags,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
@@ -944,7 +944,9 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       check_level = "WOCKY_TLS_VERIFY_LENIENT";
       break;
     default:
-      check_level = "*custom setting*";
+      g_warn_if_reached ();
+      check_level = "Unknown strictness level";
+      check = VERIFY_STRICT;
     }
 
   DEBUG ("setting ssl verify flags level to: %s", check_level);
