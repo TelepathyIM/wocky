@@ -606,7 +606,7 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
-                               WockyTLSVerificationLevel flags,
+                               WockyTLSVerificationLevel level,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
@@ -637,7 +637,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   g_assert (status != NULL);
   *status = WOCKY_TLS_CERT_OK;
 
-  switch (flags)
+  switch (level)
     {
     case WOCKY_TLS_VERIFY_STRICT:
       check_level = "WOCKY_TLS_VERIFY_STRICT";
