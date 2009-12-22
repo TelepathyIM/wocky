@@ -946,7 +946,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
     default:
       g_warn_if_reached ();
       check_level = "Unknown strictness level";
-      check = VERIFY_STRICT;
+      flags = WOCKY_TLS_VERIFY_STRICT;
     }
 
   DEBUG ("setting ssl verify flags level to: %s", check_level);
