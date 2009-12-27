@@ -62,6 +62,9 @@
 #define WOCKY_XMPP_NS_EVENT \
   "jabber:x:event"
 
+#define WOCKY_XMPP_NS_DELAY \
+  "jabber:x:delay"
+
 #define WOCKY_XMPP_NS_STANZAS \
   "urn:ietf:params:xml:ns:xmpp-stanzas"
 
@@ -110,6 +113,9 @@
 
 #define WOCKY_NS_MUC_UNIQ \
   WOCKY_NS_MUC "#unique"
+
+#define WOCKY_NS_CHATSTATE \
+  "http://jabber.org/protocol/chatstates"
 
 
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
