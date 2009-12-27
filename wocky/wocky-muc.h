@@ -113,12 +113,29 @@ typedef enum {
   WOCKY_MUC_OBSOLETE          = (1 << 17),
 } WockyMucFeature;
 
+typedef enum {
+  WOCKY_MUC_MSG_NONE,
+  WOCKY_MUC_MSG_NORMAL,
+  WOCKY_MUC_MSG_ACTION,
+  WOCKY_MUC_MSG_NOTICE,
+} WockyMucMsgType;
+
+typedef enum {
+  WOCKY_MUC_MSG_STATE_NONE = -1,
+  WOCKY_MUC_MSG_STATE_ACTIVE,
+  WOCKY_MUC_MSG_STATE_TYPING,
+  WOCKY_MUC_MSG_STATE_INACTIVE,
+  WOCKY_MUC_MSG_STATE_PAUSED,
+  WOCKY_MUC_MSG_STATE_GONE,
+} WockyMucMsgState;
+
 typedef struct {
-  gchar *jid;
-  gchar *nick;
+  gchar *from;   /* room@service/nick     */
+  gchar *jid;    /* owner@domain/resource */
+  gchar *nick;   /* nick */
   WockyMucRole role;
   WockyMucAffiliation affiliation;
-  gchar *status;
+  gchar *status; /* user set status string */
 } WockyMucMember;
 
 GType wocky_muc_get_type (void);
@@ -159,13 +176,13 @@ gboolean wocky_muc_disco_info_finish (WockyMuc *muc,
     GError **error);
 
 /* presence */
-void wocky_muc_send_presence (WockyMuc *muc,
-    WockyStanzaSubType presence_type,
-    const gchar *status);
+WockyXmppStanza *wocky_muc_create_presence (WockyMuc *muc,
+    WockyStanzaSubType type,
+    const gchar *status,
+    const gchar *password);
 
 /* initiate */
-void
-wocky_muc_initiate_async (WockyMuc *muc,
+void wocky_muc_initiate_async (WockyMuc *muc,
     GAsyncReadyCallback callback,
     GCancellable *cancel,
     gpointer data);
@@ -175,14 +192,15 @@ gboolean wocky_muc_initiate_finish (GObject *source,
     GError **error);
 
 /* join */
-void wocky_muc_join_async (WockyMuc *muc,
-    GAsyncReadyCallback callback,
-    GCancellable *cancel,
-    gpointer data);
+void wocky_muc_join (WockyMuc *muc,
+    GCancellable *cancel);
 
-gboolean wocky_muc_join_finish (GObject *source,
-    GAsyncResult *res,
-    GError **error);
+/* meta data */
+const gchar * wocky_muc_jid (WockyMuc *muc);
+const gchar * wocky_muc_user (WockyMuc *muc);
+WockyMucRole wocky_muc_role (WockyMuc *muc);
+WockyMucAffiliation wocky_muc_affiliation (WockyMuc *muc);
+GHashTable * wocky_muc_members (WockyMuc *muc);
 
 G_END_DECLS
 
