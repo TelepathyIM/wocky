@@ -348,12 +348,10 @@ valgrind: $(TEST_PROGS)
 	fi
 
 EXTRA_DIST = $(SUPPRESSIONS)     \
-    $(wildcard certs/*.cfg)      \
-	$(wildcard certs/*.pem)      \
-	$(wildcard certs/cas/*.pem)  \
-	$(wildcard certs/cas/*.0)    \
-	certs/crl                    \
-	certs/cas                    \
-	$(wildcard certs/crl/*.pem)  \
-	$(wildcard certs/crl/*.r0)
+	$(wildcard $(srcdir)/certs/*.cfg)      \
+	$(wildcard $(srcdir)/certs/*.pem)      \
+	$(wildcard $(srcdir)/certs/cas/*.pem)  \
+	$(wildcard $(srcdir)/certs/cas/*.0)    \
+	$(wildcard $(srcdir)/certs/crl/*.pem)  \
+	$(wildcard $(srcdir)/certs/crl/*.r0)
 
