@@ -83,14 +83,6 @@ WockyXmppNode *wocky_xmpp_node_get_child_ns (WockyXmppNode *node,
 
 WockyXmppNode *wocky_xmpp_node_get_first_child (WockyXmppNode *node);
 
-/* Error node util */
-const gchar *
-wocky_xmpp_node_unpack_error (WockyXmppNode *node,
-    const gchar **type,
-    WockyXmppNode **text,
-    WockyXmppNode **orig,
-    WockyXmppNode **extra);
-
 /* Creating child nodes */
 WockyXmppNode *wocky_xmpp_node_add_child (WockyXmppNode *node,
     const gchar *name);

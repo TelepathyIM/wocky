@@ -122,4 +122,13 @@ const gchar *wocky_xmpp_error_description (WockyXmppError error);
 
 WockyXmppStreamError wocky_xmpp_stream_error_from_node (WockyXmppNode *node);
 
+/* Error node util */
+const gchar *
+wocky_xmpp_error_unpack_node (WockyXmppNode *node,
+    const gchar **type,
+    WockyXmppNode **text,
+    WockyXmppNode **orig,
+    WockyXmppNode **extra,
+    WockyXmppError *errnum);
+
 #endif /* __WOCKY_XMPP_ERROR_H__ */
