@@ -8,8 +8,12 @@ BUILT_SOURCES = \
   wocky-signals-marshal.list \
   wocky-signals-marshal.h \
   wocky-signals-marshal.c \
+  wocky-xmpp-error-enumtypes.h \
+  wocky-xmpp-error-enumtypes.c \
   wocky-xmpp-reader-enumtypes.h \
-  wocky-xmpp-reader-enumtypes.c
+  wocky-xmpp-reader-enumtypes.c \
+  wocky-muc-enumtypes.h \
+  wocky-muc-enumtypes.c
 
 OPENSSL_SRC = \
   wocky-openssl.c        \
