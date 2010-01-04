@@ -51,6 +51,7 @@ typedef enum {
   SIG_LEFT,
   SIG_MSG,
   SIG_MSG_ERR,
+  SIG_FILL_PRESENCE,
   SIG_NULL
 } WockyMucSig;
 
@@ -431,6 +432,12 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_TYPE_STRING,  /* content          */
       WOCKY_TYPE_XMPP_ERROR,    /* WockyXmppError   */
       G_TYPE_STRING); /* error type       */
+
+  signals[SIG_FILL_PRESENCE] = g_signal_new ("fill-presence", ctype,
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+        _wocky_signals_marshal_VOID__OBJECT,
+        G_TYPE_NONE, 1,
+        WOCKY_TYPE_XMPP_STANZA);
 }
 
 static void
@@ -809,6 +816,10 @@ wocky_muc_create_presence (WockyMuc *muc,
     {
       wocky_xmpp_node_add_child_with_content (presence, "show", "xa");
       wocky_xmpp_node_add_child_with_content (presence, "status", status);
+    }
+  else
+    {
+      g_signal_emit (muc, signals[SIG_FILL_PRESENCE], 0, stanza);
     }
 
   if (password != NULL)
