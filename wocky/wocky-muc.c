@@ -1513,106 +1513,23 @@ handle_message (WockyPorter *porter,
 }
 
 /* ************************************************************************ */
-/* initiate MUC */
-static void
-muc_initiate (GObject *source,
-    GAsyncResult *res,
-    gpointer data)
-{
-  GError *error = NULL;
-  WockyMuc *muc = WOCKY_MUC (source);
-  Callback *cb = data;
-  GSimpleAsyncResult *result = g_simple_async_result_new (source,
-      cb->func, cb->data,
-      wocky_muc_initiate_finish);
-
-  if (wocky_muc_disco_info_finish (muc, res, &error))
-    {
-      register_presence_handler (muc);
-      register_message_handler (muc);
-    }
-  else
-    {
-      g_simple_async_result_set_from_error (result, error);
-    }
-
-  g_simple_async_result_complete (result);
-  g_free (result);
-  g_free (cb);
-}
-
-gboolean
-wocky_muc_initiate_finish (GObject *source,
-    GAsyncResult *res,
-    GError **error)
-{
-  WockyMuc *muc = WOCKY_MUC (source);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-
-  if (g_simple_async_result_propagate_error (result, error))
-    return FALSE;
-
-  return (priv->state >= MUC_INITIATED);
-}
-
-void
-wocky_muc_initiate_async (WockyMuc *muc,
-    GAsyncReadyCallback callback,
-    GCancellable *cancel,
-    gpointer data)
-{
-  Callback *cb = NULL;
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
-
-  if (priv->state >= MUC_INITIATED)
-    {
-      GSimpleAsyncResult *res =
-        g_simple_async_result_new (G_OBJECT (muc), callback, data,
-            wocky_muc_initiate_finish);
-      g_simple_async_result_complete (res);
-      g_free (res);
-      return;
-    }
-
-  cb = g_new0 (Callback, 1);
-  cb->func = callback;
-  cb->data = data;
-  wocky_muc_disco_info_async (muc, muc_initiate, cancel, cb);
-}
-
-/* ************************************************************************ */
 /* join MUC */
-static void
-muc_join_init_cb (GObject *source,
-    GAsyncResult *res,
-    gpointer data)
-{
-  GError *error = NULL;
-  WockyMuc *muc = WOCKY_MUC (source);
-
-  if (wocky_muc_initiate_finish (source, res, &error))
-    {
-      wocky_muc_send_presence (muc, WOCKY_STANZA_SUB_TYPE_NONE, NULL);
-      return;
-    }
-
-  if (error != NULL)
-    {
-      DEBUG ("wocky_muc_initiate_finish: %s", error->message);
-      g_error_free (error);
-    }
-  else
-    {
-      DEBUG ("wocky_muc_initiate_finish: unspecified error");
-    }
-}
-
 void
 wocky_muc_join (WockyMuc *muc,
     GCancellable *cancel)
 {
-  wocky_muc_initiate_async (muc, muc_join_init_cb, cancel, NULL);
+  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+
+  if (priv->state < MUC_INITIATED)
+    {
+      register_presence_handler (muc);
+      register_message_handler (muc);
+    }
+
+  priv->state = MUC_INITIATED;
+
+
+  wocky_muc_send_presence (muc, WOCKY_STANZA_SUB_TYPE_NONE, NULL);
 }
 
 /* misc meta data */
