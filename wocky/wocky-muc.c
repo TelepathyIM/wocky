@@ -64,8 +64,6 @@ typedef enum {
   MUC_ENDED,
 } WockyMucState;
 
-typedef struct { GAsyncReadyCallback func; gpointer data; } Callback;
-
 typedef struct { const gchar *ns; WockyMucFeature flag; } feature;
 static const feature feature_map[] =
   { { WOCKY_NS_MUC,               WOCKY_MUC_MODERN            },
@@ -646,16 +644,18 @@ muc_disco_info (GObject *source,
     GAsyncResult *res,
     gpointer data)
 {
-  WockyMuc *muc = WOCKY_MUC (source);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
-  Callback *cb = data;
-  GAsyncReadyCallback func = cb->func;
-  gpointer user_data = cb->data;
+  WockyMuc *muc;
+  WockyMucPrivate *priv;
   GError *error = NULL;
-  WockyXmppStanza *iq = wocky_porter_send_iq_finish (priv->porter, res, &error);
+  WockyXmppStanza *iq;
   WockyStanzaType type;
   WockyStanzaSubType sub;
-  GSimpleAsyncResult *result = NULL;
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (data);
+
+  muc = WOCKY_MUC (g_async_result_get_source_object (G_ASYNC_RESULT (result)));
+  priv = WOCKY_MUC_GET_PRIVATE (muc);
+
+  iq = wocky_porter_send_iq_finish (priv->porter, res, &error);
 
   priv->room_type = 0;
   g_free (priv->id_name);
@@ -735,22 +735,17 @@ muc_disco_info (GObject *source,
         break;
     }
 
- out:
+out:
   if (error != NULL)
     {
-      result =
-        g_simple_async_result_new_from_error (source, func, user_data, error);
+      g_simple_async_result_set_from_error (result, error);
       g_error_free (error);
     }
-  else
-    {
-      result = g_simple_async_result_new (source, func, user_data,
-          wocky_muc_disco_info_finish);
-    }
 
-  cb->func (source, (GAsyncResult *)result, cb->data);
-  g_free (cb);
-  g_object_unref (iq);
+  g_simple_async_result_complete (result);
+  g_object_unref (result);
+  if (iq != NULL)
+    g_object_unref (iq);
 }
 
 gboolean
@@ -773,7 +768,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
     gpointer data)
 {
   WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
-  Callback *cb = g_new0 (Callback, 1);
+  GSimpleAsyncResult *result;
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET,
       priv->user,
@@ -783,10 +778,11 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
-  cb->func = callback;
-  cb->data = data;
+  result = g_simple_async_result_new (G_OBJECT (muc), callback, data,
+    wocky_muc_disco_info_finish);
 
-  wocky_porter_send_iq_async (priv->porter, iq, cancel, muc_disco_info, cb);
+  wocky_porter_send_iq_async (priv->porter, iq, cancel, muc_disco_info,
+      result);
 }
 
 /* ask for MUC member list */
