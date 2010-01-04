@@ -26,6 +26,8 @@
 #include "wocky-debug.h"
 
 #include "wocky-muc.h"
+#include "wocky-muc-enumtypes.h"
+#include "wocky-xmpp-error-enumtypes.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
 #include "wocky-signals-marshal.h"
@@ -259,7 +261,7 @@ wocky_muc_class_init (WockyMucClass *klass)
   spec = g_param_spec_string ("jid", "jid",
       "Full room@service/nick JID of the MUC room",
       NULL,
-      (G_PARAM_CONSTRUCT_ONLY|G_PARAM_READWRITE|G_PARAM_STATIC_STRINGS));
+      G_PARAM_READWRITE|G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (oclass, PROP_JID, spec);
 
   spec = g_param_spec_string ("user", "user",
@@ -304,7 +306,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       (G_PARAM_READABLE|G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_RNICK, spec);
 
-  spec = g_param_spec_string ("pass", "pass",
+  spec = g_param_spec_string ("password", "password",
       "User's MUC room password",
       NULL,
       (G_PARAM_READWRITE|G_PARAM_STATIC_STRINGS));
@@ -346,11 +348,10 @@ wocky_muc_class_init (WockyMucClass *klass)
       (G_PARAM_READABLE|G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_ROLE, spec);
 
-  spec = g_param_spec_int ("affiliation", "affiliation",
+  spec = g_param_spec_enum ("affiliation", "affiliation",
       "The affiliation of the user with the MUC room",
-      WOCKY_MUC_AFFILIATION_OUTCAST,
+      WOCKY_TYPE_MUC_AFFILIATION,
       WOCKY_MUC_AFFILIATION_NONE,
-      WOCKY_MUC_AFFILIATION_OWNER,
       (G_PARAM_READABLE|G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_AFFILIATION, spec);
 
@@ -374,9 +375,9 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_PRESENCE_ERROR] = g_signal_new ("error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_ENUM_POINTER,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING,
       G_TYPE_NONE, 3,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_ENUM, G_TYPE_STRING);
+      WOCKY_TYPE_XMPP_STANZA, WOCKY_TYPE_XMPP_ERROR, G_TYPE_STRING);
 
   /* These signals convey actor(jid) + reason */
   signals[SIG_PERM_CHANGE] = g_signal_new ("permissions", ctype,
@@ -409,28 +410,28 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_MSG] = g_signal_new ("message", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_ENUM_POINTER_LONG_POINTER_POINTER_POINTER_ENUM,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_STRING_ENUM,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_XMPP_STANZA,
-      G_TYPE_ENUM,    /* WockyMucMsgType  */
+      WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
       G_TYPE_STRING,  /* XMPP msg ID      */
       G_TYPE_LONG,    /* time_t           */
       G_TYPE_POINTER, /* WockyMucMember * */
       G_TYPE_STRING,  /* content          */
       G_TYPE_STRING,  /* subject          */
-      G_TYPE_ENUM);   /* WockyMucMsgState */
+      WOCKY_TYPE_MUC_MSG_STATE);   /* WockyMucMsgState */
 
   signals[SIG_MSG_ERR] = g_signal_new ("message-error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_ENUM_POINTER_LONG_POINTER_POINTER_ENUM_POINTER,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_STRING,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_XMPP_STANZA,
-      G_TYPE_ENUM,    /* WockyMucMsgType  */
+      WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
       G_TYPE_STRING,  /* XMPP msg ID      */
       G_TYPE_LONG,    /* time_t           */
       G_TYPE_POINTER, /* WockyMucMember * */
       G_TYPE_STRING,  /* content          */
-      G_TYPE_ENUM,    /* WockyXmppError   */
+      WOCKY_TYPE_XMPP_ERROR,    /* WockyXmppError   */
       G_TYPE_STRING); /* error type       */
 }
 
@@ -547,7 +548,7 @@ wocky_muc_get_property (GObject *object,
         g_value_set_uint (value, priv->role);
         break;
       case PROP_AFFILIATION:
-        g_value_set_uint (value, priv->affiliation);
+        g_value_set_enum (value, priv->affiliation);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
