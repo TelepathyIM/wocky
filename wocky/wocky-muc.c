@@ -1032,10 +1032,12 @@ handle_user_presence (WockyMuc *muc,
   if (nick == NULL)
     return FALSE;
 
-  member = g_hash_table_lookup (priv->members, nick);
+  member = g_hash_table_lookup (priv->members, from);
 
   if (member == NULL)
     {
+      DEBUG ("New presence from %s, %s (state: %d)", from, nick, priv->state);
+
       member = alloc_member();
       member->from = g_strdup (from);
       member->jid = g_strdup (jid);
@@ -1043,7 +1045,7 @@ handle_user_presence (WockyMuc *muc,
       member->role = role;
       member->affiliation = aff;
       member->status = g_strdup (status);
-      g_hash_table_insert (priv->members, g_strdup (nick), member);
+      g_hash_table_insert (priv->members, g_strdup (from), member);
     }
   else
     {
