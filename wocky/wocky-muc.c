@@ -801,7 +801,7 @@ wocky_muc_create_presence (WockyMuc *muc,
 {
   WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
   WockyXmppStanza *stanza =
-    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_PRESENCE,
         type,
         priv->user,
         priv->jid,
