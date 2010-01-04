@@ -1486,7 +1486,7 @@ handle_message (WockyPorter *porter,
   if (is_error)
     {
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
-          mtype, id, stamp, who, body, xerr, etype);
+          stanza, mtype, id, stamp, who, body, xerr, etype);
       goto out;
     }
 
@@ -1500,7 +1500,7 @@ handle_message (WockyPorter *porter,
   mstate = msg_state[x].state;
 
   g_signal_emit (muc, signals[SIG_MSG], 0,
-      mtype, id, stamp, who, body, subj, mstate);
+      stanza, mtype, id, stamp, who, body, subj, mstate);
 
  out:
   if (from_self)
