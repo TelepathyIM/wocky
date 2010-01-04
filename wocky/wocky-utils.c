@@ -216,7 +216,7 @@ wocky_normalise_jid (const gchar *jid)
     {
       if (normal->len > 0)
         {
-          g_string_append_printf (normal, "/%s", domain);
+          g_string_append_printf (normal, "/%s", resource);
           rval = g_string_free (normal, FALSE);
         }
     }
