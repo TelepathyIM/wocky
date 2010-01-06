@@ -1178,11 +1178,6 @@ handle_presence_standard (WockyMuc *muc,
           if (cause != NULL)
             why = cause->content;
         }
-      else
-        {
-          DEBUG ("malformed presence (no <item/>)");
-          return FALSE;
-        }
 
       /* if this was not in the item, set it from the envelope: */
       if (pnic == NULL)
