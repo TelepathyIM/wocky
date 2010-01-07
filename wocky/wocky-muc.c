@@ -400,7 +400,7 @@ wocky_muc_class_init (WockyMucClass *klass)
   /* and these two pass on any message as well: */
   signals[SIG_PARTED] = g_signal_new ("parted", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_POINTER_POINTER_POINTER_POINTER,
+      _wocky_signals_marshal_VOID__OBJECT_BOXED_STRING_STRING_STRING,
       G_TYPE_NONE, 5,
       WOCKY_TYPE_XMPP_STANZA,
       G_TYPE_HASH_TABLE,
@@ -410,7 +410,7 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_LEFT] = g_signal_new ("left", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_POINTER_POINTER_POINTER_POINTER,
+      _wocky_signals_marshal_VOID__OBJECT_BOXED_POINTER_STRING_STRING_STRING,
       G_TYPE_NONE, 6,
       WOCKY_TYPE_XMPP_STANZA,
       G_TYPE_HASH_TABLE,
