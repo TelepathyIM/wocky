@@ -1063,23 +1063,19 @@ handle_user_presence (WockyMuc *muc,
       DEBUG ("New presence from %s, %s (state: %d)", from, nick, priv->state);
 
       member = alloc_member();
-      member->from = g_strdup (from);
-      member->jid = g_strdup (jid);
-      member->nick = g_strdup (nick);
-      member->role = role;
-      member->affiliation = aff;
-      member->status = g_strdup (status);
       g_hash_table_insert (priv->members, g_strdup (from), member);
     }
   else
     {
-      REPLACE_STR (member->from, from);
-      REPLACE_STR (member->jid, jid);
-      REPLACE_STR (member->nick, nick);
-      REPLACE_STR (member->status, status);
-      member->role = role;
-      member->affiliation = aff;
     }
+
+  REPLACE_STR (member->from, from);
+  REPLACE_STR (member->jid, jid);
+  REPLACE_STR (member->nick, nick);
+  REPLACE_STR (member->status, status);
+
+  member->role = role;
+  member->affiliation = aff;
 
   if (member->presence_stanza != NULL)
     g_object_unref (member->presence_stanza);
