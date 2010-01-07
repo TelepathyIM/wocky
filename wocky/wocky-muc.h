@@ -136,6 +136,7 @@ typedef struct {
   WockyMucRole role;
   WockyMucAffiliation affiliation;
   gchar *status; /* user set status string */
+  WockyXmppStanza *presence_stanza;
 } WockyMucMember;
 
 GType wocky_muc_get_type (void);

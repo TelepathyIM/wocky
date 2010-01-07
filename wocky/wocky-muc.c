@@ -174,6 +174,10 @@ static void
 free_member (gpointer data)
 {
   WockyMucMember *member = data;
+
+  if (member->presence_stanza != NULL)
+    g_object_unref (member->presence_stanza);
+
   g_free (member->from);
   g_free (member->jid);
   g_free (member->nick);
@@ -1076,6 +1080,11 @@ handle_user_presence (WockyMuc *muc,
       member->role = role;
       member->affiliation = aff;
     }
+
+  if (member->presence_stanza != NULL)
+    g_object_unref (member->presence_stanza);
+
+  member->presence_stanza = g_object_ref (stanza);
 
   if (priv->state >= MUC_JOINED)
     g_signal_emit (muc, signals[SIG_PRESENCE], 0, stanza, code, member);
