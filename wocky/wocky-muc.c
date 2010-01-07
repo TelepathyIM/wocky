@@ -182,13 +182,14 @@ free_member (gpointer data)
   g_free (member->jid);
   g_free (member->nick);
   g_free (member->status);
-  g_free (member);
+
+  g_slice_free (WockyMucMember, member);
 }
 
 static gpointer
 alloc_member (void)
 {
-  return g_new0 (WockyMucMember, 1);
+  return g_slice_new0 (WockyMucMember);
 }
 
 static void
