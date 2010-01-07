@@ -1260,12 +1260,18 @@ handle_presence_standard (WockyMuc *muc,
           else
             {
               WockyMucMember *member =
-                g_hash_table_lookup (priv->members, pnic);
+                g_hash_table_lookup (priv->members, from);
+
+              if (member == NULL)
+                {
+                  DEBUG ("Someone not in the muc left!?");
+                  goto out;
+                }
 
               g_signal_emit (muc, signals[SIG_LEFT], 0,
                   stanza, code, member, ajid, why, msg);
 
-              g_hash_table_remove (priv->members, pnic);
+              g_hash_table_remove (priv->members, from);
               ok = TRUE;
             }
           goto out;
