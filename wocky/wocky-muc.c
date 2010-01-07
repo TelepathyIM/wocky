@@ -209,6 +209,14 @@ wocky_muc_dispose (GObject *object)
 
   priv->dispose_has_run = TRUE;
 
+  if (priv->pres_handler != 0)
+    wocky_porter_unregister_handler (priv->porter, priv->pres_handler);
+  priv->pres_handler = 0;
+
+  if (priv->mesg_handler != 0)
+    wocky_porter_unregister_handler (priv->porter, priv->mesg_handler);
+  priv->mesg_handler = 0;
+
   if (priv->porter)
     g_object_unref (priv->porter);
   priv->porter = NULL;
@@ -452,7 +460,7 @@ wocky_muc_set_property (GObject *object,
   switch (property_id)
     {
       case PROP_PORTER:
-        priv->porter = g_value_get_object (value);
+        priv->porter = g_value_dup_object (value);
         break;
       case PROP_JID:
         g_free (priv->jid);
