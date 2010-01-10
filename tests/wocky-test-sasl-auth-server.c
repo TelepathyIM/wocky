@@ -364,7 +364,7 @@ success_sent (GObject *source,
 }
 
 static void
-auth_succeeded (TestSaslAuthServer *self)
+auth_succeeded (TestSaslAuthServer *self, const gchar *challenge)
 {
   TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE(self);
   WockyXmppStanza *s;
@@ -374,6 +374,7 @@ auth_succeeded (TestSaslAuthServer *self)
 
   s = wocky_xmpp_stanza_new ("success");
   wocky_xmpp_node_set_ns (s->node, WOCKY_XMPP_NS_SASL_AUTH);
+  wocky_xmpp_node_set_content (s->node, challenge);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
     success_sent, self);
@@ -704,7 +705,7 @@ handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
     }
   else if (ret == SASL_OK)
     {
-      auth_succeeded (self);
+      auth_succeeded (self, NULL);
     }
   else
     {
@@ -728,7 +729,7 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
   if (priv->state == AUTH_STATE_FINAL_CHALLENGE)
     {
       g_assert (stanza->node->content == NULL);
-      auth_succeeded (self);
+      auth_succeeded (self, NULL);
       return;
     }
 
@@ -780,18 +781,25 @@ handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
           challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
         }
 
-      c = wocky_xmpp_stanza_new ("challenge");
-      wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
-      wocky_xmpp_node_set_content (c->node, challenge64);
-      wocky_xmpp_connection_send_stanza_async (priv->conn, c,
-        NULL, NULL, NULL);
-      g_object_unref (c);
-
+      if (priv->state == AUTH_STATE_FINAL_CHALLENGE &&
+          priv->problem == SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS)
+        {
+          auth_succeeded (self, challenge64);
+        }
+      else
+        {
+          c = wocky_xmpp_stanza_new ("challenge");
+          wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
+          wocky_xmpp_node_set_content (c->node, challenge64);
+          wocky_xmpp_connection_send_stanza_async (priv->conn, c,
+            NULL, NULL, NULL);
+          g_object_unref (c);
+        }
       g_free (challenge64);
     }
   else if (ret == SASL_OK)
     {
-      auth_succeeded (self);
+      auth_succeeded (self, NULL);
     }
   else
     {
