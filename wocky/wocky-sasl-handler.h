@@ -40,9 +40,9 @@ typedef gchar * (*WockySaslChallengeFunc) (
  * Called when a <success/> stanza is received during authentication. If no
  * error is returned, then authentication is considered finished. (Typically,
  * an error is only raised if the <success/> stanza was received earlier than
- * expected.)
+ * expected or if the additional data with success is invalid.)
  **/
-typedef void (*WockySaslSuccessFunc) (
+typedef gboolean (*WockySaslSuccessFunc) (
     WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
 
 /** WockySaslSuccessFunc:
@@ -71,7 +71,7 @@ wocky_sasl_handler_handle_challenge (
     WockyXmppStanza *stanza,
     GError **error);
 
-void
+gboolean
 wocky_sasl_handler_handle_success (
     WockySaslHandler *handler,
     WockyXmppStanza *stanza,

@@ -52,13 +52,13 @@ wocky_sasl_handler_handle_challenge (
       handler, stanza, error);
 }
 
-void
+gboolean
 wocky_sasl_handler_handle_success (
     WockySaslHandler *handler,
     WockyXmppStanza *stanza,
     GError **error)
 {
-  WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func (
+  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func (
       handler, stanza, error);
 }
 

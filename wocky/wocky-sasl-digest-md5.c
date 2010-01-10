@@ -138,7 +138,7 @@ static gchar *
 digest_md5_handle_challenge (WockySaslHandler *handler,
     WockyXmppStanza *stanza, GError **error);
 
-static void
+static gboolean
 digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error);
 
@@ -519,7 +519,7 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
   return ret;
 }
 
-static void
+static gboolean
 digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
@@ -531,8 +531,10 @@ digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server sent success before finishing authentication");
-      return;
+      return FALSE;
     }
+
+  return TRUE;
 }
 
 static void

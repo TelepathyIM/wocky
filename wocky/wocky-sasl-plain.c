@@ -107,7 +107,7 @@ static gchar *
 plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error);
 
-static void
+static gboolean
 plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error);
 
@@ -185,10 +185,11 @@ plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
   return NULL;
 }
 
-static void
+static gboolean
 plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
+  return TRUE;
 }
 
 static void

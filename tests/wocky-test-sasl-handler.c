@@ -24,7 +24,7 @@ static gchar *
 test_handle_challenge (WockySaslHandler *handler,
     WockyXmppStanza *stanza, GError **error);
 
-static void
+static gboolean
 test_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error);
 
@@ -57,10 +57,11 @@ test_handle_challenge (WockySaslHandler *handler,
   return g_base64_encode ((guchar *) "open sesame", 11);
 }
 
-static void
+static gboolean
 test_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error)
 {
+  return TRUE;
 }
 
 static void
