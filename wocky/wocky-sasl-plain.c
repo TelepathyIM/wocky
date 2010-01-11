@@ -103,8 +103,9 @@ wocky_sasl_plain_class_init (WockySaslPlainClass *klass)
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 }
 
-static gchar *
-plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
+static gboolean
+plain_initial_response (WockySaslHandler *handler,
+    gchar **initial_data,
     GError **error);
 
 static gboolean
@@ -122,7 +123,7 @@ sasl_handler_iface_init (gpointer g_iface)
 
   iface->mechanism = "PLAIN";
   iface->plain = TRUE;
-  iface->challenge_func = plain_handle_challenge;
+  iface->initial_response_func = plain_initial_response;
   iface->success_func = plain_handle_success;
   iface->failure_func = plain_handle_failure;
 }
@@ -158,31 +159,28 @@ plain_generate_initial_response (const gchar *username, const gchar *password)
   return cstr;
 }
 
-static gchar *
-plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
+static gboolean
+plain_initial_response (WockySaslHandler *handler,
+    gchar **initial_data,
     GError **error)
 {
   WockySaslPlain *self = WOCKY_SASL_PLAIN (handler);
   WockySaslPlainPrivate *priv = self->priv;
 
-  if (stanza == NULL)
+  if (priv->username == NULL || priv->password == NULL)
     {
-      if (priv->username == NULL || priv->password == NULL)
-        {
-          g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-              WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-              "No username or password provided");
-          return NULL;
-        }
-
-      DEBUG ("Got username and password");
-      return plain_generate_initial_response (priv->username, priv->password);
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+          "No username or password provided");
+      return FALSE;
     }
 
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-      WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-      "Server sent an unexpected challenge");
-  return NULL;
+  DEBUG ("Got username and password");
+
+  *initial_data = plain_generate_initial_response (priv->username,
+    priv->password);
+
+  return TRUE;
 }
 
 static gboolean

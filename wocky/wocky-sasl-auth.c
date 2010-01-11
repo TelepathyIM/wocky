@@ -510,7 +510,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gboolean ret = TRUE;
-  gchar *initial_response;
+  gchar *initial_response = NULL;
   GError *error = NULL;
 
   priv->handler = handler;
@@ -522,10 +522,8 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   wocky_xmpp_node_set_attribute_ns (stanza->node,
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
-  initial_response =
-      wocky_sasl_handler_handle_challenge ( priv->handler, NULL, &error);
-
-  if (error != NULL)
+  if (!wocky_sasl_handler_get_initial_response (priv->handler,
+      &initial_response, &error))
     {
       auth_failed (sasl, error->domain, error->message);
       goto out;

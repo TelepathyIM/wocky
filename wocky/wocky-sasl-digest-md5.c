@@ -496,7 +496,6 @@ auth_data_to_hash (WockyXmppStanza *stanza, GError **error)
   return h;
 }
 
-
 static gchar *
 digest_md5_handle_challenge (WockySaslHandler *handler,
     WockyXmppStanza *stanza, GError **error)
@@ -505,10 +504,6 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
   WockySaslDigestMd5Private *priv = self->priv;
   GHashTable *h;
   gchar *ret = NULL;
-
-  if (stanza == NULL)
-    /* We don't have any data to send with the auth initiation. */
-    return NULL;
 
   h = auth_data_to_hash (stanza, error);
 
