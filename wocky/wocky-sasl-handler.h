@@ -53,7 +53,8 @@ typedef gboolean (*WockySaslAuthDataFunc) (
  * expected or if the additional data with success is invalid.)
  **/
 typedef gboolean (*WockySaslSuccessFunc) (
-    WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
+    WockySaslHandler *handler,
+    GError **error);
 
 void
 wocky_sasl_handler_free (WockySaslHandler *handler);
@@ -82,7 +83,6 @@ wocky_sasl_handler_handle_auth_data (
 gboolean
 wocky_sasl_handler_handle_success (
     WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
     GError **error);
 
 typedef struct _WockySaslHandlerIface WockySaslHandlerIface;

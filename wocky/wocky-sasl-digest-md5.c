@@ -139,7 +139,7 @@ digest_md5_handle_auth_data (WockySaslHandler *handler,
     const gchar *data, gchar **response, GError **error);
 
 static gboolean
-digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
+digest_md5_handle_success (WockySaslHandler *handler,
     GError **error);
 
 static void
@@ -525,47 +525,17 @@ digest_md5_handle_auth_data (WockySaslHandler *handler,
 }
 
 static gboolean
-digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
+digest_md5_handle_success (WockySaslHandler *handler,
     GError **error)
 {
   WockySaslDigestMd5 *self = WOCKY_SASL_DIGEST_MD5 (handler);
   WockySaslDigestMd5Private *priv = self->priv;
 
-  switch (priv->state)
-    {
-      case WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE:
-        {
-          /* Should have received final auth data in success */
-          GHashTable *h;
-          gboolean ret;
+  if (priv->state == WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE)
+    return TRUE;
 
-          if (stanza->node->content == NULL)
-            {
-              DEBUG ("Expected auth data but didn't get any!");
-              g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-                WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-                "Expected auth data from the server, but didn't get any");
-              return FALSE;
-            }
-
-          h = auth_data_to_hash (stanza->node->content, error);
-
-          if (h == NULL)
-            return FALSE;
-
-          ret = digest_md5_check_server_response (priv, h, error);
-          g_hash_table_destroy (h);
-
-          return ret;
-        }
-      case WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE:
-        return TRUE;
-      default:
-        g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server sent success before finishing authentication");
-        return FALSE;
-    }
-
-  return TRUE;
+  g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+    WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+    "Server sent success before finishing authentication");
+  return FALSE;
 }

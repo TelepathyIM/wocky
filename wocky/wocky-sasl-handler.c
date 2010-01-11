@@ -87,7 +87,6 @@ wocky_sasl_handler_handle_auth_data (
 gboolean
 wocky_sasl_handler_handle_success (
     WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
     GError **error)
 {
   WockySaslSuccessFunc func =
@@ -96,5 +95,5 @@ wocky_sasl_handler_handle_success (
   if (func == NULL)
     return TRUE;
   else
-   return func (handler, stanza, error);
+   return func (handler, error);
 }

@@ -475,7 +475,27 @@ sasl_auth_stanza_received (GObject *source,
     }
   else if (!wocky_strdiff (stanza->node->name, "success"))
     {
-      wocky_sasl_handler_handle_success (priv->handler, stanza, &error);
+      if (stanza->node->content != NULL)
+        {
+          gchar *response = NULL;
+
+          if (!wocky_sasl_handler_handle_auth_data (priv->handler,
+            stanza->node->content, &response, &error))
+            goto failure;
+
+          if (response != NULL)
+            {
+              auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+                "Got success from the server while we still had more data to "
+                "send");
+              goto out;
+            }
+        }
+
+      if (!wocky_sasl_handler_handle_success (priv->handler, &error))
+        goto failure;
+      else
+        auth_succeeded (sasl);
     }
   else if (!wocky_strdiff (stanza->node->name, "failure"))
     {
@@ -487,16 +507,6 @@ sasl_auth_stanza_received (GObject *source,
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (%s)",
           stanza->node->name);
-    }
-
-  if (error != NULL)
-    {
-      auth_failed (sasl, error->code, error->message);
-      g_error_free (error);
-    }
-  else if (!wocky_strdiff (stanza->node->name, "success"))
-    {
-      auth_succeeded (sasl);
     }
 
 out:
