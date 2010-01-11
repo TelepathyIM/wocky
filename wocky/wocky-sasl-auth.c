@@ -428,7 +428,6 @@ sasl_auth_stanza_received (GObject *source,
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppStanza *stanza;
   GError *error = NULL;
-  gchar *response = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
@@ -453,19 +452,26 @@ sasl_auth_stanza_received (GObject *source,
 
   if (!wocky_strdiff (stanza->node->name, "challenge"))
     {
-      response = wocky_sasl_handler_handle_challenge (
-          priv->handler, stanza, &error);
+      WockyXmppStanza *response_stanza;
+      gchar *response = NULL;
 
-      if (response != NULL && error != NULL)
-        {
-          g_warning ("SASL handler returned both a response and an error (%s)",
-              error->message);
+      if (!wocky_sasl_handler_handle_auth_data (priv->handler,
+          stanza->node->content, &response, &error))
+        goto failure;
+
+      response_stanza = wocky_xmpp_stanza_new ("response");
+      wocky_xmpp_node_set_ns (
+         response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
+      wocky_xmpp_node_set_content (response_stanza->node, response);
+
+       /* FIXME handle send error */
+      wocky_xmpp_connection_send_stanza_async (
+          priv->connection, response_stanza, NULL, NULL, NULL);
+          g_object_unref (response_stanza);
           g_free (response);
-        }
-      else if (response == NULL && error == NULL)
-        {
-          g_warning ("SASL handler returned no result and no error");
-        }
+
+      wocky_xmpp_connection_recv_stanza_async (priv->connection,
+          NULL, sasl_auth_stanza_received, sasl);
     }
   else if (!wocky_strdiff (stanza->node->name, "success"))
     {
@@ -491,27 +497,6 @@ sasl_auth_stanza_received (GObject *source,
   else if (!wocky_strdiff (stanza->node->name, "success"))
     {
       auth_succeeded (sasl);
-    }
-  else
-    {
-      if (response != NULL)
-        {
-          WockyXmppStanza *response_stanza;
-
-          response_stanza = wocky_xmpp_stanza_new ("response");
-          wocky_xmpp_node_set_ns (
-              response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
-          wocky_xmpp_node_set_content (response_stanza->node, response);
-
-          /* FIXME handle send error */
-          wocky_xmpp_connection_send_stanza_async (
-              priv->connection, response_stanza, NULL, NULL, NULL);
-          g_object_unref (response_stanza);
-          g_free (response);
-        }
-
-      wocky_xmpp_connection_recv_stanza_async (priv->connection,
-          NULL, sasl_auth_stanza_received, sasl);
     }
 
 out:

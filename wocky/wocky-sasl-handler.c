@@ -60,24 +60,28 @@ wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
   return func (handler, initial_data, error);
 }
 
-gchar *
-wocky_sasl_handler_handle_challenge (
+gboolean
+wocky_sasl_handler_handle_auth_data (
     WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
+    const gchar *data,
+    gchar **response,
     GError **error)
 {
-  WockySaslChallengeFunc func =
-    WOCKY_SASL_HANDLER_GET_IFACE (handler)->challenge_func;
+  WockySaslAuthDataFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->auth_data_func;
+
+  g_assert (response != NULL);
+  *response = NULL;
 
   if (func == NULL)
     {
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server send a challenge, but the mechanism didn't expect any");
-      return NULL;
+      return FALSE;
     }
 
-  return func (handler, stanza, error);
+  return func (handler, data, response, error);
 }
 
 gboolean

@@ -134,9 +134,9 @@ wocky_sasl_digest_md5_class_init (
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 }
 
-static gchar *
-digest_md5_handle_challenge (WockySaslHandler *handler,
-    WockyXmppStanza *stanza, GError **error);
+static gboolean
+digest_md5_handle_auth_data (WockySaslHandler *handler,
+    const gchar *data, gchar **response, GError **error);
 
 static gboolean
 digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
@@ -410,30 +410,30 @@ error:
 }
 
 
-static gchar *
+static gboolean
 digest_md5_make_initial_response (
     WockySaslDigestMd5Private *priv,
     GHashTable *challenge,
+    gchar **response,
     GError **error)
 {
-  gchar *response, *response64;
+  gchar *raw_response;
 
-  response = md5_prepare_response (priv, challenge, error);
-  if (response == NULL)
-    {
-      return NULL;
-    }
+  raw_response = md5_prepare_response (priv, challenge, error);
+  if (raw_response == NULL)
+    return FALSE;
 
-  DEBUG ("Prepared response: %s", response);
+  DEBUG ("Prepared response: %s", raw_response);
 
-  response64 = g_base64_encode ((guchar *) response, strlen (response));
+  *response = g_base64_encode ((guchar *) raw_response, strlen (raw_response));
 
-  g_free (response);
+  g_free (raw_response);
   priv->state = WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE;
-  return response64;
+
+  return TRUE;
 }
 
-static gchar *
+static gboolean
 digest_md5_check_server_response (
     WockySaslDigestMd5Private *priv,
     GHashTable *challenge,
@@ -447,7 +447,7 @@ digest_md5_check_server_response (
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (no rspauth)");
-      return NULL;
+      return FALSE;
     }
 
   if (strcmp (priv->digest_md5_rspauth, rspauth))
@@ -455,30 +455,21 @@ digest_md5_check_server_response (
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (rspauth not matching)");
-      return NULL;
+      return FALSE;
     }
 
   priv->state = WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE;
-  return g_strdup ("");
+  return TRUE;
 }
 
 static GHashTable *
-auth_data_to_hash (WockyXmppStanza *stanza, GError **error)
+auth_data_to_hash (const gchar *data, GError **error)
 {
   GHashTable *h = NULL;
   gchar *challenge = NULL;
   gsize len;
 
-  if (stanza->node->content == NULL)
-    {
-      DEBUG ("Expected auth data but didn't get any!");
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-        WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-        "Expected auth data from the server, but didn't get any");
-      return NULL;
-    }
-
-  challenge = (gchar *) g_base64_decode (stanza->node->content, &len);
+  challenge = (gchar *) g_base64_decode (data, &len);
   DEBUG("Got digest-md5 challenge: %s", challenge);
   h = digest_md5_challenge_to_hash (challenge);
   g_free (challenge);
@@ -491,23 +482,34 @@ auth_data_to_hash (WockyXmppStanza *stanza, GError **error)
   return h;
 }
 
-static gchar *
-digest_md5_handle_challenge (WockySaslHandler *handler,
-    WockyXmppStanza *stanza, GError **error)
+static gboolean
+digest_md5_handle_auth_data (WockySaslHandler *handler,
+    const gchar *data,
+    gchar **response,
+    GError **error)
 {
   WockySaslDigestMd5 *self = WOCKY_SASL_DIGEST_MD5 (handler);
   WockySaslDigestMd5Private *priv = self->priv;
   GHashTable *h;
-  gchar *ret = NULL;
+  gboolean ret = FALSE;
 
-  h = auth_data_to_hash (stanza, error);
+  if (data == NULL)
+    {
+      DEBUG ("Expected auth data but didn't get any!");
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+        WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+        "Expected auth data from the server, but didn't get any");
+      return FALSE;
+    }
+
+  h = auth_data_to_hash (data, error);
 
   if (h == NULL)
-    return NULL;
+    return FALSE;
 
   switch (priv->state) {
     case WOCKY_SASL_DIGEST_MD5_STATE_STARTED:
-      ret = digest_md5_make_initial_response (priv, h, error);
+      ret = digest_md5_make_initial_response (priv, h, response, error);
       break;
     case WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE:
       ret = digest_md5_check_server_response (priv, h, error);
@@ -515,9 +517,10 @@ digest_md5_handle_challenge (WockySaslHandler *handler,
     default:
       g_set_error (error, WOCKY_SASL_AUTH_ERROR,
           WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-          "Server sent a challenge at the wrong time");
+          "Server sent unexpected auth data");
   }
   g_hash_table_destroy (h);
+
   return ret;
 }
 
@@ -533,17 +536,27 @@ digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
       case WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE:
         {
           /* Should have received final auth data in success */
-          GHashTable *h = auth_data_to_hash (stanza, error);
-          gchar *ret;
+          GHashTable *h;
+          gboolean ret;
+
+          if (stanza->node->content == NULL)
+            {
+              DEBUG ("Expected auth data but didn't get any!");
+              g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+                WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+                "Expected auth data from the server, but didn't get any");
+              return FALSE;
+            }
+
+          h = auth_data_to_hash (stanza->node->content, error);
 
           if (h == NULL)
             return FALSE;
 
           ret = digest_md5_check_server_response (priv, h, error);
           g_hash_table_destroy (h);
-          g_free (ret);
 
-          return ret != NULL;
+          return ret;
         }
       case WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE:
         return TRUE;
