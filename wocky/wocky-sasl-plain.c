@@ -108,10 +108,6 @@ plain_initial_response (WockySaslHandler *handler,
     gchar **initial_data,
     GError **error);
 
-static gboolean
-plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error);
-
 static void
 plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error);
@@ -124,7 +120,6 @@ sasl_handler_iface_init (gpointer g_iface)
   iface->mechanism = "PLAIN";
   iface->plain = TRUE;
   iface->initial_response_func = plain_initial_response;
-  iface->success_func = plain_handle_success;
   iface->failure_func = plain_handle_failure;
 }
 
@@ -180,13 +175,6 @@ plain_initial_response (WockySaslHandler *handler,
   *initial_data = plain_generate_initial_response (priv->username,
     priv->password);
 
-  return TRUE;
-}
-
-static gboolean
-plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
   return TRUE;
 }
 

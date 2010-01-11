@@ -86,8 +86,13 @@ wocky_sasl_handler_handle_success (
     WockyXmppStanza *stanza,
     GError **error)
 {
-  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func (
-      handler, stanza, error);
+  WockySaslSuccessFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func;
+
+  if (func == NULL)
+    return TRUE;
+  else
+   return func (handler, stanza, error);
 }
 
 void
