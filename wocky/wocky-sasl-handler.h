@@ -51,14 +51,6 @@ typedef gchar * (*WockySaslChallengeFunc) (
 typedef gboolean (*WockySaslSuccessFunc) (
     WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
 
-/** WockySaslSuccessFunc:
- * Called when a <failure/> stanza is received during authentication. The
- * handler may provide a detailed error via @error. If no error is returned,
- * authentication will fail with a general authentication error.
- **/
-typedef void (*WockySaslFailureFunc) (
-    WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
-
 void
 wocky_sasl_handler_free (WockySaslHandler *handler);
 
@@ -88,12 +80,6 @@ wocky_sasl_handler_handle_success (
     WockyXmppStanza *stanza,
     GError **error);
 
-void
-wocky_sasl_handler_handle_failure (
-    WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
-    GError **error);
-
 typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
 
 /**
@@ -105,7 +91,6 @@ typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
  *    plaintext.
  * @challenge_func: Called when a <challenge/> stanza is received.
  * @success_func: Called when a <success/> stanza is received.
- * @failure_func: Called when a <failure/> stanza is received.
  **/
 struct _WockySaslHandlerIface
 {
@@ -115,7 +100,6 @@ struct _WockySaslHandlerIface
     WockySaslInitialResponseFunc initial_response_func;
     WockySaslChallengeFunc challenge_func;
     WockySaslSuccessFunc success_func;
-    WockySaslFailureFunc failure_func;
 };
 
 G_END_DECLS

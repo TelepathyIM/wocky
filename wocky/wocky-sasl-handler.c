@@ -94,13 +94,3 @@ wocky_sasl_handler_handle_success (
   else
    return func (handler, stanza, error);
 }
-
-void
-wocky_sasl_handler_handle_failure (
-    WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
-    GError **error)
-{
-  WOCKY_SASL_HANDLER_GET_IFACE (handler)->failure_func (
-      handler, stanza, error);
-}

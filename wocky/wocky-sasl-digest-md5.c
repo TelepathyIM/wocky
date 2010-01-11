@@ -143,19 +143,14 @@ digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
     GError **error);
 
 static void
-digest_md5_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error);
-
-static void
 sasl_handler_iface_init (gpointer g_iface)
 {
   WockySaslHandlerIface *iface = g_iface;
 
   iface->mechanism = "DIGEST-MD5";
   iface->plain = FALSE;
-  iface->challenge_func = digest_md5_handle_challenge;
+  iface->auth_data_func = digest_md5_handle_auth_data;
   iface->success_func = digest_md5_handle_success;
-  iface->failure_func = digest_md5_handle_failure;
 }
 
 static void
@@ -561,24 +556,3 @@ digest_md5_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
 
   return TRUE;
 }
-
-static void
-digest_md5_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockyXmppNode *reason = NULL;
-  if (stanza->node->children != NULL)
-    {
-      /* TODO add a wocky xmpp node utility to either get the first child or
-       * iterate the children list */
-      reason = (WockyXmppNode *) stanza->node->children->data;
-    }
-  /* TODO Handle the different error cases in a different way. i.e.
-   * make it clear for the user if it's credentials were wrong, if the server
-   * just has a temporary error or if the authentication procedure itself was
-   * at fault (too weak, invalid mech etc) */
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-      "Authentication failed: %s",
-      reason == NULL ? "Unknown reason" : reason->name);
-}
-

@@ -109,10 +109,6 @@ plain_initial_response (WockySaslHandler *handler,
     GError **error);
 
 static void
-plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error);
-
-static void
 sasl_handler_iface_init (gpointer g_iface)
 {
   WockySaslHandlerIface *iface = g_iface;
@@ -120,7 +116,6 @@ sasl_handler_iface_init (gpointer g_iface)
   iface->mechanism = "PLAIN";
   iface->plain = TRUE;
   iface->initial_response_func = plain_initial_response;
-  iface->failure_func = plain_handle_failure;
 }
 
 static void
@@ -177,26 +172,3 @@ plain_initial_response (WockySaslHandler *handler,
 
   return TRUE;
 }
-
-static void
-plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockyXmppNode *reason = NULL;
-
-  if (stanza->node->children != NULL)
-    {
-      /* TODO add a wocky xmpp node utility to either get the first child or
-       * iterate the children list */
-      reason = (WockyXmppNode *) stanza->node->children->data;
-    }
-    /* TODO Handle the different error cases in a different way. i.e.
-     * make it clear for the user if it's credentials were wrong, if the server
-     * just has a temporary error or if the authentication procedure itself was
-     * at fault (too weak, invalid mech etc) */
-
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-      "Authentication failed: %s",
-      reason == NULL ? "Unknown reason" : reason->name);
-}
-

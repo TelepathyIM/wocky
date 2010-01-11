@@ -26,10 +26,6 @@ test_initial_response (WockySaslHandler *handler,
     GError **error);
 
 static void
-test_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error);
-
-static void
 sasl_handler_iface_init (gpointer g_iface)
 {
   WockySaslHandlerIface *iface = g_iface;
@@ -37,7 +33,6 @@ sasl_handler_iface_init (gpointer g_iface)
   iface->mechanism = "X-TEST";
   iface->plain = FALSE;
   iface->initial_response_func = test_initial_response;
-  iface->failure_func = test_handle_failure;
 }
 
 WockyTestSaslHandler *
@@ -54,10 +49,3 @@ test_initial_response (WockySaslHandler *handler,
   *initial_data = g_base64_encode ((guchar *) "open sesame", 11);
   return TRUE;
 }
-
-static void
-test_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-}
-
