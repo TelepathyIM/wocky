@@ -1,5 +1,6 @@
 
 #include "wocky-sasl-handler.h"
+#include "wocky-sasl-auth.h"
 
 GType
 wocky_sasl_handler_get_type (void)
@@ -42,14 +43,41 @@ wocky_sasl_handler_is_plain (WockySaslHandler *handler)
   return WOCKY_SASL_HANDLER_GET_IFACE (handler)->plain;
 }
 
+gboolean
+wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
+    gchar **initial_data,
+    GError **error)
+{
+  WockySaslInitialResponseFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->initial_response_func;
+
+  g_assert (initial_data != NULL);
+  *initial_data = NULL;
+
+  if (func == NULL)
+    return TRUE;
+
+  return func (handler, initial_data, error);
+}
+
 gchar *
 wocky_sasl_handler_handle_challenge (
     WockySaslHandler *handler,
     WockyXmppStanza *stanza,
     GError **error)
 {
-  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->challenge_func (
-      handler, stanza, error);
+  WockySaslChallengeFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->challenge_func;
+
+  if (func == NULL)
+    {
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server send a challenge, but the mechanism didn't expect any");
+      return NULL;
+    }
+
+  return func (handler, stanza, error);
 }
 
 gboolean
