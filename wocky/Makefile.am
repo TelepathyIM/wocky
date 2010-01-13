@@ -123,12 +123,17 @@ AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) \
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @TLS_LIBS@
 
 # rules for making the glib enum objects
+# The shell variable $long is something like WOCKY_XMPP_ERROR for
+# wocky-xmpp-error-enumtypes.h, and $short is WOCKY.
 %-enumtypes.h: %.h Makefile.in
-	$(AM_V_GEN)glib-mkenums \
-	--fhead "#ifndef __$(shell echo $* | tr [:lower:]- [:upper:]_)_ENUM_TYPES_H__\n#define __$(shell echo $* | tr [:lower:]- [:upper:]_)_ENUM_TYPES_H__\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
+	$(AM_V_GEN)set -e; \
+	long=`echo $(notdir $*) | tr [:lower:]- [:upper:]_`; \
+	short=$${long%%_*}; \
+	glib-mkenums \
+	--fhead "#ifndef __$${long}_ENUM_TYPES_H__\n#define __$${long}_ENUM_TYPES_H__\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 	--fprod "/* enumerations from \"@filename@\" */\n" \
-	--vhead "GType @enum_name@_get_type (void);\n#define $(shell echo $* | tr [:lower:]- [:upper:]_ | sed 's/_.*//')_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n"         \
-	--ftail "G_END_DECLS\n\n#endif /* __$(shell echo $* | tr [:lower:]- [:upper:]_)_ENUM_TYPES_H__ */" \
+	--vhead "GType @enum_name@_get_type (void);\n#define $${short}_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n"         \
+	--ftail "G_END_DECLS\n\n#endif" \
 	$< > $@
 
 %-enumtypes.c: %.h Makefile.in

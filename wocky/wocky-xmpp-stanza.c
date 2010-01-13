@@ -344,9 +344,10 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  * Build a XMPP stanza from a list of arguments.
  * Example:
  *
+ * <example><programlisting>
  * wocky_xmpp_stanza_build (
  *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
- *    "alice@collabora.co.uk", "bob@collabora.co.uk",
+ *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
  *    WOCKY_NODE, "html",
  *      WOCKY_NODE_XMLNS, "http://www.w3.org/1999/xhtml",
  *      WOCKY_NODE, "body",
@@ -355,16 +356,17 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  *      WOCKY_NODE_END,
  *    WOCKY_NODE_END,
  *   WOCKY_STANZA_END);
- *
- * -->
- *
- * <message from='alice@collabora.co.uk' to='bob@collabora.co.uk'>
- *   <html xmlns='http://www.w3.org/1999/xhtml'>
- *     <body textcolor='red'>
+ * <!-- -->
+ * /<!-- -->* produces
+ * &lt;message from='alice@<!-- -->collabora.co.uk' to='bob@<!-- -->collabora.co.uk'&gt;
+ *   &lt;html xmlns='http://www.w3.org/1999/xhtml'&gt;
+ *     &lt;body textcolor='red'&gt;
  *       Telepathy rocks!
- *     </body>
- *   </html>
- * </message>
+ *     &lt;/body&gt;
+ *   &lt;/html&gt;
+ * &lt;/message&gt;
+ * *<!-- -->/
+ * </programlisting></example>
  */
 WockyXmppStanza *
 wocky_xmpp_stanza_build (WockyStanzaType type,
