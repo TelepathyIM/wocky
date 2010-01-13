@@ -129,7 +129,7 @@ $(filter %-enumtypes.h,$(BUILT_SOURCES)): %-enumtypes.h: %.h Makefile.in
 	$(AM_V_GEN)set -e; \
 	long=`echo $* | tr [:lower:]- [:upper:]_`; \
 	short=$${long%%_*}; \
-	guard="__${long}_ENUM_TYPES_H__"; \
+	guard="__$${long}_ENUM_TYPES_H__"; \
 	glib-mkenums \
 	--fhead "#ifndef $${guard}\n#define $${guard}\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 	--fprod "/* enumerations from \"@filename@\" */\n" \
