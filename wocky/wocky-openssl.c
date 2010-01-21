@@ -1579,7 +1579,8 @@ wocky_tls_session_constructed (GObject *object)
   SSL_CTX_set_default_verify_paths (session->ctx);
   /* verification will be done manually after the handshake: */
   SSL_CTX_set_verify (session->ctx, SSL_VERIFY_NONE, NULL);
-  SSL_CTX_set_options (session->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+  SSL_CTX_set_options (session->ctx,
+                       SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_NO_SSLv2);
   X509_STORE_set_flags (SSL_CTX_get_cert_store (session->ctx),
                         X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
 
