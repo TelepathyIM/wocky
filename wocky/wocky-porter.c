@@ -233,12 +233,17 @@ stanza_iq_handler_new (WockyPorter *self,
     const gchar *recipient)
 {
   StanzaIqHandler *handler = g_slice_new0 (StanzaIqHandler);
-  gchar *to = wocky_normalise_jid (recipient);
+  gchar *to = NULL;
 
-  if (to == NULL)
+  if (recipient != NULL)
     {
-      DEBUG ("Failed to normalise stanza recipient '%s'", recipient);
-      to = g_strdup (recipient);
+      to = wocky_normalise_jid (recipient);
+
+      if (to == NULL)
+        {
+          DEBUG ("Failed to normalise stanza recipient '%s'", recipient);
+          to = g_strdup (recipient);
+        }
     }
 
   handler->self = self;
