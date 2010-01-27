@@ -40,6 +40,9 @@ typedef enum {
   SERVER_PROBLEM_DISLIKE_GOOGLE_JDD,
   SERVER_PROBLEM_SPACE_CHALLENGE,
   SERVER_PROBLEM_SLASH_CHALLENGE,
+  /* Not actually a problem, but let the server choose to put
+   * ``additional data with success'' in a success stanza. */
+  SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS,
 } ServerProblem;
 
 typedef struct _TestSaslAuthServer TestSaslAuthServer;

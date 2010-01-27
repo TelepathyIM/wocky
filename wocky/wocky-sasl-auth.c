@@ -397,6 +397,29 @@ wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
 }
 
 static void
+sasl_auth_got_failure (WockySaslAuth *sasl,
+  WockyXmppStanza *stanza,
+  GError **error)
+{
+  WockyXmppNode *reason = NULL;
+
+  if (stanza->node->children != NULL)
+    {
+      /* TODO add a wocky xmpp node utility to either get the first child or
+       * iterate the children list */
+      reason = (WockyXmppNode *) stanza->node->children->data;
+    }
+    /* TODO Handle the different error cases in a different way. i.e.
+     * make it clear for the user if it's credentials were wrong, if the server
+     * just has a temporary error or if the authentication procedure itself was
+     * at fault (too weak, invalid mech etc) */
+
+  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+      "Authentication failed: %s",
+      reason == NULL ? "Unknown reason" : reason->name);
+}
+
+static void
 sasl_auth_stanza_received (GObject *source,
   GAsyncResult *res,
   gpointer user_data)
@@ -405,7 +428,6 @@ sasl_auth_stanza_received (GObject *source,
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
   WockyXmppStanza *stanza;
   GError *error = NULL;
-  gchar *response = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
     WOCKY_XMPP_CONNECTION (priv->connection), res, NULL);
@@ -430,27 +452,55 @@ sasl_auth_stanza_received (GObject *source,
 
   if (!wocky_strdiff (stanza->node->name, "challenge"))
     {
-      response = wocky_sasl_handler_handle_challenge (
-          priv->handler, stanza, &error);
+      WockyXmppStanza *response_stanza;
+      gchar *response = NULL;
 
-      if (response != NULL && error != NULL)
-        {
-          g_warning ("SASL handler returned both a response and an error (%s)",
-              error->message);
+      if (!wocky_sasl_handler_handle_auth_data (priv->handler,
+          stanza->node->content, &response, &error))
+        goto failure;
+
+      response_stanza = wocky_xmpp_stanza_new ("response");
+      wocky_xmpp_node_set_ns (
+         response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
+      wocky_xmpp_node_set_content (response_stanza->node, response);
+
+       /* FIXME handle send error */
+      wocky_xmpp_connection_send_stanza_async (
+          priv->connection, response_stanza, NULL, NULL, NULL);
+          g_object_unref (response_stanza);
           g_free (response);
-        }
-      else if (response == NULL && error == NULL)
-        {
-          g_warning ("SASL handler returned no result and no error");
-        }
+
+      wocky_xmpp_connection_recv_stanza_async (priv->connection,
+          NULL, sasl_auth_stanza_received, sasl);
     }
   else if (!wocky_strdiff (stanza->node->name, "success"))
     {
-      wocky_sasl_handler_handle_success (priv->handler, stanza, &error);
+      if (stanza->node->content != NULL)
+        {
+          gchar *response = NULL;
+
+          if (!wocky_sasl_handler_handle_auth_data (priv->handler,
+            stanza->node->content, &response, &error))
+            goto failure;
+
+          if (response != NULL)
+            {
+              auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+                "Got success from the server while we still had more data to "
+                "send");
+              goto out;
+            }
+        }
+
+      if (!wocky_sasl_handler_handle_success (priv->handler, &error))
+        goto failure;
+      else
+        auth_succeeded (sasl);
     }
   else if (!wocky_strdiff (stanza->node->name, "failure"))
     {
-      wocky_sasl_handler_handle_failure (priv->handler, stanza, &error);
+      sasl_auth_got_failure (sasl, stanza, &error);
+      goto failure;
     }
   else
     {
@@ -459,48 +509,16 @@ sasl_auth_stanza_received (GObject *source,
           stanza->node->name);
     }
 
-  if (error != NULL)
-    {
-      auth_failed (sasl, error->code, error->message);
-      g_error_free (error);
-    }
-  else if (!wocky_strdiff (stanza->node->name, "success"))
-    {
-      auth_succeeded (sasl);
-    }
-  else if (!wocky_strdiff (stanza->node->name, "failure"))
-    {
-      /* Handler didn't return error from failure function. Fail with a
-       * general error.
-       */
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_FAILURE,
-          "Authentication failed.");
-    }
-  else
-    {
-      if (response != NULL)
-        {
-          WockyXmppStanza *response_stanza;
-
-          response_stanza = wocky_xmpp_stanza_new ("response");
-          wocky_xmpp_node_set_ns (
-              response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
-          wocky_xmpp_node_set_content (response_stanza->node, response);
-
-          /* FIXME handle send error */
-          wocky_xmpp_connection_send_stanza_async (
-              priv->connection, response_stanza, NULL, NULL, NULL);
-          g_object_unref (response_stanza);
-          g_free (response);
-        }
-
-      wocky_xmpp_connection_recv_stanza_async (priv->connection,
-          NULL, sasl_auth_stanza_received, sasl);
-    }
-
+out:
   g_object_unref (sasl);
   g_object_unref (stanza);
   return;
+
+failure:
+  g_assert (error != NULL);
+  auth_failed (sasl, error->code, error->message);
+  g_error_free (error);
+  goto out;
 }
 
 static gboolean
@@ -510,7 +528,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   WockyXmppStanza *stanza;
   WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
   gboolean ret = TRUE;
-  gchar *initial_response;
+  gchar *initial_response = NULL;
   GError *error = NULL;
 
   priv->handler = handler;
@@ -522,10 +540,8 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   wocky_xmpp_node_set_attribute_ns (stanza->node,
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
-  initial_response =
-      wocky_sasl_handler_handle_challenge ( priv->handler, NULL, &error);
-
-  if (error != NULL)
+  if (!wocky_sasl_handler_get_initial_response (priv->handler,
+      &initial_response, &error))
     {
       auth_failed (sasl, error->domain, error->message);
       goto out;

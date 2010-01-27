@@ -18,40 +18,43 @@ G_BEGIN_DECLS
 
 typedef struct _WockySaslHandler WockySaslHandler;
 
-/** WockySaslChallengeFunc:
- * Called in two cases:
+/** WockySaslInitialResponseFunc:
+ * When authentication begins, in case the mechanism allows a response to
+ * an implicit challenge during SASL initiation (which, in XMPP,
+ * corresponds to sending the <auth/> stanza to the server).
  *
- *  * When authentication begins, in case the mechanism allows a response to
- *    an implicit challenge during SASL initiation (which, in XMPP,
- *    corresponds to sending the <auth/> stanza to the server). In this case,
- *    @stanza is NULL. The function may return NULL to indicate that it has no
- *    initial response to send.
- *  * During authentication, when a <challenge/> stanza is received. The
- *    handler should return a response to the challenge.
- *
- * The handler is responsible for Base64-encoding responses if appropriate. In
- * either case, the handler may return NULL and pass an error via @error to
- * indicate that an error occurred.
+ * The function should return TRUE on success and optionally set the
+ * initial_data to a string (allocated using g_malloc) if there is initial data
+ * to send. On error it should return FALSE and set the error
  **/
-typedef gchar * (*WockySaslChallengeFunc) (
-    WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
+typedef gboolean (*WockySaslInitialResponseFunc) (WockySaslHandler *handler,
+    gchar **initial_data,
+    GError **error);
+
+/** WockySaslChallengeFunc:
+ * Called During authentication, when a <challenge/> stanza or a <success />
+ * with data is received. The handler should put response data in response
+ * (allocate using g_malloc) if appropriate. The handler is responsible for
+ * Base64-encoding responses if appropriate.
+ *
+ * On success the handler should return TRUE and on failure it should return
+ * FALSE and must set the error passed via @error.
+ **/
+typedef gboolean (*WockySaslAuthDataFunc) (
+    WockySaslHandler *handler,
+    const gchar *data,
+    gchar **response,
+    GError **error);
 
 /** WockySaslSuccessFunc:
  * Called when a <success/> stanza is received during authentication. If no
  * error is returned, then authentication is considered finished. (Typically,
  * an error is only raised if the <success/> stanza was received earlier than
- * expected.)
+ * expected)
  **/
-typedef void (*WockySaslSuccessFunc) (
-    WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
-
-/** WockySaslSuccessFunc:
- * Called when a <failure/> stanza is received during authentication. The
- * handler may provide a detailed error via @error. If no error is returned,
- * authentication will fail with a general authentication error.
- **/
-typedef void (*WockySaslFailureFunc) (
-    WockySaslHandler *handler, WockyXmppStanza *stanza, GError **error);
+typedef gboolean (*WockySaslSuccessFunc) (
+    WockySaslHandler *handler,
+    GError **error);
 
 void
 wocky_sasl_handler_free (WockySaslHandler *handler);
@@ -65,22 +68,21 @@ wocky_sasl_handler_get_mechanism (WockySaslHandler *handler);
 gboolean
 wocky_sasl_handler_is_plain (WockySaslHandler *handler);
 
-gchar *
-wocky_sasl_handler_handle_challenge (
-    WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
+gboolean
+wocky_sasl_handler_get_initial_response(WockySaslHandler *handler,
+    gchar **initial_data,
     GError **error);
 
-void
+gboolean
+wocky_sasl_handler_handle_auth_data (
+    WockySaslHandler *handler,
+    const gchar *data,
+    gchar **response,
+    GError **error);
+
+gboolean
 wocky_sasl_handler_handle_success (
     WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
-    GError **error);
-
-void
-wocky_sasl_handler_handle_failure (
-    WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
     GError **error);
 
 typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
@@ -92,18 +94,19 @@ typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
  *    for.
  * @plain: Whether the mechanism this handler handles sends secrets in
  *    plaintext.
- * @challenge_func: Called when a <challenge/> stanza is received.
+ * @initial_response_func: Called when the initial <auth/> stanza is generated
+ * @auth_data_func: Called when any authentication data from the server
+ *                  is received
  * @success_func: Called when a <success/> stanza is received.
- * @failure_func: Called when a <failure/> stanza is received.
  **/
 struct _WockySaslHandlerIface
 {
     GTypeInterface parent;
     gchar *mechanism;
     gboolean plain;
-    WockySaslChallengeFunc challenge_func;
+    WockySaslInitialResponseFunc initial_response_func;
+    WockySaslAuthDataFunc auth_data_func;
     WockySaslSuccessFunc success_func;
-    WockySaslFailureFunc failure_func;
 };
 
 G_END_DECLS

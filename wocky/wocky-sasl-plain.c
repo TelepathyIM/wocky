@@ -103,16 +103,9 @@ wocky_sasl_plain_class_init (WockySaslPlainClass *klass)
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 }
 
-static gchar *
-plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error);
-
-static void
-plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error);
-
-static void
-plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
+static gboolean
+plain_initial_response (WockySaslHandler *handler,
+    gchar **initial_data,
     GError **error);
 
 static void
@@ -122,9 +115,7 @@ sasl_handler_iface_init (gpointer g_iface)
 
   iface->mechanism = "PLAIN";
   iface->plain = TRUE;
-  iface->challenge_func = plain_handle_challenge;
-  iface->success_func = plain_handle_success;
-  iface->failure_func = plain_handle_failure;
+  iface->initial_response_func = plain_initial_response;
 }
 
 static void
@@ -158,58 +149,26 @@ plain_generate_initial_response (const gchar *username, const gchar *password)
   return cstr;
 }
 
-static gchar *
-plain_handle_challenge (WockySaslHandler *handler, WockyXmppStanza *stanza,
+static gboolean
+plain_initial_response (WockySaslHandler *handler,
+    gchar **initial_data,
     GError **error)
 {
   WockySaslPlain *self = WOCKY_SASL_PLAIN (handler);
   WockySaslPlainPrivate *priv = self->priv;
 
-  if (stanza == NULL)
+  if (priv->username == NULL || priv->password == NULL)
     {
-      if (priv->username == NULL || priv->password == NULL)
-        {
-          g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-              WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-              "No username or password provided");
-          return NULL;
-        }
-
-      DEBUG ("Got username and password");
-      return plain_generate_initial_response (priv->username, priv->password);
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+          "No username or password provided");
+      return FALSE;
     }
 
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-      WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-      "Server sent an unexpected challenge");
-  return NULL;
+  DEBUG ("Got username and password");
+
+  *initial_data = plain_generate_initial_response (priv->username,
+    priv->password);
+
+  return TRUE;
 }
-
-static void
-plain_handle_success (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-}
-
-static void
-plain_handle_failure (WockySaslHandler *handler, WockyXmppStanza *stanza,
-    GError **error)
-{
-  WockyXmppNode *reason = NULL;
-
-  if (stanza->node->children != NULL)
-    {
-      /* TODO add a wocky xmpp node utility to either get the first child or
-       * iterate the children list */
-      reason = (WockyXmppNode *) stanza->node->children->data;
-    }
-    /* TODO Handle the different error cases in a different way. i.e.
-     * make it clear for the user if it's credentials were wrong, if the server
-     * just has a temporary error or if the authentication procedure itself was
-     * at fault (too weak, invalid mech etc) */
-
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
-      "Authentication failed: %s",
-      reason == NULL ? "Unknown reason" : reason->name);
-}
-

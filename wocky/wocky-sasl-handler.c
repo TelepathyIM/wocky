@@ -1,5 +1,6 @@
 
 #include "wocky-sasl-handler.h"
+#include "wocky-sasl-auth.h"
 
 GType
 wocky_sasl_handler_get_type (void)
@@ -42,32 +43,57 @@ wocky_sasl_handler_is_plain (WockySaslHandler *handler)
   return WOCKY_SASL_HANDLER_GET_IFACE (handler)->plain;
 }
 
-gchar *
-wocky_sasl_handler_handle_challenge (
-    WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
+gboolean
+wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
+    gchar **initial_data,
     GError **error)
 {
-  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->challenge_func (
-      handler, stanza, error);
+  WockySaslInitialResponseFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->initial_response_func;
+
+  g_assert (initial_data != NULL);
+  *initial_data = NULL;
+
+  if (func == NULL)
+    return TRUE;
+
+  return func (handler, initial_data, error);
 }
 
-void
+gboolean
+wocky_sasl_handler_handle_auth_data (
+    WockySaslHandler *handler,
+    const gchar *data,
+    gchar **response,
+    GError **error)
+{
+  WockySaslAuthDataFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->auth_data_func;
+
+  g_assert (response != NULL);
+  *response = NULL;
+
+  if (func == NULL)
+    {
+      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
+          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+          "Server send a challenge, but the mechanism didn't expect any");
+      return FALSE;
+    }
+
+  return func (handler, data, response, error);
+}
+
+gboolean
 wocky_sasl_handler_handle_success (
     WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
     GError **error)
 {
-  WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func (
-      handler, stanza, error);
-}
+  WockySaslSuccessFunc func =
+    WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func;
 
-void
-wocky_sasl_handler_handle_failure (
-    WockySaslHandler *handler,
-    WockyXmppStanza *stanza,
-    GError **error)
-{
-  WOCKY_SASL_HANDLER_GET_IFACE (handler)->failure_func (
-      handler, stanza, error);
+  if (func == NULL)
+    return TRUE;
+  else
+   return func (handler, error);
 }
