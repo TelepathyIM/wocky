@@ -50,7 +50,7 @@ typedef gboolean (*WockySaslAuthDataFunc) (
  * Called when a <success/> stanza is received during authentication. If no
  * error is returned, then authentication is considered finished. (Typically,
  * an error is only raised if the <success/> stanza was received earlier than
- * expected or if the additional data with success is invalid.)
+ * expected)
  **/
 typedef gboolean (*WockySaslSuccessFunc) (
     WockySaslHandler *handler,
@@ -94,7 +94,9 @@ typedef struct _WockySaslHandlerIface WockySaslHandlerIface;
  *    for.
  * @plain: Whether the mechanism this handler handles sends secrets in
  *    plaintext.
- * @challenge_func: Called when a <challenge/> stanza is received.
+ * @initial_response_func: Called when the initial <auth/> stanza is generated
+ * @auth_data_func: Called when any authentication data from the server
+ *                  is received
  * @success_func: Called when a <success/> stanza is received.
  **/
 struct _WockySaslHandlerIface
