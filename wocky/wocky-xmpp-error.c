@@ -258,7 +258,7 @@ wocky_xmpp_error_quark (void)
   static GQuark quark = 0;
 
   if (!quark)
-    quark = g_quark_from_static_string ("wocky-xmpp-error");
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_STANZAS);
 
   return quark;
 }
@@ -509,7 +509,7 @@ wocky_xmpp_stream_error_quark (void)
   static GQuark quark = 0;
 
   if (quark == 0)
-    quark = g_quark_from_static_string ("wocky-xmpp-stream-error");
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_STREAMS);
 
   return quark;
 }
