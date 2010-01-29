@@ -252,6 +252,8 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     },
 };
 
+static GList *error_domains = NULL;
+
 GQuark
 wocky_xmpp_error_quark (void)
 {
@@ -261,6 +263,12 @@ wocky_xmpp_error_quark (void)
     quark = g_quark_from_static_string (WOCKY_XMPP_NS_STANZAS);
 
   return quark;
+}
+
+void
+wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain)
+{
+  error_domains = g_list_prepend (error_domains, domain);
 }
 
 GQuark
@@ -558,4 +566,20 @@ wocky_xmpp_stream_error_from_node (WockyXmppNode *node)
     return code;
   else
     return WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+}
+
+void
+wocky_xmpp_error_init ()
+{
+  if (error_domains == NULL)
+    {
+      /* Register standard domains */
+    }
+}
+
+void
+wocky_xmpp_error_deinit ()
+{
+  g_list_free (error_domains);
+  error_domains = NULL;
 }

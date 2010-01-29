@@ -78,6 +78,22 @@ typedef enum {
 GQuark wocky_xmpp_error_quark (void);
 #define WOCKY_XMPP_ERROR (wocky_xmpp_error_quark ())
 
+typedef struct {
+    const gchar *description;
+    WockyXmppError specializes;
+    gboolean override_type;
+    WockyXmppErrorType type;
+} WockyXmppErrorSpecialization;
+
+typedef struct {
+    GQuark domain;
+    GType enum_type;
+    WockyXmppErrorSpecialization *codes;
+} WockyXmppErrorDomain;
+
+void wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain);
+
+/*< prefix=WOCKY_JINGLE_ERROR >*/
 typedef enum {
     WOCKY_JINGLE_ERROR_OUT_OF_ORDER,
     WOCKY_JINGLE_ERROR_UNKNOWN_SESSION,
@@ -151,5 +167,8 @@ wocky_xmpp_error_unpack_node (WockyXmppNode *node,
     WockyXmppNode **orig,
     WockyXmppNode **extra,
     WockyXmppError *errnum);
+
+void wocky_xmpp_error_init (void);
+void wocky_xmpp_error_deinit (void);
 
 #endif /* __WOCKY_XMPP_ERROR_H__ */
