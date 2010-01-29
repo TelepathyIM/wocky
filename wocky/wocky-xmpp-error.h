@@ -62,19 +62,29 @@ typedef enum {
 
     WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE,     /* 502, 503, 510 */
 
-    WOCKY_XMPP_ERROR_JINGLE_OUT_OF_ORDER,
-    WOCKY_XMPP_ERROR_JINGLE_UNKNOWN_SESSION,
-    WOCKY_XMPP_ERROR_JINGLE_UNSUPPORTED_CONTENT,
-    WOCKY_XMPP_ERROR_JINGLE_UNSUPPORTED_TRANSPORT,
-
-    WOCKY_XMPP_ERROR_SI_NO_VALID_STREAMS,
-    WOCKY_XMPP_ERROR_SI_BAD_PROFILE,
-
     NUM_WOCKY_XMPP_ERRORS,
 } WockyXmppError;
 
 GQuark wocky_xmpp_error_quark (void);
 #define WOCKY_XMPP_ERROR (wocky_xmpp_error_quark ())
+
+typedef enum {
+    WOCKY_JINGLE_ERROR_OUT_OF_ORDER,
+    WOCKY_JINGLE_ERROR_UNKNOWN_SESSION,
+    WOCKY_JINGLE_ERROR_UNSUPPORTED_CONTENT,
+    WOCKY_JINGLE_ERROR_UNSUPPORTED_TRANSPORT
+} WockyJingleError;
+
+GQuark wocky_jingle_error_quark (void);
+#define WOCKY_JINGLE_ERROR (wocky_jingle_error_quark ())
+
+typedef enum {
+    WOCKY_SI_ERROR_NO_VALID_STREAMS,
+    WOCKY_SI_ERROR_BAD_PROFILE
+} WockySIError;
+
+GQuark wocky_si_error_quark (void);
+#define WOCKY_SI_ERROR (wocky_si_error_quark ())
 
 /*< prefix=WOCKY_XMPP_STREAM_ERROR >*/
 typedef enum {

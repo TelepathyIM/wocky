@@ -250,71 +250,38 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       WOCKY_XMPP_NS_STANZAS,
       { 502, 503, 510, },
     },
-
-    {
-      "out-of-order",
-      "the request cannot occur at this point in the state machine",
-      "cancel",
-      WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "unknown-session",
-      "the 'sid' attribute specifies a session that is unknown to the "
-      "recipient",
-      "cancel",
-      WOCKY_XMPP_ERROR_BAD_REQUEST,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "unsupported-transports",
-      "the recipient does not support any of the desired content transport "
-      "methods",
-      "cancel",
-      WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "unsupported-content",
-      "the recipient does not support any of the desired content description"
-      "formats",
-      "cancel",
-      WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "no-valid-streams",
-      "None of the available streams are acceptable.",
-      "cancel",
-      WOCKY_XMPP_ERROR_BAD_REQUEST,
-      WOCKY_XMPP_NS_SI,
-      { 400, 0 },
-    },
-
-    {
-      "bad-profile",
-      "The profile is not understood or invalid.",
-      "modify",
-      WOCKY_XMPP_ERROR_BAD_REQUEST,
-      WOCKY_XMPP_NS_SI,
-      { 400, 0 },
-    },
 };
 
 GQuark
 wocky_xmpp_error_quark (void)
 {
   static GQuark quark = 0;
+
   if (!quark)
     quark = g_quark_from_static_string ("wocky-xmpp-error");
+
+  return quark;
+}
+
+GQuark
+wocky_jingle_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_JINGLE_ERRORS);
+
+  return quark;
+}
+
+GQuark
+wocky_si_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_SI);
+
   return quark;
 }
 
