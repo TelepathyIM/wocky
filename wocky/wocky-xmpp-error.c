@@ -322,26 +322,16 @@ xmpp_error_from_node_for_ns (
 WockyXmppError
 wocky_xmpp_error_from_node (WockyXmppNode *error_node)
 {
-  gint i, j;
+  gint code, i, j;
   const gchar *error_code_str;
 
   g_return_val_if_fail (error_node != NULL,
       WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
 
   /* First, try to look it up the modern way */
-  if (error_node->children)
-    {
-      /* we loop backwards because the most specific errors are the larger
-       * numbers; the >= 0 test is OK because i is signed */
-      for (i = NUM_WOCKY_XMPP_ERRORS - 1; i >= 0; i--)
-        {
-          if (wocky_xmpp_node_get_child_ns (error_node, xmpp_errors[i].name,
-                xmpp_errors[i].namespace))
-            {
-              return i;
-            }
-        }
-    }
+  if (xmpp_error_from_node_for_ns (error_node, WOCKY_XMPP_ERROR,
+          WOCKY_TYPE_XMPP_ERROR, &code))
+    return code;
 
   /* Ok, do it the legacy way */
   error_code_str = wocky_xmpp_node_get_attribute (error_node, "code");

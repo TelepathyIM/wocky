@@ -24,6 +24,7 @@
 #include <glib.h>
 #include "wocky-xmpp-stanza.h"
 
+/*< prefix=WOCKY_XMPP_ERROR >*/
 typedef enum {
     WOCKY_XMPP_ERROR_UNDEFINED_CONDITION = 0, /* 500 */
 
@@ -62,7 +63,7 @@ typedef enum {
 
     WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE,     /* 502, 503, 510 */
 
-    NUM_WOCKY_XMPP_ERRORS,
+    NUM_WOCKY_XMPP_ERRORS /*< skip >*/ /* don't want this in the GEnum */
 } WockyXmppError;
 
 GQuark wocky_xmpp_error_quark (void);
