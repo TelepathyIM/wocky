@@ -285,6 +285,40 @@ wocky_si_error_quark (void)
   return quark;
 }
 
+/* Static, but bears documenting.
+ *
+ * xmpp_error_from_node_for_ns:
+ * @node: a node believed to contain an error child
+ * @ns: the namespace for errors corresponding to @enum_type
+ * @enum_type: a GEnum of error codes
+ * @code: location at which to store an error code
+ *
+ * Scans @node's children for nodes in @ns whose name corresponds to a nickname
+ * of a value of @enum_type, storing the value in @code if found.
+ *
+ * Returns: %TRUE if an error code was retrieved.
+ */
+static gboolean
+xmpp_error_from_node_for_ns (
+    WockyXmppNode *node,
+    GQuark ns,
+    GType enum_type,
+    gint *code)
+{
+  GSList *l;
+
+  for (l = node->children; l != NULL; l = l->next)
+    {
+      WockyXmppNode *child = l->data;
+
+      if (wocky_xmpp_node_has_ns_q (child, ns) &&
+          wocky_enum_from_nick (enum_type, child->name, code))
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
 WockyXmppError
 wocky_xmpp_error_from_node (WockyXmppNode *error_node)
 {
@@ -517,18 +551,11 @@ wocky_xmpp_stream_error_quark (void)
 WockyXmppStreamError
 wocky_xmpp_stream_error_from_node (WockyXmppNode *node)
 {
-  GSList *l = node->children;
+  gint code;
 
-  while (l != NULL)
-    {
-      WockyXmppNode *child = l->data;
-      gint code;
-
-      if (wocky_xmpp_node_has_ns (child, WOCKY_XMPP_NS_STREAMS) &&
-          wocky_enum_from_nick (WOCKY_TYPE_XMPP_STREAM_ERROR, child->name,
-              &code))
-        return code;
-    }
-
-  return WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+  if (xmpp_error_from_node_for_ns (node, WOCKY_XMPP_STREAM_ERROR,
+          WOCKY_TYPE_XMPP_STREAM_ERROR, &code))
+    return code;
+  else
+    return WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
 }
