@@ -96,9 +96,9 @@ void wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain);
 /*< prefix=WOCKY_JINGLE_ERROR >*/
 typedef enum {
     WOCKY_JINGLE_ERROR_OUT_OF_ORDER,
+    WOCKY_JINGLE_ERROR_TIE_BREAK,
     WOCKY_JINGLE_ERROR_UNKNOWN_SESSION,
-    WOCKY_JINGLE_ERROR_UNSUPPORTED_CONTENT,
-    WOCKY_JINGLE_ERROR_UNSUPPORTED_TRANSPORT
+    WOCKY_JINGLE_ERROR_UNSUPPORTED_INFO
 } WockyJingleError;
 
 GQuark wocky_jingle_error_quark (void);
