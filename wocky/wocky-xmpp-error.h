@@ -76,6 +76,7 @@ typedef enum {
 GQuark wocky_xmpp_error_quark (void);
 #define WOCKY_XMPP_ERROR (wocky_xmpp_error_quark ())
 
+/*< prefix=WOCKY_XMPP_STREAM_ERROR >*/
 typedef enum {
   WOCKY_XMPP_STREAM_ERROR_BAD_FORMAT,
   WOCKY_XMPP_STREAM_ERROR_BAD_NAMESPACE_PREFIX,
