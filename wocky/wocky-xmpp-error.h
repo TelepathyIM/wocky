@@ -104,6 +104,7 @@ typedef enum {
 GQuark wocky_jingle_error_quark (void);
 #define WOCKY_JINGLE_ERROR (wocky_jingle_error_quark ())
 
+/*< prefix=WOCKY_SI_ERROR >*/
 typedef enum {
     WOCKY_SI_ERROR_NO_VALID_STREAMS,
     WOCKY_SI_ERROR_BAD_PROFILE

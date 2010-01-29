@@ -282,6 +282,51 @@ wocky_jingle_error_quark (void)
   return quark;
 }
 
+static WockyXmppErrorDomain *
+jingle_error_get_domain (void)
+{
+  static WockyXmppErrorSpecialization codes[] = {
+      /* out-of-order */
+      { "The request cannot occur at this point in the state machine (e.g., "
+        "session-initiate after session-accept).",
+        WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
+        FALSE
+      },
+
+      /* tie-break */
+      { "The request is rejected because it was sent while the initiator was "
+        "awaiting a reply on a similar request.",
+        WOCKY_XMPP_ERROR_CONFLICT,
+        FALSE
+      },
+
+      /* unknown-session */
+      { "The 'sid' attribute specifies a session that is unknown to the "
+        "recipient (e.g., no longer live according to the recipient's state "
+        "machine because the recipient previously terminated the session).",
+        WOCKY_XMPP_ERROR_ITEM_NOT_FOUND,
+        FALSE
+      },
+
+      /* unsupported-info */
+      { "The recipient does not support the informational payload of a "
+        "session-info action.",
+        WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+        FALSE
+      }
+  };
+  static WockyXmppErrorDomain jingle_errors = { 0, };
+
+  if (G_UNLIKELY (jingle_errors.domain == 0))
+    {
+      jingle_errors.domain = WOCKY_JINGLE_ERROR;
+      jingle_errors.enum_type = WOCKY_TYPE_JINGLE_ERROR;
+      jingle_errors.codes = codes;
+    }
+
+  return &jingle_errors;
+}
+
 GQuark
 wocky_si_error_quark (void)
 {
@@ -291,6 +336,37 @@ wocky_si_error_quark (void)
     quark = g_quark_from_static_string (WOCKY_XMPP_NS_SI);
 
   return quark;
+}
+
+static WockyXmppErrorDomain *
+si_error_get_domain (void)
+{
+  static WockyXmppErrorSpecialization codes[] = {
+      /* no-valid-streams */
+      { "None of the available streams are acceptable.",
+        WOCKY_XMPP_ERROR_BAD_REQUEST,
+        TRUE,
+        WOCKY_XMPP_ERROR_TYPE_CANCEL
+      },
+
+      /* bad-profile */
+      { "The profile is not understood or invalid. The profile MAY supply a "
+        "profile-specific error condition.",
+        WOCKY_XMPP_ERROR_BAD_REQUEST,
+        TRUE,
+        WOCKY_XMPP_ERROR_TYPE_MODIFY
+      }
+  };
+  static WockyXmppErrorDomain si_errors = { 0, };
+
+  if (G_UNLIKELY (si_errors.domain == 0))
+    {
+      si_errors.domain = WOCKY_SI_ERROR;
+      si_errors.enum_type = WOCKY_TYPE_SI_ERROR;
+      si_errors.codes = codes;
+    }
+
+  return &si_errors;
 }
 
 /* Static, but bears documenting.
@@ -574,6 +650,8 @@ wocky_xmpp_error_init ()
   if (error_domains == NULL)
     {
       /* Register standard domains */
+      wocky_xmpp_error_register_domain (jingle_error_get_domain ());
+      wocky_xmpp_error_register_domain (si_error_get_domain ());
     }
 }
 
