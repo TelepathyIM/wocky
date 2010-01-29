@@ -434,7 +434,7 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_MSG_ERR] = g_signal_new ("message-error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_STRING,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_ENUM,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_XMPP_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
@@ -443,7 +443,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_TYPE_POINTER, /* WockyMucMember * */
       G_TYPE_STRING,  /* content          */
       WOCKY_TYPE_XMPP_ERROR,    /* WockyXmppError   */
-      G_TYPE_STRING); /* error type       */
+      WOCKY_TYPE_XMPP_ERROR_TYPE); /* error type       */
 
   signals[SIG_FILL_PRESENCE] = g_signal_new ("fill-presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
@@ -1406,7 +1406,7 @@ handle_message (WockyPorter *porter,
   WockyMucMsgState mstate = WOCKY_MUC_MSG_STATE_NONE;
 
   WockyXmppError xerr = NUM_WOCKY_XMPP_ERRORS;
-  const gchar *etype = NULL;
+  WockyXmppErrorType etype;
 
   wocky_xmpp_stanza_get_type_info (stanza, NULL, &stype);
 

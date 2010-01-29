@@ -32,7 +32,7 @@
 typedef struct {
     const gchar *name;
     const gchar *description;
-    const gchar *type;
+    WockyXmppErrorType type;
     guint specialises;
     const gchar *namespace;
     const guint16 legacy_errors[MAX_LEGACY_ERRORS];
@@ -43,7 +43,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     {
       "undefined-condition",
       "application-specific condition",
-      NULL,
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 500, 0, },
@@ -52,7 +52,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "redirect",
       "the recipient or server is redirecting requests for this information "
       "to another entity",
-      "modify",
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 302, 0, },
@@ -61,7 +61,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     {
       "gone",
       "the recipient or server can no longer be contacted at this address",
-      "modify",
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 302, 0, },
@@ -70,7 +70,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     {
       "bad-request",
       "the sender has sent XML that is malformed or that cannot be processed",
-      "modify",
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 400, 0, },
@@ -79,7 +79,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "unexpected-request",
       "the recipient or server understood the request but was not expecting "
       "it at this time",
-      "wait",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 400, 0, },
@@ -89,7 +89,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "the sending entity has provided or communicated an XMPP address or "
       "aspect thereof (e.g., a resource identifier) that does not adhere "
       "to the syntax defined in Addressing Scheme (Section 3)",
-      "modify",
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 400, 0, },
@@ -99,7 +99,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "not-authorized",
       "the sender must provide proper credentials before being allowed to "
       "perform the action, or has provided improper credentials",
-      "auth",
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 401, 0, },
@@ -109,7 +109,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "payment-required",
       "the requesting entity is not authorized to access the requested "
       "service because payment is required",
-      "auth",
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 402, 0, },
@@ -119,7 +119,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "forbidden",
       "the requesting entity does not possess the required permissions to "
       "perform the action",
-      "auth",
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 403, 0, },
@@ -128,7 +128,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     {
       "item-not-found",
       "the addressed JID or item requested cannot be found",
-      "cancel",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 404, 0, },
@@ -136,7 +136,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     {
       "recipient-unavailable",
       "the intended recipient is temporarily unavailable",
-      "wait",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 404, 0, },
@@ -146,7 +146,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "a remote server or service specified as part or all of the JID of the "
       "intended recipient (or required to fulfill a request) could not be "
       "contacted within a reasonable amount of time",
-      "cancel",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 404, 0, },
@@ -155,7 +155,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     {
       "not-allowed",
       "the recipient or server does not allow any entity to perform the action",
-      "cancel",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 405, 0, },
@@ -166,7 +166,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "the recipient or server understands the request but is refusing to "
       "process it because it does not meet criteria defined by the recipient "
       "or server (e.g., a local policy regarding acceptable words in messages)",
-      "modify",
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 406, 0, },
@@ -176,7 +176,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "registration-required",
       "the requesting entity is not authorized to access the requested service "
       "because registration is required",
-      "auth",
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 407, 0, },
@@ -185,7 +185,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "subscription-required",
       "the requesting entity is not authorized to access the requested service "
       "because a subscription is required",
-      "auth",
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 407, 0, },
@@ -196,7 +196,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "a remote server or service specified as part or all of the JID of the "
       "intended recipient (or required to fulfill a request) could not be "
       "contacted within a reasonable amount of time",
-      "wait",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 408, 504, 0, },
@@ -206,7 +206,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "conflict",
       "access cannot be granted because an existing resource or session exists "
       "with the same name or address",
-      "cancel",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 409, 0, },
@@ -216,7 +216,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "internal-server-error",
       "the server could not process the stanza because of a misconfiguration "
       "or an otherwise-undefined internal server error",
-      "wait",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 500, 0, },
@@ -225,7 +225,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "resource-constraint",
       "the server or recipient lacks the system resources necessary to service "
       "the request",
-      "wait",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 500, 0, },
@@ -235,7 +235,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "feature-not-implemented",
       "the feature requested is not implemented by the recipient or server and "
       "therefore cannot be processed",
-      "cancel",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 501, 0, },
@@ -245,7 +245,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "service-unavailable",
       "the server or recipient does not currently provide the requested "
       "service",
-      "cancel",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       0,
       WOCKY_XMPP_NS_STANZAS,
       { 502, 503, 510, },
@@ -390,7 +390,7 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
 
 const gchar *
 wocky_xmpp_error_unpack_node (WockyXmppNode *node,
-    const gchar **type,
+    WockyXmppErrorType *type,
     WockyXmppNode **text,
     WockyXmppNode **orig,
     WockyXmppNode **extra,
@@ -411,8 +411,20 @@ wocky_xmpp_error_unpack_node (WockyXmppNode *node,
   if (error == NULL)
     return NULL;
 
+  /* The type='' attributes being present and one of the defined five is a
+   * MUST; if the other party is getting XMPP *that* wrong, 'cancel' seems like
+   * a sensible default.
+   */
   if (type != NULL)
-    *type = wocky_xmpp_node_get_attribute (error, "type");
+    {
+      const gchar *type_attr = wocky_xmpp_node_get_attribute (error, "type");
+      gint type_i = WOCKY_XMPP_ERROR_TYPE_CANCEL;
+
+      if (type_attr != NULL)
+        wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type_attr, &type_i);
+
+      *type = type_i;
+    }
 
   for (child = error->children; child != NULL; child = g_slist_next (child))
     {
@@ -479,10 +491,8 @@ wocky_xmpp_error_to_node (WockyXmppError error,
   sprintf (str, "%d", spec->legacy_errors[0]);
   wocky_xmpp_node_set_attribute (error_node, "code", str);
 
-  if (spec->type)
-    {
-      wocky_xmpp_node_set_attribute (error_node, "type", spec->type);
-    }
+  wocky_xmpp_node_set_attribute (error_node, "type",
+      wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
 
   node = wocky_xmpp_node_add_child (error_node, spec->name);
   wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);

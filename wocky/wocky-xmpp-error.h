@@ -24,6 +24,15 @@
 #include <glib.h>
 #include "wocky-xmpp-stanza.h"
 
+/*< prefix=WOCKY_XMPP_ERROR_TYPE >*/
+typedef enum {
+    WOCKY_XMPP_ERROR_TYPE_CANCEL,
+    WOCKY_XMPP_ERROR_TYPE_CONTINUE,
+    WOCKY_XMPP_ERROR_TYPE_MODIFY,
+    WOCKY_XMPP_ERROR_TYPE_AUTH,
+    WOCKY_XMPP_ERROR_TYPE_WAIT
+} WockyXmppErrorType;
+
 /*< prefix=WOCKY_XMPP_ERROR >*/
 typedef enum {
     WOCKY_XMPP_ERROR_UNDEFINED_CONDITION = 0, /* 500 */
@@ -137,7 +146,7 @@ WockyXmppStreamError wocky_xmpp_stream_error_from_node (WockyXmppNode *node);
 /* Error node util */
 const gchar *
 wocky_xmpp_error_unpack_node (WockyXmppNode *node,
-    const gchar **type,
+    WockyXmppErrorType *type,
     WockyXmppNode **text,
     WockyXmppNode **orig,
     WockyXmppNode **extra,

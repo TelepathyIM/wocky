@@ -184,14 +184,14 @@ test_unpack_error (void)
               g_free (mtag);
             }
 
-          stanza = _create_error (label, "something", etext, onode, mnode);
+          stanza = _create_error (label, "wait", etext, onode, mnode);
           error = stanza->node;
 
           if (error != NULL)
             {
               const gchar *fake = "moo";
               const gchar *cond = NULL;
-              const gchar *type = NULL;
+              WockyXmppErrorType type;
               WockyXmppNode *ut = (WockyXmppNode *) fake;
               WockyXmppNode *uo = (WockyXmppNode *) fake;
               WockyXmppNode *um = (WockyXmppNode *) fake;
@@ -201,7 +201,7 @@ test_unpack_error (void)
 
               g_assert (cond != NULL);
               g_assert (!strcmp (cond, label));
-              g_assert (!strcmp ("something", type));
+              g_assert_cmpint (WOCKY_XMPP_ERROR_TYPE_WAIT, ==, type);
 
               if (tf)
                 {
