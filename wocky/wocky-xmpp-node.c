@@ -466,6 +466,18 @@ wocky_xmpp_node_get_ns (WockyXmppNode *node)
   return g_quark_to_string (node->ns);
 }
 
+gboolean
+wocky_xmpp_node_has_ns (WockyXmppNode *node, const gchar *ns)
+{
+  return wocky_xmpp_node_has_ns_q (node, g_quark_try_string (ns));
+}
+
+gboolean
+wocky_xmpp_node_has_ns_q (WockyXmppNode *node, GQuark ns)
+{
+  return node->ns == ns;
+}
+
 const gchar *
 wocky_xmpp_node_get_language (WockyXmppNode *node)
 {
