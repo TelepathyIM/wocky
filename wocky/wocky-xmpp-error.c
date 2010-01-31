@@ -271,6 +271,22 @@ wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain)
   error_domains = g_list_prepend (error_domains, domain);
 }
 
+static WockyXmppErrorDomain *
+xmpp_error_find_domain (GQuark domain)
+{
+  GList *l;
+
+  for (l = error_domains; l != NULL; l = l->next)
+    {
+      WockyXmppErrorDomain *d = l->data;
+
+      if (d->domain == domain)
+        return d;
+    }
+
+  return NULL;
+}
+
 GQuark
 wocky_jingle_error_quark (void)
 {
@@ -552,25 +568,72 @@ wocky_xmpp_error_to_node (WockyXmppError error,
     WockyXmppNode *parent_node,
     const gchar *errmsg)
 {
-  const XmppErrorSpec *spec, *extra;
-  WockyXmppNode *error_node, *node;
-  gchar str[6];
+  GError e = { WOCKY_XMPP_ERROR, error, (gchar *) errmsg };
 
   g_return_val_if_fail (error != WOCKY_XMPP_ERROR_UNDEFINED_CONDITION &&
       error < NUM_WOCKY_XMPP_ERRORS, NULL);
 
-  if (xmpp_errors[error].specialises)
+  return wocky_stanza_error_to_node (&e, parent_node);
+}
+
+/**
+ * wocky_g_error_to_node:
+ * @error: an error in the domain #WOCKY_XMPP_ERROR, or in an
+ *         application-specific domain registered with
+ *         wocky_xmpp_error_register_domain()
+ * @parent_node: the node to which to add an error (such as an IQ error)
+ *
+ * Adds an <error/> node to a stanza corresponding to the error described by
+ * @error. If @error is in a domain other than #WOCKY_XMPP_ERROR, both the
+ * application-specific error name and the error from #WOCKY_XMPP_ERROR will be
+ * created. See RFC 3902 (XMPP Core) §9.3, “Stanza Errors”.
+ *
+ * There is currently no way to override the type='' of an XMPP Core stanza
+ * error without creating an application-specific error code which does so.
+ *
+ * Returns: the newly-created <error/> node
+ */
+WockyXmppNode *
+wocky_stanza_error_to_node (const GError *error,
+    WockyXmppNode *parent_node)
+{
+  WockyXmppNode *error_node, *node;
+  WockyXmppErrorDomain *domain = NULL;
+  WockyXmppError core_error;
+  const XmppErrorSpec *spec;
+  WockyXmppErrorType type;
+  gchar str[6];
+
+  g_return_val_if_fail (parent_node != NULL, NULL);
+
+  error_node = wocky_xmpp_node_add_child (parent_node, "error");
+
+  g_return_val_if_fail (error != NULL, error_node);
+
+  if (error->domain == WOCKY_XMPP_ERROR)
     {
-      extra = &xmpp_errors[error];
-      spec = &xmpp_errors[extra->specialises];
+      core_error = error->code;
+      spec = &(xmpp_errors[core_error]);
+      type = spec->type;
     }
   else
     {
-      extra = NULL;
-      spec = &xmpp_errors[error];
-    }
+      WockyXmppErrorSpecialization *s;
 
-  error_node = wocky_xmpp_node_add_child (parent_node, "error");
+      domain = xmpp_error_find_domain (error->domain);
+      g_return_val_if_fail (domain != NULL, error_node);
+
+      /* This will crash if you mess up and pass a code that's not in the
+       * domain. */
+      s = &(domain->codes[error->code]);
+      core_error = s->specializes;
+      spec = &(xmpp_errors[core_error]);
+
+      if (s->override_type)
+        type = s->type;
+      else
+        type = spec->type;
+    }
 
   sprintf (str, "%d", spec->legacy_errors[0]);
   wocky_xmpp_node_set_attribute (error_node, "code", str);
@@ -578,19 +641,22 @@ wocky_xmpp_error_to_node (WockyXmppError error,
   wocky_xmpp_node_set_attribute (error_node, "type",
       wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
 
-  node = wocky_xmpp_node_add_child (error_node, spec->name);
+  node = wocky_xmpp_node_add_child (error_node,
+      wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, core_error));
   wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
 
-  if (extra != NULL)
+  if (domain != NULL)
     {
-      node = wocky_xmpp_node_add_child (error_node, extra->name);
-      wocky_xmpp_node_set_ns (node, extra->namespace);
+      const gchar *name = wocky_enum_to_nick (domain->enum_type, error->code);
+
+      node = wocky_xmpp_node_add_child (error_node, name);
+      wocky_xmpp_node_set_ns_q (node, domain->domain);
     }
 
-  if (NULL != errmsg)
+  if (error->message != NULL && *error->message != '\0')
     {
       node = wocky_xmpp_node_add_child (error_node, "text");
-      wocky_xmpp_node_set_content (node, errmsg);
+      wocky_xmpp_node_set_content (node, error->message);
     }
 
   return error_node;
