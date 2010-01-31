@@ -30,224 +30,183 @@
 #define MAX_LEGACY_ERRORS 3
 
 typedef struct {
-    const gchar *name;
     const gchar *description;
     WockyXmppErrorType type;
-    guint specialises;
-    const gchar *namespace;
     const guint16 legacy_errors[MAX_LEGACY_ERRORS];
 } XmppErrorSpec;
 
 static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
 {
+    /* undefined-condition */
     {
-      "undefined-condition",
       "application-specific condition",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 500, 0, },
     },
+
+    /* redirect */
     {
-      "redirect",
       "the recipient or server is redirecting requests for this information "
       "to another entity",
       WOCKY_XMPP_ERROR_TYPE_MODIFY,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 302, 0, },
     },
 
+    /* gone */
     {
-      "gone",
       "the recipient or server can no longer be contacted at this address",
       WOCKY_XMPP_ERROR_TYPE_MODIFY,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 302, 0, },
     },
 
+    /* bad-request */
     {
-      "bad-request",
       "the sender has sent XML that is malformed or that cannot be processed",
       WOCKY_XMPP_ERROR_TYPE_MODIFY,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 400, 0, },
     },
+
+    /* unexpected-request */
     {
-      "unexpected-request",
       "the recipient or server understood the request but was not expecting "
       "it at this time",
       WOCKY_XMPP_ERROR_TYPE_WAIT,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 400, 0, },
     },
+
+    /* jid-malformed */
     {
-      "jid-malformed",
       "the sending entity has provided or communicated an XMPP address or "
       "aspect thereof (e.g., a resource identifier) that does not adhere "
       "to the syntax defined in Addressing Scheme (Section 3)",
       WOCKY_XMPP_ERROR_TYPE_MODIFY,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 400, 0, },
     },
 
+    /* not-authorized */
     {
-      "not-authorized",
       "the sender must provide proper credentials before being allowed to "
       "perform the action, or has provided improper credentials",
       WOCKY_XMPP_ERROR_TYPE_AUTH,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 401, 0, },
     },
 
+    /* payment-required */
     {
-      "payment-required",
       "the requesting entity is not authorized to access the requested "
       "service because payment is required",
       WOCKY_XMPP_ERROR_TYPE_AUTH,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 402, 0, },
     },
 
+    /* forbidden */
     {
-      "forbidden",
       "the requesting entity does not possess the required permissions to "
       "perform the action",
       WOCKY_XMPP_ERROR_TYPE_AUTH,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 403, 0, },
     },
 
+    /* item-not-found */
     {
-      "item-not-found",
       "the addressed JID or item requested cannot be found",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 404, 0, },
     },
+
+    /* recipient-unavailable */
     {
-      "recipient-unavailable",
       "the intended recipient is temporarily unavailable",
       WOCKY_XMPP_ERROR_TYPE_WAIT,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 404, 0, },
     },
+
+    /* remote-server-not-found */
     {
-      "remote-server-not-found",
       "a remote server or service specified as part or all of the JID of the "
       "intended recipient (or required to fulfill a request) could not be "
       "contacted within a reasonable amount of time",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 404, 0, },
     },
 
+    /* not-allowed */
     {
-      "not-allowed",
       "the recipient or server does not allow any entity to perform the action",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 405, 0, },
     },
 
+    /* not-acceptable */
     {
-      "not-acceptable",
       "the recipient or server understands the request but is refusing to "
       "process it because it does not meet criteria defined by the recipient "
       "or server (e.g., a local policy regarding acceptable words in messages)",
       WOCKY_XMPP_ERROR_TYPE_MODIFY,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 406, 0, },
     },
 
+    /* registration-required */
     {
-      "registration-required",
       "the requesting entity is not authorized to access the requested service "
       "because registration is required",
       WOCKY_XMPP_ERROR_TYPE_AUTH,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 407, 0, },
     },
+    /* subscription-required */
     {
-      "subscription-required",
       "the requesting entity is not authorized to access the requested service "
       "because a subscription is required",
       WOCKY_XMPP_ERROR_TYPE_AUTH,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 407, 0, },
     },
 
+    /* remote-server-timeout */
     {
-      "remote-server-timeout",
       "a remote server or service specified as part or all of the JID of the "
       "intended recipient (or required to fulfill a request) could not be "
       "contacted within a reasonable amount of time",
       WOCKY_XMPP_ERROR_TYPE_WAIT,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 408, 504, 0, },
     },
 
+    /* conflict */
     {
-      "conflict",
       "access cannot be granted because an existing resource or session exists "
       "with the same name or address",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 409, 0, },
     },
 
+    /* internal-server-error */
     {
-      "internal-server-error",
       "the server could not process the stanza because of a misconfiguration "
       "or an otherwise-undefined internal server error",
       WOCKY_XMPP_ERROR_TYPE_WAIT,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 500, 0, },
     },
+
+    /* resource-constraint */
     {
-      "resource-constraint",
       "the server or recipient lacks the system resources necessary to service "
       "the request",
       WOCKY_XMPP_ERROR_TYPE_WAIT,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 500, 0, },
     },
 
+    /* feature-not-implemented */
     {
-      "feature-not-implemented",
       "the feature requested is not implemented by the recipient or server and "
       "therefore cannot be processed",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 501, 0, },
     },
 
+    /* service-unavailable */
     {
-      "service-unavailable",
       "the server or recipient does not currently provide the requested "
       "service",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
       { 502, 503, 510, },
     },
 };
@@ -665,10 +624,7 @@ wocky_stanza_error_to_node (const GError *error,
 const gchar *
 wocky_xmpp_error_string (WockyXmppError error)
 {
-  if (error < NUM_WOCKY_XMPP_ERRORS)
-    return xmpp_errors[error].name;
-  else
-    return NULL;
+  return wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, error);
 }
 
 const gchar *
