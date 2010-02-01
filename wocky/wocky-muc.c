@@ -45,6 +45,7 @@ typedef enum {
   SIG_NICK_CHANGE,
   SIG_PERM_CHANGE,
   SIG_PRESENCE,
+  SIG_OWN_PRESENCE,
   SIG_PRESENCE_ERROR,
   SIG_JOINED,
   SIG_PARTED,
@@ -367,9 +368,15 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_PRESENCE] = g_signal_new ("presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_POINTER_POINTER,
+      _wocky_signals_marshal_VOID__OBJECT_BOXED_POINTER,
       G_TYPE_NONE, 3,
       WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE, G_TYPE_POINTER);
+
+  signals[SIG_OWN_PRESENCE] = g_signal_new ("own-presence", ctype,
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT_BOXED,
+      G_TYPE_NONE, 2,
+      WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE);
 
   signals[SIG_JOINED] = g_signal_new ("joined", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
@@ -1005,6 +1012,8 @@ handle_self_presence (WockyMuc *muc,
   gboolean permission_update = FALSE;
   WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
 
+  DEBUG ("Received our own presence");
+
   /* we already know if we changed our own status, so no signal for that */
   nick_update = wocky_strdiff (priv->nick, nick);
   REPLACE_STR (priv->nick, nick);
@@ -1227,6 +1236,9 @@ handle_presence_standard (WockyMuc *muc,
                     }
                   g_signal_emit (muc, signals[SIG_JOINED], 0, stanza, code);
                 }
+              else
+                g_signal_emit (muc, signals[SIG_OWN_PRESENCE], 0,
+                  stanza, code);
             }
           /* if this is someone else's presence, update internal member list */
           else
