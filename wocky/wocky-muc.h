@@ -129,6 +129,14 @@ typedef enum {
   WOCKY_MUC_MSG_STATE_GONE,
 } WockyMucMsgState;
 
+typedef enum {
+  WOCKY_MUC_CREATED = 0,
+  WOCKY_MUC_INITIATED,
+  WOCKY_MUC_AUTH,
+  WOCKY_MUC_JOINED,
+  WOCKY_MUC_ENDED,
+} WockyMucState;
+
 typedef struct {
   gchar *from;   /* room@service/nick     */
   gchar *jid;    /* owner@domain/resource */
@@ -202,6 +210,8 @@ const gchar * wocky_muc_user (WockyMuc *muc);
 WockyMucRole wocky_muc_role (WockyMuc *muc);
 WockyMucAffiliation wocky_muc_affiliation (WockyMuc *muc);
 GHashTable * wocky_muc_members (WockyMuc *muc);
+
+WockyMucState wocky_muc_get_state (WockyMuc *muc);
 
 G_END_DECLS
 

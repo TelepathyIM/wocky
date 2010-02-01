@@ -57,14 +57,6 @@ typedef enum {
 
 static guint signals[SIG_NULL] = { 0 };
 
-typedef enum {
-  MUC_CREATED = 0,
-  MUC_INITIATED,
-  MUC_AUTH,
-  MUC_JOINED,
-  MUC_ENDED,
-} WockyMucState;
-
 typedef struct { const gchar *ns; WockyMucFeature flag; } feature;
 static const feature feature_map[] =
   { { WOCKY_NS_MUC,               WOCKY_MUC_MODERN            },
@@ -743,8 +735,8 @@ muc_disco_info (GObject *source,
           }
 
         wocky_xmpp_node_each_child (query, store_muc_disco_info, priv);
-        if (priv->state < MUC_INITIATED)
-          priv->state = MUC_INITIATED;
+        if (priv->state < WOCKY_MUC_INITIATED)
+          priv->state = WOCKY_MUC_INITIATED;
         break;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
@@ -1083,7 +1075,7 @@ handle_user_presence (WockyMuc *muc,
 
   member->presence_stanza = g_object_ref (stanza);
 
-  if (priv->state >= MUC_JOINED)
+  if (priv->state >= WOCKY_MUC_JOINED)
     g_signal_emit (muc, signals[SIG_PRESENCE], 0, stanza, code, member);
 
   return TRUE;
@@ -1224,9 +1216,9 @@ handle_presence_standard (WockyMuc *muc,
               ok = handle_self_presence (muc, stanza,
                   pnic, r, a, ajid, why, msg, code);
 
-              if (priv->state < MUC_JOINED)
+              if (priv->state < WOCKY_MUC_JOINED)
                 {
-                  priv->state = MUC_JOINED;
+                  priv->state = WOCKY_MUC_JOINED;
                   if (priv->join_cb != NULL)
                     {
                       g_simple_async_result_complete (priv->join_cb);
@@ -1252,7 +1244,7 @@ handle_presence_standard (WockyMuc *muc,
         {
           if (self_presence)
             {
-              priv->state = MUC_ENDED;
+              priv->state = WOCKY_MUC_ENDED;
               priv->role = WOCKY_MUC_ROLE_NONE;
               g_signal_emit (muc, signals[SIG_PARTED], 0,
                   stanza, code, ajid, why, msg);
@@ -1323,7 +1315,7 @@ handle_presence_error (WockyMuc *muc,
       goto out;
     }
 
-  if (priv->state >= MUC_JOINED)
+  if (priv->state >= WOCKY_MUC_JOINED)
     {
       DEBUG ("presence error after joining: not handled");
       if (text != NULL)
@@ -1547,13 +1539,13 @@ wocky_muc_join (WockyMuc *muc,
 {
   WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
 
-  if (priv->state < MUC_INITIATED)
+  if (priv->state < WOCKY_MUC_INITIATED)
     {
       register_presence_handler (muc);
       register_message_handler (muc);
     }
 
-  priv->state = MUC_INITIATED;
+  priv->state = WOCKY_MUC_INITIATED;
 
 
   wocky_muc_send_presence (muc, WOCKY_STANZA_SUB_TYPE_NONE, NULL);
@@ -1597,6 +1589,14 @@ wocky_muc_members (WockyMuc *muc)
     return g_hash_table_ref (priv->members);
 
   return NULL;
+}
+
+WockyMucState
+wocky_muc_get_state (WockyMuc *muc)
+{
+  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+
+  return priv->state;
 }
 
 /* send message to muc */
