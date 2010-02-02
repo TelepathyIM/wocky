@@ -446,6 +446,112 @@ test_extract_errors (void)
   g_object_unref (stanza);
 }
 
+#define assert_nodes_equal(n1, n2) \
+  G_STMT_START { \
+    if (!wocky_xmpp_node_equal ((n1), (n2))) \
+      g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
+          g_strdup_printf ("Nodes not equal:\n%s\n\n%s", \
+              wocky_xmpp_node_to_string (n1), \
+              wocky_xmpp_node_to_string (n2))); \
+  } G_STMT_END
+
+#define assert_cmperr(e1, e2) \
+  G_STMT_START { \
+    g_assert_error(e1, e2->domain, e2->code); \
+    g_assert_cmpstr(e1->message, ==, e2->message); \
+  } G_STMT_END
+
+static void
+test_stanza_error_to_node (void)
+{
+  GError *e = NULL;
+  GError *core = NULL, *specialized = NULL;
+  const gchar *description = "bzzzt";
+  WockyXmppStanza *stanza, *expected;
+
+  /* An XMPP Core stanza error */
+  g_set_error_literal (&e, WOCKY_XMPP_ERROR,
+      WOCKY_XMPP_ERROR_REMOTE_SERVER_TIMEOUT, description);
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+      WOCKY_STANZA_END);
+
+  wocky_stanza_error_to_node (e, stanza->node);
+
+  expected = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "type", "wait",
+          WOCKY_NODE_ATTRIBUTE, "code", "504", /* Per XEP-0086 */
+          WOCKY_NODE, "remote-server-timeout",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "text",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+            WOCKY_NODE_TEXT, description,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+  assert_nodes_equal (stanza->node, expected->node);
+
+  /* Let's see how it roundtrips: */
+  wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
+
+  assert_cmperr (e, core);
+  g_assert_no_error (specialized);
+
+  g_object_unref (stanza);
+  g_object_unref (expected);
+  g_clear_error (&e);
+  g_clear_error (&core);
+
+  /* How about a nice game of Jingle? */
+  g_set_error_literal (&e, WOCKY_JINGLE_ERROR,
+      WOCKY_JINGLE_ERROR_UNKNOWN_SESSION, description);
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+      WOCKY_STANZA_END);
+
+  wocky_stanza_error_to_node (e, stanza->node);
+
+  expected = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "type", "cancel",
+          WOCKY_NODE_ATTRIBUTE, "code", "404", /* Per XEP-0086 */
+          WOCKY_NODE, "item-not-found",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "unknown-session",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_JINGLE_ERRORS,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "text",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+            WOCKY_NODE_TEXT, description,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+  assert_nodes_equal (stanza->node, expected->node);
+
+  /* Let's see how it roundtrips: */
+  wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_ITEM_NOT_FOUND);
+  assert_cmperr (e, specialized);
+
+  g_object_unref (stanza);
+  g_object_unref (expected);
+  g_clear_error (&e);
+  g_clear_error (&core);
+  g_clear_error (&specialized);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -459,6 +565,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-stanza/xmpp-error-to-gerror",
       test_xmpp_error_to_gerror);
   g_test_add_func ("/xmpp-stanza/extract-errors", test_extract_errors);
+  g_test_add_func ("/xmpp-stanza/stanza-error-to-node",
+      test_stanza_error_to_node);
 
   result =  g_test_run ();
   test_deinit ();
