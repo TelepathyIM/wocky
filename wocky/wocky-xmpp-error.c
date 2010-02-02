@@ -378,11 +378,41 @@ xmpp_error_from_node_for_ns (
   return FALSE;
 }
 
+static WockyXmppError
+xmpp_error_from_code (WockyXmppNode *error_node)
+{
+  const gchar *code = wocky_xmpp_node_get_attribute (error_node, "code");
+  gint error_code, i, j;
+
+  if (code == NULL)
+    return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+
+  error_code = atoi (code);
+
+  /* skip UNDEFINED_CONDITION, we want code 500 to be translated
+   * to INTERNAL_SERVER_ERROR */
+  for (i = 1; i < NUM_WOCKY_XMPP_ERRORS; i++)
+    {
+      const XmppErrorSpec *spec = &xmpp_errors[i];
+
+      for (j = 0; j < MAX_LEGACY_ERRORS; j++)
+        {
+          gint cur_code = spec->legacy_errors[j];
+          if (cur_code == 0)
+            break;
+
+          if (cur_code == error_code)
+            return i;
+        }
+    }
+
+  return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+}
+
 WockyXmppError
 wocky_xmpp_error_from_node (WockyXmppNode *error_node)
 {
-  gint code, i, j;
-  const gchar *error_code_str;
+  gint code;
 
   g_return_val_if_fail (error_node != NULL,
       WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
@@ -393,32 +423,7 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
     return code;
 
   /* Ok, do it the legacy way */
-  error_code_str = wocky_xmpp_node_get_attribute (error_node, "code");
-  if (error_code_str)
-    {
-      gint error_code;
-
-      error_code = atoi (error_code_str);
-
-      /* skip UNDEFINED_CONDITION, we want code 500 to be translated
-       * to INTERNAL_SERVER_ERROR */
-      for (i = 1; i < NUM_WOCKY_XMPP_ERRORS; i++)
-        {
-          const XmppErrorSpec *spec = &xmpp_errors[i];
-
-          for (j = 0; j < MAX_LEGACY_ERRORS; j++)
-            {
-              gint cur_code = spec->legacy_errors[j];
-              if (cur_code == 0)
-                break;
-
-              if (cur_code == error_code)
-                return i;
-            }
-        }
-    }
-
-  return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+  return xmpp_error_from_code (error_node);
 }
 
 /**
