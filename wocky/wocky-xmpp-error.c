@@ -718,10 +718,8 @@ wocky_stanza_error_to_node (const GError *error,
     }
 
   if (error->message != NULL && *error->message != '\0')
-    {
-      node = wocky_xmpp_node_add_child (error_node, "text");
-      wocky_xmpp_node_set_content (node, error->message);
-    }
+    wocky_xmpp_node_add_child_with_content_ns (error_node, "text",
+        error->message, WOCKY_XMPP_NS_STANZAS);
 
   return error_node;
 }
