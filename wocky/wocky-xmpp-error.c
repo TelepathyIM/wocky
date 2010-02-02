@@ -379,13 +379,14 @@ xmpp_error_from_node_for_ns (
 }
 
 static WockyXmppError
-xmpp_error_from_code (WockyXmppNode *error_node)
+xmpp_error_from_code (WockyXmppNode *error_node,
+    WockyXmppErrorType *type)
 {
   const gchar *code = wocky_xmpp_node_get_attribute (error_node, "code");
   gint error_code, i, j;
 
   if (code == NULL)
-    return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+    goto out;
 
   error_code = atoi (code);
 
@@ -402,9 +403,18 @@ xmpp_error_from_code (WockyXmppNode *error_node)
             break;
 
           if (cur_code == error_code)
-            return i;
+            {
+              if (type != NULL)
+                *type = spec->type;
+
+              return i;
+            }
         }
     }
+
+out:
+  if (type != NULL)
+    *type = WOCKY_XMPP_ERROR_TYPE_CANCEL;
 
   return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
 }
@@ -423,7 +433,7 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
     return code;
 
   /* Ok, do it the legacy way */
-  return xmpp_error_from_code (error_node);
+  return xmpp_error_from_code (error_node, NULL);
 }
 
 /**
