@@ -167,7 +167,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "intended recipient (or required to fulfill a request) could not be "
       "contacted within a reasonable amount of time",
       WOCKY_XMPP_ERROR_TYPE_WAIT,
-      { 408, 504, 0, },
+      { 504, 408, 0, },
     },
 
     /* conflict */
@@ -207,7 +207,7 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
       "the server or recipient does not currently provide the requested "
       "service",
       WOCKY_XMPP_ERROR_TYPE_CANCEL,
-      { 502, 503, 510, },
+      { 503, 502, 510, },
     },
 };
 
