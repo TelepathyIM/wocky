@@ -436,104 +436,6 @@ wocky_xmpp_error_from_node (WockyXmppNode *error_node)
   return xmpp_error_from_code (error_node, NULL);
 }
 
-/**
- * wocky_xmpp_node_unpack_error:
- *
- * @node: a #WockyXmppNode
- * @type: gchar ** into which to write the XMPP Stanza error type
- * @text: #WockyXmppNode ** to hold the node containing the error description
- * @orig: #WockyXmppNode ** to hold the original XMPP Stanza that triggered
- *        the error: XMPP does not require this to be provided in the error
- * @extra: #WockyXmppNode ** to hold any extra domain-specific XML tags
- *         for the error received.
- * @errnum: #WockyXmppError * to hold the value mapping to the error condition
- *
- * Given an XMPP Stanza error #WockyXmppNode see RFC 3920) this function
- * extracts useful error info.
- *
- * The above parameters are all optional, pass NULL to ignore them.
- *
- * The above data are all optional in XMPP, except for @type, which
- * the XMPP spec requires in all stanza errors. See RFC 3920 [9.3.2].
- *
- * None of the above parameters need be freed, they are owned by the
- * parent #WockyXmppNode @node.
- *
- * Returns: a const gchar * indicating the error condition
- */
-
-const gchar *
-wocky_xmpp_error_unpack_node (WockyXmppNode *node,
-    WockyXmppErrorType *type,
-    WockyXmppNode **text,
-    WockyXmppNode **orig,
-    WockyXmppNode **extra,
-    WockyXmppError *errnum)
-{
-  WockyXmppNode *error = NULL;
-  WockyXmppNode *mesg = NULL;
-  WockyXmppNode *xtra = NULL;
-  const gchar *cond = NULL;
-  GSList *child = NULL;
-  GQuark stanza = g_quark_from_string (WOCKY_XMPP_NS_STANZAS);
-
-  g_assert (node != NULL);
-
-  error = wocky_xmpp_node_get_child (node, "error");
-
-  /* not an error? weird, in any case */
-  if (error == NULL)
-    return NULL;
-
-  /* The type='' attributes being present and one of the defined five is a
-   * MUST; if the other party is getting XMPP *that* wrong, 'cancel' seems like
-   * a sensible default.
-   */
-  if (type != NULL)
-    {
-      const gchar *type_attr = wocky_xmpp_node_get_attribute (error, "type");
-      gint type_i = WOCKY_XMPP_ERROR_TYPE_CANCEL;
-
-      if (type_attr != NULL)
-        wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type_attr, &type_i);
-
-      *type = type_i;
-    }
-
-  for (child = error->children; child != NULL; child = g_slist_next (child))
-    {
-      WockyXmppNode *c = child->data;
-      if (c->ns != stanza)
-        xtra = c;
-      else if (wocky_strdiff (c->name, "text"))
-        {
-          cond = c->name;
-        }
-      else
-        mesg = c;
-    }
-
-  if (text != NULL)
-    *text = mesg;
-
-  if (extra != NULL)
-    *extra = xtra;
-
-  if (orig != NULL)
-    {
-      WockyXmppNode *first = wocky_xmpp_node_get_first_child (node);
-      if (first != error)
-        *orig = first;
-      else
-        *orig = NULL;
-    }
-
-  if (errnum != NULL)
-    *errnum = wocky_xmpp_error_from_node (error);
-
-  return cond;
-}
-
 void
 wocky_xmpp_error_extract (WockyXmppNode *error,
     WockyXmppErrorType *type,
@@ -706,7 +608,7 @@ wocky_stanza_error_to_node (const GError *error,
       wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
 
   node = wocky_xmpp_node_add_child (error_node,
-      wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, core_error));
+      wocky_xmpp_error_string (core_error));
   wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
 
   if (domain != NULL)
