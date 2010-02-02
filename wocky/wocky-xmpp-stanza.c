@@ -583,3 +583,38 @@ wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
 
   return NULL;
 }
+
+/**
+ * @stanza: a stanza, which must have sub-type error
+ * @type: location at which to store the error type
+ * @core: location at which to store an error in the domain WOCKY_XMPP_ERROR
+ * @specialized: location at which to store an error in an application-specific
+ *               domain
+ * @specialized_node: location at which to store the node representing an
+ *                    application-specific error
+ *
+ * Given a message, iq or presence stanza with type='error', breaks it down
+ * into values describing the error. @type and @core are guaranteed to be set;
+ * @specialized and @specialized_node will be set if a recognised
+ * application-specific error is found, and the latter will be set to %NULL if
+ * no application-specific error is found.
+ *
+ * Any or all of the out parameters may be %NULL to ignore the value.
+ */
+void
+wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
+    WockyXmppErrorType *type,
+    GError **core,
+    GError **specialized,
+    WockyXmppNode **specialized_node)
+{
+  WockyStanzaSubType sub_type;
+  WockyXmppNode *error;
+
+  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  g_return_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_ERROR);
+
+  error = wocky_xmpp_node_get_child (stanza->node, "error");
+
+  wocky_xmpp_error_extract (error, type, core, specialized, specialized_node);
+}

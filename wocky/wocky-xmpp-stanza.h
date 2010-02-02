@@ -25,6 +25,7 @@
 
 #include <glib-object.h>
 #include "wocky-xmpp-node.h"
+#include "wocky-xmpp-error.h"
 
 G_BEGIN_DECLS
 
@@ -131,6 +132,11 @@ WockyXmppStanza * wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
     WockyBuildTag spec, ...);
 
 GError * wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza);
+void wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
+    WockyXmppErrorType *type,
+    GError **core,
+    GError **specialized,
+    WockyXmppNode **specialized_node);
 
 G_END_DECLS
 

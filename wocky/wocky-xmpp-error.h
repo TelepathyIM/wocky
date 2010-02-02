@@ -22,7 +22,9 @@
 #define __WOCKY_XMPP_ERROR_H__
 
 #include <glib.h>
-#include "wocky-xmpp-stanza.h"
+#include <glib-object.h>
+
+#include "wocky-xmpp-node.h"
 
 /*< prefix=WOCKY_XMPP_ERROR_TYPE >*/
 typedef enum {
@@ -171,6 +173,12 @@ wocky_xmpp_error_unpack_node (WockyXmppNode *node,
     WockyXmppNode **orig,
     WockyXmppNode **extra,
     WockyXmppError *errnum);
+
+void wocky_xmpp_error_extract (WockyXmppNode *error,
+    WockyXmppErrorType *type,
+    GError **core,
+    GError **specialized,
+    WockyXmppNode **specialized_node);
 
 void wocky_xmpp_error_init (void);
 void wocky_xmpp_error_deinit (void);

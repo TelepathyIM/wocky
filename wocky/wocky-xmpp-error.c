@@ -534,6 +534,96 @@ wocky_xmpp_error_unpack_node (WockyXmppNode *node,
   return cond;
 }
 
+void
+wocky_xmpp_error_extract (WockyXmppNode *error,
+    WockyXmppErrorType *type,
+    GError **core,
+    GError **specialized,
+    WockyXmppNode **specialized_node)
+{
+  gboolean found_core_error = FALSE;
+  gint core_code = WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+  GQuark specialized_domain = 0;
+  gint specialized_code;
+  WockyXmppNode *specialized_node_tmp = NULL;
+  const gchar *message = NULL;
+  GSList *l;
+
+  g_return_if_fail (!wocky_strdiff (error->name, "error"));
+
+  /* The type='' attributes being present and one of the defined five is a
+   * MUST; if the other party is getting XMPP *that* wrong, 'cancel' seems like
+   * a sensible default. (If the other party only uses legacy error codes, the
+   * call to xmpp_error_from_code() below will try to improve on that default.)
+   */
+  if (type != NULL)
+    {
+      const gchar *type_attr = wocky_xmpp_node_get_attribute (error, "type");
+      gint type_i = WOCKY_XMPP_ERROR_TYPE_CANCEL;
+
+      if (type_attr != NULL)
+        wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type_attr, &type_i);
+
+      *type = type_i;
+    }
+
+  for (l = error->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *child = l->data;
+
+      if (child->ns == WOCKY_XMPP_ERROR)
+        {
+          if (!wocky_strdiff (child->name, "text"))
+            {
+              message = child->content;
+            }
+          else if (!found_core_error)
+            {
+              /* See if the element is a XMPP Core stanza error we know about,
+               * given that we haven't found one yet.
+               */
+              found_core_error = wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR,
+                  child->name, &core_code);
+            }
+        }
+      else if (specialized_domain == 0)
+        {
+          /* This could be a specialized error; let's check if it's in a
+           * namespace we know about, and if so that it's an element name we
+           * know.
+           */
+          WockyXmppErrorDomain *domain = xmpp_error_find_domain (child->ns);
+
+          if (domain != NULL &&
+              wocky_enum_from_nick (domain->enum_type, child->name,
+                  &specialized_code))
+            {
+              specialized_domain = child->ns;
+              specialized_node_tmp = child;
+            }
+        }
+    }
+
+  /* If we don't have an XMPP Core stanza error yet, maybe the peer uses Þe
+   * Olde Numeric Error Codes.
+   */
+  if (!found_core_error)
+    core_code = xmpp_error_from_code (error, type);
+
+  /* okay, time to make some errors */
+  if (message == NULL)
+    message = "";
+
+  g_set_error_literal (core, WOCKY_XMPP_ERROR, core_code, message);
+
+  if (specialized_domain != 0)
+    g_set_error_literal (specialized, specialized_domain, specialized_code,
+        message);
+
+  if (specialized_node != NULL)
+    *specialized_node = specialized_node_tmp;
+}
+
 /*
  * See RFC 3920: 4.7 Stream Errors, 9.3 Stanza Errors.
  */

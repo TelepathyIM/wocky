@@ -250,6 +250,202 @@ test_xmpp_error_to_gerror (void)
     }
 }
 
+static void
+test_extract_errors (void)
+{
+  WockyXmppStanza *stanza;
+  const gchar *description = "I am a sentence.";
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyXmppNode *specialized_node = NULL;
+
+  /* For starters, test a boring error with no description */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "type", "modify",
+          WOCKY_NODE, "bad-request",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_MODIFY);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_BAD_REQUEST);
+  g_assert_cmpstr (core->message, ==, "");
+  g_clear_error (&core);
+
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  /* Now a different error with some text */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "type", "cancel",
+          WOCKY_NODE, "item-not-found",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "text",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+            WOCKY_NODE_TEXT, description,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_ITEM_NOT_FOUND);
+  g_assert_cmpstr (core->message, ==, description);
+  g_clear_error (&core);
+
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
+
+  /* Another error, with an application-specific element we don't understand */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "type", "cancel",
+          WOCKY_NODE, "subscription-required",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "buy-a-private-cloud",
+            WOCKY_NODE_XMLNS, "http://example.com/angry-cloud",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR,
+      WOCKY_XMPP_ERROR_SUBSCRIPTION_REQUIRED);
+  g_assert_cmpstr (core->message, ==, "");
+  g_clear_error (&core);
+
+  g_assert_no_error (specialized);
+
+  /* This is questionable: maybe wocky_xmpp_error_extract() should assume that
+   * a child of <error/> in a NS it doesn't understand is a specialized error,
+   * rather than requiring the ns to be registered with
+   * wocky_xmpp_error_register_domain().
+   */
+  g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
+
+  /* A Jingle error! With the child nodes in an erratic order */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "type", "cancel",
+          WOCKY_NODE, "tie-break",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_JINGLE_ERRORS,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "text",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+            WOCKY_NODE_TEXT, description,
+          WOCKY_NODE_END,
+          WOCKY_NODE, "conflict",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_CONFLICT);
+  g_assert_cmpstr (core->message, ==, description);
+  g_clear_error (&core);
+
+  g_assert_error (specialized, WOCKY_JINGLE_ERROR,
+      WOCKY_JINGLE_ERROR_TIE_BREAK);
+  g_assert_cmpstr (specialized->message, ==, description);
+  g_clear_error (&specialized);
+
+  g_assert (specialized_node != NULL);
+  g_assert_cmpstr (specialized_node->name, ==, "tie-break");
+
+  /* With the same stanza, let's try ignoring all out params: */
+  wocky_xmpp_stanza_extract_errors (stanza, NULL, NULL, NULL, NULL);
+
+  g_object_unref (stanza);
+
+  /* How about a legacy error code? */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "code", "408",
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  /* XEP-0086 §3 says that 408 maps to remote-server-timeout, type=wait */
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_WAIT);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR,
+      WOCKY_XMPP_ERROR_REMOTE_SERVER_TIMEOUT);
+  /* No assertion about the message. As an implementation detail, it's probably
+   * the definition of r-s-t from XMPP Core.
+   */
+  g_clear_error (&core);
+
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
+
+  /* And finally, an error that's completely broken. */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        WOCKY_NODE, "error",
+          WOCKY_NODE_ATTRIBUTE, "aoeu", "snth",
+          WOCKY_NODE, "hoobily-lala-whee",
+          WOCKY_NODE_END,
+          WOCKY_NODE, "møøse",
+            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  /* 'cancel' is the most sensible default if we have no idea. */
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
+  g_clear_error (&core);
+
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -262,6 +458,7 @@ main (int argc, char **argv)
       test_stream_error_to_gerror);
   g_test_add_func ("/xmpp-stanza/xmpp-error-to-gerror",
       test_xmpp_error_to_gerror);
+  g_test_add_func ("/xmpp-stanza/extract-errors", test_extract_errors);
 
   result =  g_test_run ();
   test_deinit ();
