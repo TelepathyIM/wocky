@@ -538,13 +538,14 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
 }
 
 /**
+ * wocky_xmpp_stanza_extract_errors:
  * @stanza: a message/iq/presence stanza
  * @type: location at which to store the error type
- * @core: location at which to store an error in the domain WOCKY_XMPP_ERROR
+ * @core: location at which to store an error in the domain #WOCKY_XMPP_ERROR
  * @specialized: location at which to store an error in an application-specific
- *               domain
+ *               domain, if one is found
  * @specialized_node: location at which to store the node representing an
- *                    application-specific error
+ *                    application-specific error, if one is found
  *
  * Given a message, iq or presence stanza with type='error', breaks it down
  * into values describing the error. @type and @core are guaranteed to be set;
@@ -552,7 +553,9 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
  * application-specific error is found, and the latter will be set to %NULL if
  * no application-specific error is found.
  *
- * Any or all of the out parameters may be %NULL to ignore the value.
+ * Any or all of the out parameters may be %NULL to ignore the value.  The
+ * value stored in @specialized_node is borrowed from @stanza, and is only
+ * valid as long as the latter is alive.
  *
  * Returns: %TRUE if the stanza had type='error'; %FALSE otherwise
  */
@@ -576,6 +579,15 @@ wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_stanza_extract_stream_error:
+ * @stanza: a stanza
+ * @stream_error: location at which to store an error in domain
+ *                #WOCKY_XMPP_STREAM_ERROR, if one is found.
+ *
+ * Returns: %TRUE and sets @stream_error if the stanza was indeed a stream
+ *          error.
+ */
 gboolean
 wocky_xmpp_stanza_extract_stream_error (WockyXmppStanza *stanza,
     GError **stream_error)

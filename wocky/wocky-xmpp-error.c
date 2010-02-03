@@ -419,6 +419,25 @@ out:
   return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
 }
 
+/**
+ * wocky_xmpp_error_extract:
+ * @error: the <error/> child of a stanza with type='error'
+ * @type: location at which to store the error type
+ * @core: location at which to store an error in the domain #WOCKY_XMPP_ERROR
+ * @specialized: location at which to store an error in an application-specific
+ *               domain, if one is found
+ * @specialized_node: location at which to store the node representing an
+ *                    application-specific error, if one is found
+ *
+ * Given an <error/> node, breaks it down into values describing the error.
+ * @type and @core are guaranteed to be set; @specialized and @specialized_node
+ * will be set if a recognised application-specific error is found, and the
+ * latter will be set to %NULL if no application-specific error is found.
+ *
+ * Any or all of the out parameters may be %NULL to ignore the value.  The
+ * value stored in @specialized_node is borrowed from @stanza, and is only
+ * valid as long as the latter is alive.
+ */
 void
 wocky_xmpp_error_extract (WockyXmppNode *error,
     WockyXmppErrorType *type,
@@ -630,6 +649,12 @@ wocky_xmpp_stream_error_quark (void)
   return quark;
 }
 
+/**
+ * wocky_xmpp_stream_error_from_node:
+ * @error: the root node of a #WOCKY_STANZA_TYPE_STREAM_ERROR stanza
+ *
+ * Returns: a GError in the #WOCKY_XMPP_STREAM_ERROR domain.
+ */
 GError *
 wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
 {
