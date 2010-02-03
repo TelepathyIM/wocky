@@ -537,53 +537,6 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
   return reply;
 }
 
-static GError *
-stream_error_to_gerror (WockyXmppStanza *stanza)
-{
-  WockyXmppStreamError code;
-  WockyXmppNode *text;
-
-  code = wocky_xmpp_stream_error_from_node (stanza->node);
-  text = wocky_xmpp_node_get_child (stanza->node, "text");
-
-  return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code,
-      (text != NULL) ? text->content: "a stream error occurred");
-}
-
-static GError *
-xmpp_error_to_gerror (WockyXmppStanza *stanza)
-{
-  WockyXmppNode *error_node;
-
-  error_node = wocky_xmpp_node_get_child (stanza->node, "error");
-  if (error_node != NULL)
-    {
-      WockyXmppError error = wocky_xmpp_error_from_node (error_node);
-
-      return g_error_new_literal (WOCKY_XMPP_ERROR, error,
-          wocky_xmpp_error_description (error));
-    }
-
-  return g_error_new_literal (WOCKY_XMPP_ERROR,
-      WOCKY_XMPP_ERROR_UNDEFINED_CONDITION, "Unknown or invalid XMPP error");
-}
-
-GError *
-wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza)
-{
-  WockyStanzaType type;
-  WockyStanzaSubType sub_type;
-
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
-
-  if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
-    return stream_error_to_gerror (stanza);
-  else if (sub_type == WOCKY_STANZA_SUB_TYPE_ERROR)
-    return xmpp_error_to_gerror (stanza);
-
-  return NULL;
-}
-
 /**
  * @stanza: a message/iq/presence stanza
  * @type: location at which to store the error type

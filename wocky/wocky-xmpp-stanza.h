@@ -131,7 +131,6 @@ WockyXmppStanza * wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
 WockyXmppStanza * wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
     WockyBuildTag spec, ...);
 
-GError * wocky_xmpp_stanza_to_gerror (WockyXmppStanza *stanza);
 gboolean wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
     WockyXmppErrorType *type,
     GError **core,

@@ -419,23 +419,6 @@ out:
   return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
 }
 
-WockyXmppError
-wocky_xmpp_error_from_node (WockyXmppNode *error_node)
-{
-  gint code;
-
-  g_return_val_if_fail (error_node != NULL,
-      WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
-
-  /* First, try to look it up the modern way */
-  if (xmpp_error_from_node_for_ns (error_node, WOCKY_XMPP_ERROR,
-          WOCKY_TYPE_XMPP_ERROR, &code))
-    return code;
-
-  /* Ok, do it the legacy way */
-  return xmpp_error_from_code (error_node, NULL);
-}
-
 void
 wocky_xmpp_error_extract (WockyXmppNode *error,
     WockyXmppErrorType *type,
@@ -529,18 +512,6 @@ wocky_xmpp_error_extract (WockyXmppNode *error,
 /*
  * See RFC 3920: 4.7 Stream Errors, 9.3 Stanza Errors.
  */
-WockyXmppNode *
-wocky_xmpp_error_to_node (WockyXmppError error,
-    WockyXmppNode *parent_node,
-    const gchar *errmsg)
-{
-  GError e = { WOCKY_XMPP_ERROR, error, (gchar *) errmsg };
-
-  g_return_val_if_fail (error != WOCKY_XMPP_ERROR_UNDEFINED_CONDITION &&
-      error < NUM_WOCKY_XMPP_ERRORS, NULL);
-
-  return wocky_stanza_error_to_node (&e, parent_node);
-}
 
 /**
  * wocky_g_error_to_node:
