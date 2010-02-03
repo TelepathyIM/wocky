@@ -27,6 +27,9 @@
 #include "wocky-utils.h"
 #include "wocky-xmpp-error-enumtypes.h"
 
+/* Definitions of XMPP core stanza errors, as per RFC 3920 §9.3; plus the
+ * corresponding legacy error codes as described by XEP-0086.
+ */
 #define MAX_LEGACY_ERRORS 3
 
 typedef struct {
@@ -211,8 +214,6 @@ static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
     },
 };
 
-static GList *error_domains = NULL;
-
 GQuark
 wocky_xmpp_error_quark (void)
 {
@@ -224,6 +225,48 @@ wocky_xmpp_error_quark (void)
   return quark;
 }
 
+/**
+ * wocky_xmpp_error_string:
+ * @error: a core stanza error
+ *
+ * <!-- -->
+ *
+ * Returns: the name of the tag corresponding to @error
+ */
+const gchar *
+wocky_xmpp_error_string (WockyXmppError error)
+{
+  return wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, error);
+}
+
+/**
+ * wocky_xmpp_error_description:
+ * @error: a core stanza error
+ *
+ * <!-- -->
+ *
+ * Returns: a description of the error, in English, as specified in XMPP Core
+ */
+const gchar *
+wocky_xmpp_error_description (WockyXmppError error)
+{
+  if (error < NUM_WOCKY_XMPP_ERRORS)
+    return xmpp_errors[error].description;
+  else
+    return NULL;
+}
+
+static GList *error_domains = NULL;
+
+/**
+ * wocky_xmpp_error_register_domain
+ * @domain: a description of the error domain
+ *
+ * Registers a new set of application-specific stanza errors. This allows
+ * GErrors in that domain to be passed to wocky_stanza_error_to_node(), and to
+ * be recognized and returned by wocky_xmpp_error_extract() (and
+ * wocky_xmpp_stanza_extract_errors(), by extension).
+ */
 void
 wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain)
 {
@@ -244,104 +287,6 @@ xmpp_error_find_domain (GQuark domain)
     }
 
   return NULL;
-}
-
-GQuark
-wocky_jingle_error_quark (void)
-{
-  static GQuark quark = 0;
-
-  if (quark == 0)
-    quark = g_quark_from_static_string (WOCKY_XMPP_NS_JINGLE_ERRORS);
-
-  return quark;
-}
-
-static WockyXmppErrorDomain *
-jingle_error_get_domain (void)
-{
-  static WockyXmppErrorSpecialization codes[] = {
-      /* out-of-order */
-      { "The request cannot occur at this point in the state machine (e.g., "
-        "session-initiate after session-accept).",
-        WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
-        FALSE
-      },
-
-      /* tie-break */
-      { "The request is rejected because it was sent while the initiator was "
-        "awaiting a reply on a similar request.",
-        WOCKY_XMPP_ERROR_CONFLICT,
-        FALSE
-      },
-
-      /* unknown-session */
-      { "The 'sid' attribute specifies a session that is unknown to the "
-        "recipient (e.g., no longer live according to the recipient's state "
-        "machine because the recipient previously terminated the session).",
-        WOCKY_XMPP_ERROR_ITEM_NOT_FOUND,
-        FALSE
-      },
-
-      /* unsupported-info */
-      { "The recipient does not support the informational payload of a "
-        "session-info action.",
-        WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
-        FALSE
-      }
-  };
-  static WockyXmppErrorDomain jingle_errors = { 0, };
-
-  if (G_UNLIKELY (jingle_errors.domain == 0))
-    {
-      jingle_errors.domain = WOCKY_JINGLE_ERROR;
-      jingle_errors.enum_type = WOCKY_TYPE_JINGLE_ERROR;
-      jingle_errors.codes = codes;
-    }
-
-  return &jingle_errors;
-}
-
-GQuark
-wocky_si_error_quark (void)
-{
-  static GQuark quark = 0;
-
-  if (quark == 0)
-    quark = g_quark_from_static_string (WOCKY_XMPP_NS_SI);
-
-  return quark;
-}
-
-static WockyXmppErrorDomain *
-si_error_get_domain (void)
-{
-  static WockyXmppErrorSpecialization codes[] = {
-      /* no-valid-streams */
-      { "None of the available streams are acceptable.",
-        WOCKY_XMPP_ERROR_BAD_REQUEST,
-        TRUE,
-        WOCKY_XMPP_ERROR_TYPE_CANCEL
-      },
-
-      /* bad-profile */
-      { "The profile is not understood or invalid. The profile MAY supply a "
-        "profile-specific error condition.",
-        WOCKY_XMPP_ERROR_BAD_REQUEST,
-        TRUE,
-        WOCKY_XMPP_ERROR_TYPE_MODIFY
-      }
-  };
-  static WockyXmppErrorDomain si_errors = { 0, };
-
-  if (G_UNLIKELY (si_errors.domain == 0))
-    {
-      si_errors.domain = WOCKY_SI_ERROR;
-      si_errors.enum_type = WOCKY_TYPE_SI_ERROR;
-      si_errors.codes = codes;
-    }
-
-  return &si_errors;
 }
 
 /* Static, but bears documenting.
@@ -378,6 +323,8 @@ xmpp_error_from_node_for_ns (
   return FALSE;
 }
 
+/* Attempts to divine a WockyXmppError from a legacy numeric code='' attribute
+ */
 static WockyXmppError
 xmpp_error_from_code (WockyXmppNode *error_node,
     WockyXmppErrorType *type)
@@ -528,10 +475,6 @@ wocky_xmpp_error_extract (WockyXmppNode *error,
     *specialized_node = specialized_node_tmp;
 }
 
-/*
- * See RFC 3920: 4.7 Stream Errors, 9.3 Stanza Errors.
- */
-
 /**
  * wocky_g_error_to_node:
  * @error: an error in the domain #WOCKY_XMPP_ERROR, or in an
@@ -616,20 +559,11 @@ wocky_stanza_error_to_node (const GError *error,
   return error_node;
 }
 
-const gchar *
-wocky_xmpp_error_string (WockyXmppError error)
-{
-  return wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, error);
-}
-
-const gchar *
-wocky_xmpp_error_description (WockyXmppError error)
-{
-  if (error < NUM_WOCKY_XMPP_ERRORS)
-    return xmpp_errors[error].description;
-  else
-    return NULL;
-}
+/**
+ * WockyXmppStreamError:
+ *
+ * Possible XMPP stream errors, as defined by RFC 3920 §4.7.
+ */
 
 /**
  * wocky_xmpp_stream_error_quark
@@ -675,6 +609,107 @@ wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
     message = "";
 
   return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code, message);
+}
+
+
+/* Built-in specialized error domains */
+
+GQuark
+wocky_jingle_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_JINGLE_ERRORS);
+
+  return quark;
+}
+
+static WockyXmppErrorDomain *
+jingle_error_get_domain (void)
+{
+  static WockyXmppErrorSpecialization codes[] = {
+      /* out-of-order */
+      { "The request cannot occur at this point in the state machine (e.g., "
+        "session-initiate after session-accept).",
+        WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
+        FALSE
+      },
+
+      /* tie-break */
+      { "The request is rejected because it was sent while the initiator was "
+        "awaiting a reply on a similar request.",
+        WOCKY_XMPP_ERROR_CONFLICT,
+        FALSE
+      },
+
+      /* unknown-session */
+      { "The 'sid' attribute specifies a session that is unknown to the "
+        "recipient (e.g., no longer live according to the recipient's state "
+        "machine because the recipient previously terminated the session).",
+        WOCKY_XMPP_ERROR_ITEM_NOT_FOUND,
+        FALSE
+      },
+
+      /* unsupported-info */
+      { "The recipient does not support the informational payload of a "
+        "session-info action.",
+        WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+        FALSE
+      }
+  };
+  static WockyXmppErrorDomain jingle_errors = { 0, };
+
+  if (G_UNLIKELY (jingle_errors.domain == 0))
+    {
+      jingle_errors.domain = WOCKY_JINGLE_ERROR;
+      jingle_errors.enum_type = WOCKY_TYPE_JINGLE_ERROR;
+      jingle_errors.codes = codes;
+    }
+
+  return &jingle_errors;
+}
+
+GQuark
+wocky_si_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_SI);
+
+  return quark;
+}
+
+static WockyXmppErrorDomain *
+si_error_get_domain (void)
+{
+  static WockyXmppErrorSpecialization codes[] = {
+      /* no-valid-streams */
+      { "None of the available streams are acceptable.",
+        WOCKY_XMPP_ERROR_BAD_REQUEST,
+        TRUE,
+        WOCKY_XMPP_ERROR_TYPE_CANCEL
+      },
+
+      /* bad-profile */
+      { "The profile is not understood or invalid. The profile MAY supply a "
+        "profile-specific error condition.",
+        WOCKY_XMPP_ERROR_BAD_REQUEST,
+        TRUE,
+        WOCKY_XMPP_ERROR_TYPE_MODIFY
+      }
+  };
+  static WockyXmppErrorDomain si_errors = { 0, };
+
+  if (G_UNLIKELY (si_errors.domain == 0))
+    {
+      si_errors.domain = WOCKY_SI_ERROR;
+      si_errors.enum_type = WOCKY_TYPE_SI_ERROR;
+      si_errors.codes = codes;
+    }
+
+  return &si_errors;
 }
 
 void
