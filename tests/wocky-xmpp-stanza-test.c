@@ -151,22 +151,23 @@ test_build_iq_error (void)
   g_object_unref (iq);
 }
 
-/* test wocky_xmpp_stanza_to_gerror */
 static void
 check_error (WockyXmppStanza *stanza,
     GQuark domain,
     gint code,
     const gchar *msg)
 {
-  GError *error = wocky_xmpp_stanza_to_gerror (stanza);
+  GError *error = NULL;
+
+  g_assert (wocky_xmpp_stanza_extract_stream_error (stanza, &error));
 
   g_assert_error (error, domain, code);
-  g_assert (!wocky_strdiff (error->message, msg));
+  g_assert_cmpstr (error->message, ==, msg);
   g_error_free (error);
 }
 
 static void
-test_stream_error_to_gerror (void)
+test_extract_stanza_error (void)
 {
   WockyXmppStanza *stanza;
   GError *error = NULL;
@@ -181,7 +182,7 @@ test_stream_error_to_gerror (void)
     WOCKY_STANZA_END);
 
   check_error (stanza, WOCKY_XMPP_STREAM_ERROR,
-      WOCKY_XMPP_STREAM_ERROR_CONFLICT, "a stream error occurred");
+      WOCKY_XMPP_STREAM_ERROR_CONFLICT, "");
   g_object_unref (stanza);
 
   /* Valid stream error with message */
@@ -192,6 +193,7 @@ test_stream_error_to_gerror (void)
       WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAMS,
     WOCKY_NODE_END,
     WOCKY_NODE, "text",
+      WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAMS,
       WOCKY_NODE_TEXT, "bye bye",
     WOCKY_NODE_END,
     WOCKY_STANZA_END);
@@ -210,7 +212,7 @@ test_stream_error_to_gerror (void)
     WOCKY_STANZA_END);
 
   check_error (stanza, WOCKY_XMPP_STREAM_ERROR,
-     WOCKY_XMPP_STREAM_ERROR_UNKNOWN, "a stream error occurred");
+     WOCKY_XMPP_STREAM_ERROR_UNKNOWN, "");
   g_object_unref (stanza);
 
   /* Not an error */
@@ -219,7 +221,7 @@ test_stream_error_to_gerror (void)
     WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STREAM,
     WOCKY_STANZA_END);
 
-  error = wocky_xmpp_stanza_to_gerror (stanza);
+  g_assert (!wocky_xmpp_stanza_extract_stream_error (stanza, &error));
   g_assert_no_error (error);
   g_object_unref (stanza);
 }
@@ -578,8 +580,8 @@ main (int argc, char **argv)
   test_init (argc, argv);
   g_test_add_func ("/xmpp-stanza/build-iq-result", test_build_iq_result);
   g_test_add_func ("/xmpp-stanza/build-iq-error", test_build_iq_error);
-  g_test_add_func ("/xmpp-stanza/stream-error-to-gerror",
-      test_stream_error_to_gerror);
+  g_test_add_func ("/xmpp-stanza/extract-stanza-error",
+      test_extract_stanza_error);
   g_test_add_func ("/xmpp-stanza/xmpp-error-to-gerror",
       test_xmpp_error_to_gerror);
   g_test_add_func ("/xmpp-stanza/extract-errors", test_extract_errors);

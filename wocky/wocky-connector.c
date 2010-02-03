@@ -1342,21 +1342,11 @@ stream_error_abort (WockyConnector *connector,
 {
   GError *error = NULL;
 
-  error = wocky_xmpp_stanza_to_gerror (stanza);
-  if (error == NULL)
+  if (!wocky_xmpp_stanza_extract_stream_error (stanza, &error))
     return FALSE;
 
-  if (error->domain != WOCKY_XMPP_STREAM_ERROR)
-    {
-      /* Not a stream error; ignore it */
-      g_error_free (error);
-      return FALSE;
-    }
-
   DEBUG ("Received stream error: %s", error->message);
-
   abort_connect (connector, error);
-
   g_error_free (error);
   return TRUE;
 }
@@ -1804,12 +1794,9 @@ xep77_cancel_recv (GObject *source,
 
   DEBUG ("type == %d; sub_type: %d", type, sub_type);
 
-  if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
+  if (wocky_xmpp_stanza_extract_stream_error (iq, &error))
     {
-      error = wocky_xmpp_stanza_to_gerror (iq);
-
-      if ((error != NULL) &&
-          (error->code == WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED))
+      if (error->code == WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED)
         g_simple_async_result_set_op_res_gboolean (priv->result, TRUE);
       else
         g_simple_async_result_set_from_error (priv->result, error);

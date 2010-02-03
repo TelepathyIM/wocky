@@ -138,6 +138,9 @@ gboolean wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
     GError **specialized,
     WockyXmppNode **specialized_node);
 
+gboolean wocky_xmpp_stanza_extract_stream_error (WockyXmppStanza *stanza,
+    GError **stream_error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_XMPP_STANZA_H__*/

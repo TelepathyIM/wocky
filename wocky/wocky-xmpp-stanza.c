@@ -622,3 +622,19 @@ wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
   wocky_xmpp_error_extract (error, type, core, specialized, specialized_node);
   return TRUE;
 }
+
+gboolean
+wocky_xmpp_stanza_extract_stream_error (WockyXmppStanza *stanza,
+    GError **stream_error)
+{
+  WockyStanzaType type;
+
+  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+
+  if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
+    return FALSE;
+
+  g_propagate_error (stream_error,
+      wocky_xmpp_stream_error_from_node (stanza->node));
+  return TRUE;
+}

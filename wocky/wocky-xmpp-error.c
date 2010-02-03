@@ -659,16 +659,26 @@ wocky_xmpp_stream_error_quark (void)
   return quark;
 }
 
-WockyXmppStreamError
-wocky_xmpp_stream_error_from_node (WockyXmppNode *node)
+GError *
+wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
 {
-  gint code;
+  WockyXmppNode *text;
+  gint code = WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+  const gchar *message = NULL;
 
-  if (xmpp_error_from_node_for_ns (node, WOCKY_XMPP_STREAM_ERROR,
-          WOCKY_TYPE_XMPP_STREAM_ERROR, &code))
-    return code;
-  else
-    return WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+  /* Ignore the return value; we have a default. */
+  xmpp_error_from_node_for_ns (error, WOCKY_XMPP_STREAM_ERROR,
+      WOCKY_TYPE_XMPP_STREAM_ERROR, &code);
+
+  text = wocky_xmpp_node_get_child_ns (error, "text", WOCKY_XMPP_NS_STREAMS);
+
+  if (text != NULL)
+    message = text->content;
+
+  if (message == NULL)
+    message = "";
+
+  return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code, message);
 }
 
 void

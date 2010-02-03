@@ -381,7 +381,7 @@ handle_stream_error (WockyPorter *self,
   GError *error = NULL;
 
   DEBUG ("Received stream error; consider the remote connection as closed");
-  error = wocky_xmpp_stanza_to_gerror (stanza);
+  wocky_xmpp_stanza_extract_stream_error (stanza, &error);
   remote_connection_closed (self, error);
   g_error_free (error);
   return TRUE;
