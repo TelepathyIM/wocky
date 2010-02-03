@@ -258,8 +258,25 @@ test_extract_errors (void)
   WockyXmppErrorType type;
   GError *core = NULL, *specialized = NULL;
   WockyXmppNode *specialized_node = NULL;
+  gboolean ret;
 
-  /* For starters, test a boring error with no description */
+  /* As a prelude, check that it does the right thing for non-errors. */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      "from", "to",
+        WOCKY_NODE, "hello-thar",
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  ret = wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  g_assert (!ret);
+  g_assert_no_error (core);
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  /* Test a boring error with no description */
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
@@ -271,9 +288,10 @@ test_extract_errors (void)
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  ret = wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
+  g_assert (ret);
   g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_MODIFY);
 
   g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_BAD_REQUEST);
