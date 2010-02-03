@@ -1009,7 +1009,7 @@ change_roster_iq_cb (GObject *source_object,
   if (reply == NULL)
     goto out;
 
-  error = wocky_xmpp_stanza_to_gerror (reply);
+  wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL);
 
   /* According to the XMPP RFC, the server has to send a roster upgrade to
    * each client (including the one which requested the change) before

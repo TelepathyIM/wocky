@@ -747,7 +747,7 @@ muc_disco_info (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
-        error = wocky_xmpp_stanza_to_gerror (iq);
+        wocky_xmpp_stanza_extract_errors (iq, NULL, &error, NULL, NULL);
         break;
 
       default:
