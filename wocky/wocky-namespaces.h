@@ -117,5 +117,11 @@
 #define WOCKY_NS_CHATSTATE \
   "http://jabber.org/protocol/chatstates"
 
+#define WOCKY_NS_GOOGLE_SESSION_PHONE \
+  "http://www.google.com/session/phone"
+
+#define WOCKY_NS_GOOGLE_SESSION_VIDEO \
+  "http://www.google.com/session/video"
+
 
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
