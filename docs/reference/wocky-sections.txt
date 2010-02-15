@@ -382,6 +382,9 @@ wocky_xmpp_node_equal
 wocky_xmpp_node_is_superset
 wocky_xmpp_node_init
 wocky_xmpp_node_deinit
+WockyXmppNodeIter
+wocky_xmpp_node_iter_init
+wocky_xmpp_node_iter_next
 </SECTION>
 
 <SECTION>
