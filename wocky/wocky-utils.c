@@ -564,7 +564,8 @@ wocky_g_value_slice_dup (const GValue *value)
  * @nick: a non-%NULL string purporting to be the nickname of a value of
  *        @enum_type
  * @value: the address at which to store the value of @enum_type corresponding
- *         to @nick
+ *         to @nick if this functions returns %TRUE; if this function returns
+ *         %FALSE, this variable will be left untouched.
  *
  * <!-- -->
  *
