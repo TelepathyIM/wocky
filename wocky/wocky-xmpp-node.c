@@ -718,6 +718,75 @@ wocky_xmpp_node_is_superset (WockyXmppNode *node,
   return TRUE;
 }
 
+/**
+ * wocky_xmpp_node_iter_init:
+ * @iter: unitialized iterator
+ * @node: Node whose children to iterate over
+ * @name: Name to filter on
+ * @ns: namespace to filter on
+ *
+ * Initializes an iterator that can be used to iterate over the children of
+ * @node, filtered by @name and @ns
+ * |[
+ * WockyXmppNodeIter iter;
+ * WockyXmppNode *child;
+ *
+ * wocky_xmpp_node_iter_init (&iter, stanza->node,
+ *    "payload-type",
+ *    WOCKY_NS_JINGLE_RTP);
+ * while (wocky_xmpp_node_iter_next (iter, &child))
+ *   {
+ *     /<!-- -->* do something with the child *<!-- -->/
+ *   }
+ * ]|
+ */
+void
+wocky_xmpp_node_iter_init (WockyXmppNodeIter *iter,
+    WockyXmppNode *node,
+    const gchar *name,
+    const gchar *ns)
+{
+  iter->pending = node->children;
+  iter->name = name;
+  iter->ns = g_quark_from_string (ns);
+}
+
+/**
+ * wocky_xmpp_node_iter_next:
+ * @iter: an initialized WockyXmppNodeIter
+ * @next: a location to store the next child
+ *
+ * Advances iter to the next child that matches its filter. if %FALSE is
+ * returned next is not set and the iterator becomes invalid
+ *
+ * Returns: %FALSE if the last child has been reached
+ *
+ */
+gboolean
+wocky_xmpp_node_iter_next (WockyXmppNodeIter *iter,
+    WockyXmppNode **next)
+{
+  while (iter->pending != NULL)
+    {
+      WockyXmppNode *ln = (WockyXmppNode *)iter->pending->data;
+
+      iter->pending  = g_slist_next (iter->pending);
+
+      if (iter->name != NULL && wocky_strdiff (ln->name, iter->name))
+        continue;
+
+      if (iter->ns != 0 && iter->ns != ln->ns)
+        continue;
+
+      if (next != NULL)
+        *next = ln;
+
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
 void
 wocky_xmpp_node_init ()
 {

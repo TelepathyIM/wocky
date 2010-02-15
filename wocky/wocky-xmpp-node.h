@@ -134,7 +134,22 @@ gboolean wocky_xmpp_node_equal (WockyXmppNode *node0,
     WockyXmppNode *node1);
 
 gboolean wocky_xmpp_node_is_superset (WockyXmppNode *node,
-    WockyXmppNode *pattern);
+    WockyXmppNode *subset);
+
+/* Iterate over a nodes children */
+typedef struct {
+  GSList *pending;
+  const gchar *name;
+  GQuark ns;
+} WockyXmppNodeIter;
+
+void wocky_xmpp_node_iter_init (WockyXmppNodeIter *iter,
+    WockyXmppNode *node,
+    const gchar *name,
+    const gchar *ns);
+
+gboolean wocky_xmpp_node_iter_next (WockyXmppNodeIter *iter,
+    WockyXmppNode **next);
 
 void wocky_xmpp_node_init (void);
 void wocky_xmpp_node_deinit (void);
