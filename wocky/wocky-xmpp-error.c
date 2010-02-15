@@ -219,7 +219,7 @@ wocky_xmpp_error_quark (void)
 {
   static GQuark quark = 0;
 
-  if (!quark)
+  if (quark == 0)
     quark = g_quark_from_static_string (WOCKY_XMPP_NS_STANZAS);
 
   return quark;
