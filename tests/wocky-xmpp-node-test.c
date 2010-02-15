@@ -244,6 +244,99 @@ test_set_attribute_ns (void)
   g_object_unref (sb);
 }
 
+static void
+do_test_iteration (WockyXmppNodeIter *iter, const gchar **names)
+{
+  WockyXmppNode *node;
+  int i = 0;
+
+  while (wocky_xmpp_node_iter_next (iter, &node))
+    {
+      g_assert (names[i] != NULL && "Unexpected node");
+
+      g_assert_cmpstr (names[i], ==,
+        wocky_xmpp_node_get_attribute (node, "name"));
+      i++;
+    }
+
+  g_assert (names[i] == NULL && "Expected more nodes");
+}
+
+static void
+test_node_iteration (void)
+{
+  WockyXmppStanza *stanza;
+  WockyXmppNodeIter iter;
+  const gchar *all[] = { "SPEEX", "THEORA", "GSM", "H264",
+                          "VIDEO?", "other", NULL };
+  const gchar *payloads[] = { "SPEEX", "THEORA", "GSM", "H264", NULL };
+  const gchar *audio[] = { "SPEEX", "GSM", NULL };
+  const gchar *video[] = { "THEORA", "H264", NULL };
+  const gchar *video_ns[] = { "THEORA", "H264", "VIDEO?", NULL };
+  const gchar *nothing[] = { NULL };
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_SET, "to", "from",
+    WOCKY_NODE, "payload-type",
+      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_PHONE,
+      WOCKY_NODE_ATTRIBUTE, "name", "SPEEX",
+    WOCKY_NODE_END,
+    WOCKY_NODE, "payload-type",
+      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      WOCKY_NODE_ATTRIBUTE, "name", "THEORA",
+    WOCKY_NODE_END,
+    WOCKY_NODE, "payload-type",
+      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_PHONE,
+      WOCKY_NODE_ATTRIBUTE, "name", "GSM",
+    WOCKY_NODE_END,
+    WOCKY_NODE, "payload-type",
+      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      WOCKY_NODE_ATTRIBUTE, "name", "H264",
+    WOCKY_NODE_END,
+    WOCKY_NODE, "video",
+      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      WOCKY_NODE_ATTRIBUTE, "name", "VIDEO?",
+    WOCKY_NODE_END,
+    WOCKY_NODE, "misc",
+      WOCKY_NODE_ATTRIBUTE, "name", "other",
+    WOCKY_STANZA_END);
+
+  /* All children */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL, NULL);
+  do_test_iteration (&iter, all);
+
+  /* Only the payloads */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, "payload-type", NULL);
+  do_test_iteration (&iter, payloads);
+
+  /* Only phone payloads */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, "payload-type",
+    WOCKY_NS_GOOGLE_SESSION_PHONE);
+  do_test_iteration (&iter, audio);
+
+  /* Only nodes the phone namespace */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL,
+    WOCKY_NS_GOOGLE_SESSION_PHONE);
+  do_test_iteration (&iter, audio);
+
+  /* only video payloads */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, "payload-type",
+    WOCKY_NS_GOOGLE_SESSION_VIDEO);
+  do_test_iteration (&iter, video);
+
+  /* only nodes with the video namespace */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL,
+    WOCKY_NS_GOOGLE_SESSION_VIDEO);
+  do_test_iteration (&iter, video_ns);
+
+  /* nothing */
+  wocky_xmpp_node_iter_init (&iter, stanza->node, "badgers", NULL);
+  do_test_iteration (&iter, nothing);
+
+  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL, "snakes");
+  do_test_iteration (&iter, nothing);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -255,6 +348,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-node/set-attribute", test_set_attribute);
   g_test_add_func ("/xmpp-node/append-content-n", test_append_content_n);
   g_test_add_func ("/xmpp-node/set-attribute-ns", test_set_attribute_ns);
+  g_test_add_func ("/xmpp-node/node-iterator", test_node_iteration);
 
   result = g_test_run ();
   test_deinit ();
