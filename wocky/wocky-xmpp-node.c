@@ -457,13 +457,31 @@ wocky_xmpp_node_add_child_with_content_ns (WockyXmppNode *node,
 void
 wocky_xmpp_node_set_ns (WockyXmppNode *node, const gchar *ns)
 {
-  node->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
+  wocky_xmpp_node_set_ns_q (node, g_quark_from_string (ns));
+}
+
+void
+wocky_xmpp_node_set_ns_q (WockyXmppNode *node, GQuark ns)
+{
+  node->ns = ns;
 }
 
 const gchar *
 wocky_xmpp_node_get_ns (WockyXmppNode *node)
 {
   return g_quark_to_string (node->ns);
+}
+
+gboolean
+wocky_xmpp_node_has_ns (WockyXmppNode *node, const gchar *ns)
+{
+  return wocky_xmpp_node_has_ns_q (node, g_quark_try_string (ns));
+}
+
+gboolean
+wocky_xmpp_node_has_ns_q (WockyXmppNode *node, GQuark ns)
+{
+  return node->ns == ns;
 }
 
 const gchar *

@@ -99,7 +99,10 @@ WockyXmppNode *wocky_xmpp_node_add_child_with_content_ns (
 
 /* Setting/Getting namespaces */
 void wocky_xmpp_node_set_ns (WockyXmppNode *node, const gchar *ns);
+void wocky_xmpp_node_set_ns_q (WockyXmppNode *node, GQuark ns);
 const gchar *wocky_xmpp_node_get_ns (WockyXmppNode *node);
+gboolean wocky_xmpp_node_has_ns (WockyXmppNode *node, const gchar *ns);
+gboolean wocky_xmpp_node_has_ns_q (WockyXmppNode *node, GQuark ns);
 
 /* Setting/Getting language */
 const gchar *wocky_xmpp_node_get_language (WockyXmppNode *node);

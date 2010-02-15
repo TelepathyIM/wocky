@@ -434,7 +434,7 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_MSG_ERR] = g_signal_new ("message-error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_STRING,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_ENUM,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_XMPP_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
@@ -443,7 +443,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_TYPE_POINTER, /* WockyMucMember * */
       G_TYPE_STRING,  /* content          */
       WOCKY_TYPE_XMPP_ERROR,    /* WockyXmppError   */
-      G_TYPE_STRING); /* error type       */
+      WOCKY_TYPE_XMPP_ERROR_TYPE); /* error type       */
 
   signals[SIG_FILL_PRESENCE] = g_signal_new ("fill-presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
@@ -747,7 +747,7 @@ muc_disco_info (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
-        error = wocky_xmpp_stanza_to_gerror (iq);
+        wocky_xmpp_stanza_extract_errors (iq, NULL, &error, NULL, NULL);
         break;
 
       default:
@@ -1299,13 +1299,9 @@ handle_presence_error (WockyMuc *muc,
   gchar *room = NULL;
   gchar *serv = NULL;
   gchar *nick = NULL;
-  const gchar *err = NULL;
-  WockyXmppNode *node = stanza->node;
-  WockyXmppNode *text = NULL;
-  const gchar *from = wocky_xmpp_node_get_attribute (node, "from");
+  const gchar *from = wocky_xmpp_node_get_attribute (stanza->node, "from");
   WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
-  WockyXmppError errnum = WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
-  const gchar *message = NULL;
+  GError *error = NULL;
 
   if (!wocky_decode_jid (from, &room, &serv, &nick))
     {
@@ -1319,24 +1315,19 @@ handle_presence_error (WockyMuc *muc,
       goto out;
     }
 
-  err = wocky_xmpp_error_unpack_node (node, NULL, &text, NULL, NULL, &errnum);
-
-  if (err == NULL)
-    {
-      DEBUG ("malformed error stanza");
-      goto out;
-    }
+  wocky_xmpp_stanza_extract_errors (stanza, NULL, &error, NULL, NULL);
 
   if (priv->state >= WOCKY_MUC_JOINED)
     {
-      DEBUG ("presence error after joining: not handled");
-      if (text != NULL)
-        DEBUG ("    %s: %s", err, text->content);
-      goto out;
+      DEBUG ("presence error after joining; not handled");
+      DEBUG ("    %s: %s",
+          wocky_xmpp_error_string (error->code),
+          error->message);
     }
 
-  message = text ? text->content : err;
-  g_signal_emit (muc, signals[SIG_PRESENCE_ERROR], 0, stanza, errnum, message);
+  g_signal_emit (muc, signals[SIG_PRESENCE_ERROR], 0, stanza, error->code,
+      error->message);
+  g_clear_error (&error);
 
  out:
   g_free (room);
@@ -1393,7 +1384,6 @@ handle_message (WockyPorter *porter,
   WockyXmppNode *msg = stanza->node;
   const gchar *from = NULL;
   WockyXmppNode *child = NULL;
-  gboolean is_error = FALSE;
   gboolean from_self = FALSE;
   int x;
 
@@ -1404,9 +1394,6 @@ handle_message (WockyPorter *porter,
   WockyMucMember *who = NULL;
   WockyMucMsgType mtype = WOCKY_MUC_MSG_NOTICE;
   WockyMucMsgState mstate = WOCKY_MUC_MSG_STATE_NONE;
-
-  WockyXmppError xerr = NUM_WOCKY_XMPP_ERRORS;
-  const gchar *etype = NULL;
 
   wocky_xmpp_stanza_get_type_info (stanza, NULL, &stype);
 
@@ -1513,15 +1500,15 @@ handle_message (WockyPorter *porter,
         }
     }
 
-  /* is it an error? */
-  is_error =
-    wocky_xmpp_error_unpack_node (msg, &etype, NULL, NULL, NULL, &xerr) != NULL;
-  /* ********************************************************************** */
-  /* and finally the state: */
-  if (is_error)
+  if (stype == WOCKY_STANZA_SUB_TYPE_ERROR)
     {
+      WockyXmppErrorType etype;
+      GError *error = NULL;
+
+      wocky_xmpp_stanza_extract_errors (stanza, &etype, &error, NULL, NULL);
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
-          stanza, mtype, id, stamp, who, body, xerr, etype);
+          stanza, mtype, id, stamp, who, body, error->code, etype);
+      g_clear_error (&error);
       goto out;
     }
 

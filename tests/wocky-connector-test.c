@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <wocky/wocky-connector.h>
+#include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-sasl-auth.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-xmpp-error.h>
@@ -62,7 +63,6 @@
 #define DOMAIN_XCON "wocky-xmpp-connection-error"
 #define DOMAIN_GIO  "g-io-error-quark"
 #define DOMAIN_RES  "g-resolver-error-quark"
-#define DOMAIN_STREAM "wocky-xmpp-stream-error"
 #define DOMAIN_CERT "wocky-tls-cert-error"
 
 #define CONNECTOR_INTERNALS_TEST "/connector/basic/internals"
@@ -904,7 +904,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/host-unknown",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OTHER_HOST, OK, OK, OK, OK } },
@@ -917,7 +917,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/tls-load",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_TLS_LOAD, OK, OK, OK, OK } },
@@ -930,7 +930,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/bind-conflict",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_CONFLICT },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, BIND_PROBLEM_CLASH, OK, OK, OK } },
@@ -943,7 +943,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/error/session-fail",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, SESSION_PROBLEM_NO_SESSION, OK, OK } },
@@ -2225,7 +2225,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/error/host-unknown",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OTHER_HOST|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -2238,7 +2238,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/error/bind-conflict",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_CONFLICT },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SSL, BIND_PROBLEM_CLASH, OK, OK, OK } },
@@ -2251,7 +2251,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/error/session-fail",
       NOISY,
-      { DOMAIN_STREAM, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
+      { WOCKY_XMPP_NS_STREAMS, WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SSL, OK, SESSION_PROBLEM_NO_SESSION, OK, OK } },

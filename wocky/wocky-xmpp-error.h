@@ -22,8 +22,20 @@
 #define __WOCKY_XMPP_ERROR_H__
 
 #include <glib.h>
-#include "wocky-xmpp-stanza.h"
+#include <glib-object.h>
 
+#include "wocky-xmpp-node.h"
+
+/*< prefix=WOCKY_XMPP_ERROR_TYPE >*/
+typedef enum {
+    WOCKY_XMPP_ERROR_TYPE_CANCEL,
+    WOCKY_XMPP_ERROR_TYPE_CONTINUE,
+    WOCKY_XMPP_ERROR_TYPE_MODIFY,
+    WOCKY_XMPP_ERROR_TYPE_AUTH,
+    WOCKY_XMPP_ERROR_TYPE_WAIT
+} WockyXmppErrorType;
+
+/*< prefix=WOCKY_XMPP_ERROR >*/
 typedef enum {
     WOCKY_XMPP_ERROR_UNDEFINED_CONDITION = 0, /* 500 */
 
@@ -62,20 +74,48 @@ typedef enum {
 
     WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE,     /* 502, 503, 510 */
 
-    WOCKY_XMPP_ERROR_JINGLE_OUT_OF_ORDER,
-    WOCKY_XMPP_ERROR_JINGLE_UNKNOWN_SESSION,
-    WOCKY_XMPP_ERROR_JINGLE_UNSUPPORTED_CONTENT,
-    WOCKY_XMPP_ERROR_JINGLE_UNSUPPORTED_TRANSPORT,
-
-    WOCKY_XMPP_ERROR_SI_NO_VALID_STREAMS,
-    WOCKY_XMPP_ERROR_SI_BAD_PROFILE,
-
-    NUM_WOCKY_XMPP_ERRORS,
+    NUM_WOCKY_XMPP_ERRORS /*< skip >*/ /* don't want this in the GEnum */
 } WockyXmppError;
 
 GQuark wocky_xmpp_error_quark (void);
 #define WOCKY_XMPP_ERROR (wocky_xmpp_error_quark ())
 
+typedef struct {
+    const gchar *description;
+    WockyXmppError specializes;
+    gboolean override_type;
+    WockyXmppErrorType type;
+} WockyXmppErrorSpecialization;
+
+typedef struct {
+    GQuark domain;
+    GType enum_type;
+    WockyXmppErrorSpecialization *codes;
+} WockyXmppErrorDomain;
+
+void wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain);
+
+/*< prefix=WOCKY_JINGLE_ERROR >*/
+typedef enum {
+    WOCKY_JINGLE_ERROR_OUT_OF_ORDER,
+    WOCKY_JINGLE_ERROR_TIE_BREAK,
+    WOCKY_JINGLE_ERROR_UNKNOWN_SESSION,
+    WOCKY_JINGLE_ERROR_UNSUPPORTED_INFO
+} WockyJingleError;
+
+GQuark wocky_jingle_error_quark (void);
+#define WOCKY_JINGLE_ERROR (wocky_jingle_error_quark ())
+
+/*< prefix=WOCKY_SI_ERROR >*/
+typedef enum {
+    WOCKY_SI_ERROR_NO_VALID_STREAMS,
+    WOCKY_SI_ERROR_BAD_PROFILE
+} WockySIError;
+
+GQuark wocky_si_error_quark (void);
+#define WOCKY_SI_ERROR (wocky_si_error_quark ())
+
+/*< prefix=WOCKY_XMPP_STREAM_ERROR >*/
 typedef enum {
   WOCKY_XMPP_STREAM_ERROR_BAD_FORMAT,
   WOCKY_XMPP_STREAM_ERROR_BAD_NAMESPACE_PREFIX,
@@ -113,22 +153,21 @@ GQuark wocky_xmpp_stream_error_quark (void);
  */
 #define WOCKY_XMPP_STREAM_ERROR (wocky_xmpp_stream_error_quark ())
 
-WockyXmppError wocky_xmpp_error_from_node (WockyXmppNode *error_node);
-WockyXmppNode *wocky_xmpp_error_to_node (WockyXmppError error,
-    WockyXmppNode *parent_node,
-    const gchar *errmsg);
 const gchar *wocky_xmpp_error_string (WockyXmppError error);
 const gchar *wocky_xmpp_error_description (WockyXmppError error);
 
-WockyXmppStreamError wocky_xmpp_stream_error_from_node (WockyXmppNode *node);
+GError *wocky_xmpp_stream_error_from_node (WockyXmppNode *node);
 
-/* Error node util */
-const gchar *
-wocky_xmpp_error_unpack_node (WockyXmppNode *node,
-    const gchar **type,
-    WockyXmppNode **text,
-    WockyXmppNode **orig,
-    WockyXmppNode **extra,
-    WockyXmppError *errnum);
+WockyXmppNode *wocky_stanza_error_to_node (const GError *error,
+    WockyXmppNode *parent_node);
+
+void wocky_xmpp_error_extract (WockyXmppNode *error,
+    WockyXmppErrorType *type,
+    GError **core,
+    GError **specialized,
+    WockyXmppNode **specialized_node);
+
+void wocky_xmpp_error_init (void);
+void wocky_xmpp_error_deinit (void);
 
 #endif /* __WOCKY_XMPP_ERROR_H__ */

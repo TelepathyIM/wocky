@@ -19,292 +19,198 @@
  */
 
 #include "wocky-xmpp-error.h"
-#include "wocky-utils.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "wocky-namespaces.h"
+#include "wocky-utils.h"
+#include "wocky-xmpp-error-enumtypes.h"
 
+/* Definitions of XMPP core stanza errors, as per RFC 3920 §9.3; plus the
+ * corresponding legacy error codes as described by XEP-0086.
+ */
 #define MAX_LEGACY_ERRORS 3
 
 typedef struct {
-    const gchar *name;
     const gchar *description;
-    const gchar *type;
-    guint specialises;
-    const gchar *namespace;
+    WockyXmppErrorType type;
     const guint16 legacy_errors[MAX_LEGACY_ERRORS];
 } XmppErrorSpec;
 
 static const XmppErrorSpec xmpp_errors[NUM_WOCKY_XMPP_ERRORS] =
 {
+    /* undefined-condition */
     {
-      "undefined-condition",
       "application-specific condition",
-      NULL,
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       { 500, 0, },
     },
+
+    /* redirect */
     {
-      "redirect",
       "the recipient or server is redirecting requests for this information "
       "to another entity",
-      "modify",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       { 302, 0, },
     },
 
+    /* gone */
     {
-      "gone",
       "the recipient or server can no longer be contacted at this address",
-      "modify",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       { 302, 0, },
     },
 
+    /* bad-request */
     {
-      "bad-request",
       "the sender has sent XML that is malformed or that cannot be processed",
-      "modify",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       { 400, 0, },
     },
+
+    /* unexpected-request */
     {
-      "unexpected-request",
       "the recipient or server understood the request but was not expecting "
       "it at this time",
-      "wait",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       { 400, 0, },
     },
+
+    /* jid-malformed */
     {
-      "jid-malformed",
       "the sending entity has provided or communicated an XMPP address or "
       "aspect thereof (e.g., a resource identifier) that does not adhere "
       "to the syntax defined in Addressing Scheme (Section 3)",
-      "modify",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       { 400, 0, },
     },
 
+    /* not-authorized */
     {
-      "not-authorized",
       "the sender must provide proper credentials before being allowed to "
       "perform the action, or has provided improper credentials",
-      "auth",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       { 401, 0, },
     },
 
+    /* payment-required */
     {
-      "payment-required",
       "the requesting entity is not authorized to access the requested "
       "service because payment is required",
-      "auth",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       { 402, 0, },
     },
 
+    /* forbidden */
     {
-      "forbidden",
       "the requesting entity does not possess the required permissions to "
       "perform the action",
-      "auth",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       { 403, 0, },
     },
 
+    /* item-not-found */
     {
-      "item-not-found",
       "the addressed JID or item requested cannot be found",
-      "cancel",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
-      { 404, 0, },
-    },
-    {
-      "recipient-unavailable",
-      "the intended recipient is temporarily unavailable",
-      "wait",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
-      { 404, 0, },
-    },
-    {
-      "remote-server-not-found",
-      "a remote server or service specified as part or all of the JID of the "
-      "intended recipient (or required to fulfill a request) could not be "
-      "contacted within a reasonable amount of time",
-      "cancel",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       { 404, 0, },
     },
 
+    /* recipient-unavailable */
     {
-      "not-allowed",
+      "the intended recipient is temporarily unavailable",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
+      { 404, 0, },
+    },
+
+    /* remote-server-not-found */
+    {
+      "a remote server or service specified as part or all of the JID of the "
+      "intended recipient (or required to fulfill a request) could not be "
+      "contacted within a reasonable amount of time",
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
+      { 404, 0, },
+    },
+
+    /* not-allowed */
+    {
       "the recipient or server does not allow any entity to perform the action",
-      "cancel",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       { 405, 0, },
     },
 
+    /* not-acceptable */
     {
-      "not-acceptable",
       "the recipient or server understands the request but is refusing to "
       "process it because it does not meet criteria defined by the recipient "
       "or server (e.g., a local policy regarding acceptable words in messages)",
-      "modify",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_MODIFY,
       { 406, 0, },
     },
 
+    /* registration-required */
     {
-      "registration-required",
       "the requesting entity is not authorized to access the requested service "
       "because registration is required",
-      "auth",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       { 407, 0, },
     },
+    /* subscription-required */
     {
-      "subscription-required",
       "the requesting entity is not authorized to access the requested service "
       "because a subscription is required",
-      "auth",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_AUTH,
       { 407, 0, },
     },
 
+    /* remote-server-timeout */
     {
-      "remote-server-timeout",
       "a remote server or service specified as part or all of the JID of the "
       "intended recipient (or required to fulfill a request) could not be "
       "contacted within a reasonable amount of time",
-      "wait",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
-      { 408, 504, 0, },
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
+      { 504, 408, 0, },
     },
 
+    /* conflict */
     {
-      "conflict",
       "access cannot be granted because an existing resource or session exists "
       "with the same name or address",
-      "cancel",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       { 409, 0, },
     },
 
+    /* internal-server-error */
     {
-      "internal-server-error",
       "the server could not process the stanza because of a misconfiguration "
       "or an otherwise-undefined internal server error",
-      "wait",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
-      { 500, 0, },
-    },
-    {
-      "resource-constraint",
-      "the server or recipient lacks the system resources necessary to service "
-      "the request",
-      "wait",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
       { 500, 0, },
     },
 
+    /* resource-constraint */
     {
-      "feature-not-implemented",
+      "the server or recipient lacks the system resources necessary to service "
+      "the request",
+      WOCKY_XMPP_ERROR_TYPE_WAIT,
+      { 500, 0, },
+    },
+
+    /* feature-not-implemented */
+    {
       "the feature requested is not implemented by the recipient or server and "
       "therefore cannot be processed",
-      "cancel",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
       { 501, 0, },
     },
 
+    /* service-unavailable */
     {
-      "service-unavailable",
       "the server or recipient does not currently provide the requested "
       "service",
-      "cancel",
-      0,
-      WOCKY_XMPP_NS_STANZAS,
-      { 502, 503, 510, },
-    },
-
-    {
-      "out-of-order",
-      "the request cannot occur at this point in the state machine",
-      "cancel",
-      WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "unknown-session",
-      "the 'sid' attribute specifies a session that is unknown to the "
-      "recipient",
-      "cancel",
-      WOCKY_XMPP_ERROR_BAD_REQUEST,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "unsupported-transports",
-      "the recipient does not support any of the desired content transport "
-      "methods",
-      "cancel",
-      WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "unsupported-content",
-      "the recipient does not support any of the desired content description"
-      "formats",
-      "cancel",
-      WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
-      WOCKY_XMPP_NS_JINGLE_ERRORS,
-      { 0, },
-    },
-
-    {
-      "no-valid-streams",
-      "None of the available streams are acceptable.",
-      "cancel",
-      WOCKY_XMPP_ERROR_BAD_REQUEST,
-      WOCKY_XMPP_NS_SI,
-      { 400, 0 },
-    },
-
-    {
-      "bad-profile",
-      "The profile is not understood or invalid.",
-      "modify",
-      WOCKY_XMPP_ERROR_BAD_REQUEST,
-      WOCKY_XMPP_NS_SI,
-      { 400, 0 },
+      WOCKY_XMPP_ERROR_TYPE_CANCEL,
+      { 503, 502, 510, },
     },
 };
 
@@ -312,213 +218,35 @@ GQuark
 wocky_xmpp_error_quark (void)
 {
   static GQuark quark = 0;
-  if (!quark)
-    quark = g_quark_from_static_string ("wocky-xmpp-error");
+
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_STANZAS);
+
   return quark;
 }
 
-WockyXmppError
-wocky_xmpp_error_from_node (WockyXmppNode *error_node)
-{
-  gint i, j;
-  const gchar *error_code_str;
-
-  g_return_val_if_fail (error_node != NULL,
-      WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
-
-  /* First, try to look it up the modern way */
-  if (error_node->children)
-    {
-      /* we loop backwards because the most specific errors are the larger
-       * numbers; the >= 0 test is OK because i is signed */
-      for (i = NUM_WOCKY_XMPP_ERRORS - 1; i >= 0; i--)
-        {
-          if (wocky_xmpp_node_get_child_ns (error_node, xmpp_errors[i].name,
-                xmpp_errors[i].namespace))
-            {
-              return i;
-            }
-        }
-    }
-
-  /* Ok, do it the legacy way */
-  error_code_str = wocky_xmpp_node_get_attribute (error_node, "code");
-  if (error_code_str)
-    {
-      gint error_code;
-
-      error_code = atoi (error_code_str);
-
-      /* skip UNDEFINED_CONDITION, we want code 500 to be translated
-       * to INTERNAL_SERVER_ERROR */
-      for (i = 1; i < NUM_WOCKY_XMPP_ERRORS; i++)
-        {
-          const XmppErrorSpec *spec = &xmpp_errors[i];
-
-          for (j = 0; j < MAX_LEGACY_ERRORS; j++)
-            {
-              gint cur_code = spec->legacy_errors[j];
-              if (cur_code == 0)
-                break;
-
-              if (cur_code == error_code)
-                return i;
-            }
-        }
-    }
-
-  return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
-}
-
 /**
- * wocky_xmpp_node_unpack_error:
+ * wocky_xmpp_error_string:
+ * @error: a core stanza error
  *
- * @node: a #WockyXmppNode
- * @type: gchar ** into which to write the XMPP Stanza error type
- * @text: #WockyXmppNode ** to hold the node containing the error description
- * @orig: #WockyXmppNode ** to hold the original XMPP Stanza that triggered
- *        the error: XMPP does not require this to be provided in the error
- * @extra: #WockyXmppNode ** to hold any extra domain-specific XML tags
- *         for the error received.
- * @errnum: #WockyXmppError * to hold the value mapping to the error condition
+ * <!-- -->
  *
- * Given an XMPP Stanza error #WockyXmppNode see RFC 3920) this function
- * extracts useful error info.
- *
- * The above parameters are all optional, pass NULL to ignore them.
- *
- * The above data are all optional in XMPP, except for @type, which
- * the XMPP spec requires in all stanza errors. See RFC 3920 [9.3.2].
- *
- * None of the above parameters need be freed, they are owned by the
- * parent #WockyXmppNode @node.
- *
- * Returns: a const gchar * indicating the error condition
+ * Returns: the name of the tag corresponding to @error
  */
-
-const gchar *
-wocky_xmpp_error_unpack_node (WockyXmppNode *node,
-    const gchar **type,
-    WockyXmppNode **text,
-    WockyXmppNode **orig,
-    WockyXmppNode **extra,
-    WockyXmppError *errnum)
-{
-  WockyXmppNode *error = NULL;
-  WockyXmppNode *mesg = NULL;
-  WockyXmppNode *xtra = NULL;
-  const gchar *cond = NULL;
-  GSList *child = NULL;
-  GQuark stanza = g_quark_from_string (WOCKY_XMPP_NS_STANZAS);
-
-  g_assert (node != NULL);
-
-  error = wocky_xmpp_node_get_child (node, "error");
-
-  /* not an error? weird, in any case */
-  if (error == NULL)
-    return NULL;
-
-  if (type != NULL)
-    *type = wocky_xmpp_node_get_attribute (error, "type");
-
-  for (child = error->children; child != NULL; child = g_slist_next (child))
-    {
-      WockyXmppNode *c = child->data;
-      if (c->ns != stanza)
-        xtra = c;
-      else if (wocky_strdiff (c->name, "text"))
-        {
-          cond = c->name;
-        }
-      else
-        mesg = c;
-    }
-
-  if (text != NULL)
-    *text = mesg;
-
-  if (extra != NULL)
-    *extra = xtra;
-
-  if (orig != NULL)
-    {
-      WockyXmppNode *first = wocky_xmpp_node_get_first_child (node);
-      if (first != error)
-        *orig = first;
-      else
-        *orig = NULL;
-    }
-
-  if (errnum != NULL)
-    *errnum = wocky_xmpp_error_from_node (error);
-
-  return cond;
-}
-
-/*
- * See RFC 3920: 4.7 Stream Errors, 9.3 Stanza Errors.
- */
-WockyXmppNode *
-wocky_xmpp_error_to_node (WockyXmppError error,
-    WockyXmppNode *parent_node,
-    const gchar *errmsg)
-{
-  const XmppErrorSpec *spec, *extra;
-  WockyXmppNode *error_node, *node;
-  gchar str[6];
-
-  g_return_val_if_fail (error != WOCKY_XMPP_ERROR_UNDEFINED_CONDITION &&
-      error < NUM_WOCKY_XMPP_ERRORS, NULL);
-
-  if (xmpp_errors[error].specialises)
-    {
-      extra = &xmpp_errors[error];
-      spec = &xmpp_errors[extra->specialises];
-    }
-  else
-    {
-      extra = NULL;
-      spec = &xmpp_errors[error];
-    }
-
-  error_node = wocky_xmpp_node_add_child (parent_node, "error");
-
-  sprintf (str, "%d", spec->legacy_errors[0]);
-  wocky_xmpp_node_set_attribute (error_node, "code", str);
-
-  if (spec->type)
-    {
-      wocky_xmpp_node_set_attribute (error_node, "type", spec->type);
-    }
-
-  node = wocky_xmpp_node_add_child (error_node, spec->name);
-  wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
-
-  if (extra != NULL)
-    {
-      node = wocky_xmpp_node_add_child (error_node, extra->name);
-      wocky_xmpp_node_set_ns (node, extra->namespace);
-    }
-
-  if (NULL != errmsg)
-    {
-      node = wocky_xmpp_node_add_child (error_node, "text");
-      wocky_xmpp_node_set_content (node, errmsg);
-    }
-
-  return error_node;
-}
-
 const gchar *
 wocky_xmpp_error_string (WockyXmppError error)
 {
-  if (error < NUM_WOCKY_XMPP_ERRORS)
-    return xmpp_errors[error].name;
-  else
-    return NULL;
+  return wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, error);
 }
 
+/**
+ * wocky_xmpp_error_description:
+ * @error: a core stanza error
+ *
+ * <!-- -->
+ *
+ * Returns: a description of the error, in English, as specified in XMPP Core
+ */
 const gchar *
 wocky_xmpp_error_description (WockyXmppError error)
 {
@@ -527,6 +255,315 @@ wocky_xmpp_error_description (WockyXmppError error)
   else
     return NULL;
 }
+
+static GList *error_domains = NULL;
+
+/**
+ * wocky_xmpp_error_register_domain
+ * @domain: a description of the error domain
+ *
+ * Registers a new set of application-specific stanza errors. This allows
+ * GErrors in that domain to be passed to wocky_stanza_error_to_node(), and to
+ * be recognized and returned by wocky_xmpp_error_extract() (and
+ * wocky_xmpp_stanza_extract_errors(), by extension).
+ */
+void
+wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain)
+{
+  error_domains = g_list_prepend (error_domains, domain);
+}
+
+static WockyXmppErrorDomain *
+xmpp_error_find_domain (GQuark domain)
+{
+  GList *l;
+
+  for (l = error_domains; l != NULL; l = l->next)
+    {
+      WockyXmppErrorDomain *d = l->data;
+
+      if (d->domain == domain)
+        return d;
+    }
+
+  return NULL;
+}
+
+/* Static, but bears documenting.
+ *
+ * xmpp_error_from_node_for_ns:
+ * @node: a node believed to contain an error child
+ * @ns: the namespace for errors corresponding to @enum_type
+ * @enum_type: a GEnum of error codes
+ * @code: location at which to store an error code
+ *
+ * Scans @node's children for nodes in @ns whose name corresponds to a nickname
+ * of a value of @enum_type, storing the value in @code if found.
+ *
+ * Returns: %TRUE if an error code was retrieved.
+ */
+static gboolean
+xmpp_error_from_node_for_ns (
+    WockyXmppNode *node,
+    GQuark ns,
+    GType enum_type,
+    gint *code)
+{
+  GSList *l;
+
+  for (l = node->children; l != NULL; l = l->next)
+    {
+      WockyXmppNode *child = l->data;
+
+      if (wocky_xmpp_node_has_ns_q (child, ns) &&
+          wocky_enum_from_nick (enum_type, child->name, code))
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
+/* Attempts to divine a WockyXmppError from a legacy numeric code='' attribute
+ */
+static WockyXmppError
+xmpp_error_from_code (WockyXmppNode *error_node,
+    WockyXmppErrorType *type)
+{
+  const gchar *code = wocky_xmpp_node_get_attribute (error_node, "code");
+  gint error_code, i, j;
+
+  if (code == NULL)
+    goto out;
+
+  error_code = atoi (code);
+
+  /* skip UNDEFINED_CONDITION, we want code 500 to be translated
+   * to INTERNAL_SERVER_ERROR */
+  for (i = 1; i < NUM_WOCKY_XMPP_ERRORS; i++)
+    {
+      const XmppErrorSpec *spec = &xmpp_errors[i];
+
+      for (j = 0; j < MAX_LEGACY_ERRORS; j++)
+        {
+          gint cur_code = spec->legacy_errors[j];
+          if (cur_code == 0)
+            break;
+
+          if (cur_code == error_code)
+            {
+              if (type != NULL)
+                *type = spec->type;
+
+              return i;
+            }
+        }
+    }
+
+out:
+  if (type != NULL)
+    *type = WOCKY_XMPP_ERROR_TYPE_CANCEL;
+
+  return WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+}
+
+/**
+ * wocky_xmpp_error_extract:
+ * @error: the <error/> child of a stanza with type='error'
+ * @type: location at which to store the error type
+ * @core: location at which to store an error in the domain #WOCKY_XMPP_ERROR
+ * @specialized: location at which to store an error in an application-specific
+ *               domain, if one is found
+ * @specialized_node: location at which to store the node representing an
+ *                    application-specific error, if one is found
+ *
+ * Given an <error/> node, breaks it down into values describing the error.
+ * @type and @core are guaranteed to be set; @specialized and @specialized_node
+ * will be set if a recognised application-specific error is found, and the
+ * latter will be set to %NULL if no application-specific error is found.
+ *
+ * Any or all of the out parameters may be %NULL to ignore the value.  The
+ * value stored in @specialized_node is borrowed from @stanza, and is only
+ * valid as long as the latter is alive.
+ */
+void
+wocky_xmpp_error_extract (WockyXmppNode *error,
+    WockyXmppErrorType *type,
+    GError **core,
+    GError **specialized,
+    WockyXmppNode **specialized_node)
+{
+  gboolean found_core_error = FALSE;
+  gint core_code = WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
+  GQuark specialized_domain = 0;
+  gint specialized_code;
+  WockyXmppNode *specialized_node_tmp = NULL;
+  const gchar *message = NULL;
+  GSList *l;
+
+  g_return_if_fail (!wocky_strdiff (error->name, "error"));
+
+  /* The type='' attributes being present and one of the defined five is a
+   * MUST; if the other party is getting XMPP *that* wrong, 'cancel' seems like
+   * a sensible default. (If the other party only uses legacy error codes, the
+   * call to xmpp_error_from_code() below will try to improve on that default.)
+   */
+  if (type != NULL)
+    {
+      const gchar *type_attr = wocky_xmpp_node_get_attribute (error, "type");
+      gint type_i = WOCKY_XMPP_ERROR_TYPE_CANCEL;
+
+      if (type_attr != NULL)
+        wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type_attr, &type_i);
+
+      *type = type_i;
+    }
+
+  for (l = error->children; l != NULL; l = g_slist_next (l))
+    {
+      WockyXmppNode *child = l->data;
+
+      if (child->ns == WOCKY_XMPP_ERROR)
+        {
+          if (!wocky_strdiff (child->name, "text"))
+            {
+              message = child->content;
+            }
+          else if (!found_core_error)
+            {
+              /* See if the element is a XMPP Core stanza error we know about,
+               * given that we haven't found one yet.
+               */
+              found_core_error = wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR,
+                  child->name, &core_code);
+            }
+        }
+      else if (specialized_domain == 0)
+        {
+          /* This could be a specialized error; let's check if it's in a
+           * namespace we know about, and if so that it's an element name we
+           * know.
+           */
+          WockyXmppErrorDomain *domain = xmpp_error_find_domain (child->ns);
+
+          if (domain != NULL &&
+              wocky_enum_from_nick (domain->enum_type, child->name,
+                  &specialized_code))
+            {
+              specialized_domain = child->ns;
+              specialized_node_tmp = child;
+            }
+        }
+    }
+
+  /* If we don't have an XMPP Core stanza error yet, maybe the peer uses Þe
+   * Olde Numeric Error Codes.
+   */
+  if (!found_core_error)
+    core_code = xmpp_error_from_code (error, type);
+
+  /* okay, time to make some errors */
+  if (message == NULL)
+    message = "";
+
+  g_set_error_literal (core, WOCKY_XMPP_ERROR, core_code, message);
+
+  if (specialized_domain != 0)
+    g_set_error_literal (specialized, specialized_domain, specialized_code,
+        message);
+
+  if (specialized_node != NULL)
+    *specialized_node = specialized_node_tmp;
+}
+
+/**
+ * wocky_g_error_to_node:
+ * @error: an error in the domain #WOCKY_XMPP_ERROR, or in an
+ *         application-specific domain registered with
+ *         wocky_xmpp_error_register_domain()
+ * @parent_node: the node to which to add an error (such as an IQ error)
+ *
+ * Adds an <error/> node to a stanza corresponding to the error described by
+ * @error. If @error is in a domain other than #WOCKY_XMPP_ERROR, both the
+ * application-specific error name and the error from #WOCKY_XMPP_ERROR will be
+ * created. See RFC 3902 (XMPP Core) §9.3, “Stanza Errors”.
+ *
+ * There is currently no way to override the type='' of an XMPP Core stanza
+ * error without creating an application-specific error code which does so.
+ *
+ * Returns: the newly-created <error/> node
+ */
+WockyXmppNode *
+wocky_stanza_error_to_node (const GError *error,
+    WockyXmppNode *parent_node)
+{
+  WockyXmppNode *error_node, *node;
+  WockyXmppErrorDomain *domain = NULL;
+  WockyXmppError core_error;
+  const XmppErrorSpec *spec;
+  WockyXmppErrorType type;
+  gchar str[6];
+
+  g_return_val_if_fail (parent_node != NULL, NULL);
+
+  error_node = wocky_xmpp_node_add_child (parent_node, "error");
+
+  g_return_val_if_fail (error != NULL, error_node);
+
+  if (error->domain == WOCKY_XMPP_ERROR)
+    {
+      core_error = error->code;
+      spec = &(xmpp_errors[core_error]);
+      type = spec->type;
+    }
+  else
+    {
+      WockyXmppErrorSpecialization *s;
+
+      domain = xmpp_error_find_domain (error->domain);
+      g_return_val_if_fail (domain != NULL, error_node);
+
+      /* This will crash if you mess up and pass a code that's not in the
+       * domain. */
+      s = &(domain->codes[error->code]);
+      core_error = s->specializes;
+      spec = &(xmpp_errors[core_error]);
+
+      if (s->override_type)
+        type = s->type;
+      else
+        type = spec->type;
+    }
+
+  sprintf (str, "%d", spec->legacy_errors[0]);
+  wocky_xmpp_node_set_attribute (error_node, "code", str);
+
+  wocky_xmpp_node_set_attribute (error_node, "type",
+      wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
+
+  node = wocky_xmpp_node_add_child (error_node,
+      wocky_xmpp_error_string (core_error));
+  wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
+
+  if (domain != NULL)
+    {
+      const gchar *name = wocky_enum_to_nick (domain->enum_type, error->code);
+
+      node = wocky_xmpp_node_add_child (error_node, name);
+      wocky_xmpp_node_set_ns_q (node, domain->domain);
+    }
+
+  if (error->message != NULL && *error->message != '\0')
+    wocky_xmpp_node_add_child_with_content_ns (error_node, "text",
+        error->message, WOCKY_XMPP_NS_STANZAS);
+
+  return error_node;
+}
+
+/**
+ * WockyXmppStreamError:
+ *
+ * Possible XMPP stream errors, as defined by RFC 3920 §4.7.
+ */
 
 /**
  * wocky_xmpp_stream_error_quark
@@ -541,61 +578,154 @@ wocky_xmpp_stream_error_quark (void)
   static GQuark quark = 0;
 
   if (quark == 0)
-    quark = g_quark_from_static_string ("wocky-xmpp-stream-error");
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_STREAMS);
 
   return quark;
 }
 
-typedef struct
+/**
+ * wocky_xmpp_stream_error_from_node:
+ * @error: the root node of a #WOCKY_STANZA_TYPE_STREAM_ERROR stanza
+ *
+ * Returns: a GError in the #WOCKY_XMPP_STREAM_ERROR domain.
+ */
+GError *
+wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
 {
-  const gchar *name;
-  WockyXmppStreamError error;
-} StreamErrorName;
+  WockyXmppNode *text;
+  gint code = WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+  const gchar *message = NULL;
 
-static const StreamErrorName stream_errors[] =
+  /* Ignore the return value; we have a default. */
+  xmpp_error_from_node_for_ns (error, WOCKY_XMPP_STREAM_ERROR,
+      WOCKY_TYPE_XMPP_STREAM_ERROR, &code);
+
+  text = wocky_xmpp_node_get_child_ns (error, "text", WOCKY_XMPP_NS_STREAMS);
+
+  if (text != NULL)
+    message = text->content;
+
+  if (message == NULL)
+    message = "";
+
+  return g_error_new_literal (WOCKY_XMPP_STREAM_ERROR, code, message);
+}
+
+
+/* Built-in specialized error domains */
+
+GQuark
+wocky_jingle_error_quark (void)
 {
-    { "bad-format", WOCKY_XMPP_STREAM_ERROR_BAD_FORMAT },
-    { "bad-namespace-prefix", WOCKY_XMPP_STREAM_ERROR_BAD_NAMESPACE_PREFIX },
-    { "conflict", WOCKY_XMPP_STREAM_ERROR_CONFLICT },
-    { "connection-timeout", WOCKY_XMPP_STREAM_ERROR_CONNECTION_TIMEOUT },
-    { "host-gone", WOCKY_XMPP_STREAM_ERROR_HOST_GONE },
-    { "host-unknown", WOCKY_XMPP_STREAM_ERROR_HOST_UNKNOWN },
-    { "improper-addressing", WOCKY_XMPP_STREAM_ERROR_IMPROPER_ADDRESSING },
-    { "internal-server-error", WOCKY_XMPP_STREAM_ERROR_INTERNAL_SERVER_ERROR },
-    { "invalid-from", WOCKY_XMPP_STREAM_ERROR_INVALID_FROM },
-    { "invalid-id", WOCKY_XMPP_STREAM_ERROR_INVALID_ID },
-    { "invalid-namespace", WOCKY_XMPP_STREAM_ERROR_INVALID_NAMESPACE },
-    { "invalid-xml", WOCKY_XMPP_STREAM_ERROR_INVALID_XML },
-    { "not-authorized", WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED },
-    { "policy-violation", WOCKY_XMPP_STREAM_ERROR_POLICY_VIOLATION },
-    { "remote-connection-failed",
-      WOCKY_XMPP_STREAM_ERROR_REMOTE_CONNECTION_FAILED },
-    { "resource-constraint", WOCKY_XMPP_STREAM_ERROR_RESOURCE_CONSTRAINT },
-    { "restricted-xml", WOCKY_XMPP_STREAM_ERROR_RESTRICTED_XML },
-    { "see-other-host", WOCKY_XMPP_STREAM_ERROR_SEE_OTHER_HOST },
-    { "system-shutdown", WOCKY_XMPP_STREAM_ERROR_SYSTEM_SHUTDOWN },
-    { "undefined-condition", WOCKY_XMPP_STREAM_ERROR_UNDEFINED_CONDITION },
-    { "unsupported-encoding", WOCKY_XMPP_STREAM_ERROR_UNSUPPORTED_ENCODING },
-    { "unsupported-stanza-type",
-      WOCKY_XMPP_STREAM_ERROR_UNSUPPORTED_STANZA_TYPE },
-    { "unsupported-version", WOCKY_XMPP_STREAM_ERROR_UNSUPPORTED_VERSION },
-    { "xml-not-well-formed", WOCKY_XMPP_STREAM_ERROR_XML_NOT_WELL_FORMED },
-    { NULL, WOCKY_XMPP_STREAM_ERROR_UNKNOWN },
-};
+  static GQuark quark = 0;
 
-WockyXmppStreamError
-wocky_xmpp_stream_error_from_node (WockyXmppNode *node)
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_JINGLE_ERRORS);
+
+  return quark;
+}
+
+static WockyXmppErrorDomain *
+jingle_error_get_domain (void)
 {
-  guint i;
+  static WockyXmppErrorSpecialization codes[] = {
+      /* out-of-order */
+      { "The request cannot occur at this point in the state machine (e.g., "
+        "session-initiate after session-accept).",
+        WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST,
+        FALSE
+      },
 
-  for (i = 0; stream_errors[i].name != NULL; i++)
+      /* tie-break */
+      { "The request is rejected because it was sent while the initiator was "
+        "awaiting a reply on a similar request.",
+        WOCKY_XMPP_ERROR_CONFLICT,
+        FALSE
+      },
+
+      /* unknown-session */
+      { "The 'sid' attribute specifies a session that is unknown to the "
+        "recipient (e.g., no longer live according to the recipient's state "
+        "machine because the recipient previously terminated the session).",
+        WOCKY_XMPP_ERROR_ITEM_NOT_FOUND,
+        FALSE
+      },
+
+      /* unsupported-info */
+      { "The recipient does not support the informational payload of a "
+        "session-info action.",
+        WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+        FALSE
+      }
+  };
+  static WockyXmppErrorDomain jingle_errors = { 0, };
+
+  if (G_UNLIKELY (jingle_errors.domain == 0))
     {
-      if (wocky_xmpp_node_get_child_ns (node, stream_errors[i].name,
-            WOCKY_XMPP_NS_STREAMS) != NULL)
-        {
-          return stream_errors[i].error;
-        }
+      jingle_errors.domain = WOCKY_JINGLE_ERROR;
+      jingle_errors.enum_type = WOCKY_TYPE_JINGLE_ERROR;
+      jingle_errors.codes = codes;
     }
 
-  return WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
+  return &jingle_errors;
+}
+
+GQuark
+wocky_si_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (quark == 0)
+    quark = g_quark_from_static_string (WOCKY_XMPP_NS_SI);
+
+  return quark;
+}
+
+static WockyXmppErrorDomain *
+si_error_get_domain (void)
+{
+  static WockyXmppErrorSpecialization codes[] = {
+      /* no-valid-streams */
+      { "None of the available streams are acceptable.",
+        WOCKY_XMPP_ERROR_BAD_REQUEST,
+        TRUE,
+        WOCKY_XMPP_ERROR_TYPE_CANCEL
+      },
+
+      /* bad-profile */
+      { "The profile is not understood or invalid. The profile MAY supply a "
+        "profile-specific error condition.",
+        WOCKY_XMPP_ERROR_BAD_REQUEST,
+        TRUE,
+        WOCKY_XMPP_ERROR_TYPE_MODIFY
+      }
+  };
+  static WockyXmppErrorDomain si_errors = { 0, };
+
+  if (G_UNLIKELY (si_errors.domain == 0))
+    {
+      si_errors.domain = WOCKY_SI_ERROR;
+      si_errors.enum_type = WOCKY_TYPE_SI_ERROR;
+      si_errors.codes = codes;
+    }
+
+  return &si_errors;
+}
+
+void
+wocky_xmpp_error_init ()
+{
+  if (error_domains == NULL)
+    {
+      /* Register standard domains */
+      wocky_xmpp_error_register_domain (jingle_error_get_domain ());
+      wocky_xmpp_error_register_domain (si_error_get_domain ());
+    }
+}
+
+void
+wocky_xmpp_error_deinit ()
+{
+  g_list_free (error_domains);
+  error_domains = NULL;
 }

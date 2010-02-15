@@ -22,6 +22,7 @@
 
 #include "wocky.h"
 #include "wocky-xmpp-node.h"
+#include "wocky-xmpp-error.h"
 
 /**
  * wocky_init:
@@ -35,6 +36,7 @@ wocky_init (void)
 {
   xmlInitParser ();
   wocky_xmpp_node_init ();
+  wocky_xmpp_error_init ();
 }
 
 /**
@@ -54,4 +56,5 @@ wocky_deinit (void)
 {
   xmlCleanupParser ();
   wocky_xmpp_node_deinit ();
+  wocky_xmpp_error_deinit ();
 }
