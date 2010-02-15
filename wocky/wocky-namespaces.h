@@ -80,6 +80,24 @@
 #define WOCKY_XEP77_NS_REGISTER \
   "jabber:iq:register"
 
+/* XEP-0166 Jingle */
+#define NS_JINGLE032 \
+  "urn:xmpp:jingle:1"
+#define NS_JINGLE_ERRORS \
+  "urn:xmpp:jingle:errors:1"
+
+/* XEP-0167 (Jingle RTP) */
+#define WOCKY_NS_JINGLE_RTP \
+  "urn:xmpp:jingle:apps:rtp:1"
+#define WOCKY_NS_JINGLE_RTP_ERRORS \
+  "urn:xmpp:jingle:apps:rtp:errors:1"
+#define WOCKY_NS_JINGLE_RTP_INFO \
+  "urn:xmpp:jingle:apps:rtp:info:1"
+#define WOCKY_NS_JINGLE_RTP_AUDIO \
+  "urn:xmpp:jingle:apps:rtp:audio"
+#define WOCKY_NS_JINGLE_RTP_VIDEO \
+  "urn:xmpp:jingle:apps:rtp:video"
+
 /* legacy namespaces */
 #define WOCKY_JABBER_NS_AUTH \
   "jabber:iq:auth"
