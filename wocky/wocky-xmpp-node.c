@@ -722,8 +722,8 @@ wocky_xmpp_node_is_superset (WockyXmppNode *node,
  * wocky_xmpp_node_iter_init:
  * @iter: unitialized iterator
  * @node: Node whose children to iterate over
- * @name: Name to filter on
- * @ns: namespace to filter on
+ * @name: Name to filter on or %NULL
+ * @ns: namespace to filter on or %NULL
  *
  * Initializes an iterator that can be used to iterate over the children of
  * @node, filtered by @name and @ns
