@@ -71,8 +71,6 @@
 #define WOCKY_XMPP_NS_OOB \
   "jabber:iq:oob"
 
-#define WOCKY_XMPP_NS_JINGLE_ERRORS \
-  "http://jabber.org/protocol/jingle#errors"
 
 #define WOCKY_TELEPATHY_NS_CLIQUE \
   "http://telepathy.freedesktop.org/xmpp/clique"
@@ -81,21 +79,21 @@
   "jabber:iq:register"
 
 /* XEP-0166 Jingle */
-#define NS_JINGLE032 \
+#define WOCKY_XMPP_NS_JINGLE \
   "urn:xmpp:jingle:1"
-#define NS_JINGLE_ERRORS \
+#define WOCKY_XMPP_NS_JINGLE_ERRORS \
   "urn:xmpp:jingle:errors:1"
 
 /* XEP-0167 (Jingle RTP) */
-#define WOCKY_NS_JINGLE_RTP \
+#define WOCKY_XMPP_NS_JINGLE_RTP \
   "urn:xmpp:jingle:apps:rtp:1"
-#define WOCKY_NS_JINGLE_RTP_ERRORS \
+#define WOCKY_XMPP_NS_JINGLE_RTP_ERRORS \
   "urn:xmpp:jingle:apps:rtp:errors:1"
-#define WOCKY_NS_JINGLE_RTP_INFO \
+#define WOCKY_XMPP_NS_JINGLE_RTP_INFO \
   "urn:xmpp:jingle:apps:rtp:info:1"
-#define WOCKY_NS_JINGLE_RTP_AUDIO \
+#define WOCKY_XMPP_NS_JINGLE_RTP_AUDIO \
   "urn:xmpp:jingle:apps:rtp:audio"
-#define WOCKY_NS_JINGLE_RTP_VIDEO \
+#define WOCKY_XMPP_NS_JINGLE_RTP_VIDEO \
   "urn:xmpp:jingle:apps:rtp:video"
 
 /* legacy namespaces */
