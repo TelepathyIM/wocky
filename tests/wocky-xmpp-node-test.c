@@ -314,7 +314,7 @@ test_node_iteration (void)
     WOCKY_NS_GOOGLE_SESSION_PHONE);
   do_test_iteration (&iter, audio);
 
-  /* Only nodes the phone namespace */
+  /* Only nodes with the phone namespace */
   wocky_xmpp_node_iter_init (&iter, stanza->node, NULL,
     WOCKY_NS_GOOGLE_SESSION_PHONE);
   do_test_iteration (&iter, audio);
