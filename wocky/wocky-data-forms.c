@@ -116,7 +116,6 @@ wocky_data_forms_field_new (
 static void
 wocky_data_forms_field_free (WockyDataFormsField *field)
 {
-  GSList *l;
   if (field == NULL)
     return;
 
@@ -129,11 +128,8 @@ wocky_data_forms_field_free (WockyDataFormsField *field)
   if (field->value != NULL)
     wocky_g_value_slice_free (field->value);
 
-  for (l = field->options; l != NULL; l = g_slist_next (l))
-    {
-      WockyDataFormsFieldOption *option = l->data;
-      wocky_data_forms_field_option_free (option);
-    }
+  g_slist_foreach (field->options, (GFunc) wocky_data_forms_field_option_free,
+      NULL);
   g_slist_free (field->options);
   g_slice_free (WockyDataFormsField, field);
 }
@@ -215,31 +211,25 @@ wocky_data_forms_dispose (GObject *object)
 }
 
 static void
+data_forms_field_list_free (GSList *fields)
+{
+  g_slist_foreach (fields, (GFunc) wocky_data_forms_field_free, NULL);
+  g_slist_free (fields);
+}
+
+static void
 wocky_data_forms_finalize (GObject *object)
 {
   WockyDataForms *self = WOCKY_DATA_FORMS (object);
   WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
-  GSList *l;
 
   g_free (priv->title);
   g_free (priv->instructions);
   g_hash_table_unref (self->fields);
-  g_slist_foreach (self->fields_list, (GFunc) wocky_data_forms_field_free,
-      NULL);
-  g_slist_free (self->fields_list);
 
-  for (l = self->results; l != NULL; l = g_slist_next (l))
-    {
-      GSList *item = l->data;
-      GSList *i;
+  data_forms_field_list_free (self->fields_list);
 
-      for (i = item; i != NULL; i = g_slist_next (i))
-        {
-          WockyDataFormsField *field = i->data;
-          wocky_data_forms_field_free (field);
-        }
-      g_slist_free (item);
-    }
+  g_slist_foreach (self->results, (GFunc) data_forms_field_list_free, NULL);
   g_slist_free (self->results);
 
   g_hash_table_unref (priv->reported);
@@ -646,17 +636,11 @@ wocky_data_forms_submit (WockyDataForms *self,
     WockyXmppNode *node)
 {
   WockyXmppNode *x;
-  GSList *l;
 
   x = wocky_xmpp_node_add_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
   wocky_xmpp_node_set_attribute (x, "type", "submit");
 
-  for (l = self->fields_list; l != NULL; l = g_slist_next (l))
-    {
-      WockyDataFormsField *field = l->data;
-
-      add_field_to_node (field, x);
-    }
+  g_slist_foreach (self->fields_list, (GFunc) add_field_to_node, x);
 }
 
 static gboolean
