@@ -1,6 +1,7 @@
 /*
  * wocky-data-forms.c - WockyDataForms
- * Copyright (C) 2009 Collabora Ltd.
+ * Copyright © 2009–2010 Collabora Ltd.
+ * Copyright © 2010 Nokia Corporation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,8 +20,9 @@
 
 #include "wocky-data-forms.h"
 
-#include "wocky-utils.h"
+#include "wocky-data-forms-enumtypes.h"
 #include "wocky-namespaces.h"
+#include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_DATA_FORMS
 #include "wocky-debug.h"
@@ -87,7 +89,8 @@ wocky_data_forms_field_option_free (WockyDataFormsFieldOption *option)
 
 /* pass ownership of the default_value, the value and the options list */
 static WockyDataFormsField *
-wocky_data_forms_field_new (wocky_data_forms_field_type type,
+wocky_data_forms_field_new (
+  WockyDataFormsFieldType type,
   const gchar *var,
   const gchar *label,
   const gchar *desc,
@@ -272,63 +275,10 @@ wocky_data_forms_class_init (
   g_object_class_install_property (object_class, PROP_INSTRUCTIONS, param_spec);
 }
 
-static wocky_data_forms_field_type
-str_to_type (const gchar *str)
-{
-  if (!wocky_strdiff (str, "boolean"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN;
-  else if (!wocky_strdiff (str, "fixed"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_FIXED;
-  else if (!wocky_strdiff (str, "hidden"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN;
-  else if (!wocky_strdiff (str, "jid-multi"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_JID_MULTI;
-  else if (!wocky_strdiff (str, "jid-single"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_JID_SINGLE;
-  else if (!wocky_strdiff (str, "list-multi"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_LIST_MULTI;
-  else if (!wocky_strdiff (str, "list-single"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE;
-  else if (!wocky_strdiff (str, "text-multi"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI;
-  else if (!wocky_strdiff (str, "text-private"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE;
-  else if (!wocky_strdiff (str, "text-single"))
-    return WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE;
-
-  return WOCKY_DATA_FORMS_FIELD_TYPE_INVALID;
-}
-
 static const gchar *
-type_to_str (wocky_data_forms_field_type type)
+type_to_str (WockyDataFormsFieldType type)
 {
-  switch (type)
-    {
-      case WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN:
-        return "boolean";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_FIXED:
-        return "fixed";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN:
-        return "hidden";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_JID_MULTI:
-        return "jid-multi";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_JID_SINGLE:
-        return "jid-single";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_LIST_MULTI:
-        return "list-multi";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE:
-        return "list-single";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI:
-        return "text-multi";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE:
-        return "text-private";
-      case WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE:
-        return "text-single";
-      default:
-        g_assert_not_reached ();
-    }
-
-  return NULL;
+  return wocky_enum_to_nick (WOCKY_TYPE_DATA_FORMS_FIELD_TYPE, type);
 }
 
 /* Return a list of (WockyDataFormsFieldOption *) containing all the
@@ -396,7 +346,8 @@ extract_value_list (WockyXmppNode *node)
 }
 
 static GValue *
-get_field_value (wocky_data_forms_field_type type,
+get_field_value (
+    WockyDataFormsFieldType type,
     WockyXmppNode *field)
 {
   WockyXmppNode *node;
@@ -444,7 +395,7 @@ get_field_value (wocky_data_forms_field_type type,
 static WockyDataFormsField *
 create_field (WockyXmppNode *field_node,
     const gchar *var,
-    wocky_data_forms_field_type type,
+    WockyDataFormsFieldType type,
     const gchar *label,
     const gchar *desc,
     gboolean required)
@@ -477,11 +428,11 @@ create_field (WockyXmppNode *field_node,
 static gboolean
 extract_var_type_label (WockyXmppNode *node,
     const gchar **_var,
-    wocky_data_forms_field_type *_type,
+    WockyDataFormsFieldType *_type,
     const gchar **_label)
 {
   const gchar *tmp, *var, *label;
-  wocky_data_forms_field_type type;
+  gint type;
 
   if (wocky_strdiff (node->name, "field"))
     return FALSE;
@@ -493,8 +444,8 @@ extract_var_type_label (WockyXmppNode *node,
       return FALSE;
     }
 
-  type = str_to_type (tmp);
-  if (type == WOCKY_DATA_FORMS_FIELD_TYPE_INVALID)
+  if (!wocky_enum_from_nick (WOCKY_TYPE_DATA_FORMS_FIELD_TYPE,
+          tmp, &type))
     {
       DEBUG ("Invalid field type for: %s", tmp);
       return FALSE;
@@ -526,7 +477,7 @@ foreach_x_child (WockyXmppNode *field_node,
   WockyDataForms *self = WOCKY_DATA_FORMS (user_data);
   WockyXmppNode *node;
   const gchar *var, *label;
-  wocky_data_forms_field_type type;
+  WockyDataFormsFieldType type;
   const gchar *desc = NULL;
   gboolean required = FALSE;
   WockyDataFormsField *field;
@@ -714,7 +665,7 @@ foreach_reported (WockyXmppNode *reported_node,
       WockyXmppNode *node = l->data;
       const gchar *var, *label;
       WockyDataFormsField *field;
-      wocky_data_forms_field_type type;
+      WockyDataFormsFieldType type;
 
       if (!extract_var_type_label (node, &var, &type, &label))
         continue;
@@ -787,7 +738,7 @@ parse_unique_result (WockyDataForms *self,
     {
       WockyXmppNode *node = l->data;
       const gchar *var;
-      wocky_data_forms_field_type type;
+      WockyDataFormsFieldType type;
       WockyDataFormsField *result;
       GValue *value;
 

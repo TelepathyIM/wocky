@@ -1,6 +1,7 @@
 /*
  * wocky-data-forms.h - Header of WockyDataForms
- * Copyright (C) 2009 Collabora Ltd.
+ * Copyright © 2009–2010 Collabora Ltd.
+ * Copyright © 2010 Nokia Corporation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,6 +27,7 @@
 
 G_BEGIN_DECLS
 
+/*< prefix=WOCKY_DATA_FORMS_FIELD_TYPE >*/
 typedef enum
 {
   WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN,
@@ -37,9 +39,8 @@ typedef enum
   WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE,
   WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI,
   WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE,
-  WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE,
-  WOCKY_DATA_FORMS_FIELD_TYPE_INVALID,
-} wocky_data_forms_field_type;
+  WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE
+} WockyDataFormsFieldType;
 
 typedef struct
 {
@@ -49,7 +50,7 @@ typedef struct
 
 typedef struct
 {
-  wocky_data_forms_field_type type;
+  WockyDataFormsFieldType type;
   gchar *var;
   gchar *label;
   gchar *desc;
