@@ -637,16 +637,12 @@ wocky_data_forms_submit (WockyDataForms *self,
   g_slist_foreach (self->fields_list, (GFunc) add_field_to_node, x);
 }
 
-static gboolean
-foreach_reported (WockyXmppNode *reported_node,
-    gpointer user_data)
+static void
+data_forms_parse_reported (WockyDataForms *self,
+    WockyXmppNode *reported_node)
 {
-  WockyDataForms *self = WOCKY_DATA_FORMS (user_data);
   WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
   GSList *l;
-
-  if (wocky_strdiff (reported_node->name, "reported"))
-    return TRUE;
 
   for (l = reported_node->children; l != NULL; l = g_slist_next (l))
     {
@@ -664,32 +660,25 @@ foreach_reported (WockyXmppNode *reported_node,
       DEBUG ("Add '%s'", field->var);
       g_hash_table_insert (priv->reported, field->var, field);
     }
-
-  return TRUE;
 }
 
-static gboolean
-foreach_item (WockyXmppNode *item_node,
-    gpointer user_data)
+static void
+data_forms_parse_item (WockyDataForms *self,
+    WockyXmppNode *item_node)
 {
-  WockyDataForms *self = WOCKY_DATA_FORMS (user_data);
   WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
-  GSList *l, *item = NULL;
+  WockyXmppNodeIter iter;
+  WockyXmppNode *field_node;
+  GSList *item = NULL;
 
-  if (wocky_strdiff (item_node->name, "item"))
-    return TRUE;
-
-  for (l = item_node->children; l != NULL; l = g_slist_next (l))
+  wocky_xmpp_node_iter_init (&iter, item_node, "field", NULL);
+  while (wocky_xmpp_node_iter_next (&iter, &field_node))
     {
-      WockyXmppNode *node = l->data;
       const gchar *var;
       WockyDataFormsField *field, *result;
       GValue *value;
 
-      if (wocky_strdiff (node->name, "field"))
-        continue;
-
-      var = wocky_xmpp_node_get_attribute (node, "var");
+      var = wocky_xmpp_node_get_attribute (field_node, "var");
       if (var == NULL)
         continue;
 
@@ -700,7 +689,7 @@ foreach_item (WockyXmppNode *item_node,
           continue;
         }
 
-      value = get_field_value (field->type, node);
+      value = get_field_value (field->type, field_node);
       if (value == NULL)
         continue;
 
@@ -712,8 +701,6 @@ foreach_item (WockyXmppNode *item_node,
 
   item = g_slist_reverse (item);
   self->results = g_slist_prepend (self->results, item);
-
-  return TRUE;
 }
 
 static void
@@ -751,8 +738,7 @@ wocky_data_forms_parse_result (WockyDataForms *self,
     WockyXmppNode *node,
     GError **error)
 {
-  WockyDataFormsPrivate *priv = WOCKY_DATA_FORMS_GET_PRIVATE (self);
-  WockyXmppNode *x;
+  WockyXmppNode *x, *reported;
   const gchar *type;
 
   x = wocky_xmpp_node_get_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
@@ -774,16 +760,27 @@ wocky_data_forms_parse_result (WockyDataForms *self,
       return FALSE;
     }
 
-  /* first parse the reported elements so we'll know the type of the different
-   * fields */
-  wocky_xmpp_node_each_child (x, foreach_reported, self);
+  reported = wocky_xmpp_node_get_child (x, "reported");
 
-  if (g_hash_table_size (priv->reported) > 0)
-    /* stanza contains reported fields; results are in item nodes */
-    wocky_xmpp_node_each_child (x, foreach_item, self);
+  if (reported != NULL)
+    {
+      WockyXmppNodeIter iter;
+      WockyXmppNode *item;
+
+      /* The field definitions are in a <reported/> header, and a series of
+       * <item/> nodes contain sets of results.
+       */
+      data_forms_parse_reported (self, reported);
+
+      wocky_xmpp_node_iter_init (&iter, x, "item", NULL);
+      while (wocky_xmpp_node_iter_next (&iter, &item))
+        data_forms_parse_item (self, item);
+    }
   else
-    /* no reporter fields, there is only one result */
-    parse_unique_result (self, x);
+    {
+      /* no <reported/> header; so there must be only one result. */
+      parse_unique_result (self, x);
+    }
 
   self->results = g_slist_reverse (self->results);
   return TRUE;
