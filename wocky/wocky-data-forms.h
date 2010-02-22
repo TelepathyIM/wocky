@@ -81,14 +81,15 @@ struct _WockyDataFormsClass {
 struct _WockyDataForms {
   GObject parent;
 
-  /* (gchar *) owned by the wocky_data_forms_field =>
-   * borrowed (wocky_data_forms_field *) */
+  /* (gchar *) owned by the WockyDataFormsField =>
+   * borrowed (WockyDataFormsField *) */
   GHashTable *fields;
-  /* list containing owned (wocky_data_forms_field *) in the order they
+  /* list containing owned (WockyDataFormsField *) in the order they
    * have been presented in the form */
   GSList *fields_list;
 
-  /* list of list of (wocky_data_forms_field *) */
+  /* list of GSList * of (WockyDataFormsField *), representing one or more sets
+   * of results */
   GSList *results;
 };
 

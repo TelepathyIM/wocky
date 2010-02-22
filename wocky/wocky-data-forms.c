@@ -281,8 +281,13 @@ type_to_str (WockyDataFormsFieldType type)
   return wocky_enum_to_nick (WOCKY_TYPE_DATA_FORMS_FIELD_TYPE, type);
 }
 
-/* Return a list of (WockyDataFormsFieldOption *) containing all the
- * options defined in the node */
+/**
+ * extract_options_list:
+ * @node: a <field/> node
+ *
+ * Returns: a list of (WockyDataFormsFieldOption *) containing all the
+ *          <option/>s defined in the node
+ */
 static GSList *
 extract_options_list (WockyXmppNode *node)
 {
@@ -300,7 +305,7 @@ extract_options_list (WockyXmppNode *node)
         continue;
 
       label = wocky_xmpp_node_get_attribute (option_node, "label");
-      /* the label is optionnal */
+      /* the label is optional */
 
       value = wocky_xmpp_node_get_child (option_node, "value");
       if (value == NULL)
@@ -317,8 +322,13 @@ extract_options_list (WockyXmppNode *node)
   return result;
 }
 
-/* Return a newly allocated array of strings containing the content of all the
- * 'value' children nodes of the node */
+/**
+ * extract_value_list:
+ * @node: a <field/> element
+ *
+ * Returns: a newly allocated array of strings containing the content of all
+ *          the 'value' children nodes of the node
+ */
 static GStrv
 extract_value_list (WockyXmppNode *node)
 {
