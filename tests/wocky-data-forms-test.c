@@ -237,10 +237,8 @@ test_parse_form (void)
   g_assert (forms != NULL);
   g_object_unref (stanza);
 
-  g_assert (!wocky_strdiff (wocky_data_forms_get_title (forms),
-        "My Title"));
-  g_assert (!wocky_strdiff (wocky_data_forms_get_instructions (forms),
-        "Badger"));
+  g_assert_cmpstr (wocky_data_forms_get_title (forms), ==, "My Title");
+  g_assert_cmpstr (wocky_data_forms_get_instructions (forms), ==, "Badger");
 
   g_assert_cmpuint (g_slist_length (forms->fields_list), ==, 10);
   for (l = forms->fields_list, i = 0; l != NULL; l = g_slist_next (l), i++)
@@ -249,9 +247,9 @@ test_parse_form (void)
 
       g_assert (field != NULL);
       g_assert_cmpuint (field->type, ==, expected_types[i].type);
-      g_assert (!wocky_strdiff (field->var, expected_types[i].var));
-      g_assert (!wocky_strdiff (field->label, expected_types[i].label));
-      g_assert (!wocky_strdiff (field->desc, expected_types[i].desc));
+      g_assert_cmpstr (field->var, ==, expected_types[i].var);
+      g_assert_cmpstr (field->label, ==, expected_types[i].label);
+      g_assert_cmpstr (field->desc, ==, expected_types[i].desc);
       g_assert (field->required == expected_types[i].required);
       g_assert (field->value == NULL);
     }
@@ -262,8 +260,7 @@ test_parse_form (void)
   field = g_hash_table_lookup (forms->fields, "FORM_TYPE");
   g_assert (field != NULL);
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_STRING);
-  g_assert (!wocky_strdiff (g_value_get_string (field->default_value),
-        "jabber:bot"));
+  g_assert_cmpstr (g_value_get_string (field->default_value), ==, "jabber:bot");
   g_assert (field->options == NULL);
 
   /* check text-single field */
@@ -297,30 +294,29 @@ test_parse_form (void)
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_STRV);
   strv = g_value_get_boxed (field->default_value);
   g_assert_cmpuint (g_strv_length (strv), ==, 2);
-  g_assert (!wocky_strdiff (strv[0], "news"));
-  g_assert (!wocky_strdiff (strv[1], "search"));
+  g_assert_cmpstr (strv[0], ==, "news");
+  g_assert_cmpstr (strv[1], ==, "search");
   g_assert_cmpuint (g_slist_length (field->options), ==, 5);
   for (l = field->options, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
       WockyDataFormsFieldOption *option = l->data;
 
-      g_assert (!wocky_strdiff (option->value, features_options[i].value));
-      g_assert (!wocky_strdiff (option->label, features_options[i].label));
+      g_assert_cmpstr (option->value, ==, features_options[i].value);
+      g_assert_cmpstr (option->label, ==, features_options[i].label);
     }
 
   /* check list-single field */
   field = g_hash_table_lookup (forms->fields, "maxsubs");
   g_assert (field != NULL);
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_STRING);
-  g_assert (!wocky_strdiff (g_value_get_string (field->default_value),
-        "20"));
+  g_assert_cmpstr (g_value_get_string (field->default_value), ==, "20");
   g_assert_cmpuint (g_slist_length (field->options), ==, 6);
   for (l = field->options, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
       WockyDataFormsFieldOption *option = l->data;
 
-      g_assert (!wocky_strdiff (option->value, maxsubs_options[i].value));
-      g_assert (!wocky_strdiff (option->label, maxsubs_options[i].label));
+      g_assert_cmpstr (option->value, ==, maxsubs_options[i].value);
+      g_assert_cmpstr (option->label, ==, maxsubs_options[i].label);
     }
 
   /* check jid-multi field */
@@ -394,15 +390,14 @@ test_submit (void)
 
   x = wocky_xmpp_node_get_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
   g_assert (x != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (x, "type"),
-        "submit"));
+  g_assert_cmpstr (wocky_xmpp_node_get_attribute (x, "type"), ==, "submit");
 
   for (l = x->children; l != NULL; l = g_slist_next (l))
     {
       WockyXmppNode *v, *node = l->data;
       const gchar *var, *type, *value = NULL;
 
-      g_assert (!wocky_strdiff (node->name, "field"));
+      g_assert_cmpstr (node->name, ==, "field");
       var = wocky_xmpp_node_get_attribute (node, "var");
       g_assert (var != NULL);
       type = wocky_xmpp_node_get_attribute (node, "type");
@@ -413,25 +408,25 @@ test_submit (void)
 
       if (!wocky_strdiff (var, "FORM_TYPE"))
         {
-          g_assert (!wocky_strdiff (type, "hidden"));
-          g_assert (!wocky_strdiff (value, "jabber:bot"));
+          g_assert_cmpstr (type, ==, "hidden");
+          g_assert_cmpstr (value, ==, "jabber:bot");
         }
       else if (!wocky_strdiff (var, "botname"))
         {
-          g_assert (!wocky_strdiff (type, "text-single"));
-          g_assert (!wocky_strdiff (value, "The Jabber Google Bot"));
+          g_assert_cmpstr (type, ==, "text-single");
+          g_assert_cmpstr (value, ==, "The Jabber Google Bot");
         }
       else if (!wocky_strdiff (var, "description"))
         {
           GSList *m;
           gboolean badger = FALSE, mushroom = FALSE, snake = FALSE;
 
-          g_assert (!wocky_strdiff (type, "text-multi"));
+          g_assert_cmpstr (type, ==, "text-multi");
           for (m = node->children; m != NULL; m = g_slist_next (m))
             {
               WockyXmppNode *tmp = m->data;
 
-              g_assert (!wocky_strdiff (tmp->name, "value"));
+              g_assert_cmpstr (tmp->name, ==, "value");
               if (!wocky_strdiff (tmp->content, "Badger"))
                 badger = TRUE;
               else if (!wocky_strdiff (tmp->content, "Mushroom"))
@@ -445,25 +440,25 @@ test_submit (void)
         }
       else if (!wocky_strdiff (var, "public"))
         {
-          g_assert (!wocky_strdiff (type, "boolean"));
-          g_assert (!wocky_strdiff (value, "0"));
+          g_assert_cmpstr (type, ==, "boolean");
+          g_assert_cmpstr (value, ==, "0");
         }
       else if (!wocky_strdiff (var, "password"))
         {
-          g_assert (!wocky_strdiff (type, "text-private"));
-          g_assert (!wocky_strdiff (value, "S3cr1t"));
+          g_assert_cmpstr (type, ==, "text-private");
+          g_assert_cmpstr (value, ==, "S3cr1t");
         }
       else if (!wocky_strdiff (var, "features"))
         {
           GSList *m;
           gboolean news = FALSE, search = FALSE;
 
-          g_assert (!wocky_strdiff (type, "list-multi"));
+          g_assert_cmpstr (type, ==, "list-multi");
           for (m = node->children; m != NULL; m = g_slist_next (m))
             {
               WockyXmppNode *tmp = m->data;
 
-              g_assert (!wocky_strdiff (tmp->name, "value"));
+              g_assert_cmpstr (tmp->name, ==, "value");
               if (!wocky_strdiff (tmp->content, "news"))
                 news = TRUE;
               else if (!wocky_strdiff (tmp->content, "search"))
@@ -475,20 +470,20 @@ test_submit (void)
         }
       else if (!wocky_strdiff (var, "maxsubs"))
         {
-          g_assert (!wocky_strdiff (type, "list-single"));
-          g_assert (!wocky_strdiff (value, "20"));
+          g_assert_cmpstr (type, ==, "list-single");
+          g_assert_cmpstr (value, ==, "20");
         }
       else if (!wocky_strdiff (var, "invitelist"))
         {
           GSList *m;
           gboolean juliet = FALSE, romeo = FALSE;
 
-          g_assert (!wocky_strdiff (type, "jid-multi"));
+          g_assert_cmpstr (type, ==, "jid-multi");
           for (m = node->children; m != NULL; m = g_slist_next (m))
             {
               WockyXmppNode *tmp = m->data;
 
-              g_assert (!wocky_strdiff (tmp->name, "value"));
+              g_assert_cmpstr (tmp->name, ==, "value");
               if (!wocky_strdiff (tmp->content, "juliet@example.org"))
                 juliet = TRUE;
               else if (!wocky_strdiff (tmp->content, "romeo@example.org"))
@@ -500,8 +495,8 @@ test_submit (void)
         }
       else if (!wocky_strdiff (var, "botjid"))
         {
-          g_assert (!wocky_strdiff (type, "jid-single"));
-          g_assert (!wocky_strdiff (value, "bobot@example.org"));
+          g_assert_cmpstr (type, ==, "jid-single");
+          g_assert_cmpstr (value, ==, "bobot@example.org");
         }
       else
         g_assert_not_reached ();
@@ -615,11 +610,9 @@ test_parse_multi_result (void)
           else if (!wocky_strdiff (field->var, "url"))
             {
               if (item2)
-                g_assert (!wocky_strdiff (g_value_get_string (field->value),
-                      "url2"));
+                g_assert_cmpstr (g_value_get_string (field->value), ==, "url2");
               else if (item1)
-                g_assert (!wocky_strdiff (g_value_get_string (field->value),
-                      "url1"));
+                g_assert_cmpstr (g_value_get_string (field->value), ==, "url1");
               else
                 g_assert_not_reached ();
 
@@ -682,15 +675,13 @@ test_parse_single_result (void)
 
       if (!wocky_strdiff (field->var, "FORM_TYPE"))
         {
-          g_assert (!wocky_strdiff (g_value_get_string (field->value),
-                "jabber:bot"));
+          g_assert_cmpstr (g_value_get_string (field->value), ==, "jabber:bot");
           g_assert (field->type == WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN);
           form_type = TRUE;
         }
       else if (!wocky_strdiff (field->var, "botname"))
         {
-          g_assert (!wocky_strdiff (g_value_get_string (field->value),
-                "The Bot"));
+          g_assert_cmpstr (g_value_get_string (field->value), ==, "The Bot");
           g_assert (field->type == WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE);
           botname = TRUE;
         }
