@@ -281,18 +281,17 @@ type_to_str (WockyDataFormsFieldType type)
 static GSList *
 extract_options_list (WockyXmppNode *node)
 {
-  GSList *result = NULL, *l;
+  GSList *result = NULL;
+  WockyXmppNodeIter iter;
+  WockyXmppNode *option_node;
 
-  for (l = node->children; l != NULL; l = g_slist_next (l))
+  wocky_xmpp_node_iter_init (&iter, node, "option", NULL);
+
+  while (wocky_xmpp_node_iter_next (&iter, &option_node))
     {
-      WockyXmppNode *option_node = (WockyXmppNode *) l->data;
       WockyXmppNode *value;
       WockyDataFormsFieldOption *option;
       const gchar *label;
-
-      if (wocky_strdiff (option_node->name, "option"))
-        /* wrong name */
-        continue;
 
       label = wocky_xmpp_node_get_attribute (option_node, "label");
       /* the label is optional */
@@ -323,20 +322,15 @@ static GStrv
 extract_value_list (WockyXmppNode *node)
 {
   GPtrArray *tmp = g_ptr_array_new ();
-  GSList *l;
+  WockyXmppNodeIter iter;
+  WockyXmppNode *value;
 
-  for (l = node->children; l != NULL; l = g_slist_next (l))
+  wocky_xmpp_node_iter_init (&iter, node, "value", NULL);
+
+  while (wocky_xmpp_node_iter_next (&iter, &value))
     {
-      WockyXmppNode *value = (WockyXmppNode *) l->data;
-
-      if (wocky_strdiff (value->name, "value"))
-        /* wrong name */
-        continue;
-
-      if (value->content == NULL)
-        continue;
-
-      g_ptr_array_add (tmp, g_strdup (value->content));
+      if (value->content != NULL)
+        g_ptr_array_add (tmp, g_strdup (value->content));
     }
 
   /* Add trailing NULL */
