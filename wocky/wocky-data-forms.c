@@ -625,6 +625,14 @@ add_field_to_node (WockyDataFormsField *field,
     }
 }
 
+/**
+ * wocky_data_forms_submit:
+ * @self: a data form
+ * @node: a node to which to add a form submission
+ *
+ * Adds a node tree which submits @self based on the current values set on
+ * @self's fields.
+ */
 void
 wocky_data_forms_submit (WockyDataForms *self,
     WockyXmppNode *node)
