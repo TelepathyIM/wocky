@@ -13,3 +13,11 @@ dist-hook:
 
 include $(top_srcdir)/rules/lcov.mak
 
+CLEANFILES = FIXME.out
+
+check-local::
+	egrep -A 5 '[F]IXME|[T]ODO|[X]XX' \
+		$(srcdir)/wocky/*.[ch] \
+		$(srcdir)/tests/*.[ch] \
+		$(srcdir)/examples/*.[ch] \
+		> FIXME.out || true
