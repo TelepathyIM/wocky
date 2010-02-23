@@ -840,7 +840,7 @@ wocky_muc_create_presence (WockyMuc *muc,
     }
 
   if (password != NULL)
-    wocky_xmpp_node_add_child_with_content(x, "password", password);
+    wocky_xmpp_node_add_child_with_content (x, "password", password);
 
   return stanza;
 }
@@ -1064,7 +1064,7 @@ handle_user_presence (WockyMuc *muc,
     {
       DEBUG ("New presence from %s, %s (state: %d)", from, nick, priv->state);
 
-      member = alloc_member();
+      member = alloc_member ();
       g_hash_table_insert (priv->members, g_strdup (from), member);
     }
   else
@@ -1443,7 +1443,7 @@ handle_message (WockyPorter *porter,
 
       if (from_self)
         {
-          who = alloc_member();
+          who = alloc_member ();
           who->from = g_strdup (priv->jid);
           who->jid  = g_strdup (priv->user);
           who->nick = g_strdup (priv->nick);

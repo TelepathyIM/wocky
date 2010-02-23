@@ -69,7 +69,7 @@ gboolean
 wocky_sasl_handler_is_plain (WockySaslHandler *handler);
 
 gboolean
-wocky_sasl_handler_get_initial_response(WockySaslHandler *handler,
+wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
     gchar **initial_data,
     GError **error);
 

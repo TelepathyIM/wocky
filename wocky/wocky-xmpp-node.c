@@ -768,7 +768,7 @@ wocky_xmpp_node_iter_next (WockyXmppNodeIter *iter,
 {
   while (iter->pending != NULL)
     {
-      WockyXmppNode *ln = (WockyXmppNode *)iter->pending->data;
+      WockyXmppNode *ln = (WockyXmppNode *) iter->pending->data;
 
       iter->pending  = g_slist_next (iter->pending);
 
