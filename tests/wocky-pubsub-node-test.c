@@ -12,7 +12,7 @@
 #include "wocky-test-helper.h"
 
 
-/* Test to instantiate a WockyPubsubNode object */
+/* Test instantiating a WockyPubsubNode object */
 static void
 test_instantiation (void)
 {

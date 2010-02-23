@@ -14,7 +14,7 @@
 #include "wocky-test-helper.h"
 
 
-/* Test to instantiate a WockyPubsubService object */
+/* Test instantiating a WockyPubsubService object */
 static WockySession *
 create_session (void)
 {
