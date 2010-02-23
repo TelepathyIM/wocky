@@ -284,7 +284,7 @@ send_query_cb (GObject *source,
       g_error_free (error);
     }
 
-  g_simple_async_result_set_op_res_gpointer (result, reply, NULL);
+  g_simple_async_result_set_op_res_gpointer (result, reply, g_object_unref);
   g_simple_async_result_complete (result);
   g_object_unref (result);
 }
@@ -335,15 +335,15 @@ wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
+  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
+
+  if (g_simple_async_result_propagate_error (simple, error))
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (self), wocky_pep_service_get_finish), NULL);
 
-  return g_simple_async_result_get_op_res_gpointer (
-      G_SIMPLE_ASYNC_RESULT (result));
+  return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
 }
 
 WockyXmppStanza *
