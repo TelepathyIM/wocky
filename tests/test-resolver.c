@@ -226,7 +226,7 @@ lookup_by_name_async (GResolver *resolver,
 #endif
 
   if (addr != NULL)
-      res = g_simple_async_result_new (source, cb, data, lookup_service_async);
+      res = g_simple_async_result_new (source, cb, data, lookup_by_name_async);
   else
       res = g_simple_async_result_new_from_error (source, cb, data, error);
 
