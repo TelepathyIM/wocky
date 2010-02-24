@@ -248,6 +248,17 @@ create_node (WockyPubsubService *self,
   return node;
 }
 
+/**
+ * wocky_pubsub_service_ensure_node:
+ * @self: a pubsub service
+ * @name: the name of a node on @self
+ *
+ * Fetches or creates an object representing a node on the pubsub service. Note
+ * that this does not ensure that @node exists on the server; it merely ensures
+ * a local representation.
+ *
+ * Returns: a new reference to an object representing @node on @self
+ */
 WockyPubsubNode *
 wocky_pubsub_service_ensure_node (WockyPubsubService *self,
     const gchar *name)
@@ -256,12 +267,24 @@ wocky_pubsub_service_ensure_node (WockyPubsubService *self,
   WockyPubsubNode *node;
 
   node = g_hash_table_lookup (priv->nodes, name);
+
   if (node != NULL)
     return g_object_ref (node);
-
-  return create_node (self, name);
+  else
+    return create_node (self, name);
 }
 
+/**
+ * wocky_pubsub_service_lookup_node:
+ * @self: a pubsub service
+ * @name: the name of a node on @self
+ *
+ * Fetches an object representing a node on a pubsub service, if the object
+ * already exists; if not, returns %NULL. Note that this does not check whether
+ * @node exists on the server; it only chceks for a local representation.
+ *
+ * Returns: a borrowed reference to a node, or %NULL
+ */
 WockyPubsubNode *
 wocky_pubsub_service_lookup_node (WockyPubsubService *self,
     const gchar *name)
