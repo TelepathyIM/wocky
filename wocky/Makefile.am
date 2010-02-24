@@ -8,12 +8,14 @@ BUILT_SOURCES = \
   wocky-signals-marshal.list \
   wocky-signals-marshal.h \
   wocky-signals-marshal.c \
-  wocky-xmpp-error-enumtypes.h \
-  wocky-xmpp-error-enumtypes.c \
-  wocky-xmpp-reader-enumtypes.h \
-  wocky-xmpp-reader-enumtypes.c \
+  wocky-data-forms-enumtypes.c \
+  wocky-data-forms-enumtypes.h \
+  wocky-muc-enumtypes.c \
   wocky-muc-enumtypes.h \
-  wocky-muc-enumtypes.c
+  wocky-xmpp-error-enumtypes.c \
+  wocky-xmpp-error-enumtypes.h \
+  wocky-xmpp-reader-enumtypes.c \
+  wocky-xmpp-reader-enumtypes.h
 
 OPENSSL_SRC = \
   wocky-openssl.c        \
@@ -73,7 +75,9 @@ HANDWRITTEN_SOURCES =            \
   wocky-muc.h                    \
   wocky-muc.c					 \
   wocky-pep-service.c            \
-  wocky-pep-service.h
+  wocky-pep-service.h            \
+  wocky-data-forms.c             \
+  wocky-data-forms.h
 
 if USING_OPENSSL
   HANDWRITTEN_SOURCES += $(OPENSSL_SRC)
