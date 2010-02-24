@@ -325,7 +325,7 @@ CLEANFILES = test-report.xml \
 	G_SLICE=always-malloc               \
 	G_DEBUG=gc-friendly              \
 	valgrind -q \
-	$(foreach s,$(SUPPRESSIONS),--suppressions=$(s))   \
+	$(foreach s,$(SUPPRESSIONS),--suppressions=$(srcdir)/$(s))   \
 	--tool=memcheck --leak-check=full --trace-children=yes   \
 	--leak-resolution=high --num-callers=20         \
 	./$* 2>&1 | tee "valgrind.$*.log"
