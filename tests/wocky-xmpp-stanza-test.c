@@ -252,6 +252,8 @@ test_extract_errors (void)
   g_assert_no_error (specialized);
   g_assert (specialized_node == NULL);
 
+  g_object_unref (stanza);
+
   /* Test a boring error with no description */
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
@@ -276,6 +278,8 @@ test_extract_errors (void)
 
   g_assert_no_error (specialized);
   g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
 
   /* Now a different error with some text */
   stanza = wocky_xmpp_stanza_build (
