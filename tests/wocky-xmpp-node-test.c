@@ -335,6 +335,8 @@ test_node_iteration (void)
 
   wocky_xmpp_node_iter_init (&iter, stanza->node, NULL, "snakes");
   do_test_iteration (&iter, nothing);
+
+  g_object_unref (stanza);
 }
 
 int
