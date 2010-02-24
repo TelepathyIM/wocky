@@ -351,6 +351,7 @@ valgrind: $(TEST_PROGS)
 	fi
 
 EXTRA_DIST = $(SUPPRESSIONS)     \
+	README \
 	$(wildcard $(srcdir)/certs/*.cfg)      \
 	$(wildcard $(srcdir)/certs/*.pem)      \
 	$(wildcard $(srcdir)/certs/cas/*.pem)  \

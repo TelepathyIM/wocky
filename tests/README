@@ -1,0 +1,14 @@
+You can valgrind all the tests by running:
+
+  % make valgrind
+
+To valgrind an individual test binary (wocky-porter-test, say), run:
+
+  % make wocky-porter-test.valgrind
+
+If you want to pass arguments to the tests when valgrinding (perhaps you've
+narrowed the leaky test down to one test case, /xmpp-porter/cancel-iq-closing
+say), run:
+
+  % make wocky-porter-test.valgrind \
+         TEST_ARGS='-p /xmpp-porter/cancel-iq-closing'
