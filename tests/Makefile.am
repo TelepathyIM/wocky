@@ -312,7 +312,10 @@ $(CRL_DIR)/%.pem: $(CERT_DIR)/%.pem
 
 ############################################################################
 
-SUPPRESSIONS=threadlocal.supp
+SUPPRESSIONS = \
+	threadlocal.supp \
+	gabble.supp \
+	tp-glib.supp
 
 CLEANFILES = test-report.xml \
 	sasl-test.db
