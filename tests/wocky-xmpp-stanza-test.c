@@ -33,7 +33,7 @@ test_build_iq_result (void)
   reply = wocky_xmpp_stanza_build_iq_result (iq, WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -62,7 +62,7 @@ test_build_iq_result (void)
       WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -86,7 +86,7 @@ test_build_iq_result (void)
   reply = wocky_xmpp_stanza_build_iq_result (iq, WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -115,7 +115,7 @@ test_build_iq_error (void)
   reply = wocky_xmpp_stanza_build_iq_error (iq, WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -144,7 +144,7 @@ test_build_iq_error (void)
       WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
