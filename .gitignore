@@ -142,3 +142,5 @@ docs/reference/xml
 docs/reference/wocky.types
 
 wocky-?.*.*.tar.gz
+
+/FIXME.out
