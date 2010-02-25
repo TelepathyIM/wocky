@@ -19,6 +19,7 @@
 
 #include "wocky-pep-service.h"
 
+#include "wocky-pubsub-helpers.h"
 #include "wocky-porter.h"
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
@@ -352,16 +353,5 @@ wocky_pep_service_make_publish_stanza (WockyPepService *self,
 {
   WockyPepServicePrivate *priv = WOCKY_PEP_SERVICE_GET_PRIVATE (self);
 
-  return wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, NULL,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "publish",
-          WOCKY_NODE_ATTRIBUTE, "node", priv->node,
-          WOCKY_NODE, "item",
-          WOCKY_NODE_ASSIGN_TO, item,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+  return wocky_pubsub_make_publish_stanza (NULL, priv->node, NULL, item);
 }

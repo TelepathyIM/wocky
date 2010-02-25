@@ -78,6 +78,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-pep-service.h            \
   wocky-data-forms.c             \
   wocky-data-forms.h             \
+  wocky-pubsub-helpers.c         \
+  wocky-pubsub-helpers.h         \
   wocky-pubsub-service.c         \
   wocky-pubsub-service.h         \
   wocky-pubsub-node.c            \
