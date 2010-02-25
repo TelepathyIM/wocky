@@ -44,6 +44,15 @@ void test_expected_stanza_received (test_data_t *test,
 
 void test_close_both_porters (test_data_t *test);
 
+#define test_assert_nodes_equal(n1, n2) \
+  G_STMT_START { \
+    if (!wocky_xmpp_node_equal ((n1), (n2))) \
+      g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
+          g_strdup_printf ("Nodes not equal:\n%s\n\n%s", \
+              wocky_xmpp_node_to_string (n1), \
+              wocky_xmpp_node_to_string (n2))); \
+  } G_STMT_END
+
 void test_init (int argc,
     char **argv);
 

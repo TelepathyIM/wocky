@@ -444,15 +444,6 @@ test_extract_errors (void)
   g_object_unref (stanza);
 }
 
-#define assert_nodes_equal(n1, n2) \
-  G_STMT_START { \
-    if (!wocky_xmpp_node_equal ((n1), (n2))) \
-      g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
-          g_strdup_printf ("Nodes not equal:\n%s\n\n%s", \
-              wocky_xmpp_node_to_string (n1), \
-              wocky_xmpp_node_to_string (n2))); \
-  } G_STMT_END
-
 #define assert_cmperr(e1, e2) \
   G_STMT_START { \
     g_assert_error(e1, e2->domain, e2->code); \
@@ -493,7 +484,7 @@ test_stanza_error_to_node (void)
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
-  assert_nodes_equal (stanza->node, expected->node);
+  test_assert_nodes_equal (stanza->node, expected->node);
 
   /* Let's see how it roundtrips: */
   wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
@@ -535,7 +526,7 @@ test_stanza_error_to_node (void)
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
-  assert_nodes_equal (stanza->node, expected->node);
+  test_assert_nodes_equal (stanza->node, expected->node);
 
   /* Let's see how it roundtrips: */
   wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
