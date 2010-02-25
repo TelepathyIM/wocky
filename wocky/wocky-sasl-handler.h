@@ -18,7 +18,9 @@ G_BEGIN_DECLS
 
 typedef struct _WockySaslHandler WockySaslHandler;
 
-/** WockySaslInitialResponseFunc:
+/**
+ * WockySaslInitialResponseFunc:
+ *
  * When authentication begins, in case the mechanism allows a response to
  * an implicit challenge during SASL initiation (which, in XMPP,
  * corresponds to sending the <auth/> stanza to the server).
@@ -31,7 +33,9 @@ typedef gboolean (*WockySaslInitialResponseFunc) (WockySaslHandler *handler,
     gchar **initial_data,
     GError **error);
 
-/** WockySaslChallengeFunc:
+/**
+ * WockySaslChallengeFunc:
+ *
  * Called During authentication, when a <challenge/> stanza or a <success />
  * with data is received. The handler should put response data in response
  * (allocate using g_malloc) if appropriate. The handler is responsible for
@@ -46,7 +50,9 @@ typedef gboolean (*WockySaslAuthDataFunc) (
     gchar **response,
     GError **error);
 
-/** WockySaslSuccessFunc:
+/**
+ * WockySaslSuccessFunc:
+ *
  * Called when a <success/> stanza is received during authentication. If no
  * error is returned, then authentication is considered finished. (Typically,
  * an error is only raised if the <success/> stanza was received earlier than

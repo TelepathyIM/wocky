@@ -103,7 +103,7 @@ typedef gboolean (* WockyPorterHandlerFunc) (
     WockyXmppStanza *stanza,
     gpointer user_data);
 
-guint wocky_porter_register_handler (WockyPorter *porter,
+guint wocky_porter_register_handler (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,

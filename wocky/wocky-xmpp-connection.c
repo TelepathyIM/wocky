@@ -990,7 +990,7 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
 }
 
 /**
- * wocky_xmpp_connection_recv_stanza_finish:
+ * wocky_xmpp_connection_reset:
  * @connection: a #WockyXmppConnection.
  *
  * Reset the XMPP Connection. After the reset the connection is back in its
