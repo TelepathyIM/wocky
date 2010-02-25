@@ -1995,6 +1995,12 @@ test_cancel_iq_closing (void)
   test->outstanding += 1;
   test_wait_pending (test);
 
+  /* Make the call to wocky_porter_close_async() finish... */
+  wocky_xmpp_connection_send_close_async (test->out, NULL, close_sent_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
   g_object_unref (iq);
   teardown_test (test);
 }
