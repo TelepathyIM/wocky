@@ -274,7 +274,7 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
       WOCKY_NODE_END, WOCKY_STANZA_END);
 
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-    wocky_pubsub_node_delete_finish);
+    wocky_pubsub_node_delete_async);
 
   wocky_porter_send_iq_async (priv->porter, stanza, NULL, delete_node_iq_cb,
       result);
@@ -287,12 +287,12 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
+  GSimpleAsyncResult *simple;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_pubsub_node_delete_finish), FALSE);
+      G_OBJECT (self), wocky_pubsub_node_delete_async), FALSE);
 
-  return TRUE;
+  simple = (GSimpleAsyncResult *) result;
+
+  return !g_simple_async_result_propagate_error (simple, error);
 }

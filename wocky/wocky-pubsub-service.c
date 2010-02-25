@@ -464,14 +464,15 @@ create_node_iq_cb (GObject *source,
   node = wocky_pubsub_service_ensure_node (self, name);
   DEBUG ("node %s created\n", name);
 
-  g_simple_async_result_set_op_res_gpointer (result, node, NULL);
+  /* 'result' steals our reference to 'node' */
+  g_simple_async_result_set_op_res_gpointer (result, node, g_object_unref);
 
 out:
   g_simple_async_result_complete (result);
   g_object_unref (result);
   if (reply != NULL)
     g_object_unref (reply);
-  /* g_async_result_get_source_object ref the object */
+  /* g_async_result_get_source_object refs the object */
   g_object_unref (self);
 }
 
@@ -509,7 +510,7 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     wocky_data_forms_submit (config, configure);
 
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-    wocky_pubsub_service_create_node_finish);
+    wocky_pubsub_service_create_node_async);
 
   wocky_porter_send_iq_async (priv->porter, stanza, NULL,
       create_node_iq_cb, result);
@@ -522,13 +523,18 @@ wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return NULL;
+  GSimpleAsyncResult *simple;
+  WockyPubsubNode *node;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_pubsub_service_create_node_finish), NULL);
+      G_OBJECT (self), wocky_pubsub_service_create_node_async), NULL);
 
-  return g_simple_async_result_get_op_res_gpointer (
-      G_SIMPLE_ASYNC_RESULT (result));
+  simple = (GSimpleAsyncResult *) result;
+
+  if (g_simple_async_result_propagate_error (simple, error))
+    return NULL;
+
+  node = WOCKY_PUBSUB_NODE (g_simple_async_result_get_op_res_gpointer (simple));
+
+  return g_object_ref (node);
 }
