@@ -164,7 +164,7 @@ gboolean wocky_xmpp_connection_force_close_finish (
 
 void wocky_xmpp_connection_reset (WockyXmppConnection *connection);
 
-gchar * wocky_xmpp_connection_new_id (WockyXmppConnection *connection);
+gchar * wocky_xmpp_connection_new_id (WockyXmppConnection *self);
 
 G_END_DECLS
 

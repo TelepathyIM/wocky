@@ -9,6 +9,10 @@
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#include <glib.h>
+#include <glib/gstdio.h>
+
 #include <wocky/wocky-connector.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-sasl-auth.h>
@@ -3216,15 +3220,16 @@ run_test (gpointer data)
   WockyConnector *wcon = NULL;
   test_t *test = data;
   struct stat dummy;
-  gchar base[PATH_MAX + 1];
+  gchar *base;
   char *path;
   const gchar *ca;
 
   /* clean up any leftover messes from previous tests     */
   /* unlink the sasl db tmpfile, it will cause a deadlock */
-  path = g_strdup_printf ("%s/__db.%s",
-      getcwd (base, sizeof (base)), SASL_DB_NAME);
-  g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
+  base = g_get_current_dir ();
+  path = g_strdup_printf ("%s/__db.%s", base, SASL_DB_NAME);
+  g_free (base);
+  g_assert ((g_stat (path, &dummy) != 0) || (g_unlink (path) == 0));
   g_free (path);
   /* end of cleanup block */
 
@@ -3406,7 +3411,7 @@ main (int argc,
     char **argv)
 {
   int i;
-  gchar base[PATH_MAX + 1];
+  gchar *base;
   gchar *path = NULL;
   struct stat dummy;
   int result;
@@ -3420,8 +3425,10 @@ main (int argc,
   g_resolver_set_default (kludged);
 
   /* unlink the sasl db, we want to test against a fresh one */
-  path = g_strdup_printf ("%s/%s", getcwd (base, sizeof (base)), SASL_DB_NAME);
-  g_assert ((stat (path, &dummy) != 0) || (unlink (path) == 0));
+  base = g_get_current_dir ();
+  path = g_strdup_printf ("%s/%s", base, SASL_DB_NAME);
+  g_free (base);
+  g_assert ((g_stat (path, &dummy) != 0) || (g_unlink (path) == 0));
   g_free (path);
 
   mainloop = g_main_loop_new (NULL, FALSE);

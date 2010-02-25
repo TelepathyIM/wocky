@@ -94,6 +94,8 @@ validate_jid_domain (const gchar *domain)
  * XXX: Do nodeprep/resourceprep and length checking.
  *
  * See RFC 3920 §3.
+ *
+ * Returns: %TRUE if the JID is valid
  */
 gboolean
 wocky_decode_jid (const gchar *jid,

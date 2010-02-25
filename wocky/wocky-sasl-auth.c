@@ -694,6 +694,7 @@ out:
 
 /**
  * wocky_sasl_auth_add_handler:
+ *
  * Provide an external SASL handler to be used during authentication. Handlers
  * (and therefore SASL mechanisms) are prioritised in the order they are
  * added (handlers added earlier take precedence over those added later).

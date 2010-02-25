@@ -335,11 +335,15 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
 /**
  * wocky_xmpp_stanza_build:
  * @type: The type of stanza to build
- * @subtype: The stanza's subtype; valid values depend on @type. (For instance,
+ * @sub_type: The stanza's subtype; valid values depend on @type. (For instance,
  *           #WOCKY_STANZA_TYPE_IQ can use #WOCKY_STANZA_SUB_TYPE_GET, but not
  *           #WOCKY_STANZA_SUB_TYPE_SUBSCRIBED.)
  * @from: The sender's JID, or %NULL to leave it unspecified.
  * @to: The target's JID, or %NULL to leave it unspecified.
+ * @spec: The beginning of a description of the stanza to build,
+ *  or %WOCKY_STANZA_END to build an empty stanza
+ * @Varargs: The rest of the description of the stanza to build,
+ *  terminated with %WOCKY_STANZA_END
  *
  * Build a XMPP stanza from a list of arguments.
  * Example:
@@ -367,6 +371,8 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  * &lt;/message&gt;
  * *<!-- -->/
  * </programlisting></example>
+ *
+ * Returns: a new stanza object
  */
 WockyXmppStanza *
 wocky_xmpp_stanza_build (WockyStanzaType type,

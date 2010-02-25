@@ -20,8 +20,6 @@
 #ifndef __WOCKY_MUC_H__
 #define __WOCKY_MUC_H__
 
-#include "config.h"
-
 #include <glib-object.h>
 
 #include "wocky-namespaces.h"
