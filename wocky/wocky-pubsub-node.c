@@ -198,10 +198,11 @@ wocky_pubsub_node_emit_event_received (
     WockyPubsubNode *self,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
+    WockyXmppNode *items_node,
     GList *items)
 {
   g_signal_emit (self, signals[SIG_EVENT_RECEIVED], 0, event_stanza,
-      event_node, items);
+      event_node, items_node, items);
 }
 
 static void
@@ -233,10 +234,19 @@ wocky_pubsub_node_class_init (
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_NAME, param_spec);
 
+  /**
+   * WockyPubsubNode::event-received:
+   * @node: a pubsub node
+   * @event_stanza: the message/event stanza in its entirity
+   * @event_node: the event node from the stanza
+   * @items_node: the items node from the stanza
+   * @items: a list of WockyXmppNode *s for each item child of @items_node
+   */
   signals[SIG_EVENT_RECEIVED] = g_signal_new ("event-received", ctype,
       0, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER,
-      G_TYPE_NONE, 3, WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER);
+      _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER_POINTER,
+      G_TYPE_NONE, 4,
+      WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
 }
 
 WockyPubsubNode *
@@ -272,7 +282,7 @@ pubsub_node_handle_event_stanza (WockyPorter *porter,
 
   DEBUG_STANZA (event_stanza, "extracted %u items", items.length);
   wocky_pubsub_node_emit_event_received (self, event_stanza, event_node,
-      items.head);
+      items_node, items.head);
 
   g_queue_clear (&items);
 

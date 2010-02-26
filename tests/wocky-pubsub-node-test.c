@@ -177,12 +177,14 @@ static void
 event_received_cb (WockyPubsubNode *node,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
+    WockyXmppNode *items_node,
     GList *items,
     test_data_t *test)
 {
   WockyXmppNode *item;
 
   g_assert_cmpstr ("event", ==, event_node->name);
+  g_assert_cmpstr ("items", ==, items_node->name);
   g_assert_cmpuint (2, ==, g_list_length (items));
 
   item = g_list_nth_data (items, 0);
