@@ -115,6 +115,15 @@
 #define WOCKY_XMPP_NS_PUBSUB_EVENT \
   WOCKY_XMPP_NS_PUBSUB "#event"
 
+#define WOCKY_XMPP_NS_PUBSUB_OWNER \
+  WOCKY_XMPP_NS_PUBSUB "#owner"
+
+#define WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG \
+  WOCKY_XMPP_NS_PUBSUB "#node_config"
+
+#define WOCKY_XMPP_NS_PUBSUB_ERRORS \
+  WOCKY_XMPP_NS_PUBSUB "#errors"
+
 #define WOCKY_NS_MUC \
   "http://jabber.org/protocol/muc"
 
