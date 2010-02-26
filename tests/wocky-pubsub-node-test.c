@@ -41,6 +41,66 @@ test_instantiation (void)
   g_object_unref (stream);
 }
 
+/* test wocky_pubsub_node_make_publish_stanza() */
+static void
+test_make_publish_stanza (void)
+{
+  WockyPubsubService *pubsub;
+  WockyXmppConnection *connection;
+  WockyTestStream *stream;
+  WockySession *session;
+  WockyPubsubNode *node;
+  WockyXmppStanza *stanza, *expected;
+  WockyXmppNode *publish, *item;
+
+  stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
+  connection = wocky_xmpp_connection_new (stream->stream0);
+  session = wocky_session_new (connection);
+  pubsub = wocky_pubsub_service_new (session, "pubsub.localhost");
+  node = wocky_pubsub_node_new (pubsub, "track1");
+
+  stanza = wocky_pubsub_node_make_publish_stanza (node, &publish, &item);
+  g_assert (stanza != NULL);
+  g_assert (publish != NULL);
+  g_assert (item != NULL);
+
+  /* I've embraced and extended pubsub, and want to put stuff on the <publish>
+   * node... */
+  wocky_xmpp_node_set_attribute (publish, "kaki", "king");
+
+  /* Oh, and I should probably publish something. */
+  wocky_xmpp_node_add_child_with_content_ns (item, "castle", "bone chaos",
+      "urn:example:songs");
+
+  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, "pubsub.localhost",
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE, "publish",
+            WOCKY_NODE_ATTRIBUTE, "kaki", "king",
+            WOCKY_NODE_ATTRIBUTE, "node", "track1",
+            WOCKY_NODE, "item",
+              WOCKY_NODE, "castle",
+                WOCKY_NODE_XMLNS, "urn:example:songs",
+                WOCKY_NODE_TEXT, "bone chaos",
+              WOCKY_NODE_END,
+            WOCKY_NODE_END,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  test_assert_nodes_equal (stanza->node, expected->node);
+
+  g_object_unref (expected);
+  g_object_unref (stanza);
+  g_object_unref (node);
+  g_object_unref (pubsub);
+  g_object_unref (session);
+  g_object_unref (connection);
+  g_object_unref (stream);
+}
+
 /* test wocky_pubsub_node_delete_async */
 static gboolean
 test_delete_iq_cb (WockyPorter *porter,
@@ -118,6 +178,7 @@ main (int argc, char **argv)
   test_init (argc, argv);
 
   g_test_add_func ("/pubsub-node/instantiation", test_instantiation);
+  g_test_add_func ("/pubsub-node/make-publish-stanza", test_make_publish_stanza);
   g_test_add_func ("/pubsub-node/delete", test_delete);
 
   result = g_test_run ();

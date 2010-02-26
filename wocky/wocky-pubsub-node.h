@@ -62,6 +62,10 @@ WockyPubsubNode * wocky_pubsub_node_new (WockyPubsubService *service,
 
 const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *node);
 
+WockyXmppStanza *wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
+    WockyXmppNode **publish_out,
+    WockyXmppNode **item_out);
+
 void wocky_pubsub_node_delete_async (WockyPubsubNode *node,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

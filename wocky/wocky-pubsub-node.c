@@ -19,10 +19,11 @@
 
 #include "wocky-pubsub-node.h"
 
-#include "wocky-porter.h"
-#include "wocky-utils.h"
 #include "wocky-namespaces.h"
+#include "wocky-porter.h"
+#include "wocky-pubsub-helpers.h"
 #include "wocky-signals-marshal.h"
+#include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_PUBSUB
 #include "wocky-debug.h"
@@ -218,6 +219,17 @@ wocky_pubsub_node_get_name (WockyPubsubNode *self)
   WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
 
   return priv->name;
+}
+
+WockyXmppStanza *
+wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
+    WockyXmppNode **publish_out,
+    WockyXmppNode **item_out)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+
+  return wocky_pubsub_make_publish_stanza (priv->service_jid, priv->name,
+      publish_out, item_out);
 }
 
 static void
