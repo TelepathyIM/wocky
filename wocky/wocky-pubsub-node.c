@@ -28,17 +28,19 @@
 #define DEBUG_FLAG DEBUG_PUBSUB
 #include "wocky-debug.h"
 
+static gboolean pubsub_node_handle_event_stanza (WockyPorter *porter,
+    WockyXmppStanza *event_stanza,
+    gpointer user_data);
+
 G_DEFINE_TYPE (WockyPubsubNode, wocky_pubsub_node, G_TYPE_OBJECT)
 
-/* signal enum */
-#if 0
 enum
 {
+  SIG_EVENT_RECEIVED,
   LAST_SIGNAL,
 };
 
 static guint signals[LAST_SIGNAL] = {0};
-#endif
 
 enum
 {
@@ -56,6 +58,7 @@ struct _WockyPubsubNodePrivate
 
   gchar *service_jid;
   gchar *name;
+  guint handler_id;
 
   gboolean dispose_has_run;
 };
@@ -134,7 +137,10 @@ wocky_pubsub_node_dispose (GObject *object)
   g_object_unref (priv->service);
 
   if (priv->porter != NULL)
-    g_object_unref (priv->porter);
+    {
+      wocky_porter_unregister_handler (priv->porter, priv->handler_id);
+      g_object_unref (priv->porter);
+    }
 
   if (G_OBJECT_CLASS (wocky_pubsub_node_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_pubsub_node_parent_class)->dispose (object);
@@ -172,6 +178,30 @@ wocky_pubsub_node_constructed (GObject *object)
   priv->porter = wocky_session_get_porter (session);
   g_object_ref (priv->porter);
   g_object_unref (session);
+
+  priv->handler_id = wocky_porter_register_handler (priv->porter,
+      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+      priv->service_jid,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      pubsub_node_handle_event_stanza, self,
+        WOCKY_NODE, "event",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
+          WOCKY_NODE, "items",
+            WOCKY_NODE_ATTRIBUTE, "node", priv->name,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+}
+
+static void
+wocky_pubsub_node_emit_event_received (
+    WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    GList *items)
+{
+  g_signal_emit (self, signals[SIG_EVENT_RECEIVED], 0, event_stanza,
+      event_node, items);
 }
 
 static void
@@ -179,6 +209,7 @@ wocky_pubsub_node_class_init (
     WockyPubsubNodeClass *wocky_pubsub_node_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_pubsub_node_class);
+  GType ctype = G_OBJECT_CLASS_TYPE (wocky_pubsub_node_class);
   GParamSpec *param_spec;
 
   g_type_class_add_private (wocky_pubsub_node_class,
@@ -201,6 +232,11 @@ wocky_pubsub_node_class_init (
       NULL,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_NAME, param_spec);
+
+  signals[SIG_EVENT_RECEIVED] = g_signal_new ("event-received", ctype,
+      0, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER,
+      G_TYPE_NONE, 3, WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER);
 }
 
 WockyPubsubNode *
@@ -211,6 +247,36 @@ wocky_pubsub_node_new (WockyPubsubService *service,
       "service", service,
       "name", name,
       NULL);
+}
+
+static gboolean
+pubsub_node_handle_event_stanza (WockyPorter *porter,
+    WockyXmppStanza *event_stanza,
+    gpointer user_data)
+{
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (user_data);
+  WockyXmppNode *event_node, *items_node, *item_node;
+  GQueue items = G_QUEUE_INIT;
+  WockyXmppNodeIter iter;
+
+  event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
+      WOCKY_XMPP_NS_PUBSUB_EVENT);
+  g_return_val_if_fail (event_node != NULL, FALSE);
+  items_node = wocky_xmpp_node_get_child (event_node, "items");
+  g_return_val_if_fail (items_node != NULL, FALSE);
+
+  wocky_xmpp_node_iter_init (&iter, items_node, "item", NULL);
+
+  while (wocky_xmpp_node_iter_next (&iter, &item_node))
+    g_queue_push_tail (&items, item_node);
+
+  DEBUG_STANZA (event_stanza, "extracted %u items", items.length);
+  wocky_pubsub_node_emit_event_received (self, event_stanza, event_node,
+      items.head);
+
+  g_queue_clear (&items);
+
+  return TRUE;
 }
 
 const gchar *
