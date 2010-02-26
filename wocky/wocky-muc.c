@@ -763,6 +763,8 @@ out:
 
   g_simple_async_result_complete (result);
   g_object_unref (result);
+  g_object_unref (muc);
+
   if (iq != NULL)
     g_object_unref (iq);
 }

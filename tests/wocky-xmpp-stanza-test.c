@@ -33,7 +33,7 @@ test_build_iq_result (void)
   reply = wocky_xmpp_stanza_build_iq_result (iq, WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -62,7 +62,7 @@ test_build_iq_result (void)
       WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -86,7 +86,7 @@ test_build_iq_result (void)
   reply = wocky_xmpp_stanza_build_iq_result (iq, WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -115,7 +115,7 @@ test_build_iq_error (void)
   reply = wocky_xmpp_stanza_build_iq_error (iq, WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -144,7 +144,7 @@ test_build_iq_error (void)
       WOCKY_STANZA_END);
 
   g_assert (reply != NULL);
-  g_assert (wocky_xmpp_node_equal (reply->node, expected->node));
+  test_assert_nodes_equal (reply->node, expected->node);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -252,6 +252,8 @@ test_extract_errors (void)
   g_assert_no_error (specialized);
   g_assert (specialized_node == NULL);
 
+  g_object_unref (stanza);
+
   /* Test a boring error with no description */
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
@@ -276,6 +278,8 @@ test_extract_errors (void)
 
   g_assert_no_error (specialized);
   g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
 
   /* Now a different error with some text */
   stanza = wocky_xmpp_stanza_build (
@@ -440,15 +444,6 @@ test_extract_errors (void)
   g_object_unref (stanza);
 }
 
-#define assert_nodes_equal(n1, n2) \
-  G_STMT_START { \
-    if (!wocky_xmpp_node_equal ((n1), (n2))) \
-      g_assertion_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
-          g_strdup_printf ("Nodes not equal:\n%s\n\n%s", \
-              wocky_xmpp_node_to_string (n1), \
-              wocky_xmpp_node_to_string (n2))); \
-  } G_STMT_END
-
 #define assert_cmperr(e1, e2) \
   G_STMT_START { \
     g_assert_error(e1, e2->domain, e2->code); \
@@ -489,7 +484,7 @@ test_stanza_error_to_node (void)
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
-  assert_nodes_equal (stanza->node, expected->node);
+  test_assert_nodes_equal (stanza->node, expected->node);
 
   /* Let's see how it roundtrips: */
   wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
@@ -531,7 +526,7 @@ test_stanza_error_to_node (void)
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
-  assert_nodes_equal (stanza->node, expected->node);
+  test_assert_nodes_equal (stanza->node, expected->node);
 
   /* Let's see how it roundtrips: */
   wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);

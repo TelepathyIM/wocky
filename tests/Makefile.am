@@ -332,7 +332,10 @@ $(CRL_DIR)/%.pem: $(CERT_DIR)/%.pem
 
 ############################################################################
 
-SUPPRESSIONS=threadlocal.supp
+SUPPRESSIONS = \
+	threadlocal.supp \
+	gabble.supp \
+	tp-glib.supp
 
 CLEANFILES = test-report.xml \
 	sasl-test.db
@@ -342,10 +345,10 @@ CLEANFILES = test-report.xml \
 	G_SLICE=always-malloc               \
 	G_DEBUG=gc-friendly              \
 	valgrind -q \
-	$(foreach s,$(SUPPRESSIONS),--suppressions=$(s))   \
+	$(foreach s,$(SUPPRESSIONS),--suppressions=$(srcdir)/$(s))   \
 	--tool=memcheck --leak-check=full --trace-children=yes   \
 	--leak-resolution=high --num-callers=20         \
-	./$* 2>&1 | tee "valgrind.$*.log"
+	./$* $(TEST_ARGS) 2>&1 | tee "valgrind.$*.log"
 	@if grep "==" "valgrind.$*.log" > /dev/null 2>&1; then   \
 		exit 1;                \
 	fi
@@ -368,6 +371,7 @@ valgrind: $(TEST_PROGS)
 	fi
 
 EXTRA_DIST = $(SUPPRESSIONS)     \
+	README \
 	$(wildcard $(srcdir)/certs/*.cfg)      \
 	$(wildcard $(srcdir)/certs/*.pem)      \
 	$(wildcard $(srcdir)/certs/cas/*.pem)  \

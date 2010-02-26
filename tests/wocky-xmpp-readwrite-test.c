@@ -99,7 +99,7 @@ test_readwrite (void)
       received = wocky_xmpp_reader_pop_stanza (reader);
 
       g_assert (received != NULL);
-      g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+      test_assert_nodes_equal (sent->node, received->node);
 
       html = wocky_xmpp_node_get_child (received->node, "html");
       head = wocky_xmpp_node_get_child (html, "head");
@@ -135,7 +135,7 @@ test_readwrite (void)
 
   received = wocky_xmpp_reader_pop_stanza (reader);
   g_assert (received != NULL);
-  g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+  test_assert_nodes_equal (sent->node, received->node);
 
   g_object_unref (received);
 
@@ -182,7 +182,7 @@ test_readwrite_nostream (void)
       received = wocky_xmpp_reader_pop_stanza (reader);
 
       g_assert (received != NULL);
-      g_assert (wocky_xmpp_node_equal (sent->node, received->node));
+      test_assert_nodes_equal (sent->node, received->node);
 
       g_assert (wocky_xmpp_reader_get_state (reader) ==
         WOCKY_XMPP_READER_STATE_CLOSED);

@@ -48,7 +48,7 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   expected = g_queue_pop_head (data->expected_stanzas);
   g_assert (expected != NULL);
 
-  g_assert (wocky_xmpp_node_equal (s->node, expected->node));
+  test_assert_nodes_equal (s->node, expected->node);
 
   if (g_queue_get_length (data->expected_stanzas) > 0)
     {
@@ -360,7 +360,7 @@ test_close_stanza_received_cb (GObject *source,
       expected = g_queue_pop_head (test->expected_stanzas);
       g_assert (expected != NULL);
 
-      g_assert (wocky_xmpp_node_equal (s->node, expected->node));
+      test_assert_nodes_equal (s->node, expected->node);
 
       wocky_xmpp_connection_recv_stanza_async (connection, NULL,
           test_close_stanza_received_cb, user_data);
@@ -1993,6 +1993,12 @@ test_cancel_iq_closing (void)
   g_cancellable_cancel (test->cancellable);
 
   test->outstanding += 1;
+  test_wait_pending (test);
+
+  /* Make the call to wocky_porter_close_async() finish... */
+  wocky_xmpp_connection_send_close_async (test->out, NULL, close_sent_cb, test);
+
+  test->outstanding += 2;
   test_wait_pending (test);
 
   g_object_unref (iq);

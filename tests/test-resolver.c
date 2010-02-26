@@ -104,6 +104,38 @@ find_fake_hosts (TestResolver *tr, const char *name)
   return rval;
 }
 
+static GList *
+srv_target_list_copy (GList *addr)
+{
+  GList *copy = NULL;
+  GList *l;
+
+  for (l = addr; l != NULL; l = l->next)
+    copy = g_list_prepend (copy, g_srv_target_copy (l->data));
+
+  return g_list_reverse (copy);
+}
+
+static void
+srv_target_list_free (GList *addr)
+{
+  g_list_foreach (addr, (GFunc) g_srv_target_free, NULL);
+  g_list_free (addr);
+}
+
+static GList *
+object_list_copy (GList *objs)
+{
+  g_list_foreach (objs, (GFunc) g_object_ref, NULL);
+  return g_list_copy (objs);
+}
+
+static void
+object_list_free (GList *objs)
+{
+  g_list_foreach (objs, (GFunc) g_object_unref, NULL);
+  g_list_free (objs);
+}
 
 static void
 lookup_service_async (GResolver *resolver,
@@ -143,7 +175,8 @@ lookup_service_async (GResolver *resolver,
   else
       res = g_simple_async_result_new_from_error (source, cb, data, error);
 
-  g_simple_async_result_set_op_res_gpointer (res, addr, NULL);
+  g_simple_async_result_set_op_res_gpointer (res, addr,
+      (GDestroyNotify) srv_target_list_free);
   g_simple_async_result_complete (res);
   g_object_unref (res);
 }
@@ -157,7 +190,7 @@ lookup_service_finish (GResolver *resolver,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
   g_simple_async_result_propagate_error (simple, error);
   res = g_simple_async_result_get_op_res_gpointer (simple);
-  return res;
+  return srv_target_list_copy (res);
 }
 
 static void
@@ -193,11 +226,12 @@ lookup_by_name_async (GResolver *resolver,
 #endif
 
   if (addr != NULL)
-      res = g_simple_async_result_new (source, cb, data, lookup_service_async);
+      res = g_simple_async_result_new (source, cb, data, lookup_by_name_async);
   else
       res = g_simple_async_result_new_from_error (source, cb, data, error);
 
-  g_simple_async_result_set_op_res_gpointer (res, addr, NULL);
+  g_simple_async_result_set_op_res_gpointer (res, addr,
+      (GDestroyNotify) object_list_free);
   g_simple_async_result_complete_in_idle (res);
   g_object_unref (res);
 }
@@ -211,7 +245,7 @@ lookup_by_name_finish (GResolver *resolver,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
   g_simple_async_result_propagate_error (simple, error);
   res = g_simple_async_result_get_op_res_gpointer (simple);
-  return res;
+  return object_list_copy (res);
 }
 
 
