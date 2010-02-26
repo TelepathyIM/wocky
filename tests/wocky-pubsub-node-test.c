@@ -168,6 +168,9 @@ test_delete (void)
 
   g_object_unref (node);
   g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
 }
 
 /* Test that the 'event-received' signal is properly fired */
