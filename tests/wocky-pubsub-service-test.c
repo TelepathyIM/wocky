@@ -173,6 +173,9 @@ get_default_node_configuration_test (WockyPorterHandlerFunc iq_cb,
   test_wait_pending (test);
 
   g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
 }
 
 static void
@@ -325,6 +328,9 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
   test_wait_pending (test);
 
   g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
 }
 
 static void
@@ -584,6 +590,9 @@ test_create_node_config (void)
 
   test->outstanding += 4;
   test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
 
   g_object_unref (pubsub);
 }
