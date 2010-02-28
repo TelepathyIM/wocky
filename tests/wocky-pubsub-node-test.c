@@ -173,11 +173,47 @@ test_delete (void)
   teardown_test (test);
 }
 
-/* Test that the 'event-received' signal is properly fired */
-gboolean event_received;
+/* Test that the 'event-received' signals are fired when we expect them to be.
+ */
+
+gboolean service_event_received;
+gboolean node_event_received;
+WockyPubsubNode *expected_node;
 
 static void
-event_received_cb (WockyPubsubNode *node,
+service_event_received_cb (WockyPubsubService *service,
+    WockyPubsubNode *node,
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *items_node,
+    GList *items,
+    test_data_t *test)
+{
+  WockyXmppNode *item;
+
+  /* Check that we're not winding up with multiple nodes for the same thing. */
+  if (expected_node != NULL)
+    g_assert (node == expected_node);
+
+  g_assert_cmpstr ("event", ==, event_node->name);
+  g_assert_cmpstr ("items", ==, items_node->name);
+  g_assert_cmpuint (2, ==, g_list_length (items));
+
+  item = g_list_nth_data (items, 0);
+  g_assert_cmpstr ("item", ==, item->name);
+  g_assert_cmpstr ("1", ==, wocky_xmpp_node_get_attribute (item, "id"));
+
+  item = g_list_nth_data (items, 1);
+  g_assert_cmpstr ("item", ==, item->name);
+  g_assert_cmpstr ("snakes", ==, wocky_xmpp_node_get_attribute (item, "id"));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  service_event_received = TRUE;
+}
+
+static void
+node_event_received_cb (WockyPubsubNode *node,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *items_node,
@@ -200,7 +236,7 @@ event_received_cb (WockyPubsubNode *node,
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
-  event_received = TRUE;
+  node_event_received = TRUE;
 }
 
 static void
@@ -247,20 +283,35 @@ test_receive_event (void)
   pubsub = wocky_pubsub_service_new (test->session_out, "pubsub.localhost");
   node = wocky_pubsub_service_ensure_node (pubsub, "lol");
 
-  g_signal_connect (node, "event-received", (GCallback) event_received_cb, test);
+  g_signal_connect (pubsub, "event-received",
+      (GCallback) service_event_received_cb, test);
+  g_signal_connect (node, "event-received",
+      (GCallback) node_event_received_cb, test);
 
-  /* send event from the right service and node */
-  event_received = FALSE;
+  /* send event from the right service for that node */
+  node_event_received = FALSE;
+  service_event_received = FALSE;
+  expected_node = node;
   send_pubsub_event (test->sched_in, "pubsub.localhost", "lol");
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+  g_assert (node_event_received);
+  g_assert (service_event_received);
+
+  node_event_received = FALSE;
+  service_event_received = FALSE;
+
+  /* send event from the right service on a different node */
+  expected_node = NULL;
+  send_pubsub_event (test->sched_in, "pubsub.localhost", "whut");
 
   test->outstanding += 1;
   test_wait_pending (test);
-  g_assert (event_received);
+  g_assert (!node_event_received);
+  g_assert (service_event_received);
 
-  event_received = FALSE;
-
-  /* send event from the right service on a different node */
-  send_pubsub_event (test->sched_in, "pubsub.localhost", "whut");
+  service_event_received = FALSE;
 
   /* send event from a different service, on a node with the same name */
   send_pubsub_event (test->sched_in, "pubsub.elsewhere", "lol");
@@ -269,15 +320,16 @@ test_receive_event (void)
   g_object_unref (pubsub);
 
   /* send event from the right service and node, after we dropped our ref to
-   * the node. nothing else should be keeping it hanging around, so our signal
-   * handler should have been disconnected. */
+   * the node and service. nothing else should be keeping it hanging around, so
+   * our signal handlers should have been disconnected. */
   send_pubsub_event (test->sched_in, "pubsub.localhost", "lol");
 
   test_close_both_porters (test);
   teardown_test (test);
 
   /* None of the subsequent events should have triggered event-received. */
-  g_assert (!event_received);
+  g_assert (!node_event_received);
+  g_assert (!service_event_received);
 }
 
 int

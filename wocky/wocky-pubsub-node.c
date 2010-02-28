@@ -18,6 +18,7 @@
  */
 
 #include "wocky-pubsub-node.h"
+#include "wocky-pubsub-node-protected.h"
 
 #include "wocky-namespaces.h"
 #include "wocky-porter.h"
@@ -265,6 +266,14 @@ pubsub_node_handle_event_stanza (WockyPorter *porter,
     gpointer user_data)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (user_data);
+
+  return _wocky_pubsub_node_handle_event_stanza (self, event_stanza);
+}
+
+gboolean
+_wocky_pubsub_node_handle_event_stanza (WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza)
+{
   WockyXmppNode *event_node, *items_node, *item_node;
   GQueue items = G_QUEUE_INIT;
   WockyXmppNodeIter iter;

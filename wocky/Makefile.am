@@ -83,7 +83,8 @@ HANDWRITTEN_SOURCES =            \
   wocky-pubsub-service.c         \
   wocky-pubsub-service.h         \
   wocky-pubsub-node.c            \
-  wocky-pubsub-node.h
+  wocky-pubsub-node.h            \
+  wocky-pubsub-node-protected.h
 
 if USING_OPENSSL
   HANDWRITTEN_SOURCES += $(OPENSSL_SRC)
