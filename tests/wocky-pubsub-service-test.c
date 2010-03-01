@@ -597,6 +597,260 @@ test_create_node_config (void)
   g_object_unref (pubsub);
 }
 
+/* Four examples taken from §5.6 Retrieve Subscriptions */
+typedef enum {
+    MODE_NORMAL,
+    MODE_NO_SUBSCRIPTIONS,
+    MODE_BZZT,
+    MODE_AT_NODE
+} RetrieveSubscriptionsMode;
+
+typedef struct {
+    test_data_t *test;
+    RetrieveSubscriptionsMode mode;
+} RetrieveSubscriptionsCtx;
+
+typedef struct {
+    const gchar *node;
+    const gchar *jid;
+    const gchar *subscription;
+    WockyPubsubSubscriptionState state;
+    const gchar *subid;
+} CannedSubscriptions;
+
+static CannedSubscriptions normal_subs[] = {
+  { "node1", "francisco@denmark.lit",
+    "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+    NULL },
+  { "node2", "francisco@denmark.lit/bonghits",
+    "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+    NULL },
+  { "node5", "francisco@denmark.lit",
+    "unconfigured", WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED,
+    NULL },
+  { "node6", "francisco@denmark.lit",
+    "pending", WOCKY_PUBSUB_SUBSCRIPTION_PENDING,
+    NULL },
+  { NULL, }
+};
+
+static CannedSubscriptions bonghit_subs[] = {
+  { "bonghits", "bernardo@denmark.lit",
+    "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+    "123-abc" },
+  { "bonghits", "bernardo@denmark.lit/i-am-poorly-read",
+    "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+    "004-yyy" },
+  { NULL, }
+};
+
+static WockyXmppStanza *
+make_subscriptions_response (WockyXmppStanza *stanza,
+    const gchar *node,
+    CannedSubscriptions *subs)
+{
+  WockyXmppStanza *reply;
+  WockyXmppNode *s;
+  CannedSubscriptions *l;
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE, "subscriptions",
+            WOCKY_NODE_ASSIGN_TO, &s,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (node != NULL)
+    wocky_xmpp_node_set_attribute (s, "node", node);
+
+  for (l = subs; l != NULL && l->node != NULL; l++)
+    {
+      WockyXmppNode *sub = wocky_xmpp_node_add_child (s, "subscription");
+
+      if (node == NULL)
+	wocky_xmpp_node_set_attribute (sub, "node", l->node);
+
+      wocky_xmpp_node_set_attribute (sub, "jid", l->jid);
+      wocky_xmpp_node_set_attribute (sub, "subscription", l->subscription);
+
+      if (l->subid != NULL)
+        wocky_xmpp_node_set_attribute (sub, "subid", l->subid);
+    }
+
+  return reply;
+}
+
+static gboolean
+test_retrieve_subscriptions_iq_cb (
+    WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  RetrieveSubscriptionsCtx *ctx = user_data;
+  test_data_t *test = ctx->test;
+  WockyXmppStanza *reply, *expected;
+  WockyXmppNode *subscriptions;
+
+  expected = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, "pubsub.localhost",
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE, "subscriptions",
+            WOCKY_NODE_ASSIGN_TO, &subscriptions,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (ctx->mode == MODE_AT_NODE)
+    wocky_xmpp_node_set_attribute (subscriptions, "node", "bonghits");
+
+  test_assert_stanzas_equal (stanza, expected);
+  g_object_unref (expected);
+
+  switch (ctx->mode)
+    {
+    case MODE_NORMAL:
+      reply = make_subscriptions_response (stanza, NULL, normal_subs);
+      break;
+    case MODE_NO_SUBSCRIPTIONS:
+      reply = make_subscriptions_response (stanza, NULL, NULL);
+      break;
+    case MODE_BZZT:
+      {
+	GError e = { WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+	    "FIXME: <unsupported feature='retrieve-subscriptions'/>" };
+
+	reply = wocky_xmpp_stanza_build_iq_error (stanza, WOCKY_STANZA_END);
+	wocky_stanza_error_to_node (&e, reply->node);
+	break;
+      }
+    case MODE_AT_NODE:
+      reply = make_subscriptions_response (stanza, "bonghits", bonghit_subs);
+      break;
+    default:
+      g_assert_not_reached ();
+    }
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+check_subscriptions (
+    GObject *source,
+    GAsyncResult *res,
+    CannedSubscriptions *expected_subs)
+{
+  GList *subscriptions, *l;
+  guint i = 0;
+
+  g_assert (wocky_pubsub_service_retrieve_subscriptions_finish (
+      WOCKY_PUBSUB_SERVICE (source), res, &subscriptions, NULL));
+
+  for (l = subscriptions; l != NULL; l = l->next, i++)
+    {
+      WockyPubsubSubscription *sub = l->data;
+
+      g_assert (expected_subs[i].jid != NULL);
+      g_assert_cmpstr (expected_subs[i].jid, ==, sub->jid);
+      g_assert_cmpstr (expected_subs[i].node, ==,
+          wocky_pubsub_node_get_name (sub->node));
+      g_assert_cmpuint (expected_subs[i].state, ==, sub->state);
+      g_assert_cmpstr (expected_subs[i].subid, ==, sub->subid);
+    }
+
+  g_assert_cmpstr (expected_subs[i].jid, ==, NULL);
+
+  wocky_pubsub_subscription_list_free (subscriptions);
+}
+
+static void
+retrieve_subscriptions_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  RetrieveSubscriptionsCtx *ctx = user_data;
+  test_data_t *test = ctx->test;
+  GError *error = NULL;
+
+  switch (ctx->mode)
+    {
+    case MODE_NORMAL:
+      check_subscriptions (source, res, normal_subs);
+      break;
+    case MODE_NO_SUBSCRIPTIONS:
+      check_subscriptions (source, res, normal_subs + 4);
+      break;
+    case MODE_BZZT:
+      g_assert (!wocky_pubsub_service_retrieve_subscriptions_finish (
+          WOCKY_PUBSUB_SERVICE (source), res, NULL, &error));
+      /* FIXME: moar detail */
+      g_assert_error (error, WOCKY_XMPP_ERROR,
+          WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED);
+      g_clear_error (&error);
+      break;
+    case MODE_AT_NODE:
+      check_subscriptions (source, res, bonghit_subs);
+      break;
+    default:
+      g_assert_not_reached ();
+    }
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_retrieve_subscriptions (gconstpointer mode_)
+{
+  test_data_t *test = setup_test ();
+  RetrieveSubscriptionsMode mode = GPOINTER_TO_UINT (mode_);
+  RetrieveSubscriptionsCtx ctx = { test, mode };
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node = NULL;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_retrieve_subscriptions_iq_cb, &ctx,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE, "subscriptions", WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (mode == MODE_AT_NODE)
+    node = wocky_pubsub_service_ensure_node (pubsub, "bonghits");
+
+  wocky_pubsub_service_retrieve_subscriptions_async (pubsub, node, NULL,
+      retrieve_subscriptions_cb, &ctx);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  if (node != NULL)
+    g_object_unref (node);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+
+  g_object_unref (pubsub);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -611,6 +865,20 @@ main (int argc, char **argv)
   g_test_add_func (
       "/pubsub-service/get-default-node-configuration-insufficient",
       test_get_default_node_configuration_insufficient);
+
+  g_test_add_data_func ("/pubsub-service/retrieve-subscriptions/normal",
+      GUINT_TO_POINTER (MODE_NORMAL),
+      test_retrieve_subscriptions);
+  g_test_add_data_func ("/pubsub-service/retrieve-subscriptions/none",
+      GUINT_TO_POINTER (MODE_NO_SUBSCRIPTIONS),
+      test_retrieve_subscriptions);
+  g_test_add_data_func ("/pubsub-service/retrieve-subscriptions/error",
+      GUINT_TO_POINTER (MODE_BZZT),
+      test_retrieve_subscriptions);
+  g_test_add_data_func ("/pubsub-service/retrieve-subscriptions/for-node",
+      GUINT_TO_POINTER (MODE_AT_NODE),
+      test_retrieve_subscriptions);
+
   g_test_add_func ("/pubsub-service/create-node-no-config",
       test_create_node_no_config);
   g_test_add_func ("/pubsub-service/create-node-unsupported",

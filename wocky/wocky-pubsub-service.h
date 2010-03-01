@@ -87,6 +87,19 @@ WockyDataForms * wocky_pubsub_service_get_default_node_configuration_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_pubsub_service_retrieve_subscriptions_async (
+    WockyPubsubService *service,
+    WockyPubsubNode *node,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_service_retrieve_subscriptions_finish (
+    WockyPubsubService *service,
+    GAsyncResult *result,
+    GList **subscriptions,
+    GError **error);
+
 void wocky_pubsub_service_create_node_async (WockyPubsubService *service,
     const gchar *name,
     WockyDataForms *config,

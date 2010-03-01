@@ -469,6 +469,150 @@ wocky_pubsub_service_get_default_node_configuration_finish (
       G_SIMPLE_ASYNC_RESULT (result));
 }
 
+static GList *
+pubsub_service_parse_subscriptions (WockyPubsubService *self,
+    WockyXmppNode *subscriptions_node)
+{
+  const gchar *parent_node_attr = wocky_xmpp_node_get_attribute (
+      subscriptions_node, "node");
+  GList *subscriptions = NULL;
+  WockyXmppNode *n;
+  WockyXmppNodeIter i;
+
+  wocky_xmpp_node_iter_init (&i, subscriptions_node, "subscription", NULL);
+
+  while (wocky_xmpp_node_iter_next (&i, &n))
+    {
+      const gchar *node;
+      const gchar *jid = wocky_xmpp_node_get_attribute (n, "jid");
+      const gchar *subscription = wocky_xmpp_node_get_attribute (n,
+          "subscription");
+      const gchar *subid = wocky_xmpp_node_get_attribute (n, "subid");
+      WockyPubsubNode *node_obj;
+      gint state;
+
+      if (parent_node_attr != NULL)
+        node = parent_node_attr;
+      else
+        node = wocky_xmpp_node_get_attribute (n, "node");
+
+#define SKIP_IF_NULL(attr) \
+      if (attr == NULL) \
+        { \
+          DEBUG ("<subscription> missing " #attr "='' attribute"); \
+          continue; \
+        }
+
+      SKIP_IF_NULL (node);
+      SKIP_IF_NULL (jid);
+      SKIP_IF_NULL (subscription);
+      /* subid is technically a MUST if the service supports it, but... */
+
+#undef SKIP_IF_NULL
+
+      if (!wocky_enum_from_nick (WOCKY_TYPE_PUBSUB_SUBSCRIPTION_STATE,
+              subscription, &state))
+        {
+          DEBUG ("subscription='%s' is not a valid state", subscription);
+          continue;
+        }
+
+      node_obj = wocky_pubsub_service_ensure_node (self, node);
+      subscriptions = g_list_prepend (subscriptions,
+          wocky_pubsub_subscription_new (node_obj, jid, state, subid));
+      g_object_unref (node_obj);
+    }
+
+  return g_list_reverse (subscriptions);
+}
+
+static void
+receive_subscriptions_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (
+      g_async_result_get_source_object (user_data));
+  WockyXmppNode *subscriptions_node;
+  GError *error = NULL;
+
+  if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB,
+          "subscriptions", &subscriptions_node, &error))
+    {
+      g_simple_async_result_set_op_res_gpointer (simple,
+          pubsub_service_parse_subscriptions (self, subscriptions_node),
+          (GDestroyNotify) wocky_pubsub_subscription_list_free);
+    }
+  else
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
+
+  g_simple_async_result_complete (simple);
+  g_object_unref (simple);
+}
+
+void
+wocky_pubsub_service_retrieve_subscriptions_async (
+    WockyPubsubService *self,
+    WockyPubsubNode *node,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_service_retrieve_subscriptions_async);
+  WockyXmppStanza *stanza;
+  WockyXmppNode *subscriptions;
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, priv->jid,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE, "subscriptions",
+            WOCKY_NODE_ASSIGN_TO, &subscriptions,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (node != NULL)
+    wocky_xmpp_node_set_attribute (subscriptions, "node",
+        wocky_pubsub_node_get_name (node));
+
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      receive_subscriptions_cb, simple);
+
+  g_object_unref (stanza);
+}
+
+gboolean wocky_pubsub_service_retrieve_subscriptions_finish (
+    WockyPubsubService *service,
+    GAsyncResult *result,
+    GList **subscriptions,
+    GError **error)
+{
+  GSimpleAsyncResult *simple;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+      G_OBJECT (service), wocky_pubsub_service_retrieve_subscriptions_async),
+      FALSE);
+
+  simple = (GSimpleAsyncResult *) result;
+
+  if (g_simple_async_result_propagate_error (simple, error))
+    return FALSE;
+
+  if (subscriptions != NULL)
+    *subscriptions = wocky_pubsub_subscription_list_copy (
+        g_simple_async_result_get_op_res_gpointer (simple));
+
+  return TRUE;
+}
+
 static void
 create_node_iq_cb (GObject *source,
     GAsyncResult *res,
