@@ -21,6 +21,7 @@
 #include "wocky-pubsub-helpers.h"
 
 #include "wocky-namespaces.h"
+#include "wocky-pubsub-service.h"
 
 /**
  * wocky_pubsub_make_publish_stanza:
@@ -67,4 +68,84 @@ wocky_pubsub_make_publish_stanza (
     *item_out = item;
 
   return stanza;
+}
+
+static gboolean
+get_pubsub_child_node (WockyXmppStanza *reply,
+    const gchar *pubsub_ns,
+    const gchar *child_name,
+    WockyXmppNode **child_out,
+    GError **error)
+{
+  WockyXmppNode *n;
+
+  g_return_val_if_fail (reply != NULL, FALSE);
+
+  n = wocky_xmpp_node_get_child_ns (reply->node, "pubsub", pubsub_ns);
+
+  if (n == NULL)
+    {
+      g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "Reply doesn't contain <pubsub/> node");
+      return FALSE;
+    }
+
+  n = wocky_xmpp_node_get_child (n, child_name);
+
+  if (n == NULL)
+    {
+      g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "Reply doesn't contain <%s/> node", child_name);
+      return FALSE;
+    }
+
+  if (child_out != NULL)
+    *child_out = n;
+
+  return TRUE;
+}
+/**
+ * wocky_pubsub_distill_iq_reply:
+ * @source: a #WockyPorter instance
+ * @res: a result passed to the callback for wocky_porter_send_iq_async()
+ * @pubsubs_ns: the namespace of the <pubsub/> node expected in this reply (such
+ *              WOCKY_XMPP_NS_PUBSUB)
+ * @child_name: the name of the child of <pubsub/> expected in this reply (such
+ *              as "subscriptions")
+ * @child_out: location at which to store a pointer to that child node, or
+ *             %NULL if you're feeling perverse and don't actually need it
+ * @error: location at which to store an error if the call to
+ *         wocky_porter_send_iq_async() returned an error, or if the reply was
+ *         an error
+ *
+ * Helper function to finish a wocky_porter_send_iq_async() operation
+ * and extract a particular pubsub child from the resulting reply.
+ *
+ * Returns: %TRUE if the desired pubsub child was found; %FALSE if
+ *          sending the IQ failed, the reply had type='error', or the
+ *          pubsub child was not found, with @error set appropriately.
+ */
+gboolean
+wocky_pubsub_distill_iq_reply (GObject *source,
+    GAsyncResult *res,
+    const gchar *pubsub_ns,
+    const gchar *child_name,
+    WockyXmppNode **child_out,
+    GError **error)
+{
+  WockyXmppStanza *reply = wocky_porter_send_iq_finish (
+      WOCKY_PORTER (source), res, error);
+  gboolean ret = FALSE;
+
+  if (reply == NULL)
+    return FALSE;
+
+  if (!wocky_xmpp_stanza_extract_errors (reply, NULL, error, NULL, NULL) &&
+      get_pubsub_child_node (reply, pubsub_ns, child_name, child_out, error))
+    ret = TRUE;
+
+  g_object_unref (reply);
+  return ret;
 }

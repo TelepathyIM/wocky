@@ -21,6 +21,7 @@
 
 #include "wocky-porter.h"
 #include "wocky-utils.h"
+#include "wocky-pubsub-helpers.h"
 #include "wocky-pubsub-node.h"
 #include "wocky-pubsub-node-protected.h"
 #include "wocky-namespaces.h"
@@ -396,59 +397,28 @@ default_configuration_iq_cb (GObject *source,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
-  WockyXmppStanza *reply;
   WockyXmppNode *node;
   WockyDataForms *forms;
 
-  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
-  if (reply == NULL)
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
-    }
-
-  if (wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
-    }
-
-  node = wocky_xmpp_node_get_child_ns (reply->node, "pubsub",
-      WOCKY_XMPP_NS_PUBSUB_OWNER);
-  if (node == NULL)
-    {
-      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
-          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-          "Reply doesn't contain 'pubsub' node");
-      goto out;
-    }
-
-  node = wocky_xmpp_node_get_child (node, "default");
-  if (node == NULL)
-    {
-      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
-          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-          "Reply doesn't contain 'default' node");
-      goto out;
-    }
+  if (!wocky_pubsub_distill_iq_reply (source, res,
+        WOCKY_XMPP_NS_PUBSUB_OWNER, "default", &node, &error))
+    goto out;
 
   forms = wocky_data_forms_new_from_form (node, &error);
   if (forms == NULL)
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
-    }
+    goto out;
 
   g_simple_async_result_set_op_res_gpointer (result, forms, NULL);
 
 out:
+  if (error != NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_clear_error (&error);
+    }
+
   g_simple_async_result_complete (result);
   g_object_unref (result);
-  if (reply != NULL)
-    g_object_unref (reply);
 }
 
 void
@@ -506,53 +476,22 @@ create_node_iq_cb (GObject *source,
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubService *self;
   GError *error = NULL;
-  WockyXmppStanza *reply;
   WockyPubsubNode *node;
   const gchar *name;
   WockyXmppNode *n;
 
   self = WOCKY_PUBSUB_SERVICE (g_async_result_get_source_object (user_data));
 
-  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
-  if (reply == NULL)
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
-    }
-
-  if (wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
-    }
-
-  n = wocky_xmpp_node_get_child_ns (reply->node, "pubsub",
-      WOCKY_XMPP_NS_PUBSUB);
-  if (n == NULL)
-    {
-      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
-          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-          "reply doesn't contain pubsub node");
-      goto out;
-    }
-
-  n = wocky_xmpp_node_get_child (n, "create");
-  if (n == NULL)
-    {
-      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
-          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-          "reply doesn't contain create node");
-      goto out;
-    }
+  if (!wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB,
+          "create", &n, &error))
+    goto out;
 
   name = wocky_xmpp_node_get_attribute (n, "node");
   if (name == NULL)
     {
-      g_simple_async_result_set_error (result, WOCKY_PUBSUB_SERVICE_ERROR,
+      g_set_error (&error, WOCKY_PUBSUB_SERVICE_ERROR,
           WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-          "reply doesn't contain node attribute");
+          "reply doesn't contain node='' attribute");
       goto out;
     }
 
@@ -563,10 +502,14 @@ create_node_iq_cb (GObject *source,
   g_simple_async_result_set_op_res_gpointer (result, node, g_object_unref);
 
 out:
+  if (error != NULL)
+    {
+      g_simple_async_result_set_from_error (result, error);
+      g_clear_error (&error);
+    }
+
   g_simple_async_result_complete (result);
   g_object_unref (result);
-  if (reply != NULL)
-    g_object_unref (reply);
   /* g_async_result_get_source_object refs the object */
   g_object_unref (self);
 }

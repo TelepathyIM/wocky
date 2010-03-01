@@ -21,6 +21,8 @@
 #ifndef WOCKY_PUBSUB_HELPERS_H
 #define WOCKY_PUBSUB_HELPERS_H
 
+#include <gio/gio.h>
+
 #include "wocky-xmpp-stanza.h"
 
 WockyXmppStanza *wocky_pubsub_make_publish_stanza (
@@ -28,5 +30,12 @@ WockyXmppStanza *wocky_pubsub_make_publish_stanza (
     const gchar *node,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out);
+
+gboolean wocky_pubsub_distill_iq_reply (GObject *source,
+    GAsyncResult *res,
+    const gchar *pubsub_ns,
+    const gchar *child_name,
+    WockyXmppNode **child_out,
+    GError **error);
 
 #endif /* WOCKY_PUBSUB_HELPERS_H */
