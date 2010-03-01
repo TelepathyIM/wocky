@@ -581,7 +581,24 @@ wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
     return FALSE;
 
   error = wocky_xmpp_node_get_child (stanza->node, "error");
-  wocky_xmpp_error_extract (error, type, core, specialized, specialized_node);
+
+  if (error == NULL)
+    {
+      if (type != NULL)
+        *type = WOCKY_XMPP_ERROR_TYPE_CANCEL;
+
+      g_set_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_UNDEFINED_CONDITION,
+          "stanza had type='error' but no <error/> node");
+
+      if (specialized_node != NULL)
+        *specialized_node = NULL;
+    }
+  else
+    {
+      wocky_xmpp_error_extract (error, type, core, specialized,
+          specialized_node);
+    }
+
   return TRUE;
 }
 

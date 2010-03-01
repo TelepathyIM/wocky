@@ -415,7 +415,7 @@ test_extract_errors (void)
 
   g_object_unref (stanza);
 
-  /* And finally, an error that's completely broken. */
+  /* An error that makes no sense */
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
@@ -429,6 +429,24 @@ test_extract_errors (void)
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  /* 'cancel' is the most sensible default if we have no idea. */
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
+  g_clear_error (&core);
+
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  g_object_unref (stanza);
+
+  /* And finally, a stanza with type='error' but no <error/> at all... */
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to", WOCKY_STANZA_END);
   wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
