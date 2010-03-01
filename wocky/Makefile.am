@@ -12,6 +12,8 @@ BUILT_SOURCES = \
   wocky-data-forms-enumtypes.h \
   wocky-muc-enumtypes.c \
   wocky-muc-enumtypes.h \
+  wocky-pubsub-service-enumtypes.c \
+  wocky-pubsub-service-enumtypes.h \
   wocky-xmpp-error-enumtypes.c \
   wocky-xmpp-error-enumtypes.h \
   wocky-xmpp-reader-enumtypes.c \

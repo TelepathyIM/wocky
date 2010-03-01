@@ -18,6 +18,7 @@
  */
 
 #include "wocky-pubsub-service.h"
+#include "wocky-pubsub-service-enumtypes.h"
 
 #include "wocky-porter.h"
 #include "wocky-utils.h"
@@ -575,4 +576,72 @@ wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
   node = WOCKY_PUBSUB_NODE (g_simple_async_result_get_op_res_gpointer (simple));
 
   return g_object_ref (node);
+}
+
+WockyPubsubSubscription *
+wocky_pubsub_subscription_new (
+    WockyPubsubNode *node,
+    const gchar *jid,
+    WockyPubsubSubscriptionState state,
+    const gchar *subid)
+{
+  WockyPubsubSubscription *sub = g_slice_new (WockyPubsubSubscription);
+
+  sub->node = g_object_ref (node);
+  sub->jid = g_strdup (jid);
+  sub->state = state;
+  sub->subid = g_strdup (subid);
+
+  return sub;
+}
+
+WockyPubsubSubscription *
+wocky_pubsub_subscription_copy (WockyPubsubSubscription *sub)
+{
+  g_return_val_if_fail (sub != NULL, NULL);
+
+  return wocky_pubsub_subscription_new (sub->node, sub->jid, sub->state,
+      sub->subid);
+}
+
+void
+wocky_pubsub_subscription_free (WockyPubsubSubscription *sub)
+{
+  g_return_if_fail (sub != NULL);
+
+  g_object_unref (sub->node);
+  g_free (sub->jid);
+  g_free (sub->subid);
+  g_slice_free (WockyPubsubSubscription, sub);
+}
+
+GList *
+wocky_pubsub_subscription_list_copy (GList *subs)
+{
+  GList *ret = NULL, *l;
+
+  for (l = subs; l != NULL; l = l->next)
+    ret = g_list_prepend (ret, wocky_pubsub_subscription_copy (l->data));
+
+  return g_list_reverse (ret);
+}
+
+void
+wocky_pubsub_subscription_list_free (GList *subs)
+{
+  g_list_foreach (subs, (GFunc) wocky_pubsub_subscription_free, NULL);
+  g_list_free (subs);
+}
+
+GType
+wocky_pubsub_subscription_get_type (void)
+{
+  static GType t = 0;
+
+  if (G_UNLIKELY (t == 0))
+    t = g_boxed_type_register_static ("WockyPubsubSubscription",
+        (GBoxedCopyFunc) wocky_pubsub_subscription_copy,
+        (GBoxedFreeFunc) wocky_pubsub_subscription_free);
+
+  return t;
 }
