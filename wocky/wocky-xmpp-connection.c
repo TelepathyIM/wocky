@@ -585,7 +585,7 @@ is_open:
   g_simple_async_report_error_in_idle (G_OBJECT (connection),
     callback, user_data,
     WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
-    "Connection has already recieved open");
+    "Connection has already received open");
   return;
 }
 

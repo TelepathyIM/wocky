@@ -827,7 +827,7 @@ wocky_muc_create_presence (WockyMuc *muc,
   WockyXmppNode *x = wocky_xmpp_node_add_child_ns (presence, "x", WOCKY_NS_MUC);
 
 
-  /* There should be seperate API to leave a room, but atm there isn't... so
+  /* There should be separate API to leave a room, but atm there isn't... so
    * only allow the status to be set directly when making a presence to leave
    * the muc */
   g_assert (status == NULL || type == WOCKY_STANZA_SUB_TYPE_UNAVAILABLE);

@@ -198,7 +198,7 @@ wocky_xmpp_reader_class_init (WockyXmppReaderClass *wocky_xmpp_reader_class)
   object_class->get_property = wocky_xmpp_reader_get_property;
 
   param_spec = g_param_spec_boolean ("streaming-mode", "streaming-mode",
-    "Whether the xml to be read is one big stream or seperate documents",
+    "Whether the xml to be read is one big stream or separate documents",
     TRUE,
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
