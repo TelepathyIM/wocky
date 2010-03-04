@@ -84,6 +84,7 @@ HANDWRITTEN_SOURCES =            \
   wocky-pubsub-helpers.h         \
   wocky-pubsub-service.c         \
   wocky-pubsub-service.h         \
+  wocky-pubsub-service-protected.h \
   wocky-pubsub-node.c            \
   wocky-pubsub-node.h            \
   wocky-pubsub-node-protected.h

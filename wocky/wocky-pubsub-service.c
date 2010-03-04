@@ -19,6 +19,7 @@
 
 #include "wocky-pubsub-service.h"
 #include "wocky-pubsub-service-enumtypes.h"
+#include "wocky-pubsub-service-protected.h"
 
 #include "wocky-porter.h"
 #include "wocky-utils.h"
@@ -469,8 +470,8 @@ wocky_pubsub_service_get_default_node_configuration_finish (
       G_SIMPLE_ASYNC_RESULT (result));
 }
 
-static GList *
-pubsub_service_parse_subscriptions (WockyPubsubService *self,
+GList *
+wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
     WockyXmppNode *subscriptions_node)
 {
   const gchar *parent_node_attr = wocky_xmpp_node_get_attribute (
@@ -541,7 +542,7 @@ receive_subscriptions_cb (GObject *source,
           "subscriptions", &subscriptions_node, &error))
     {
       g_simple_async_result_set_op_res_gpointer (simple,
-          pubsub_service_parse_subscriptions (self, subscriptions_node),
+          wocky_pubsub_service_parse_subscriptions (self, subscriptions_node),
           (GDestroyNotify) wocky_pubsub_subscription_list_free);
     }
   else
@@ -552,6 +553,42 @@ receive_subscriptions_cb (GObject *source,
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
+}
+
+WockyXmppStanza *
+wocky_pubsub_service_create_retrieve_subscriptions_stanza (
+    WockyPubsubService *self,
+    WockyPubsubNode *node,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **subscriptions_node)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  WockyXmppNode *pubsub, *subscriptions;
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      NULL, priv->jid,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE_ASSIGN_TO, &pubsub,
+          WOCKY_NODE, "subscriptions",
+            WOCKY_NODE_ASSIGN_TO, &subscriptions,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (node != NULL)
+    wocky_xmpp_node_set_attribute (subscriptions, "node",
+        wocky_pubsub_node_get_name (node));
+
+  if (pubsub_node != NULL)
+    *pubsub_node = pubsub;
+
+  if (subscriptions_node != NULL)
+    *subscriptions_node = subscriptions;
+
+  return stanza;
 }
 
 void
@@ -566,22 +603,9 @@ wocky_pubsub_service_retrieve_subscriptions_async (
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_service_retrieve_subscriptions_async);
   WockyXmppStanza *stanza;
-  WockyXmppNode *subscriptions;
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
-      NULL, priv->jid,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE, "subscriptions",
-            WOCKY_NODE_ASSIGN_TO, &subscriptions,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
-
-  if (node != NULL)
-    wocky_xmpp_node_set_attribute (subscriptions, "node",
-        wocky_pubsub_node_get_name (node));
+  stanza = wocky_pubsub_service_create_retrieve_subscriptions_stanza (self,
+      node, NULL, NULL);
 
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
       receive_subscriptions_cb, simple);
