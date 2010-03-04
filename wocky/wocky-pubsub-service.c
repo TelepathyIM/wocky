@@ -472,7 +472,8 @@ wocky_pubsub_service_get_default_node_configuration_finish (
 
 GList *
 wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
-    WockyXmppNode *subscriptions_node)
+    WockyXmppNode *subscriptions_node,
+    GList **subscription_nodes)
 {
   const gchar *parent_node_attr = wocky_xmpp_node_get_attribute (
       subscriptions_node, "node");
@@ -522,7 +523,13 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
       subscriptions = g_list_prepend (subscriptions,
           wocky_pubsub_subscription_new (node_obj, jid, state, subid));
       g_object_unref (node_obj);
+
+      if (subscription_nodes != NULL)
+        *subscription_nodes = g_list_prepend (*subscription_nodes, n);
     }
+
+  if (subscription_nodes != NULL)
+    *subscription_nodes = g_list_reverse (*subscription_nodes);
 
   return g_list_reverse (subscriptions);
 }
@@ -542,7 +549,8 @@ receive_subscriptions_cb (GObject *source,
           "subscriptions", &subscriptions_node, &error))
     {
       g_simple_async_result_set_op_res_gpointer (simple,
-          wocky_pubsub_service_parse_subscriptions (self, subscriptions_node),
+          wocky_pubsub_service_parse_subscriptions (self, subscriptions_node,
+              NULL),
           (GDestroyNotify) wocky_pubsub_subscription_list_free);
     }
   else
