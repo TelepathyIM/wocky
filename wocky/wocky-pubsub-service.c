@@ -476,6 +476,54 @@ wocky_pubsub_service_get_default_node_configuration_finish (
       G_SIMPLE_ASYNC_RESULT (result));
 }
 
+WockyPubsubSubscription *
+wocky_pubsub_service_parse_subscription (WockyPubsubService *self,
+    WockyXmppNode *subscription_node,
+    const gchar *parent_node_attr)
+{
+  const gchar *node;
+  const gchar *jid = wocky_xmpp_node_get_attribute (subscription_node, "jid");
+  const gchar *subscription = wocky_xmpp_node_get_attribute (subscription_node,
+      "subscription");
+  const gchar *subid = wocky_xmpp_node_get_attribute (subscription_node,
+      "subid");
+  WockyPubsubNode *node_obj;
+  gint state;
+  WockyPubsubSubscription *sub;
+
+  if (parent_node_attr != NULL)
+    node = parent_node_attr;
+  else
+    node = wocky_xmpp_node_get_attribute (subscription_node, "node");
+
+#define SKIP_IF_NULL(attr) \
+  if (attr == NULL) \
+    { \
+      DEBUG ("<subscription> missing " #attr "='' attribute"); \
+      return NULL; \
+    }
+
+  SKIP_IF_NULL (node);
+  SKIP_IF_NULL (jid);
+  SKIP_IF_NULL (subscription);
+  /* subid is technically a MUST if the service supports it, but... */
+
+#undef SKIP_IF_NULL
+
+  if (!wocky_enum_from_nick (WOCKY_TYPE_PUBSUB_SUBSCRIPTION_STATE,
+          subscription, &state))
+    {
+      DEBUG ("subscription='%s' is not a valid state", subscription);
+      return NULL;
+    }
+
+  node_obj = wocky_pubsub_service_ensure_node (self, node);
+  sub = wocky_pubsub_subscription_new (node_obj, jid, state, subid);
+  g_object_unref (node_obj);
+
+  return sub;
+}
+
 GList *
 wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
     WockyXmppNode *subscriptions_node,
@@ -491,47 +539,16 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
 
   while (wocky_xmpp_node_iter_next (&i, &n))
     {
-      const gchar *node;
-      const gchar *jid = wocky_xmpp_node_get_attribute (n, "jid");
-      const gchar *subscription = wocky_xmpp_node_get_attribute (n,
-          "subscription");
-      const gchar *subid = wocky_xmpp_node_get_attribute (n, "subid");
-      WockyPubsubNode *node_obj;
-      gint state;
+      WockyPubsubSubscription *sub = wocky_pubsub_service_parse_subscription (
+          self, n, parent_node_attr);
 
-      if (parent_node_attr != NULL)
-        node = parent_node_attr;
-      else
-        node = wocky_xmpp_node_get_attribute (n, "node");
-
-#define SKIP_IF_NULL(attr) \
-      if (attr == NULL) \
-        { \
-          DEBUG ("<subscription> missing " #attr "='' attribute"); \
-          continue; \
-        }
-
-      SKIP_IF_NULL (node);
-      SKIP_IF_NULL (jid);
-      SKIP_IF_NULL (subscription);
-      /* subid is technically a MUST if the service supports it, but... */
-
-#undef SKIP_IF_NULL
-
-      if (!wocky_enum_from_nick (WOCKY_TYPE_PUBSUB_SUBSCRIPTION_STATE,
-              subscription, &state))
+      if (sub != NULL)
         {
-          DEBUG ("subscription='%s' is not a valid state", subscription);
-          continue;
+          subscriptions = g_list_prepend (subscriptions, sub);
+
+          if (subscription_nodes != NULL)
+            *subscription_nodes = g_list_prepend (*subscription_nodes, n);
         }
-
-      node_obj = wocky_pubsub_service_ensure_node (self, node);
-      subscriptions = g_list_prepend (subscriptions,
-          wocky_pubsub_subscription_new (node_obj, jid, state, subid));
-      g_object_unref (node_obj);
-
-      if (subscription_nodes != NULL)
-        *subscription_nodes = g_list_prepend (*subscription_nodes, n);
     }
 
   if (subscription_nodes != NULL)
