@@ -29,7 +29,7 @@ test_instantiation (void)
   pubsub = wocky_pubsub_service_new (session, "pubsub.localhost");
   g_assert (pubsub != NULL);
 
-  node = wocky_pubsub_node_new (pubsub, "node1");
+  node = wocky_pubsub_service_ensure_node (pubsub, "node1");
   g_assert (node != NULL);
 
   g_assert (!wocky_strdiff (wocky_pubsub_node_get_name (node), "node1"));
@@ -57,7 +57,7 @@ test_make_publish_stanza (void)
   connection = wocky_xmpp_connection_new (stream->stream0);
   session = wocky_session_new (connection);
   pubsub = wocky_pubsub_service_new (session, "pubsub.localhost");
-  node = wocky_pubsub_node_new (pubsub, "track1");
+  node = wocky_pubsub_service_ensure_node (pubsub, "track1");
 
   stanza = wocky_pubsub_node_make_publish_stanza (node, &publish, &item);
   g_assert (stanza != NULL);

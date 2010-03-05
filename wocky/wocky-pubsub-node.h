@@ -57,9 +57,6 @@ GType wocky_pubsub_node_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_PUBSUB_NODE, \
    WockyPubsubNodeClass))
 
-WockyPubsubNode * wocky_pubsub_node_new (WockyPubsubService *service,
-    const gchar *name);
-
 const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *node);
 
 WockyXmppStanza *wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,

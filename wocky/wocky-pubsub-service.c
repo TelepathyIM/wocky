@@ -301,7 +301,10 @@ create_node (WockyPubsubService *self,
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
   WockyPubsubNode *node;
 
-  node = wocky_pubsub_node_new (self, name);
+  node = g_object_new (WOCKY_TYPE_PUBSUB_NODE,
+      "service", self,
+      "name", name,
+      NULL);
 
   g_object_weak_ref (G_OBJECT (node), node_disposed_cb, self);
   g_hash_table_insert (priv->nodes, g_strdup (name), node);

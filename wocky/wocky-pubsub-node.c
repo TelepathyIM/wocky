@@ -250,16 +250,6 @@ wocky_pubsub_node_class_init (
       WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
 }
 
-WockyPubsubNode *
-wocky_pubsub_node_new (WockyPubsubService *service,
-    const gchar *name)
-{
-  return g_object_new (WOCKY_TYPE_PUBSUB_NODE,
-      "service", service,
-      "name", name,
-      NULL);
-}
-
 static gboolean
 pubsub_node_handle_event_stanza (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
