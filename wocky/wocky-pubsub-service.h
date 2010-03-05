@@ -43,6 +43,7 @@ GQuark wocky_pubsub_service_error_quark (void);
 
 struct _WockyPubsubServiceClass {
   GObjectClass parent_class;
+  GType node_object_type;
 };
 
 struct _WockyPubsubService {

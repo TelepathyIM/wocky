@@ -247,6 +247,8 @@ wocky_pubsub_service_class_init (
       G_TYPE_NONE, 5,
       WOCKY_TYPE_PUBSUB_NODE, WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER,
       G_TYPE_POINTER, G_TYPE_POINTER);
+
+  wocky_pubsub_service_class->node_object_type = WOCKY_TYPE_PUBSUB_NODE;
 }
 
 WockyPubsubService *
@@ -299,9 +301,10 @@ create_node (WockyPubsubService *self,
     const gchar *name)
 {
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServiceClass *class = WOCKY_PUBSUB_SERVICE_GET_CLASS (self);
   WockyPubsubNode *node;
 
-  node = g_object_new (WOCKY_TYPE_PUBSUB_NODE,
+  node = g_object_new (class->node_object_type,
       "service", self,
       "name", name,
       NULL);
