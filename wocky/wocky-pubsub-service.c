@@ -479,7 +479,8 @@ wocky_pubsub_service_get_default_node_configuration_finish (
 WockyPubsubSubscription *
 wocky_pubsub_service_parse_subscription (WockyPubsubService *self,
     WockyXmppNode *subscription_node,
-    const gchar *parent_node_attr)
+    const gchar *parent_node_attr,
+    GError **error)
 {
   const gchar *node;
   const gchar *jid = wocky_xmpp_node_get_attribute (subscription_node, "jid");
@@ -496,24 +497,28 @@ wocky_pubsub_service_parse_subscription (WockyPubsubService *self,
   else
     node = wocky_xmpp_node_get_attribute (subscription_node, "node");
 
-#define SKIP_IF_NULL(attr) \
+#define FAIL_IF_NULL(attr) \
   if (attr == NULL) \
     { \
-      DEBUG ("<subscription> missing " #attr "='' attribute"); \
+      g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR, \
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY, \
+          "<subscription> missing " #attr "='' attribute"); \
       return NULL; \
     }
 
-  SKIP_IF_NULL (node);
-  SKIP_IF_NULL (jid);
-  SKIP_IF_NULL (subscription);
+  FAIL_IF_NULL (node);
+  FAIL_IF_NULL (jid);
+  FAIL_IF_NULL (subscription);
   /* subid is technically a MUST if the service supports it, but... */
 
-#undef SKIP_IF_NULL
+#undef FAIL_IF_NULL
 
   if (!wocky_enum_from_nick (WOCKY_TYPE_PUBSUB_SUBSCRIPTION_STATE,
           subscription, &state))
     {
-      DEBUG ("subscription='%s' is not a valid state", subscription);
+      g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "subscription='%s' is not a valid state", subscription);
       return NULL;
     }
 
@@ -539,8 +544,9 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
 
   while (wocky_xmpp_node_iter_next (&i, &n))
     {
+      GError *error = NULL;
       WockyPubsubSubscription *sub = wocky_pubsub_service_parse_subscription (
-          self, n, parent_node_attr);
+          self, n, parent_node_attr, &error);
 
       if (sub != NULL)
         {
@@ -548,6 +554,11 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
 
           if (subscription_nodes != NULL)
             *subscription_nodes = g_list_prepend (*subscription_nodes, n);
+        }
+      else
+        {
+          DEBUG ("%s", error->message);
+          g_clear_error (&error);
         }
     }
 

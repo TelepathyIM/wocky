@@ -32,7 +32,8 @@ WockyXmppStanza *wocky_pubsub_service_create_retrieve_subscriptions_stanza (
 WockyPubsubSubscription *
 wocky_pubsub_service_parse_subscription (WockyPubsubService *self,
     WockyXmppNode *subscription_node,
-    const gchar *parent_node_attr);
+    const gchar *parent_node_attr,
+    GError **error);
 
 GList * wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
     WockyXmppNode *subscriptions_node,
