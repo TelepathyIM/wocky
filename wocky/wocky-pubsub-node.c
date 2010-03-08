@@ -308,17 +308,18 @@ wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
       publish_out, item_out);
 }
 
-WockyXmppStanza *
-wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
+static WockyXmppStanza *
+pubsub_node_make_action_stanza (WockyPubsubNode *self,
+    const gchar *action_name,
     const gchar *jid,
     WockyXmppNode **pubsub_node,
-    WockyXmppNode **subscribe_node)
+    WockyXmppNode **action_node)
 {
   WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
-  WockyXmppNode *pubsub, *subscribe;
+  WockyXmppNode *pubsub, *action;
 
-  g_return_val_if_fail (jid != NULL, NULL);
+  g_assert (action_name != NULL);
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
@@ -326,21 +327,40 @@ wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
         WOCKY_NODE, "pubsub",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
           WOCKY_NODE_ASSIGN_TO, &pubsub,
-          WOCKY_NODE, "subscribe",
-            WOCKY_NODE_ASSIGN_TO, &subscribe,
+          WOCKY_NODE, action_name,
+            WOCKY_NODE_ASSIGN_TO, &action,
             WOCKY_NODE_ATTRIBUTE, "node", priv->name,
-            WOCKY_NODE_ATTRIBUTE, "jid", jid,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
+  if (jid != NULL)
+    wocky_xmpp_node_set_attribute (action, "jid", jid);
+
   if (pubsub_node != NULL)
     *pubsub_node = pubsub;
 
-  if (subscribe_node != NULL)
-    *subscribe_node = subscribe;
+  if (action_node != NULL)
+    *action_node = action;
 
   return stanza;
+}
+
+WockyXmppStanza *
+wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
+    const gchar *jid,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **subscribe_node)
+{
+  /* TODO: when the connection/porter/session/something knows our own JID, we
+   * should provide an easy way to say “my bare JID” or “my full JID”. Could be
+   * really evil and use 0x1 and 0x3 or something on the assumption that those
+   * will never be strings....
+   */
+  g_return_val_if_fail (jid != NULL, NULL);
+
+  return pubsub_node_make_action_stanza (self, "subscribe", jid, pubsub_node,
+      subscribe_node);
 }
 
 static void
@@ -399,11 +419,6 @@ wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
       callback, user_data, wocky_pubsub_node_subscribe_async);
   WockyXmppStanza *stanza;
 
-  /* TODO: when the connection/porter/session/something knows our own JID, we
-   * should provide an easy way to say “my bare JID” or “my full JID”. Could be
-   * really evil and use 0x1 and 0x3 or something on the assumption that those
-   * will never be strings....
-   */
   g_return_if_fail (jid != NULL);
 
   stanza = wocky_pubsub_node_make_subscribe_stanza (self, jid, NULL, NULL);
