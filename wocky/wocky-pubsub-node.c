@@ -448,6 +448,111 @@ wocky_pubsub_node_subscribe_finish (WockyPubsubNode *self,
         g_simple_async_result_get_op_res_gpointer (simple));
 }
 
+WockyXmppStanza *
+wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
+    const gchar *jid,
+    const gchar *subid,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **unsubscribe_node)
+{
+  WockyXmppStanza *stanza;
+  WockyXmppNode *unsubscribe;
+
+  /* TODO: when the connection/porter/session/something knows our own JID, we
+   * should provide an easy way to say “my bare JID” or “my full JID”. Could be
+   * really evil and use 0x1 and 0x3 or something on the assumption that those
+   * will never be strings....
+   */
+  g_return_val_if_fail (jid != NULL, NULL);
+
+  stanza = pubsub_node_make_action_stanza (self, "unsubscribe", jid,
+      pubsub_node, &unsubscribe);
+
+  if (subid != NULL)
+    wocky_xmpp_node_set_attribute (unsubscribe, "subid", subid);
+
+  if (unsubscribe_node != NULL)
+    *unsubscribe_node = unsubscribe;
+
+  return stanza;
+}
+
+static void
+unsubscribe_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyXmppStanza *reply;
+  GError *error = NULL;
+
+  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
+
+  if (reply == NULL ||
+      wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
+  else
+    {
+      g_simple_async_result_set_op_res_gboolean (simple, TRUE);
+    }
+
+  g_simple_async_result_complete (simple);
+  g_object_unref (simple);
+}
+
+/**
+ * @self: a pubsub node
+ * @jid: the JID subscribed to @self (usually the connection's bare or
+ *       full JID); may not be %NULL
+ * @subid: the identifier associated with the subscription
+ * @cancellable: optional GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Attempts to unsubscribe from @self.
+ */
+void
+wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
+    const gchar *jid,
+    const gchar *subid,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_unsubscribe_async);
+  WockyXmppStanza *stanza;
+
+  g_return_if_fail (jid != NULL);
+
+  stanza = wocky_pubsub_node_make_unsubscribe_stanza (self, jid, subid, NULL,
+      NULL);
+
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      unsubscribe_cb, simple);
+
+  g_object_unref (stanza);
+}
+
+gboolean
+wocky_pubsub_node_unsubscribe_finish (WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  GSimpleAsyncResult *simple;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+      G_OBJECT (self), wocky_pubsub_node_unsubscribe_async), FALSE);
+
+  simple = (GSimpleAsyncResult *) result;
+
+  return !g_simple_async_result_propagate_error (simple, error);
+}
+
 static void
 delete_node_iq_cb (GObject *source,
     GAsyncResult *res,

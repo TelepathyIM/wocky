@@ -74,6 +74,18 @@ WockyPubsubSubscription *wocky_pubsub_node_subscribe_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
+    const gchar *jid,
+    const gchar *subid,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_unsubscribe_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error);
+
 void wocky_pubsub_node_delete_async (WockyPubsubNode *node,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

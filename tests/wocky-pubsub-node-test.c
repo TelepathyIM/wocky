@@ -193,6 +193,115 @@ test_subscribe (void)
   teardown_test (test);
 }
 
+/* Test unsubscribing from a node. */
+typedef struct {
+    test_data_t *test;
+    gboolean expect_subid;
+} TestUnsubscribeCtx;
+
+#define EXPECTED_SUBID "⚞♥⚟"
+
+static gboolean
+test_unsubscribe_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  TestUnsubscribeCtx *ctx = user_data;
+  test_data_t *test = ctx->test;
+  WockyXmppNode *unsubscribe;
+  const gchar *subid;
+  WockyXmppStanza *reply;
+
+  unsubscribe = wocky_xmpp_node_get_child (
+      wocky_xmpp_node_get_child_ns (stanza->node,
+          "pubsub", WOCKY_XMPP_NS_PUBSUB),
+      "unsubscribe");
+  g_assert (unsubscribe != NULL);
+
+  subid = wocky_xmpp_node_get_attribute (unsubscribe, "subid");
+
+  if (ctx->expect_subid)
+    g_assert_cmpstr (EXPECTED_SUBID, ==, subid);
+  else
+    g_assert_cmpstr (NULL, ==, subid);
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_unsubscribe_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  TestUnsubscribeCtx *ctx = user_data;
+  test_data_t *test = ctx->test;
+  gboolean ret;
+
+  ret = wocky_pubsub_node_unsubscribe_finish (WOCKY_PUBSUB_NODE (source), res,
+      NULL);
+  g_assert (ret);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_unsubscribe (void)
+{
+  test_data_t *test = setup_test ();
+  TestUnsubscribeCtx ctx = { test, };
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_unsubscribe_iq_cb, &ctx,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "unsubscribe",
+          WOCKY_NODE_ATTRIBUTE, "node", "node1",
+          WOCKY_NODE_ATTRIBUTE, "jid", "mighty@pirate.lit",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "node1");
+  g_assert (node != NULL);
+
+  /* first, test unsubscribing with no subid */
+  ctx.expect_subid = FALSE;
+  wocky_pubsub_node_unsubscribe_async (node, "mighty@pirate.lit", NULL,
+      NULL, test_unsubscribe_cb, &ctx);
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  /* then test unsubscribing with a subid */
+  ctx.expect_subid = TRUE;
+  wocky_pubsub_node_unsubscribe_async (node, "mighty@pirate.lit",
+      EXPECTED_SUBID, NULL, test_unsubscribe_cb, &ctx);
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 /* test wocky_pubsub_node_delete_async */
 static gboolean
 test_delete_iq_cb (WockyPorter *porter,
@@ -434,6 +543,7 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/instantiation", test_instantiation);
   g_test_add_func ("/pubsub-node/make-publish-stanza", test_make_publish_stanza);
   g_test_add_func ("/pubsub-node/subscribe", test_subscribe);
+  g_test_add_func ("/pubsub-node/unsubscribe", test_unsubscribe);
   g_test_add_func ("/pubsub-node/delete", test_delete);
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
 

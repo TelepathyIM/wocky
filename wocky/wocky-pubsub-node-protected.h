@@ -31,4 +31,11 @@ WockyXmppStanza *wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     WockyXmppNode **pubsub_node,
     WockyXmppNode **subscribe_node);
 
+WockyXmppStanza *wocky_pubsub_node_make_unsubscribe_stanza (
+    WockyPubsubNode *self,
+    const gchar *jid,
+    const gchar *subid,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **unsubscribe_node);
+
 #endif /* WOCKY_PUBSUB_NODE_PROTECTED_H */
