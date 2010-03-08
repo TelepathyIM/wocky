@@ -63,6 +63,17 @@ WockyXmppStanza *wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out);
 
+void wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
+    const gchar *jid,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+WockyPubsubSubscription *wocky_pubsub_node_subscribe_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error);
+
 void wocky_pubsub_node_delete_async (WockyPubsubNode *node,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

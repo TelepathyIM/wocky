@@ -26,4 +26,9 @@
 gboolean _wocky_pubsub_node_handle_event_stanza (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza);
 
+WockyXmppStanza *wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
+    const gchar *jid,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **subscribe_node);
+
 #endif /* WOCKY_PUBSUB_NODE_PROTECTED_H */

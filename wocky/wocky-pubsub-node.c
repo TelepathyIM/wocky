@@ -23,6 +23,7 @@
 #include "wocky-namespaces.h"
 #include "wocky-porter.h"
 #include "wocky-pubsub-helpers.h"
+#include "wocky-pubsub-service-protected.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
@@ -305,6 +306,131 @@ wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
 
   return wocky_pubsub_make_publish_stanza (priv->service_jid, priv->name,
       publish_out, item_out);
+}
+
+WockyXmppStanza *
+wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
+    const gchar *jid,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **subscribe_node)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  WockyXmppNode *pubsub, *subscribe;
+
+  g_return_val_if_fail (jid != NULL, NULL);
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, priv->service_jid,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE_ASSIGN_TO, &pubsub,
+          WOCKY_NODE, "subscribe",
+            WOCKY_NODE_ASSIGN_TO, &subscribe,
+            WOCKY_NODE_ATTRIBUTE, "node", priv->name,
+            WOCKY_NODE_ATTRIBUTE, "jid", jid,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (pubsub_node != NULL)
+    *pubsub_node = pubsub;
+
+  if (subscribe_node != NULL)
+    *subscribe_node = subscribe;
+
+  return stanza;
+}
+
+static void
+subscribe_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
+      g_async_result_get_source_object (user_data));
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyXmppNode *subscription_node;
+  WockyPubsubSubscription *sub = NULL;
+  GError *error = NULL;
+
+  if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB,
+          "subscription", &subscription_node, &error))
+    sub = wocky_pubsub_service_parse_subscription (priv->service,
+        subscription_node, NULL, &error);
+
+  if (sub != NULL)
+    {
+      g_simple_async_result_set_op_res_gpointer (simple,
+          sub,
+          (GDestroyNotify) wocky_pubsub_subscription_free);
+    }
+  else
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
+
+  g_simple_async_result_complete (simple);
+  g_object_unref (simple);
+}
+
+/**
+ * @self: a pubsub node
+ * @jid: the JID to use as the subscribed JID (usually the connection's bare or
+ *       full JID); may not be %NULL
+ * @cancellable: optional GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Attempts to subscribe to @self.
+ */
+void
+wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
+    const gchar *jid,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_subscribe_async);
+  WockyXmppStanza *stanza;
+
+  /* TODO: when the connection/porter/session/something knows our own JID, we
+   * should provide an easy way to say “my bare JID” or “my full JID”. Could be
+   * really evil and use 0x1 and 0x3 or something on the assumption that those
+   * will never be strings....
+   */
+  g_return_if_fail (jid != NULL);
+
+  stanza = wocky_pubsub_node_make_subscribe_stanza (self, jid, NULL, NULL);
+
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      subscribe_cb, simple);
+
+  g_object_unref (stanza);
+}
+
+WockyPubsubSubscription *
+wocky_pubsub_node_subscribe_finish (WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  GSimpleAsyncResult *simple;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+      G_OBJECT (self), wocky_pubsub_node_subscribe_async), NULL);
+
+  simple = (GSimpleAsyncResult *) result;
+
+  if (g_simple_async_result_propagate_error (simple, error))
+    return NULL;
+  else
+    return wocky_pubsub_subscription_copy (
+        g_simple_async_result_get_op_res_gpointer (simple));
 }
 
 static void

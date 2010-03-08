@@ -101,6 +101,98 @@ test_make_publish_stanza (void)
   g_object_unref (stream);
 }
 
+/* Test subscribing to a node. */
+static gboolean
+test_subscribe_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE, "subscription",
+            WOCKY_NODE_ATTRIBUTE, "node", "node1",
+            WOCKY_NODE_ATTRIBUTE, "jid", "mighty@pirate.lit",
+            WOCKY_NODE_ATTRIBUTE, "subscription", "subscribed",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_subscribe_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyPubsubNode *node = WOCKY_PUBSUB_NODE (source);
+  test_data_t *test = (test_data_t *) user_data;
+  WockyPubsubSubscription *sub;
+
+  sub = wocky_pubsub_node_subscribe_finish (WOCKY_PUBSUB_NODE (source),
+      res, NULL);
+  g_assert (sub != NULL);
+  /* the node name should be the same. */
+  g_assert_cmpstr (wocky_pubsub_node_get_name (sub->node),
+      ==, wocky_pubsub_node_get_name (node));
+  /* in fact, they should be the same node. */
+  g_assert (sub->node == node);
+  wocky_pubsub_subscription_free (sub);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_subscribe (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_subscribe_iq_cb, test,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE, "subscribe",
+          WOCKY_NODE_ATTRIBUTE, "node", "node1",
+          WOCKY_NODE_ATTRIBUTE, "jid", "mighty@pirate.lit",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "node1");
+  g_assert (node != NULL);
+
+  wocky_pubsub_node_subscribe_async (node, "mighty@pirate.lit", NULL,
+      test_subscribe_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 /* test wocky_pubsub_node_delete_async */
 static gboolean
 test_delete_iq_cb (WockyPorter *porter,
@@ -341,6 +433,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/pubsub-node/instantiation", test_instantiation);
   g_test_add_func ("/pubsub-node/make-publish-stanza", test_make_publish_stanza);
+  g_test_add_func ("/pubsub-node/subscribe", test_subscribe);
   g_test_add_func ("/pubsub-node/delete", test_delete);
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
 
