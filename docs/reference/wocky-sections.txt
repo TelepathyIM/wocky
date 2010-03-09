@@ -346,6 +346,9 @@ WOCKY_XMPP_NS_JINGLE_RTP_AUDIO
 WOCKY_XMPP_NS_JINGLE_RTP_ERRORS
 WOCKY_XMPP_NS_JINGLE_RTP_INFO
 WOCKY_XMPP_NS_JINGLE_RTP_VIDEO
+WOCKY_XMPP_NS_PUBSUB_ERRORS
+WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG
+WOCKY_XMPP_NS_PUBSUB_OWNER
 </SECTION>
 
 <SECTION>
@@ -379,8 +382,9 @@ wocky_enum_to_nick
 <SECTION>
 <FILE>wocky-xmpp-node</FILE>
 WockyXmppNode
-wocky_xmpp_node_each_child_func
+wocky_xmpp_node_each_attr_func
 wocky_xmpp_node_each_attribute
+wocky_xmpp_node_each_child_func
 wocky_xmpp_node_each_child
 wocky_xmpp_node_get_attribute
 wocky_xmpp_node_get_attribute_ns
