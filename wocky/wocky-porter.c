@@ -1615,7 +1615,7 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
  * If a close operation is pending, it will be completed with the
  * %WOCKY_PORTER_ERROR_FORCE_CLOSING error.
  * When the connection has been closed, @callback will be called.
- * You can then call #wocky_porter_force_close_finish to get the result of
+ * You can then call wocky_porter_force_close_finish() to get the result of
  * the operation.
  */
 void
