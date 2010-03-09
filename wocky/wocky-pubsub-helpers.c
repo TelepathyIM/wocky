@@ -116,18 +116,18 @@ get_pubsub_child_node (WockyXmppStanza *reply,
  * wocky_pubsub_distill_iq_reply:
  * @source: a #WockyPorter instance
  * @res: a result passed to the callback for wocky_porter_send_iq_async()
- * @pubsubs_ns: the namespace of the <pubsub/> node expected in this reply (such
- *              WOCKY_XMPP_NS_PUBSUB)
+ * @pubsub_ns: the namespace of the <pubsub/> node expected in this reply (such
+ *              WOCKY_XMPP_NS_PUBSUB), or %NULL if one is not expected
  * @child_name: the name of the child of <pubsub/> expected in this reply (such
- *              as "subscriptions")
+ *              as "subscriptions"); ignored if @pubsub_ns is %NULL
  * @child_out: location at which to store a pointer to that child node, or
- *             %NULL if you're feeling perverse and don't actually need it
+ *             %NULL if you don't need it
  * @error: location at which to store an error if the call to
  *         wocky_porter_send_iq_async() returned an error, or if the reply was
  *         an error
  *
  * Helper function to finish a wocky_porter_send_iq_async() operation
- * and extract a particular pubsub child from the resulting reply.
+ * and extract a particular pubsub child from the resulting reply, if needed.
  *
  * Returns: %TRUE if the desired pubsub child was found; %FALSE if
  *          sending the IQ failed, the reply had type='error', or the
@@ -149,7 +149,8 @@ wocky_pubsub_distill_iq_reply (GObject *source,
     return FALSE;
 
   if (!wocky_xmpp_stanza_extract_errors (reply, NULL, error, NULL, NULL) &&
-      get_pubsub_child_node (reply, pubsub_ns, child_name, child_out, error))
+      (pubsub_ns == NULL /* no child expected */ ||
+       get_pubsub_child_node (reply, pubsub_ns, child_name, child_out, error)))
     ret = TRUE;
 
   g_object_unref (reply);

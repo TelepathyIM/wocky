@@ -484,20 +484,12 @@ unsubscribe_cb (GObject *source,
     gpointer user_data)
 {
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyXmppStanza *reply;
   GError *error = NULL;
 
-  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
-
-  if (reply == NULL ||
-      wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
+  if (!wocky_pubsub_distill_iq_reply (source, res, NULL, NULL, NULL, &error))
     {
       g_simple_async_result_set_from_error (simple, error);
       g_clear_error (&error);
-    }
-  else
-    {
-      g_simple_async_result_set_op_res_gboolean (simple, TRUE);
     }
 
   g_simple_async_result_complete (simple);
@@ -561,30 +553,19 @@ delete_node_iq_cb (GObject *source,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
-  WockyXmppStanza *reply;
 
-  reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
-  if (reply == NULL)
+  if (!wocky_pubsub_distill_iq_reply (source, res, NULL, NULL, NULL, &error))
     {
       g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
+      g_clear_error (&error);
     }
-
-  if (wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL))
+  else
     {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-      goto out;
+      DEBUG ("node deleted");
     }
 
-  DEBUG ("node deleted");
-
-out:
   g_simple_async_result_complete (result);
   g_object_unref (result);
-  if (reply != NULL)
-    g_object_unref (reply);
 }
 
 void
