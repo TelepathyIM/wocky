@@ -788,6 +788,14 @@ wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
   return g_object_ref (node);
 }
 
+WockyPorter *
+wocky_pubsub_service_get_porter (WockyPubsubService *self)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+
+  return priv->porter;
+}
+
 WockyPubsubSubscription *
 wocky_pubsub_subscription_new (
     WockyPubsubNode *node,

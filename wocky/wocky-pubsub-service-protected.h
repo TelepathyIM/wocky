@@ -39,4 +39,6 @@ GList * wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
     WockyXmppNode *subscriptions_node,
     GList **subscription_nodes);
 
+WockyPorter *wocky_pubsub_service_get_porter (WockyPubsubService *self);
+
 #endif /* WOCKY_PUBSUB_SERVICE_PROTECTED_H */

@@ -23,6 +23,8 @@
 
 #include "wocky-pubsub-node.h"
 
+WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
+
 gboolean _wocky_pubsub_node_handle_event_stanza (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza);
 

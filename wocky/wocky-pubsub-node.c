@@ -630,3 +630,11 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
 
   return !g_simple_async_result_propagate_error (simple, error);
 }
+
+WockyPorter *
+wocky_pubsub_node_get_porter (WockyPubsubNode *self)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+
+  return priv->porter;
+}
