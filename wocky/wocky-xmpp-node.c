@@ -387,7 +387,7 @@ _attribute_ns_get_prefix (GQuark ns,
 
 /**
  * wocky_xmpp_node_attribute_ns_get_prefix_from_quark:
- * @ns: a #GQuark
+ * @ns: a quark corresponding to an XML namespace URN
  *
  * Gets the prefix of the namespace identified by the quark.
  *
