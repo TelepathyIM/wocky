@@ -268,7 +268,7 @@ wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
  * @bare_jid: the JID of a bare contact
  *
  * Looks up if there's a #WockyBareContact for @bare_jid in the cache, and
- * returns it in case it's found.
+ * returns it if it's found.
  *
  * Returns: a borrowed #WockyBareContact instance (which the caller should
  *  reference with g_object_ref() if it will be kept), or %NULL if the
@@ -338,7 +338,7 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
  * @full_jid: the full JID of a resource
  *
  * Looks up if there's a #WockyResourceContact for @full_jid in the cache, and
- * returns it in case it's found.
+ * returns it if it's found.
  *
  * Returns: a borrowed #WockyResourceContact instance (which the caller should
  *  reference with g_object_ref() if it will be kept), or %NULL if the
