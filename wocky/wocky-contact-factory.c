@@ -237,7 +237,8 @@ wocky_contact_factory_new (void)
  * is used, but if the contact is not found in the cache, a new
  * #WockyBareContact is created and cached for future use.
  *
- * Returns: an #WockyBareContact instance.
+ * Returns: a new reference to a #WockyBareContact instance, which the caller
+ *  is expected to release with g_object_unref() after use.
  */
 WockyBareContact *
 wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
@@ -269,7 +270,9 @@ wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
  * Looks up if there's a #WockyBareContact for @bare_jid in the cache, and
  * returns it in case it's found.
  *
- * Returns: a #WockyBareContact instance, or %NULL if the contact is not found.
+ * Returns: a borrowed #WockyBareContact instance (which the caller should
+ *  reference with g_object_ref() if it will be kept), or %NULL if the
+ *  contact is not found.
  */
 WockyBareContact *
 wocky_contact_factory_lookup_bare_contact (WockyContactFactory *self,
@@ -289,7 +292,8 @@ wocky_contact_factory_lookup_bare_contact (WockyContactFactory *self,
  * The factory cache is used, but if the resource is not found in the cache,
  * a new #WockyResourceContact is created and cached for future use.
  *
- * Returns: a #WockyResourceContact instance.
+ * Returns: a new reference to a #WockyResourceContact instance, which the
+ *  caller is expected to release with g_object_unref() after use.
  */
 WockyResourceContact *
 wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
@@ -336,8 +340,9 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
  * Looks up if there's a #WockyResourceContact for @full_jid in the cache, and
  * returns it in case it's found.
  *
- * Returns: a #WockyResourceContact instance, or %NULL if the
- * resource is not found.
+ * Returns: a borrowed #WockyResourceContact instance (which the caller should
+ *  reference with g_object_ref() if it will be kept), or %NULL if the
+ *  contact is not found.
  */
 WockyResourceContact *
 wocky_contact_factory_lookup_resource_contact (WockyContactFactory *self,
