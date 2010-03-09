@@ -1330,7 +1330,8 @@ compare_handler (StanzaHandler *a,
  *  will match a stanza only if the stanza received is a superset of the one
  *  built with @spec and its subsequent arguments, as per
  *  wocky_xmpp_node_is_superset().
- * @Varargs: the rest of the args to wocky_xmpp_stanza_build().
+ * @Varargs: the rest of the args to wocky_xmpp_stanza_build(),
+ *  terminated by %WOCKY_STANZA_END
  *
  * Register a new stanza handler.
  * Stanza handlers are called when the Porter receives a new stanza matching
