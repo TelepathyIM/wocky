@@ -121,7 +121,7 @@ void wocky_porter_start (WockyPorter *porter);
  * @stanza: the #WockyXmppStanza being dispatched
  * @user_data: the data passed when the handler has been registered
  *
- * Handler called when a matchig stanza has been received by the
+ * Handler called when a matching stanza has been received by the
  * #WockyPorter.
  *
  * Returns: %TRUE if the stanza has been handled, %FALSE if not
