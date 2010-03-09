@@ -445,7 +445,7 @@ wocky_porter_class_init (
   /**
    * WockyPorter::remote-error:
    * @porter: the object on which the signal is emitted
-   * @domain: error domain
+   * @domain: error domain (a #GQuark)
    * @code: error code
    * @message: human-readable informative error message
    *
