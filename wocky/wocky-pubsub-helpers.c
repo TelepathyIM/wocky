@@ -27,6 +27,7 @@
  * wocky_pubsub_make_publish_stanza:
  * @service: the JID of a PubSub service, or %NULL
  * @node: the name of a node on @service; may not be %NULL
+ * @pubsub_out: address at which to store a pointer to the <pubsub/> node
  * @publish_out: address at which to store a pointer to the <publish/> node
  * @item_out: address at which to store a pointer to the <item/> node
  *
@@ -38,10 +39,11 @@ WockyXmppStanza *
 wocky_pubsub_make_publish_stanza (
     const gchar *service,
     const gchar *node,
+    WockyXmppNode **pubsub_out,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out)
 {
-  WockyXmppNode *publish, *item;
+  WockyXmppNode *pubsub, *publish, *item;
   WockyXmppStanza *stanza;
 
   g_return_val_if_fail (node != NULL, NULL);
@@ -51,6 +53,7 @@ wocky_pubsub_make_publish_stanza (
       NULL, service,
         WOCKY_NODE, "pubsub",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE_ASSIGN_TO, &pubsub,
           WOCKY_NODE, "publish",
             WOCKY_NODE_ASSIGN_TO, &publish,
             WOCKY_NODE_ATTRIBUTE, "node", node,
@@ -60,6 +63,9 @@ wocky_pubsub_make_publish_stanza (
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
+
+  if (pubsub_out != NULL)
+    *pubsub_out = pubsub;
 
   if (publish_out != NULL)
     *publish_out = publish;

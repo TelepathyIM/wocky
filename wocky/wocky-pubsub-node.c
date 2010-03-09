@@ -299,13 +299,14 @@ wocky_pubsub_node_get_name (WockyPubsubNode *self)
 
 WockyXmppStanza *
 wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
+    WockyXmppNode **pubsub_out,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out)
 {
   WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
 
   return wocky_pubsub_make_publish_stanza (priv->service_jid, priv->name,
-      publish_out, item_out);
+      pubsub_out, publish_out, item_out);
 }
 
 static WockyXmppStanza *

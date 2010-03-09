@@ -51,7 +51,7 @@ test_make_publish_stanza (void)
   WockySession *session;
   WockyPubsubNode *node;
   WockyXmppStanza *stanza, *expected;
-  WockyXmppNode *publish, *item;
+  WockyXmppNode *pubsub_node, *publish, *item;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
@@ -59,13 +59,16 @@ test_make_publish_stanza (void)
   pubsub = wocky_pubsub_service_new (session, "pubsub.localhost");
   node = wocky_pubsub_service_ensure_node (pubsub, "track1");
 
-  stanza = wocky_pubsub_node_make_publish_stanza (node, &publish, &item);
+  stanza = wocky_pubsub_node_make_publish_stanza (node, &pubsub_node, &publish,
+      &item);
   g_assert (stanza != NULL);
+  g_assert (pubsub_node != NULL);
   g_assert (publish != NULL);
   g_assert (item != NULL);
 
-  /* I've embraced and extended pubsub, and want to put stuff on the <publish>
-   * node... */
+  /* I've embraced and extended pubsub, and want to put stuff on the <pubsub>
+   * and <publish> nodes... */
+  wocky_xmpp_node_set_attribute (pubsub_node, "gig", "tomorrow");
   wocky_xmpp_node_set_attribute (publish, "kaki", "king");
 
   /* Oh, and I should probably publish something. */
@@ -77,6 +80,7 @@ test_make_publish_stanza (void)
       NULL, "pubsub.localhost",
         WOCKY_NODE, "pubsub",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+          WOCKY_NODE_ATTRIBUTE, "gig", "tomorrow",
           WOCKY_NODE, "publish",
             WOCKY_NODE_ATTRIBUTE, "kaki", "king",
             WOCKY_NODE_ATTRIBUTE, "node", "track1",

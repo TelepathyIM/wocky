@@ -60,6 +60,7 @@ GType wocky_pubsub_node_get_type (void);
 const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *node);
 
 WockyXmppStanza *wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
+    WockyXmppNode **pubsub_out,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out);
 

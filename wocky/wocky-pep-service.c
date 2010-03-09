@@ -353,5 +353,5 @@ wocky_pep_service_make_publish_stanza (WockyPepService *self,
 {
   WockyPepServicePrivate *priv = WOCKY_PEP_SERVICE_GET_PRIVATE (self);
 
-  return wocky_pubsub_make_publish_stanza (NULL, priv->node, NULL, item);
+  return wocky_pubsub_make_publish_stanza (NULL, priv->node, NULL, NULL, item);
 }

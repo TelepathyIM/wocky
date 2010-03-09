@@ -28,6 +28,7 @@
 WockyXmppStanza *wocky_pubsub_make_publish_stanza (
     const gchar *service,
     const gchar *node,
+    WockyXmppNode **pubsub_out,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out);
 
