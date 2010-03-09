@@ -687,6 +687,7 @@ wocky_data_forms_get_type
 WOCKY_DATA_FORMS_CLASS
 WOCKY_IS_DATA_FORMS_CLASS
 WOCKY_DATA_FORMS_GET_CLASS
+<SUBSECTION>
 wocky_data_forms_get_instructions
 wocky_data_forms_get_title
 wocky_data_forms_new_from_form
