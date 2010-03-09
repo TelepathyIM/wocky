@@ -19,11 +19,14 @@
  */
 
 /**
- * SECTION: wocky-resource-contact
+ * SECTION: wocky-contact-factory
  * @title: WockyContactFactory
- * @short_description:
- * @include: wocky/wocky-resource-contact.h
+ * @short_description: creates and looks up #WockyContact objects
+ * @include: wocky/wocky-contact-factory.h
  *
+ * Provides a way to create #WockyContact objects. The objects created
+ * this way are cached by the factory and you can eventually look them up
+ * without creating them again.
  */
 
 #include <stdio.h>
@@ -211,6 +214,13 @@ wocky_contact_factory_class_init (
       G_TYPE_NONE, 1, G_TYPE_OBJECT);
 }
 
+/**
+ * wocky_contact_factory_new:
+ *
+ * Convenience function to create a new #WockyContactFactory object.
+ *
+ * Returns: a newly created instance of #WockyContactFactory
+ */
 WockyContactFactory *
 wocky_contact_factory_new (void)
 {
@@ -218,6 +228,17 @@ wocky_contact_factory_new (void)
       NULL);
 }
 
+/**
+ * wocky_contact_factory_ensure_bare_contact:
+ * @factory: a #WockyContactFactory instance
+ * @bare_jid: the JID of a bare contact
+ *
+ * Returns an instance of #WockyBareContact for @bare_jid. The factory cache
+ * is used, but if the contact is not found in the cache, a new
+ * #WockyBareContact is created and cached for future use.
+ *
+ * Returns: an #WockyBareContact instance.
+ */
 WockyBareContact *
 wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
     const gchar *bare_jid)
@@ -240,6 +261,16 @@ wocky_contact_factory_ensure_bare_contact (WockyContactFactory *self,
   return contact;
 }
 
+/**
+ * wocky_contact_factory_lookup_bare_contact:
+ * @factory: a #WockyContactFactory instance
+ * @bare_jid: the JID of a bare contact
+ *
+ * Looks up if there's a #WockyBareContact for @bare_jid in the cache, and
+ * returns it in case it's found.
+ *
+ * Returns: a #WockyBareContact instance, or %NULL if the contact is not found.
+ */
 WockyBareContact *
 wocky_contact_factory_lookup_bare_contact (WockyContactFactory *self,
     const gchar *bare_jid)
@@ -249,6 +280,17 @@ wocky_contact_factory_lookup_bare_contact (WockyContactFactory *self,
   return g_hash_table_lookup (priv->bare_contacts, bare_jid);
 }
 
+/**
+ * wocky_contact_factory_ensure_resource_contact:
+ * @factory: a #WockyContactFactory instance
+ * @full_jid: the full JID of a resource
+ *
+ * Returns an instance of #WockyResourceContact for @full_jid.
+ * The factory cache is used, but if the resource is not found in the cache,
+ * a new #WockyResourceContact is created and cached for future use.
+ *
+ * Returns: a #WockyResourceContact instance.
+ */
 WockyResourceContact *
 wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
     const gchar *full_jid)
@@ -286,6 +328,17 @@ wocky_contact_factory_ensure_resource_contact (WockyContactFactory *self,
   return contact;
 }
 
+/**
+ * wocky_contact_factory_lookup_resource_contact:
+ * @factory: a #WockyContactFactory instance
+ * @full_jid: the full JID of a resource
+ *
+ * Looks up if there's a #WockyResourceContact for @full_jid in the cache, and
+ * returns it in case it's found.
+ *
+ * Returns: a #WockyResourceContact instance, or %NULL if the
+ * resource is not found.
+ */
 WockyResourceContact *
 wocky_contact_factory_lookup_resource_contact (WockyContactFactory *self,
     const gchar *full_jid)
