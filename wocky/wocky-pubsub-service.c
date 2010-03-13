@@ -659,7 +659,8 @@ wocky_pubsub_service_retrieve_subscriptions_async (
   g_object_unref (stanza);
 }
 
-gboolean wocky_pubsub_service_retrieve_subscriptions_finish (
+gboolean
+wocky_pubsub_service_retrieve_subscriptions_finish (
     WockyPubsubService *service,
     GAsyncResult *result,
     GList **subscriptions,
