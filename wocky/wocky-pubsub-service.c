@@ -863,3 +863,20 @@ wocky_pubsub_subscription_get_type (void)
 
   return t;
 }
+
+/**
+ * WockyPubsubSubscription:
+ * @node: a PubSub node
+ * @jid: the JID which is subscribed to @node. This may be a bare JID, or a
+ *       full JID with a resource, depending on which was specified when
+ *       subscribing to @node. See XEP-0060 §6.1 Subscribe to a Node
+ * @state: the state of this subscription
+ * @subid: a unique identifier for this subscription, if a JID is subscribed to
+ *         a node multiple times, or %NULL if there is no such identifier. See
+ *         XEP-0060 §6.1.6 “Multiple Subscriptions”
+ *
+ * Represents a subscription to a node on a pubsub service, as seen when
+ * listing your own subscriptions on a service with
+ * wocky_pubsub_service_retrieve_subscriptions_async() or subscribing to a node
+ * with wocky_pubsub_node_subscribe_async().
+ */
