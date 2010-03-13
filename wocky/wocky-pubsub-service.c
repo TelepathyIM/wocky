@@ -304,6 +304,10 @@ create_node (WockyPubsubService *self,
   WockyPubsubServiceClass *class = WOCKY_PUBSUB_SERVICE_GET_CLASS (self);
   WockyPubsubNode *node;
 
+  g_return_val_if_fail (
+      g_type_is_a (class->node_object_type, WOCKY_TYPE_PUBSUB_NODE),
+      NULL);
+
   node = g_object_new (class->node_object_type,
       "service", self,
       "name", name,
@@ -863,6 +867,14 @@ wocky_pubsub_subscription_get_type (void)
 
   return t;
 }
+
+/**
+ * WockyPubsubServiceClass:
+ * @node_object_type: the subtype of #WOCKY_TYPE_PUBSUB_NODE to be created by
+ *                    wocky_pubsub_service_ensure_node()
+ *
+ * The class structure for the #WockyPubsubService type.
+ */
 
 /**
  * WockyPubsubSubscription:
