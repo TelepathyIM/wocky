@@ -28,9 +28,26 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyPorter:
+ *
+ * An object providing a convenient wrapper around a #WockyXmppConnection to
+ * send and receive stanzas.
+ */
 typedef struct _WockyPorter WockyPorter;
 typedef struct _WockyPorterClass WockyPorterClass;
 
+/**
+ * WockyPorterError:
+ * @WOCKY_PORTER_ERROR_NOT_STARTED : The #WockyPorter has not been started yet
+ * @WOCKY_PORTER_ERROR_CLOSING : The #WockyPorter is closing
+ * @WOCKY_PORTER_ERROR_CLOSED : The #WockyPorter is closed
+ * @WOCKY_PORTER_ERROR_NOT_IQ : The #WockyXmppStanza is not an IQ
+ * @WOCKY_PORTER_ERROR_FORCIBLY_CLOSED : The #WockyPorter has been forced to
+ * close
+ *
+ * The #WockyPorter specific errors.
+ */
 typedef enum {
   WOCKY_PORTER_ERROR_NOT_STARTED,
   WOCKY_PORTER_ERROR_CLOSING,
@@ -98,6 +115,27 @@ void wocky_porter_send (WockyPorter *porter,
 
 void wocky_porter_start (WockyPorter *porter);
 
+/**
+ * WockyPorterHandlerFunc:
+ * @porter: the #WockyPorter dispatching the #WockyXmppStanza
+ * @stanza: the #WockyXmppStanza being dispatched
+ * @user_data: the data passed when the handler has been registered
+ *
+ * Handler called when a matching stanza has been received by the
+ * #WockyPorter.
+ *
+ * If a handler returns %TRUE, this means that it has taken responsibility
+ * for handling the stanza and (if applicable) sending a reply.
+ *
+ * If a handler returns %FALSE, this indicates that it has declined to process
+ * the stanza. The next handler (if any) is invoked.
+ *
+ * A handler must not assume that @stanza will continue to exist after the
+ * handler has returned, unless it has taken a reference to @stanza using
+ * g_object_ref().
+ *
+ * Returns: %TRUE if the stanza has been handled, %FALSE if not
+ */
 typedef gboolean (* WockyPorterHandlerFunc) (
     WockyPorter *porter,
     WockyXmppStanza *stanza,

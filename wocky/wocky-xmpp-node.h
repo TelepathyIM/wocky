@@ -38,9 +38,30 @@ struct _WockyXmppNode {
   GSList *children;
 };
 
-typedef gboolean (*wocky_xmpp_node_each_attr_func )(const gchar *key,
+/**
+ * wocky_xmpp_node_each_attr_func:
+ * @key: the attribute's key
+ * @value: the attribute's value
+ * @pref: the attribute's prefix
+ * @ns: the attribute's namespace
+ * @user_data: user data passed to wocky_xmpp_node_each_attribute()
+ *
+ * Specifies the type of functions passed to wocky_xmpp_node_each_attribute().
+ *
+ * Returns: %FALSE to stop further attributes from being examined.
+ */
+typedef gboolean (*wocky_xmpp_node_each_attr_func) (const gchar *key,
     const gchar *value, const gchar *pref, const gchar *ns, gpointer user_data);
 
+/**
+ * wocky_xmpp_node_each_child_func:
+ * @node: a #WockyXmppNode
+ * @user_data: user data passed to wocky_xmpp_node_each_child()
+ *
+ * Specifies the type of functions passed to wocky_xmpp_node_each_child().
+ *
+ * Returns: %FALSE to stop further children from being examined.
+ */
 typedef gboolean (*wocky_xmpp_node_each_child_func) (WockyXmppNode *node,
     gpointer user_data);
 

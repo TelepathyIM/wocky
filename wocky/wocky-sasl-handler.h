@@ -21,7 +21,7 @@ typedef struct _WockySaslHandler WockySaslHandler;
 /**
  * WockySaslInitialResponseFunc:
  *
- * When authentication begins, in case the mechanism allows a response to
+ * Called when authentication begins, if the mechanism allows a response to
  * an implicit challenge during SASL initiation (which, in XMPP,
  * corresponds to sending the <auth/> stanza to the server).
  *

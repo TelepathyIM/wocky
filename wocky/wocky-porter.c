@@ -96,7 +96,7 @@ struct _WockyPorterPrivate
 };
 
 /**
- * wocky_porter_error_quark
+ * wocky_porter_error_quark:
  *
  * Get the error quark used by the porter.
  *
@@ -429,24 +429,54 @@ wocky_porter_class_init (
   object_class->dispose = wocky_porter_dispose;
   object_class->finalize = wocky_porter_finalize;
 
+  /**
+   * WockyPorter::remote-closed:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::remote-closed signal is emitted when the other side closed the XMPP
+   * stream.
+   */
   signals[REMOTE_CLOSED] = g_signal_new ("remote-closed",
       G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
+  /**
+   * WockyPorter::remote-error:
+   * @porter: the object on which the signal is emitted
+   * @domain: error domain (a #GQuark)
+   * @code: error code
+   * @message: human-readable informative error message
+   *
+   * The ::remote-error signal is emitted when an error has been detected
+   * on the XMPP stream.
+   */
   signals[REMOTE_ERROR] = g_signal_new ("remote-error",
       G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__UINT_INT_STRING,
       G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
 
+  /**
+   * WockyPorter::closing:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::closing signal is emitted when the #WockyPorter starts to close its
+   * XMPP connection. Once this signal has been emitted, the #WockyPorter
+   * can't be used to send stanzas any more.
+   */
   signals[CLOSING] = g_signal_new ("closing",
       G_OBJECT_CLASS_TYPE (wocky_porter_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
+  /**
+   * WockyPorter:connection:
+   *
+   * The underlying #WockyXmppConnection wrapped by the #WockyPorter
+   */
   spec = g_param_spec_object ("connection", "XMPP connection",
     "the XMPP connection used by this porter",
     WOCKY_TYPE_XMPP_CONNECTION,
@@ -635,6 +665,19 @@ send_cancelled_cb (GCancellable *cancellable,
   sending_queue_elem_free (elem);
 }
 
+/**
+ * wocky_porter_send_async:
+ * @porter: a #WockyPorter
+ * @stanza: the #WockyXmppStanza to send
+ * @cancellable: optional #GCancellable object, %NULL <!-- --> to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of a #WockyXmppStanza.
+ * When the stanza has been sent callback will be called.
+ * You can then call wocky_porter_send_finish() to get the result
+ * of the operation.
+ */
 void
 wocky_porter_send_async (WockyPorter *self,
     WockyXmppStanza *stanza,
@@ -669,6 +712,17 @@ wocky_porter_send_async (WockyPorter *self,
     }
 }
 
+/**
+ * wocky_porter_send_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a #GError location to store the error occuring, or %NULL <!-- -->to
+ * ignore.
+ *
+ * Finishes sending a #WockyXmppStanza.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ */
 gboolean
 wocky_porter_send_finish (WockyPorter *self,
     GAsyncResult *result,
@@ -684,6 +738,16 @@ wocky_porter_send_finish (WockyPorter *self,
   return TRUE;
 }
 
+/**
+ * wocky_porter_send:
+ * @porter: a #WockyPorter
+ * @stanza: the #WockyXmppStanza to send
+ *
+ * Send a #WockyXmppStanza.
+ * This is a convenient function to not have to call
+ * wocky_porter_send_async() with lot of %NULL arguments if you don't care to
+ * know when the stanza has been actually sent.
+ */
 void
 wocky_porter_send (WockyPorter *self,
     WockyXmppStanza *stanza)
@@ -1067,6 +1131,12 @@ receive_stanza (WockyPorter *self)
       priv->receive_cancellable, stanza_received_cb, self);
 }
 
+/**
+ * wocky_porter_start:
+ * @porter: a #WockyPorter
+ *
+ * Start a #WockyPorter to make it read and dispatch incoming stanzas.
+ */
 void
 wocky_porter_start (WockyPorter *self)
 {
@@ -1127,6 +1197,20 @@ send_close (WockyPorter *self)
       NULL, close_sent_cb, self);
 }
 
+/**
+ * wocky_porter_close_async:
+ * @porter: a #WockyPorter
+ * @cancellable: optional #GCancellable object, %NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous closing of a #WockyPorter. This fires the
+ * WockyPorter::closing signal, flushes the sending queue, closes the XMPP
+ * stream and waits that the other side closes the XMPP stream as well.
+ * When this is done, @callback is called.
+ * You can then call wocky_porter_close_finish() to get the result of
+ * the operation.
+ */
 void
 wocky_porter_close_async (WockyPorter *self,
     GCancellable *cancellable,
@@ -1187,6 +1271,16 @@ wocky_porter_close_async (WockyPorter *self,
   send_close (self);
 }
 
+/**
+ * wocky_porter_close_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a #GError location to store the error occuring, or %NULL to ignore.
+ *
+ * Finishes a close operation.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ */
 gboolean
 wocky_porter_close_finish (
     WockyPorter *self,
@@ -1219,25 +1313,63 @@ compare_handler (StanzaHandler *a,
 /**
  * wocky_porter_register_handler:
  * @self: A #WockyPorter instance (passed to @callback).
- * @type: A #WockyStanzaSubType value, stanza type to be handled WOCKY_STANZA_TYPE_NONE for all.
- * @sub_type: A #WockyStanzaSubType value, stanza sub type to be handled, WOCKY_STANZA_SUB_TYPE_NONE for all.
- * @from: the JID whose messages this handler is intended for (or %NULL for any).
- * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL).
- * @callback: A #WockyPorterHandlerFunc, should return %FALSE to decline the stanza and %TRUE to stop further processing and free the stanza.
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @from: the JID whose messages this handler is intended for, or %NULL to
+ *  match messages from any sender.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
  * @user_data: Passed to @callback.
- * @spec: the start of a wocky_xmpp_stanza_build() specification. The handler will be a candidate only if the stanza received is a superset of the one built with @spec and its subsequent arguments, as per wocky_xmpp_node_is_superset().
- * @Varargs: the rest of the args to wocky_xmpp_stanza_build().
+ * @spec: The start of a wocky_xmpp_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  built with @spec and its subsequent arguments, as per
+ *  wocky_xmpp_node_is_superset().
+ * @Varargs: the rest of the args to wocky_xmpp_stanza_build(),
+ *  terminated by %WOCKY_STANZA_END
  *
- * @spec should be WOCKY_STANZA_END to specify no XMPP node matching details.
+ * Register a new stanza handler.
+ * Stanza handlers are called when the Porter receives a new stanza matching
+ * the rules of the handler. Matching handlers are sorted by priority and are
+ * called until one claims to have handled the stanza (by returning %TRUE).
  *
  * If @from is a bare JID, then the resource of the JID in the from attribute
  * will be ignored: In other words, a handler registered against a bare JID
  * will match _all_ stanzas from a JID with the same node and domain:
- * "foo@<!-- -->bar.org" will match:
+ * "foo@<!-- -->bar.org" will match
  * "foo@<!-- -->bar.org", "foo@<!-- -->bar.org/moose" and so forth.
  *
- * Returns: a non-zero #guint id for use with wocky_porter_unregister_handler().
- **/
+ * To register a handler matching all message stanzas received from anyone:
+ *
+ * |[
+ * id = wocky_porter_register_handler (porter,
+ *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, message_received_cb, NULL,
+ *   WOCKY_STANZA_END);
+ * ]|
+ *
+ * To register an IQ handler from Juliet for all the Jingle stanzas related
+ * to one Jingle session:
+ *
+ * |[
+ * id = wocky_porter_register_handler (porter,
+ *   WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, jingle_cb,
+ *   "juliet@example.com/Balcony",
+ *   WOCKY_NODE, "jingle",
+ *     WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
+ *     WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
+ *   WOCKY_NODE_END, WOCKY_STANZA_END);
+ * ]|
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
 guint
 wocky_porter_register_handler (WockyPorter *self,
     WockyStanzaType type,
@@ -1272,6 +1404,14 @@ wocky_porter_register_handler (WockyPorter *self,
   return priv->next_handler_id++;
 }
 
+/**
+ * wocky_porter_unregister_handler:
+ * @porter: a #WockyPorter
+ * @id: the id of the handler to unregister
+ *
+ * Unregister a registered handler. This handler won't be called when
+ * receiving stanzas anymore.
+ */
 void
 wocky_porter_unregister_handler (WockyPorter *self,
     guint id)
@@ -1343,6 +1483,20 @@ finished:
   stanza_iq_handler_maybe_remove (handler);
 }
 
+/**
+ * wocky_porter_send_iq_async:
+ * @porter: a #WockyPorter
+ * @stanza: the #WockyXmppStanza to send
+ * @cancellable: optional #GCancellable object, %NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Request asynchronous sending of a #WockyXmppStanza of type
+ * %WOCKY_STANZA_TYPE_IQ and sub-type %WOCKY_STANZA_SUB_TYPE_GET or
+ * %WOCKY_STANZA_SUB_TYPE_SET.
+ * When the reply to this IQ has been received callback will be called.
+ * You can then call #wocky_porter_send_iq_finish to get the reply stanza.
+ */
 void
 wocky_porter_send_iq_async (WockyPorter *self,
     WockyXmppStanza *stanza,
@@ -1420,6 +1574,16 @@ wrong_stanza:
       "Stanza is not an IQ query");
 }
 
+/**
+ * wocky_porter_send_iq_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a #GError location to store the error occuring, or %NULL to ignore.
+ *
+ * Get the reply of an IQ query.
+ *
+ * Returns: a reffed #WockyXmppStanza on success, %NULL on error
+ */
 WockyXmppStanza * wocky_porter_send_iq_finish (
     WockyPorter *self,
     GAsyncResult *result,
@@ -1440,6 +1604,21 @@ WockyXmppStanza * wocky_porter_send_iq_finish (
   return g_object_ref (reply);
 }
 
+/**
+ * wocky_porter_force_close_async:
+ * @porter: a #WockyPorter
+ * @cancellable: optional #GCancellable object, %NULL to ignore
+ * @callback: callback to call when the request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Force the #WockyPorter to close the TCP connection of the underlying
+ * #WockyXmppConnection.
+ * If a close operation is pending, it will be completed with the
+ * %WOCKY_PORTER_ERROR_FORCE_CLOSING error.
+ * When the connection has been closed, @callback will be called.
+ * You can then call wocky_porter_force_close_finish() to get the result of
+ * the operation.
+ */
 void
 wocky_porter_force_close_async (WockyPorter *self,
     GCancellable *cancellable,
@@ -1544,6 +1723,16 @@ wocky_porter_force_close_async (WockyPorter *self,
   g_cancellable_cancel (priv->receive_cancellable);
 }
 
+/**
+ * wocky_porter_force_close_finish:
+ * @porter: a #WockyPorter
+ * @result: a #GAsyncResult
+ * @error: a #GError location to store the error occuring, or %NULL to ignore.
+ *
+ * Finishes a force close operation.
+ *
+ * Returns: %TRUE on success or %FALSE on error.
+ */
 gboolean
 wocky_porter_force_close_finish (
     WockyPorter *self,
