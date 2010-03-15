@@ -1,5 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 
+EXTRA_DIST = autogen.sh
+
 SUBDIRS = wocky tools m4 examples tests docs
 
 DISTCHECK_CONFIGURE_FLAGS = --enable-gtk-doc
