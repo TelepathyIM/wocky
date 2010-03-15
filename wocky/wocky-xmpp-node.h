@@ -60,7 +60,7 @@ typedef gboolean (*wocky_xmpp_node_each_attr_func) (const gchar *key,
  *
  * Specifies the type of functions passed to wocky_xmpp_node_each_child().
  *
- * Returns: %FALSE to stop further child from being examined.
+ * Returns: %FALSE to stop further children from being examined.
  */
 typedef gboolean (*wocky_xmpp_node_each_child_func) (WockyXmppNode *node,
     gpointer user_data);
