@@ -144,6 +144,7 @@ docs/reference/tmpl/*.sgml
 docs/reference/xml
 docs/reference/wocky.types
 
-wocky-?.*.*.tar.gz
+/wocky-?.*.*/
+/wocky-?.*.*.tar.gz
 
 /FIXME.out
