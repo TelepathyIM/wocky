@@ -1324,7 +1324,8 @@ compare_handler (StanzaHandler *a,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
  * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza, or %TRUE to stop further processing and free the stanza.
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
  * @user_data: Passed to @callback.
  * @spec: The start of a wocky_xmpp_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one

@@ -124,6 +124,16 @@ void wocky_porter_start (WockyPorter *porter);
  * Handler called when a matching stanza has been received by the
  * #WockyPorter.
  *
+ * If a handler returns %TRUE, this means that it has taken responsibility
+ * for handling the stanza and (if applicable) sending a reply.
+ *
+ * If a handler returns %FALSE, this indicates that it has declined to process
+ * the stanza. The next handler (if any) is invoked.
+ *
+ * A handler must not assume that @stanza will continue to exist after the
+ * handler has returned, unless it has taken a reference to @stanza using
+ * g_object_ref().
+ *
  * Returns: %TRUE if the stanza has been handled, %FALSE if not
  */
 typedef gboolean (* WockyPorterHandlerFunc) (
