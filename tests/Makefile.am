@@ -372,6 +372,9 @@ valgrind: $(TEST_PROGS)
 
 EXTRA_DIST = $(SUPPRESSIONS)     \
 	README \
+	connector-test-plan.txt \
+	summarise-tests.py \
+	wocky-dummy-xmpp-server.c \
 	$(wildcard $(srcdir)/certs/*.cfg)      \
 	$(wildcard $(srcdir)/certs/*.pem)      \
 	$(wildcard $(srcdir)/certs/cas/*.pem)  \
