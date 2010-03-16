@@ -43,6 +43,7 @@ GQuark wocky_pubsub_service_error_quark (void);
 
 struct _WockyPubsubServiceClass {
   GObjectClass parent_class;
+  GType node_object_type;
 };
 
 struct _WockyPubsubService {
@@ -87,6 +88,19 @@ WockyDataForms * wocky_pubsub_service_get_default_node_configuration_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_pubsub_service_retrieve_subscriptions_async (
+    WockyPubsubService *service,
+    WockyPubsubNode *node,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_service_retrieve_subscriptions_finish (
+    WockyPubsubService *service,
+    GAsyncResult *result,
+    GList **subscriptions,
+    GError **error);
+
 void wocky_pubsub_service_create_node_async (WockyPubsubService *service,
     const gchar *name,
     WockyDataForms *config,
@@ -98,6 +112,37 @@ WockyPubsubNode * wocky_pubsub_service_create_node_finish (
     WockyPubsubService *service,
     GAsyncResult *result,
     GError **error);
+
+/*< prefix=WOCKY_PUBSUB_SUBSCRIPTION >*/
+typedef enum {
+    WOCKY_PUBSUB_SUBSCRIPTION_NONE,
+    WOCKY_PUBSUB_SUBSCRIPTION_PENDING,
+    WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+    WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED
+} WockyPubsubSubscriptionState;
+
+typedef struct {
+    WockyPubsubNode *node;
+    gchar *jid;
+    WockyPubsubSubscriptionState state;
+    gchar *subid;
+} WockyPubsubSubscription;
+
+#define WOCKY_TYPE_PUBSUB_SUBSCRIPTION \
+  (wocky_pubsub_subscription_get_type ())
+GType wocky_pubsub_subscription_get_type (void);
+
+WockyPubsubSubscription *wocky_pubsub_subscription_new (
+    WockyPubsubNode *node,
+    const gchar *jid,
+    WockyPubsubSubscriptionState state,
+    const gchar *subid);
+WockyPubsubSubscription *wocky_pubsub_subscription_copy (
+    WockyPubsubSubscription *sub);
+void wocky_pubsub_subscription_free (WockyPubsubSubscription *sub);
+
+GList *wocky_pubsub_subscription_list_copy (GList *subs);
+void wocky_pubsub_subscription_list_free (GList *subs);
 
 G_END_DECLS
 

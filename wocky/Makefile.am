@@ -12,6 +12,8 @@ BUILT_SOURCES = \
   wocky-data-forms-enumtypes.h \
   wocky-muc-enumtypes.c \
   wocky-muc-enumtypes.h \
+  wocky-pubsub-service-enumtypes.c \
+  wocky-pubsub-service-enumtypes.h \
   wocky-xmpp-error-enumtypes.c \
   wocky-xmpp-error-enumtypes.h \
   wocky-xmpp-reader-enumtypes.c \
@@ -78,10 +80,14 @@ HANDWRITTEN_SOURCES =            \
   wocky-pep-service.h            \
   wocky-data-forms.c             \
   wocky-data-forms.h             \
+  wocky-pubsub-helpers.c         \
+  wocky-pubsub-helpers.h         \
   wocky-pubsub-service.c         \
   wocky-pubsub-service.h         \
+  wocky-pubsub-service-protected.h \
   wocky-pubsub-node.c            \
-  wocky-pubsub-node.h
+  wocky-pubsub-node.h            \
+  wocky-pubsub-node-protected.h
 
 if USING_OPENSSL
   HANDWRITTEN_SOURCES += $(OPENSSL_SRC)
