@@ -308,6 +308,7 @@ iq_set_query_XEP77_REGISTER (TestConnectorServer *self,
           WOCKY_NODE, "conflict",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
           WOCKY_NODE_END,
+          WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
   else if (priv->problem.connector->xep77 & XEP77_PROBLEM_FAIL_REJECTED)
@@ -320,6 +321,7 @@ iq_set_query_XEP77_REGISTER (TestConnectorServer *self,
           WOCKY_NODE, "not-acceptable",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
           WOCKY_NODE_END,
+          WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
   else
@@ -330,7 +332,6 @@ iq_set_query_XEP77_REGISTER (TestConnectorServer *self,
               WOCKY_STANZA_SUB_TYPE_RESULT,
               NULL, NULL,
               WOCKY_NODE_ATTRIBUTE, "id", id,
-              WOCKY_NODE_END,
               WOCKY_STANZA_END);
         }
       else
@@ -376,6 +377,7 @@ iq_set_query_XEP77_REGISTER (TestConnectorServer *self,
                   WOCKY_NODE_ATTRIBUTE, "code", ecode,
                   WOCKY_NODE, error, WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
                   WOCKY_NODE_END,
+                  WOCKY_NODE_END,
                   WOCKY_STANZA_END);
             }
           else
@@ -392,7 +394,6 @@ iq_set_query_XEP77_REGISTER (TestConnectorServer *self,
                       WOCKY_STANZA_SUB_TYPE_RESULT,
                       NULL, NULL,
                       WOCKY_NODE_ATTRIBUTE, "id", id,
-                      WOCKY_NODE_END,
                       WOCKY_STANZA_END);
                 }
             }
@@ -427,6 +428,7 @@ iq_get_query_XEP77_REGISTER (TestConnectorServer *self,
           WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", "cancel",
           WOCKY_NODE, "service-unavailable",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
@@ -508,6 +510,7 @@ iq_get_query_JABBER_AUTH (TestConnectorServer *self,
           WOCKY_NODE, "service-unavailable",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
           WOCKY_NODE_END,
+          WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
   else if (name == NULL || *name == '\0')
@@ -519,6 +522,7 @@ iq_get_query_JABBER_AUTH (TestConnectorServer *self,
           WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", "modify",
           WOCKY_NODE, "not-acceptable",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
@@ -643,6 +647,7 @@ iq_set_query_JABBER_AUTH (TestConnectorServer *self,
           WOCKY_NODE_ATTRIBUTE, "code", ecode,
           WOCKY_NODE, error, WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
           WOCKY_NODE_END,
+          WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
   else if (problems & JABBER_PROBLEM_AUTH_STRANGE)
@@ -727,6 +732,7 @@ iq_set_bind_XMPP_BIND (TestConnectorServer *self,
           WOCKY_NODE_END,
           WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", etype,
           WOCKY_NODE, error, WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }
@@ -840,6 +846,7 @@ iq_set_session_XMPP_SESSION (TestConnectorServer *self,
           WOCKY_NODE_END,
           WOCKY_NODE, "error", WOCKY_NODE_ATTRIBUTE, "type", etype,
           WOCKY_NODE, error, WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
+          WOCKY_NODE_END,
           WOCKY_NODE_END,
           WOCKY_STANZA_END);
     }

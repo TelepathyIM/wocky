@@ -779,6 +779,7 @@ test_parse_single_result (void)
           WOCKY_NODE_ATTRIBUTE, "var", "botname",
           WOCKY_NODE, "value", WOCKY_NODE_TEXT, "The Bot", WOCKY_NODE_END,
         WOCKY_NODE_END,
+      WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
   g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));

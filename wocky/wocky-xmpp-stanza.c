@@ -240,6 +240,7 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
           {
             /* delete the top of the stack */
             stack = g_slist_delete_link (stack, stack);
+            g_warn_if_fail (stack != NULL);
           }
           break;
 
@@ -257,6 +258,22 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
         }
 
       arg = va_arg (ap, WockyBuildTag);
+    }
+
+  if (G_UNLIKELY (stack != NULL && stack->data != node))
+    {
+      GString *still_open = g_string_new ("");
+
+      while (stack != NULL && stack->data != node)
+        {
+          WockyXmppNode *unclosed = stack->data;
+
+          g_string_append_printf (still_open, "</%s> ", unclosed->name);
+          stack = stack->next;
+        }
+
+      g_warning ("improperly nested build spec! unclosed: %s", still_open->str);
+      g_string_free (still_open, TRUE);
     }
 
   g_slist_free (stack);

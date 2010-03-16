@@ -299,6 +299,7 @@ test_node_iteration (void)
     WOCKY_NODE_END,
     WOCKY_NODE, "misc",
       WOCKY_NODE_ATTRIBUTE, "name", "other",
+    WOCKY_NODE_END,
     WOCKY_STANZA_END);
 
   /* All children */

@@ -163,8 +163,9 @@ get_default_node_configuration_test (WockyPorterHandlerFunc iq_cb,
       iq_cb, test,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-      WOCKY_NODE, "default",
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+        WOCKY_NODE, "default", WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
       get_cb, test);
@@ -208,6 +209,7 @@ test_get_default_node_configuration_insufficient_iq_cb (WockyPorter *porter,
         WOCKY_NODE, "forbidden",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
         WOCKY_NODE_END,
+      WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
   wocky_porter_send (porter, reply);
@@ -314,6 +316,7 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create", WOCKY_NODE_END,
+      WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
   wocky_pubsub_service_create_node_async (pubsub, node_name, NULL, NULL,
@@ -413,6 +416,7 @@ test_create_instant_node_iq_cb (WockyPorter *porter,
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create",
           WOCKY_NODE_ATTRIBUTE, "node", "instant_node",
+        WOCKY_NODE_END,
       WOCKY_NODE_END, WOCKY_STANZA_END);
 
   wocky_porter_send (porter, reply);
@@ -624,8 +628,9 @@ test_create_node_config (void)
       test_get_default_node_configuration_iq_cb, test,
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-      WOCKY_NODE, "default",
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+        WOCKY_NODE, "default", WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -634,6 +639,7 @@ test_create_node_config (void)
       WOCKY_NODE, "pubsub",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create", WOCKY_NODE_END,
+      WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
