@@ -284,8 +284,11 @@ send_query_cb (GObject *source,
       g_simple_async_result_set_from_error (result, error);
       g_error_free (error);
     }
+  else
+    {
+      g_simple_async_result_set_op_res_gpointer (result, reply, g_object_unref);
+    }
 
-  g_simple_async_result_set_op_res_gpointer (result, reply, g_object_unref);
   g_simple_async_result_complete (result);
   g_object_unref (result);
 }

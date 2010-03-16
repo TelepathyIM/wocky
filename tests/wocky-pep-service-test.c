@@ -160,12 +160,33 @@ test_send_query_stanza_received_cb (WockyPorter *porter,
 }
 
 static void
+test_send_query_failed_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *reply;
+  GError *error = NULL;
+
+  reply = wocky_pep_service_get_finish (WOCKY_PEP_SERVICE (source_object), res,
+      &error);
+  g_assert (reply == NULL);
+  g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
+      WOCKY_XMPP_CONNECTION_ERROR_CLOSED);
+  g_clear_error (&error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
 test_get (void)
 {
   test_data_t *test = setup_test ();
   WockyPepService *pep;
   WockyContactFactory *contact_factory;
   WockyBareContact *contact;
+  guint handler_id;
 
   pep = wocky_pep_service_new (TEST_NODE1, FALSE);
   test_open_both_connections (test);
@@ -174,7 +195,7 @@ test_get (void)
   wocky_porter_start (test->sched_out);
   wocky_porter_start (test->sched_in);
 
-  wocky_porter_register_handler (test->sched_out,
+  handler_id = wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_send_query_stanza_received_cb, test, WOCKY_STANZA_END);
@@ -184,12 +205,20 @@ test_get (void)
       "juliet@example.org");
 
   wocky_pep_service_get_async (pep, contact, NULL, test_send_query_cb, test);
-  g_object_unref (contact);
 
   test->outstanding += 2;
   test_wait_pending (test);
 
+  /* Regression test for a bug where wocky_pep_service_get_async's callback
+   * would crash if sending the IQ failed.
+   */
+  wocky_porter_unregister_handler (test->sched_out, handler_id);
+  wocky_pep_service_get_async (pep, contact, NULL, test_send_query_failed_cb,
+      test);
+  test->outstanding += 1;
   test_close_both_porters (test);
+
+  g_object_unref (contact);
   g_object_unref (pep);
   teardown_test (test);
 }
