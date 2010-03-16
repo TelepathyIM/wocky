@@ -100,13 +100,13 @@ typedef enum
 
 typedef enum
 {
-  WOCKY_NODE,
-  WOCKY_NODE_TEXT,
-  WOCKY_NODE_END,
-  WOCKY_NODE_ATTRIBUTE,
-  WOCKY_NODE_XMLNS,
-  WOCKY_NODE_ASSIGN_TO,
-  WOCKY_STANZA_END
+  WOCKY_NODE = '(',
+  WOCKY_NODE_TEXT = '$',
+  WOCKY_NODE_END = ')',
+  WOCKY_NODE_ATTRIBUTE = '@',
+  WOCKY_NODE_XMLNS = ':',
+  WOCKY_NODE_ASSIGN_TO = '*',
+  WOCKY_STANZA_END = 0
 } WockyBuildTag;
 
 WockyXmppStanza * wocky_xmpp_stanza_new (const gchar *name);

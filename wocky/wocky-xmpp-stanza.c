@@ -389,6 +389,24 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  * *<!-- -->/
  * </programlisting></example>
  *
+ * You may optionally use mnemonic ASCII characters in place of the build tags,
+ * to better reflect the structure of the stanza in C source. For example, the
+ * above stanza could be written as:
+ *
+ * <example><programlisting>
+ * wocky_xmpp_stanza_build (
+ *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+ *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
+ *    '(', "html",
+ *      '@', "http://www.w3.org/1999/xhtml",
+ *      '(', "body",
+ *        '@', "textcolor", "red",
+ *        '$', "Telepathy rocks!",
+ *      ')',
+ *    ')'
+ *   0);
+ * </programlisting></example>
+ *
  * Returns: a new stanza object
  */
 WockyXmppStanza *
