@@ -728,21 +728,20 @@ add_ca_or_crl (WockyTLSSession *session,
                const gchar *label)
 {
   gboolean ok = FALSE;
-  struct stat target;
 
-  if (stat (path, &target) != 0)
+  if (!g_file_test (path, G_FILE_TEST_EXISTS))
     {
       DEBUG ("%s file or path '%s' not accessible", label, path);
       return;
     }
 
-  if (S_ISDIR (target.st_mode))
+  if (g_file_test (path, G_FILE_TEST_IS_DIR))
     {
       DEBUG ("Loading %s directory", label);
       ok = SSL_CTX_load_verify_locations (session->ctx, NULL, path);
     }
 
-  if (S_ISREG (target.st_mode))
+  if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
     {
       DEBUG ("Loading %s file", label);
       ok = SSL_CTX_load_verify_locations (session->ctx, path, NULL);
