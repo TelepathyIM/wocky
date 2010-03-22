@@ -1397,7 +1397,7 @@ wocky_tls_session_read_ready (GObject      *object,
             for (y = 0; y < 16 && x + y < rsize; y++)
               {
                 char c = *(buf + x + y);
-                char d = (isprint (c) && !isblank (c)) ? c : '.';
+                char d = (g_ascii_isprint (c) && g_ascii_isgraph (c)) ? c : '.';
                 fprintf (stderr, "%02x %c ", c & 0xff, d);
               }
             fprintf (stderr, "\n");
