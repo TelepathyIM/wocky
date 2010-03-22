@@ -90,6 +90,16 @@ if test "$enable" = yes; then
   AC_DEFINE(ENABLE_DEBUG, [], [Enable debug code])
 fi
 
+AC_ARG_WITH(installed-headers,
+  AC_HELP_STRING([--with-installed-headers=DIR],
+                 [install development headers to DIR @<:@default=nowhere@:>@]),
+  [],
+  [with_installed_headers=])
+
+AM_CONDITIONAL(INSTALL_HEADERS, test x$with_installed_headers != x)
+
+HEADER_DIR=$with_installed_headers
+AC_SUBST(HEADER_DIR)
 
 dnl Check for code generation tools
 AC_HEADER_STDC([])

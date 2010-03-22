@@ -4,107 +4,117 @@ noinst_LTLIBRARIES = libwocky.la
 
 EXTRA_DIST =
 
-nodist_libwocky_la_SOURCES = \
+built_sources = \
   wocky-signals-marshal.list \
-  wocky-signals-marshal.h \
   wocky-signals-marshal.c \
   wocky-data-form-enumtypes.c \
-  wocky-data-form-enumtypes.h \
   wocky-muc-enumtypes.c \
-  wocky-muc-enumtypes.h \
-  wocky-pubsub-service-enumtypes.c \
-  wocky-pubsub-service-enumtypes.h \
   wocky-pubsub-node-enumtypes.c \
-  wocky-pubsub-node-enumtypes.h \
+  wocky-pubsub-service-enumtypes.c \
   wocky-xmpp-error-enumtypes.c \
+  wocky-xmpp-reader-enumtypes.c
+
+built_headers = \
+  wocky-data-form-enumtypes.h \
+  wocky-muc-enumtypes.h \
+  wocky-pubsub-node-enumtypes.h \
+  wocky-pubsub-service-enumtypes.h \
+  wocky-signals-marshal.h \
   wocky-xmpp-error-enumtypes.h \
-  wocky-xmpp-reader-enumtypes.c \
   wocky-xmpp-reader-enumtypes.h
 
-BUILT_SOURCES = $(nodist_libwocky_la_SOURCES)
+nodist_libwocky_la_SOURCES = $(built_sources) $(built_headers)
 
 OPENSSL_SRC = \
   wocky-openssl.c \
-  wocky-tls.h \
   wocky-openssl-dh512.c  \
   wocky-openssl-dh1024.c \
   wocky-openssl-dh2048.c \
   wocky-openssl-dh4096.c
 
-GNUTLS_SRC = wocky-tls.c wocky-tls.h
+GNUTLS_SRC = wocky-tls.c
 
-HANDWRITTEN_SOURCES = \
-  wocky-types.h \
-  wocky.c \
-  wocky.h \
-  wocky-connector.c \
+handwritten_headers = \
+  wocky-bare-contact.h \
   wocky-connector.h \
-  wocky-xmpp-connection.c \
-  wocky-xmpp-connection.h \
-  wocky-debug.c \
+  wocky-contact-factory.h \
+  wocky-contact.h \
+  wocky-data-form.h \
   wocky-debug.h \
+  wocky-muc.h \
   wocky-namespaces.h \
-  wocky-node-tree.c \
-  wocky-node-tree.h \
-  wocky-utils.c \
-  wocky-utils.h \
-  wocky-node.c \
-  wocky-node.h \
   wocky-node-private.h \
-  wocky-xmpp-reader.c \
-  wocky-xmpp-reader.h \
-  wocky-xmpp-writer.c \
-  wocky-xmpp-writer.h \
-  wocky-xmpp-error.c \
-  wocky-xmpp-error.h \
-  wocky-sasl-auth.c \
+  wocky-node-tree.h \
+  wocky-node.h \
+  wocky-pep-service.h \
+  wocky-porter.h \
+  wocky-pubsub-helpers.h \
+  wocky-pubsub-node-protected.h \
+  wocky-pubsub-node.h \
+  wocky-pubsub-service-protected.h \
+  wocky-pubsub-service.h \
+  wocky-resource-contact.h \
+  wocky-roster.h \
   wocky-sasl-auth.h \
   wocky-sasl-digest-md5.h \
+  wocky-sasl-handler.h \
+  wocky-sasl-plain.h \
+  wocky-session.h \
+  wocky-stanza.h \
+  wocky-tls.h \
+  wocky-types.h \
+  wocky-utils.h \
+  wocky-xmpp-connection.h \
+  wocky-xmpp-error.h \
+  wocky-xmpp-reader.h \
+  wocky-xmpp-writer.h \
+  wocky.h
+
+handwritten_sources = \
+  wocky-bare-contact.c \
+  wocky-connector.c \
+  wocky-contact-factory.c \
+  wocky-contact.c \
+  wocky-data-form.c \
+  wocky-debug.c \
+  wocky-muc.c \
+  wocky-node-tree.c \
+  wocky-node.c \
+  wocky-pep-service.c \
+  wocky-porter.c \
+  wocky-pubsub-helpers.c \
+  wocky-pubsub-node.c \
+  wocky-pubsub-service.c \
+  wocky-resource-contact.c \
+  wocky-roster.c \
+  wocky-sasl-auth.c \
   wocky-sasl-digest-md5.c \
   wocky-sasl-handler.c \
-  wocky-sasl-handler.h \
   wocky-sasl-plain.c \
-  wocky-sasl-plain.h \
-  wocky-stanza.c \
-  wocky-stanza.h \
-  wocky-porter.c \
-  wocky-porter.h \
-  wocky-contact.c \
-  wocky-contact.h \
-  wocky-bare-contact.c \
-  wocky-bare-contact.h \
-  wocky-resource-contact.c \
-  wocky-resource-contact.h \
-  wocky-roster.c \
-  wocky-roster.h \
-  wocky-contact-factory.c \
-  wocky-contact-factory.h \
   wocky-session.c \
-  wocky-session.h \
-  wocky-muc.h \
-  wocky-muc.c \
-  wocky-pep-service.c \
-  wocky-pep-service.h \
-  wocky-data-form.c \
-  wocky-data-form.h \
-  wocky-pubsub-helpers.c \
-  wocky-pubsub-helpers.h \
-  wocky-pubsub-service.c \
-  wocky-pubsub-service.h \
-  wocky-pubsub-service-protected.h \
-  wocky-pubsub-node.c \
-  wocky-pubsub-node.h \
-  wocky-pubsub-node-protected.h
+  wocky-stanza.c \
+  wocky-utils.c \
+  wocky-xmpp-connection.c \
+  wocky-xmpp-error.c \
+  wocky-xmpp-reader.c \
+  wocky-xmpp-writer.c \
+  wocky.c
 
 if USING_OPENSSL
-  HANDWRITTEN_SOURCES += $(OPENSSL_SRC)
+  handwritten_sources += $(OPENSSL_SRC)
   EXTRA_DIST += $(GNUTLS_SRC)
 else
-  HANDWRITTEN_SOURCES += $(GNUTLS_SRC)
+  handwritten_sources += $(GNUTLS_SRC)
   EXTRA_DIST += $(OPENSSL_SRC)
 endif
 
-libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES)
+libwocky_la_SOURCES = $(handwritten_sources) $(handwritten_headers)
+
+if INSTALL_HEADERS
+  libwocky_la_HEADERS = $(handwritten_headers) $(built_headers)
+  libwocky_ladir = $(HEADER_DIR)/wocky
+endif
+
 
 # Coding style checks
 check_c_sources = \
@@ -113,14 +123,14 @@ check_c_sources = \
 include $(top_srcdir)/tools/check-coding-style.mk
 check-local: check-coding-style
 
-CLEANFILES=$(BUILT_SOURCES)
+CLEANFILES=$(nodist_libwocky_la_SOURCES)
 dist-hook:
-	$(shell for x in $(BUILT_SOURCES); do rm -f $(distdir)/$$x ; done)
+	$(shell for x in $(CLEANFILES); do rm -f $(distdir)/$$x ; done)
 
-wocky-signals-marshal.list: $(HANDWRITTEN_SOURCES) Makefile.am
+wocky-signals-marshal.list: $(handwritten_sources) Makefile.am
 	$(AM_V_GEN)( cd $(srcdir) && \
 	sed -n -e 's/.*_wocky_signals_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
-	$(HANDWRITTEN_SOURCES) ) \
+	$(handwritten_sources) ) \
 	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
 	@if cmp -s $@.tmp $@; then \
 		rm $@.tmp; \
@@ -146,7 +156,7 @@ AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @TLS_LIBS@
 # rules for making the glib enum objects
 # The shell variable $long is something like WOCKY_XMPP_ERROR for
 # wocky-xmpp-error-enumtypes.h, and $short is WOCKY.
-$(filter %-enumtypes.h,$(BUILT_SOURCES)): %-enumtypes.h: %.h Makefile.in
+$(filter %-enumtypes.h,$(built_sources)): %-enumtypes.h: %.h Makefile.in
 	$(AM_V_GEN)set -e; \
 	long=`echo $* | tr [:lower:]- [:upper:]_`; \
 	short=$${long%%_*}; \
@@ -158,7 +168,7 @@ $(filter %-enumtypes.h,$(BUILT_SOURCES)): %-enumtypes.h: %.h Makefile.in
 	--ftail "G_END_DECLS\n\n#endif" \
 	$< > $@
 
-$(filter %-enumtypes.c,$(BUILT_SOURCES)): %-enumtypes.c: %.h Makefile.in
+$(filter %-enumtypes.c,$(built_sources)): %-enumtypes.c: %.h Makefile.in
 	$(AM_V_GEN)glib-mkenums \
 	--fhead "#include <$*.h>\n#include <$*-enumtypes.h>" \
 	--fprod "\n/* enumerations from \"@filename@\" */" \
