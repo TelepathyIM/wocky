@@ -243,7 +243,7 @@ wocky_tls_error_quark (void)
  * not actually guaranteed anywhere so we have to check for it here:         */
 static const gchar *error_to_string (long error)
 {
-  static const gchar ssl_error[256];
+  static gchar ssl_error[256];
   int e;
   int x;
   /* SSL_ERROR_NONE from ERR_get_error means we have emptied the stack, *
