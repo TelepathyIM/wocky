@@ -39,6 +39,11 @@
 
 #include "wocky-tls.h"
 
+/* Apparently an implicit requirement of OpenSSL's headers... */
+#ifdef G_OS_WIN32
+#include <windows.h>
+#endif
+
 #include <openssl/ssl.h>
 
 #include <sys/stat.h>
