@@ -11,15 +11,16 @@ wocky_sasl_handler_get_type (void)
     {
       const GTypeInfo info =
       {
-        .class_size = sizeof (WockySaslHandlerIface),
-        .base_init = NULL,
-        .base_finalize = NULL,
-        .class_init = NULL,
-        .class_finalize = NULL,
-        .class_data = NULL,
-        .instance_size = 0,
-        .n_preallocs = 0,
-        .instance_init = NULL
+        /* class_size */ sizeof (WockySaslHandlerIface),
+        /* base_init */ NULL,
+        /* base_finalize */ NULL,
+        /* class_init */ NULL,
+        /* class_finalize */ NULL,
+        /* class_data */ NULL,
+        /* instance_size */ 0,
+        /* n_preallocs */ 0,
+        /* instance_init */ NULL,
+        /* value_table */ NULL
       };
       GType g_define_type_id = g_type_register_static (
           G_TYPE_INTERFACE, "WockySaslHandler", &info, 0);
