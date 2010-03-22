@@ -913,7 +913,7 @@ presence_code (WockyXmppNode *node, gpointer data)
 
   if (code == NULL)    return TRUE;
 
-  cnum = g_ascii_strtoull (code, NULL, 10);
+  cnum = (gulong) g_ascii_strtoull (code, NULL, 10);
 
   if (cnum == 0)
     return TRUE;
