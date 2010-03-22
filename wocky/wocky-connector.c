@@ -1556,7 +1556,7 @@ starttls_handshake_cb (GObject *source,
   const gchar *tla = priv->legacy_ssl ? "SSL" : "TLS";
   long flags = WOCKY_TLS_VERIFY_NORMAL;
   const gchar *peer = NULL;
-  guint status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+  WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
 
   priv->tls = wocky_tls_session_handshake_finish (sess, res, &error);
   DEBUG ("completed %s handshake", tla);
