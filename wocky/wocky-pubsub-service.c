@@ -733,6 +733,48 @@ out:
   g_object_unref (self);
 }
 
+WockyXmppStanza *
+wocky_pubsub_service_create_create_node_stanza (
+    WockyPubsubService *self,
+    const gchar *name,
+    WockyDataForms *config,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **create_node)
+{
+  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  WockyXmppNode *pubsub, *create, *configure;
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, priv->jid,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
+        WOCKY_NODE_ASSIGN_TO, &pubsub,
+        WOCKY_NODE, "create",
+          WOCKY_NODE_ASSIGN_TO, &create,
+        WOCKY_NODE_END,
+        WOCKY_NODE, "configure",
+          WOCKY_NODE_ASSIGN_TO, &configure,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (name != NULL)
+    wocky_xmpp_node_set_attribute (create, "node", name);
+
+  if (config != NULL)
+    wocky_data_forms_submit (config, configure);
+
+  if (pubsub_node != NULL)
+    *pubsub_node = pubsub;
+
+  if (create_node != NULL)
+    *create_node = create;
+
+  return stanza;
+}
+
 void
 wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     const gchar *name,
@@ -742,36 +784,13 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     gpointer user_data)
 {
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
-  WockyXmppStanza *stanza;
-  GSimpleAsyncResult *result;
-  WockyXmppNode *node, *configure;
-
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, priv->jid,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create",
-          WOCKY_NODE_ASSIGN_TO, &node,
-        WOCKY_NODE_END,
-        WOCKY_NODE, "configure",
-          WOCKY_NODE_ASSIGN_TO, &configure,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_STANZA_END);
-
-  if (name != NULL)
-    wocky_xmpp_node_set_attribute (node, "node", name);
-
-  if (config != NULL)
-    wocky_data_forms_submit (config, configure);
-
-  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-    wocky_pubsub_service_create_node_async);
+  WockyXmppStanza *stanza = wocky_pubsub_service_create_create_node_stanza (
+      self, name, config, NULL, NULL);
+  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_service_create_node_async);
 
   wocky_porter_send_iq_async (priv->porter, stanza, NULL,
       create_node_iq_cb, result);
-
   g_object_unref (stanza);
 }
 
