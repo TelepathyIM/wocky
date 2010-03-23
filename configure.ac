@@ -93,6 +93,7 @@ fi
 
 dnl Check for code generation tools
 AC_HEADER_STDC([])
+AC_CHECK_HEADERS_ONCE([unistd.h])
 AC_C_INLINE
 
 dnl Check endianness (Needed for the sha1 implementation)
