@@ -254,8 +254,8 @@ static const gchar *error_to_string (long error)
   /* we found an error in the stack, or were passed one in errnum: */
   if (e != SSL_ERROR_NONE)
     {
-      ERR_error_string_n ((gulong) e, (gchar *) ssl_error, sizeof (ssl_error));
-      return (const gchar *) ssl_error;
+      ERR_error_string_n ((gulong) e, ssl_error, sizeof (ssl_error));
+      return ssl_error;
     }
 
   /* No useful/informative/relevant error found */
