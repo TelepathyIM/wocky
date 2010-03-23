@@ -2744,7 +2744,7 @@ wocky_connector_add_ca (WockyConnector *self,
     const gchar *path)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
-  gchar *abspath = realpath (path, NULL);
+  gchar *abspath = wocky_absolutize_path (path);
 
   if (abspath != NULL)
     priv->cas = g_slist_prepend (priv->cas, abspath);
@@ -2769,7 +2769,7 @@ wocky_connector_add_crl (WockyConnector *self,
     const gchar *path)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
-  gchar *abspath = realpath (path, NULL);
+  gchar *abspath = wocky_absolutize_path (path);
 
   if (abspath != NULL)
     priv->crl = g_slist_prepend (priv->crl, abspath);

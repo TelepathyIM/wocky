@@ -59,6 +59,8 @@ GValue *wocky_g_value_slice_dup (const GValue *value);
 gboolean wocky_enum_from_nick (GType enum_type, const gchar *nick, gint *value);
 const gchar *wocky_enum_to_nick (GType enum_type, gint value);
 
+gchar *wocky_absolutize_path (const gchar *path);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_UTIL_H__ */

@@ -1,6 +1,6 @@
 /*
  * gibber-util.c - Code for Wocky utility functions
- * Copyright (C) 2007,2009 Collabora Ltd.
+ * Copyright (C) 2007-2010 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,9 +22,11 @@
  *  Copyright (C) 2006-2007 Nokia Corporation
  */
 
+#include "wocky-utils.h"
+
 #include <string.h>
 
-#include "wocky-utils.h"
+#include <gio/gio.h>
 
 /**
  * wocky_strdiff:
@@ -626,4 +628,28 @@ wocky_enum_to_nick (
     return enum_value->value_nick;
   else
     return NULL;
+}
+
+/**
+ * wocky_absolutize_path:
+ * @path: an absolute or relative path
+ *
+ * Return an absolute form of @path. This cleans up duplicate slashes, "." or
+ * ".." path segments, etc., and prepends g_get_current_dir() if necessary, but
+ * does not necessarily resolve symlinks.
+ *
+ * Returns: an absolute path which must be freed with g_free()
+ */
+gchar *
+wocky_absolutize_path (const gchar *path)
+{
+  GFile *cwd, *absolute;
+  gchar *ret;
+
+  cwd = g_file_new_for_path (g_get_current_dir ());
+  absolute = g_file_resolve_relative_path (cwd, path);
+  ret = g_file_get_path (absolute);
+  g_object_unref (cwd);
+  g_object_unref (absolute);
+  return ret;
 }
