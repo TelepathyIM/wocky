@@ -743,7 +743,7 @@ wocky_pubsub_service_create_create_node_stanza (
 {
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
-  WockyXmppNode *pubsub, *create, *configure;
+  WockyXmppNode *pubsub, *create;
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
@@ -754,9 +754,6 @@ wocky_pubsub_service_create_create_node_stanza (
         WOCKY_NODE, "create",
           WOCKY_NODE_ASSIGN_TO, &create,
         WOCKY_NODE_END,
-        WOCKY_NODE, "configure",
-          WOCKY_NODE_ASSIGN_TO, &configure,
-        WOCKY_NODE_END,
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
@@ -764,7 +761,12 @@ wocky_pubsub_service_create_create_node_stanza (
     wocky_xmpp_node_set_attribute (create, "node", name);
 
   if (config != NULL)
-    wocky_data_forms_submit (config, configure);
+    {
+      WockyXmppNode *configure = wocky_xmpp_node_add_child (pubsub,
+          "configure");
+
+      wocky_data_forms_submit (config, configure);
+    }
 
   if (pubsub_node != NULL)
     *pubsub_node = pubsub;
