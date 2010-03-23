@@ -297,7 +297,7 @@ pubsub_service_node_event_received_cb (
 }
 
 static WockyPubsubNode *
-create_node (WockyPubsubService *self,
+pubsub_service_create_node (WockyPubsubService *self,
     const gchar *name)
 {
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
@@ -348,7 +348,7 @@ wocky_pubsub_service_ensure_node (WockyPubsubService *self,
   if (node != NULL)
     return g_object_ref (node);
   else
-    return create_node (self, name);
+    return pubsub_service_create_node (self, name);
 }
 
 /**
