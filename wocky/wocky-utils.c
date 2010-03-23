@@ -638,7 +638,8 @@ wocky_enum_to_nick (
  * ".." path segments, etc., and prepends g_get_current_dir() if necessary, but
  * does not necessarily resolve symlinks.
  *
- * Returns: an absolute path which must be freed with g_free()
+ * Returns: an absolute path which must be freed with g_free(), or possibly
+ *  %NULL for invalid filenames
  */
 gchar *
 wocky_absolutize_path (const gchar *path)
@@ -647,8 +648,20 @@ wocky_absolutize_path (const gchar *path)
   gchar *ret;
 
   cwd = g_file_new_for_path (g_get_current_dir ());
+
+  if (cwd == NULL)
+    return NULL;
+
   absolute = g_file_resolve_relative_path (cwd, path);
-  ret = g_file_get_path (absolute);
+
+  if (absolute == NULL)
+    {
+      g_object_unref (cwd);
+      return NULL;
+    }
+
+  ret = g_file_get_path (absolute);   /* possibly NULL */
+
   g_object_unref (cwd);
   g_object_unref (absolute);
   return ret;
