@@ -33,16 +33,18 @@
 #include "config.h"
 #endif
 
+#include "wocky-contact-factory.h"
+
 #include <stdio.h>
+#include <string.h>
+
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+# include <unistd.h>
 #endif
 #include <stdlib.h>
-#include <string.h>
 
 #include <gio/gio.h>
 
-#include "wocky-contact-factory.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 

@@ -44,6 +44,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
 #include <openssl/err.h>
 #include <openssl/engine.h>
 #include <openssl/x509v3.h>
@@ -62,9 +66,6 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 
 enum
 {

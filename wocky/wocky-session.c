@@ -30,15 +30,16 @@
 #include "config.h"
 #endif
 
+#include "wocky-session.h"
+
 #include <stdio.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
-#include "wocky-session.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 

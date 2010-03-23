@@ -88,12 +88,15 @@
 #include "config.h"
 #endif
 
+#include "wocky-connector.h"
+
 #include <stdio.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include <gio/gio.h>
 
@@ -105,7 +108,6 @@
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-error.h"
 #include "wocky-xmpp-error-enumtypes.h"
-#include "wocky-connector.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
