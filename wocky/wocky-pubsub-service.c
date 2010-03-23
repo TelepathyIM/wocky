@@ -544,6 +544,9 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
   WockyXmppNode *n;
   WockyXmppNodeIter i;
 
+  if (subscription_nodes != NULL)
+    *subscription_nodes = NULL;
+
   wocky_xmpp_node_iter_init (&i, subscriptions_node, "subscription", NULL);
 
   while (wocky_xmpp_node_iter_next (&i, &n))
