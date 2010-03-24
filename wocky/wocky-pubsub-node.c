@@ -568,6 +568,37 @@ delete_node_iq_cb (GObject *source,
   g_object_unref (result);
 }
 
+WockyXmppStanza *
+wocky_pubsub_node_make_delete_stanza (
+    WockyPubsubNode *self,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **delete_node)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyXmppStanza *stanza;
+  WockyXmppNode *p, *d; /* if we didn't have these, we'd have a great album */
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, priv->service_jid,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE_ASSIGN_TO, &p,
+        WOCKY_NODE, "delete",
+          WOCKY_NODE_ATTRIBUTE, "node", priv->name,
+          WOCKY_NODE_ASSIGN_TO, &d,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  if (pubsub_node != NULL)
+    *pubsub_node = p;
+
+  if (delete_node != NULL)
+    *delete_node = d;
+
+  return stanza;
+}
+
 void
 wocky_pubsub_node_delete_async (WockyPubsubNode *self,
     GCancellable *cancellable,
@@ -578,22 +609,11 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
   WockyXmppStanza *stanza;
   GSimpleAsyncResult *result;
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, priv->service_jid,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-        WOCKY_NODE, "delete",
-          WOCKY_NODE_ATTRIBUTE, "node", priv->name,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
-
+  stanza = wocky_pubsub_node_make_delete_stanza (self, NULL, NULL);
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
     wocky_pubsub_node_delete_async);
-
   wocky_porter_send_iq_async (priv->porter, stanza, NULL, delete_node_iq_cb,
       result);
-
   g_object_unref (stanza);
 }
 

@@ -40,4 +40,8 @@ WockyXmppStanza *wocky_pubsub_node_make_unsubscribe_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **unsubscribe_node);
 
+WockyXmppStanza *wocky_pubsub_node_make_delete_stanza (
+    WockyPubsubNode *self,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **delete_node);
 #endif /* WOCKY_PUBSUB_NODE_PROTECTED_H */
