@@ -475,43 +475,36 @@ extract_var_type_label (WockyXmppNode *node,
   return TRUE;
 }
 
-static gboolean
-foreach_x_child (WockyXmppNode *field_node,
-    gpointer user_data)
+static WockyDataFormField *
+data_form_parse_form_field (WockyXmppNode *field_node)
 {
-  WockyDataForm *self = WOCKY_DATA_FORM (user_data);
-  WockyXmppNode *node;
+  WockyDataFormField *field;
   const gchar *var, *label;
   WockyDataFormFieldType type;
+  WockyXmppNode *desc_node;
   const gchar *desc = NULL;
-  gboolean required = FALSE;
-  WockyDataFormField *field;
+  gboolean required;
 
   if (!extract_var_type_label (field_node, &var, &type, &label))
-    return TRUE;
+    return NULL;
 
-  /* get desc */
-  node = wocky_xmpp_node_get_child (field_node, "desc");
-  if (node != NULL)
-    desc = node->content;
+  desc_node = wocky_xmpp_node_get_child (field_node, "desc");
 
-  /* check required */
-  if (wocky_xmpp_node_get_child (field_node, "required") != NULL)
-    required = TRUE;
+  if (desc_node != NULL)
+    desc = desc_node->content;
 
+  required = (wocky_xmpp_node_get_child (field_node, "required") != NULL);
   field = create_field (field_node, var, type, label, desc, required);
+
   if (field == NULL)
-    return TRUE;
+    return NULL;
 
-  DEBUG ("add field '%s of type %s'", field->var, type_to_str (type));
   if (field->var != NULL)
-    /* Fixed fields don't have a 'var' attribute and so are not added to the
-     * hash table */
-    g_hash_table_insert (self->fields, field->var, field);
+    DEBUG ("parsed field '%s' of type %s", field->var, type_to_str (type));
+  else
+    DEBUG ("parsed anonymous field of type %s", type_to_str (type));
 
-  /* list will be reversed */
-  self->fields_list = g_slist_prepend (self->fields_list, field);
-  return TRUE;
+  return field;
 }
 
 WockyDataForm *
@@ -519,6 +512,7 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
     GError **error)
 {
   WockyXmppNode *x, *node;
+  WockyXmppNodeIter iter;
   const gchar *type, *title = NULL, *instructions = NULL;
   WockyDataForm *form;
 
@@ -557,7 +551,24 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
       NULL);
 
   /* add fields */
-  wocky_xmpp_node_each_child (x, foreach_x_child, form);
+  wocky_xmpp_node_iter_init (&iter, x, "field", NULL);
+
+  while (wocky_xmpp_node_iter_next (&iter, &node))
+    {
+      WockyDataFormField *field = data_form_parse_form_field (node);
+
+      if (field != NULL)
+        {
+          form->fields_list = g_slist_prepend (form->fields_list, field);
+
+          /* Fixed fields can be used for instructions to the user. They have
+           * no var='' attribute and hence shouldn't be included in the form
+           * submission.*/
+          if (field->var != NULL)
+            g_hash_table_insert (form->fields, field->var, field);
+        }
+    }
+
   form->fields_list = g_slist_reverse (form->fields_list);
 
   return form;
