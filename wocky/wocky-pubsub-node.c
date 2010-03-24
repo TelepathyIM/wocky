@@ -486,7 +486,7 @@ unsubscribe_cb (GObject *source,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
 
-  if (!wocky_pubsub_distill_iq_reply (source, res, NULL, NULL, NULL, &error))
+  if (!wocky_pubsub_distill_void_iq_reply (source, res, &error))
     {
       g_simple_async_result_set_from_error (simple, error);
       g_clear_error (&error);
@@ -554,7 +554,7 @@ delete_node_iq_cb (GObject *source,
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
 
-  if (!wocky_pubsub_distill_iq_reply (source, res, NULL, NULL, NULL, &error))
+  if (!wocky_pubsub_distill_void_iq_reply (source, res, &error))
     {
       g_simple_async_result_set_from_error (result, error);
       g_clear_error (&error);
