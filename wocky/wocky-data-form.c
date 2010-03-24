@@ -347,6 +347,15 @@ get_field_value (
   WockyXmppNode *node;
   const gchar *value;
 
+  if (type == WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
+    {
+      /* While parsing a form, we shouldn't get this far without having treated
+       * the absence of type='' to mean text-single.
+       */
+      g_warn_if_reached ();
+      return NULL;
+    }
+
   node = wocky_xmpp_node_get_child (field, "value");
   if (node == NULL)
     /* no default value */
@@ -558,6 +567,7 @@ static void
 add_field_to_node (WockyDataFormField *field,
     WockyXmppNode *node)
 {
+  WockyDataFormFieldType type;
   WockyXmppNode *field_node, *value_node;
 
   if (field->value == NULL && field->type != WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN)
@@ -568,9 +578,33 @@ add_field_to_node (WockyDataFormField *field,
 
   field_node = wocky_xmpp_node_add_child (node, "field");
   wocky_xmpp_node_set_attribute (field_node, "var", field->var);
-  wocky_xmpp_node_set_attribute (field_node, "type", type_to_str (field->type));
 
-  switch (field->type)
+  if (field->type != WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
+    {
+      wocky_xmpp_node_set_attribute (field_node, "type",
+          type_to_str (field->type));
+      type = field->type;
+    }
+  else
+    {
+      /* Infer what type we should treat the contents as for serialization
+       * purposes. We don't use this inference to set the type='' annotation on
+       * the field, because it's optional on form submissions and we can't
+       * guess whether it should be jid-multi or text-multi, etc.
+       */
+      GType t = G_VALUE_TYPE (field->value);
+
+      if (t == G_TYPE_STRING)
+        type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
+      else if (t == G_TYPE_STRV)
+        type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI;
+      else if (t == G_TYPE_BOOLEAN)
+        type = WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN;
+      else
+        g_assert_not_reached ();
+    }
+
+  switch (type)
     {
       case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
         {
