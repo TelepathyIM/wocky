@@ -687,6 +687,55 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
   return TRUE;
 }
 
+WockyPubsubNode *
+wocky_pubsub_service_handle_create_node_reply (
+    WockyPubsubService *self,
+    GObject *source,
+    GAsyncResult *res,
+    const gchar *requested_name,
+    GError **error)
+{
+  WockyPubsubNode *node = NULL;
+  const gchar *name = NULL;
+  WockyXmppNode *n;
+
+  if (!wocky_pubsub_distill_ambivalent_iq_reply (source, res,
+          WOCKY_XMPP_NS_PUBSUB, "create", &n, error))
+    return NULL;
+
+  if (n != NULL)
+    {
+      /* If the reply contained <pubsub><create>, it'd better contain the
+       * nodeID.
+       */
+      name = wocky_xmpp_node_get_attribute (n, "node");
+
+      if (name == NULL)
+        g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
+            WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+            "reply doesn't contain node='' attribute");
+    }
+  else if (requested_name == NULL)
+    {
+      g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
+          WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
+          "requested an instant node, but the server did not report the "
+          "newly-created node's name");
+    }
+  else
+    {
+      name = requested_name;
+    }
+
+  if (name != NULL)
+    {
+      node = wocky_pubsub_service_ensure_node (self, name);
+      DEBUG ("node %s created\n", name);
+    }
+
+  return node;
+}
+
 static void
 create_node_iq_cb (GObject *source,
     GAsyncResult *res,
@@ -694,52 +743,23 @@ create_node_iq_cb (GObject *source,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubService *self;
-  GError *error = NULL;
   WockyPubsubNode *node;
-  const gchar *name;
-  WockyXmppNode *n;
+  GError *error = NULL;
 
   self = WOCKY_PUBSUB_SERVICE (g_async_result_get_source_object (user_data));
 
-  if (!wocky_pubsub_distill_ambivalent_iq_reply (source, res,
-          WOCKY_XMPP_NS_PUBSUB, "create", &n, &error))
-    goto out;
+  node = wocky_pubsub_service_handle_create_node_reply (self, source, res,
+      g_object_get_data ((GObject *) result, "requested-name"),
+      &error);
 
-  if (n != NULL)
+  if (node != NULL)
     {
-      name = wocky_xmpp_node_get_attribute (n, "node");
-
-      if (name == NULL)
-        {
-          g_set_error (&error, WOCKY_PUBSUB_SERVICE_ERROR,
-              WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-              "reply doesn't contain node='' attribute");
-          goto out;
-        }
+      /* 'result' steals our reference to 'node' */
+      g_simple_async_result_set_op_res_gpointer (result, node, g_object_unref);
     }
   else
     {
-      name = g_object_get_data ((GObject *) result, "requested-name");
-
-      if (name == NULL)
-        {
-          g_set_error (&error, WOCKY_PUBSUB_SERVICE_ERROR,
-              WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-              "requested an instant node, but the server did not report the "
-              "newly-created node's name");
-          goto out;
-        }
-    }
-
-  node = wocky_pubsub_service_ensure_node (self, name);
-  DEBUG ("node %s created\n", name);
-
-  /* 'result' steals our reference to 'node' */
-  g_simple_async_result_set_op_res_gpointer (result, node, g_object_unref);
-
-out:
-  if (error != NULL)
-    {
+      g_assert (error != NULL);
       g_simple_async_result_set_from_error (result, error);
       g_clear_error (&error);
     }

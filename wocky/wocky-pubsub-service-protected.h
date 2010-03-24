@@ -46,6 +46,13 @@ WockyXmppStanza *wocky_pubsub_service_create_create_node_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **create_node);
 
+WockyPubsubNode *wocky_pubsub_service_handle_create_node_reply (
+    WockyPubsubService *self,
+    GObject *source,
+    GAsyncResult *res,
+    const gchar *requested_name,
+    GError **error);
+
 WockyPorter *wocky_pubsub_service_get_porter (WockyPubsubService *self);
 
 #endif /* WOCKY_PUBSUB_SERVICE_PROTECTED_H */
