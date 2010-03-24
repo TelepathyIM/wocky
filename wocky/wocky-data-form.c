@@ -684,97 +684,54 @@ static void
 add_field_to_node (WockyDataFormField *field,
     WockyXmppNode *node)
 {
-  WockyDataFormFieldType type;
-  WockyXmppNode *field_node, *value_node;
+  const GValue *value = field->value;
+  GType t;
+  WockyXmppNode *field_node;
 
-  if (field->value == NULL && field->type != WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN)
-    /* no value, skip */
+  /* Skip anonymous fields, which are used for instructions to the user. */
+  if (field->var == NULL)
     return;
 
-  DEBUG ("add field '%s'", field->var);
+  /* Hidden fields shouldn't have their values modified, but should be returned
+   * along with the form.
+   */
+  if (value == NULL && field->type == WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN)
+    value = field->default_value;
+
+  /* Skip fields which don't have a value. */
+  if (value == NULL)
+    return;
 
   field_node = wocky_xmpp_node_add_child (node, "field");
   wocky_xmpp_node_set_attribute (field_node, "var", field->var);
 
   if (field->type != WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
+    wocky_xmpp_node_set_attribute (field_node, "type",
+        type_to_str (field->type));
+
+  t = G_VALUE_TYPE (value);
+
+  if (t == G_TYPE_BOOLEAN)
     {
-      wocky_xmpp_node_set_attribute (field_node, "type",
-          type_to_str (field->type));
-      type = field->type;
+      wocky_xmpp_node_add_child_with_content (field_node, "value",
+          g_value_get_boolean (value) ? "1" : "0");
+    }
+  else if (t == G_TYPE_STRING)
+    {
+      wocky_xmpp_node_add_child_with_content (field_node, "value",
+          g_value_get_string (value));
+    }
+  else if (t == G_TYPE_STRV)
+    {
+      GStrv tmp = g_value_get_boxed (value);
+      GStrv s;
+
+      for (s = tmp; *s != NULL; s++)
+        wocky_xmpp_node_add_child_with_content (field_node, "value", *s);
     }
   else
     {
-      /* Infer what type we should treat the contents as for serialization
-       * purposes. We don't use this inference to set the type='' annotation on
-       * the field, because it's optional on form submissions and we can't
-       * guess whether it should be jid-multi or text-multi, etc.
-       */
-      GType t = G_VALUE_TYPE (field->value);
-
-      if (t == G_TYPE_STRING)
-        type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
-      else if (t == G_TYPE_STRV)
-        type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI;
-      else if (t == G_TYPE_BOOLEAN)
-        type = WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN;
-      else
-        g_assert_not_reached ();
-    }
-
-  switch (type)
-    {
-      case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
-        {
-          value_node = wocky_xmpp_node_add_child (field_node, "value");
-
-          if (g_value_get_boolean (field->value))
-            wocky_xmpp_node_set_content (value_node, "1");
-          else
-            wocky_xmpp_node_set_content (value_node, "0");
-        }
-        break;
-
-      case WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN:
-        {
-          value_node = wocky_xmpp_node_add_child (field_node, "value");
-
-          /* hidden fields are not supposed to be modified; set the default
-           * value */
-          wocky_xmpp_node_set_content (value_node,
-              g_value_get_string (field->default_value));
-        }
-        break;
-
-      case WOCKY_DATA_FORM_FIELD_TYPE_JID_SINGLE:
-      case WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE:
-      case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_PRIVATE:
-      case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE:
-        {
-          value_node = wocky_xmpp_node_add_child (field_node, "value");
-
-          wocky_xmpp_node_set_content (value_node,
-              g_value_get_string (field->value));
-        }
-        break;
-
-      case WOCKY_DATA_FORM_FIELD_TYPE_JID_MULTI:
-      case WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI:
-      case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI:
-        {
-          GStrv tmp;
-          guint i;
-
-          tmp = g_value_get_boxed (field->value);
-          for (i = 0; tmp[i] != NULL; i++)
-            {
-              value_node = wocky_xmpp_node_add_child (field_node, "value");
-
-              wocky_xmpp_node_set_content (value_node, tmp[i]);
-            }
-        }
-        break;
-      default:
-        g_assert_not_reached ();
+      g_assert_not_reached ();
     }
 }
 
