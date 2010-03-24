@@ -431,17 +431,19 @@ extract_var_type_label (WockyXmppNode *node,
   if (wocky_strdiff (node->name, "field"))
     return FALSE;
 
+  /* For data forms of type "form", each <field/> element SHOULD possess a
+   * 'type' attribute that defines the data "type" of the field data (if no
+   * 'type' is specified, the default is "text-single")
+   */
   tmp = wocky_xmpp_node_get_attribute (node, "type");
   if (tmp == NULL)
     {
-      DEBUG ("field doesn't have a 'type' attribute; ignoring");
-      return FALSE;
+      type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
     }
-
-  if (!wocky_enum_from_nick (WOCKY_TYPE_DATA_FORM_FIELD_TYPE,
-          tmp, &type))
+  else if (!wocky_enum_from_nick (WOCKY_TYPE_DATA_FORM_FIELD_TYPE,
+                tmp, &type))
     {
-      DEBUG ("Invalid field type for: %s", tmp);
+      DEBUG ("Invalid field type: %s", tmp);
       return FALSE;
     }
 

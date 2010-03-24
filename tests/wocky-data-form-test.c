@@ -89,6 +89,12 @@ create_bot_creation_form_stanza (void)
           WOCKY_NODE_ATTRIBUTE, "var", "botname",
           WOCKY_NODE_ATTRIBUTE, "label", "The name of your bot",
         WOCKY_NODE_END,
+        /* field with no type. type='' is only a SHOULD; the default is
+         * text-single */
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "var", "pseudonym",
+          WOCKY_NODE_ATTRIBUTE, "label", "Your bot's name at the weekend",
+        WOCKY_NODE_END,
         /* text-multi field */
         WOCKY_NODE, "field",
           WOCKY_NODE_ATTRIBUTE, "type", "text-multi",
@@ -198,6 +204,8 @@ test_parse_form (void)
       NULL, NULL, FALSE, NULL, NULL, NULL },
     { WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE, "botname",
       "The name of your bot", NULL, FALSE, NULL, NULL, NULL },
+    { WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE, "pseudonym",
+      "Your bot's name at the weekend", NULL, FALSE, NULL, NULL, NULL },
     { WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI, "description",
       "Helpful description of your bot", NULL, FALSE, NULL, NULL, NULL },
     { WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN, "public",
@@ -240,7 +248,7 @@ test_parse_form (void)
   g_assert_cmpstr (wocky_data_form_get_title (form), ==, "My Title");
   g_assert_cmpstr (wocky_data_form_get_instructions (form), ==, "Badger");
 
-  g_assert_cmpuint (g_slist_length (form->fields_list), ==, 10);
+  g_assert_cmpuint (g_slist_length (form->fields_list), ==, 11);
   for (l = form->fields_list, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
       field = l->data;
@@ -254,7 +262,7 @@ test_parse_form (void)
       g_assert (field->value == NULL);
     }
 
-  g_assert_cmpuint (g_hash_table_size (form->fields), ==, 9);
+  g_assert_cmpuint (g_hash_table_size (form->fields), ==, 10);
 
   /* check hidden field */
   field = g_hash_table_lookup (form->fields, "FORM_TYPE");
@@ -265,6 +273,12 @@ test_parse_form (void)
 
   /* check text-single field */
   field = g_hash_table_lookup (form->fields, "botname");
+  g_assert (field != NULL);
+  g_assert (field->default_value == NULL);
+  g_assert (field->options == NULL);
+
+  /* check implicitly text-single field */
+  field = g_hash_table_lookup (form->fields, "pseudonym");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
