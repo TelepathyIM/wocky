@@ -4,7 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-data-forms.h>
+#include <wocky/wocky-data-form.h>
 #include <wocky/wocky-xmpp-stanza.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-utils.h>
@@ -16,7 +16,7 @@ test_new_from_form (void)
 {
   WockyXmppStanza *stanza;
   WockyXmppNode *node;
-  WockyDataForms *forms;
+  WockyDataForm *form;
   GError *error = NULL;
 
   stanza = wocky_xmpp_stanza_build (
@@ -24,46 +24,46 @@ test_new_from_form (void)
       NULL, NULL, WOCKY_STANZA_END);
 
   /* node doesn't contain a form */
-  forms = wocky_data_forms_new_from_form (stanza->node, &error);
-  g_assert (forms == NULL);
-  g_assert_error (error, WOCKY_DATA_FORMS_ERROR,
-      WOCKY_DATA_FORMS_ERROR_NOT_FORM);
+  form = wocky_data_form_new_from_form (stanza->node, &error);
+  g_assert (form == NULL);
+  g_assert_error (error, WOCKY_DATA_FORM_ERROR,
+      WOCKY_DATA_FORM_ERROR_NOT_FORM);
   g_clear_error (&error);
 
   /* add 'x' node */
   node = wocky_xmpp_node_add_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
 
   /* the x node doesn't have a 'type' attribute */
-  forms = wocky_data_forms_new_from_form (stanza->node, &error);
-  g_assert (forms == NULL);
-  g_assert_error (error, WOCKY_DATA_FORMS_ERROR,
-      WOCKY_DATA_FORMS_ERROR_WRONG_TYPE);
+  form = wocky_data_form_new_from_form (stanza->node, &error);
+  g_assert (form == NULL);
+  g_assert_error (error, WOCKY_DATA_FORM_ERROR,
+      WOCKY_DATA_FORM_ERROR_WRONG_TYPE);
   g_clear_error (&error);
 
   /* set wrong type */
   wocky_xmpp_node_set_attribute (node, "type", "badger");
 
-  forms = wocky_data_forms_new_from_form (stanza->node, &error);
-  g_assert (forms == NULL);
-  g_assert_error (error, WOCKY_DATA_FORMS_ERROR,
-      WOCKY_DATA_FORMS_ERROR_WRONG_TYPE);
+  form = wocky_data_form_new_from_form (stanza->node, &error);
+  g_assert (form == NULL);
+  g_assert_error (error, WOCKY_DATA_FORM_ERROR,
+      WOCKY_DATA_FORM_ERROR_WRONG_TYPE);
   g_clear_error (&error);
 
   /* set the right type */
   wocky_xmpp_node_set_attribute (node, "type", "form");
 
-  forms = wocky_data_forms_new_from_form (stanza->node, &error);
-  g_assert (forms != NULL);
+  form = wocky_data_form_new_from_form (stanza->node, &error);
+  g_assert (form != NULL);
   g_assert_no_error (error);
 
-  g_object_unref (forms);
+  g_object_unref (form);
   g_object_unref (stanza);
 }
 
 static WockyXmppStanza *
 create_bot_creation_form_stanza (void)
 {
-  /* This stanza is inspired from Example 2 of XEP-0004: Data Forms */
+  /* This stanza is inspired from Example 2 of XEP-0004: Data Form */
   return wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
@@ -188,42 +188,42 @@ static void
 test_parse_form (void)
 {
   WockyXmppStanza *stanza;
-  WockyDataForms *forms;
+  WockyDataForm *form;
   GSList *l;
   /* used to check that fields are stored in the right order */
-  WockyDataFormsField expected_types[] = {
-    { WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN, "FORM_TYPE",
+  WockyDataFormField expected_types[] = {
+    { WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN, "FORM_TYPE",
       NULL, NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_FIXED, NULL,
+    { WOCKY_DATA_FORM_FIELD_TYPE_FIXED, NULL,
       NULL, NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE, "botname",
+    { WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE, "botname",
       "The name of your bot", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_MULTI, "description",
+    { WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI, "description",
       "Helpful description of your bot", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_BOOLEAN, "public",
+    { WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN, "public",
       "Public bot?", NULL, TRUE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_PRIVATE, "password",
+    { WOCKY_DATA_FORM_FIELD_TYPE_TEXT_PRIVATE, "password",
       "Password for special access", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_LIST_MULTI, "features",
+    { WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI, "features",
       "What features will the bot support?", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_LIST_SINGLE, "maxsubs",
+    { WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE, "maxsubs",
       "Maximum number of subscribers", NULL, FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_MULTI, "invitelist",
+    { WOCKY_DATA_FORM_FIELD_TYPE_JID_MULTI, "invitelist",
       "People to invite", "Tell friends", FALSE, NULL, NULL, NULL },
-    { WOCKY_DATA_FORMS_FIELD_TYPE_JID_SINGLE, "botjid",
+    { WOCKY_DATA_FORM_FIELD_TYPE_JID_SINGLE, "botjid",
       "The JID of the bot", NULL, FALSE, NULL, NULL, NULL },
   };
   guint i;
-  WockyDataFormsField *field;
+  WockyDataFormField *field;
   GStrv strv;
-  WockyDataFormsFieldOption features_options[] = {
+  WockyDataFormFieldOption features_options[] = {
     { "Contests", "contests" },
     { "News", "news" },
     { "Polls", "polls" },
     { "Reminders", "reminders" },
     { "Search", "search" },
   };
-  WockyDataFormsFieldOption maxsubs_options[] = {
+  WockyDataFormFieldOption maxsubs_options[] = {
     { "10", "10" },
     { "20", "20" },
     { "30", "30" },
@@ -233,15 +233,15 @@ test_parse_form (void)
   };
 
   stanza = create_bot_creation_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
-  g_assert (forms != NULL);
+  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  g_assert (form != NULL);
   g_object_unref (stanza);
 
-  g_assert_cmpstr (wocky_data_forms_get_title (forms), ==, "My Title");
-  g_assert_cmpstr (wocky_data_forms_get_instructions (forms), ==, "Badger");
+  g_assert_cmpstr (wocky_data_form_get_title (form), ==, "My Title");
+  g_assert_cmpstr (wocky_data_form_get_instructions (form), ==, "Badger");
 
-  g_assert_cmpuint (g_slist_length (forms->fields_list), ==, 10);
-  for (l = forms->fields_list, i = 0; l != NULL; l = g_slist_next (l), i++)
+  g_assert_cmpuint (g_slist_length (form->fields_list), ==, 10);
+  for (l = form->fields_list, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
       field = l->data;
 
@@ -254,42 +254,42 @@ test_parse_form (void)
       g_assert (field->value == NULL);
     }
 
-  g_assert_cmpuint (g_hash_table_size (forms->fields), ==, 9);
+  g_assert_cmpuint (g_hash_table_size (form->fields), ==, 9);
 
   /* check hidden field */
-  field = g_hash_table_lookup (forms->fields, "FORM_TYPE");
+  field = g_hash_table_lookup (form->fields, "FORM_TYPE");
   g_assert (field != NULL);
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_STRING);
   g_assert_cmpstr (g_value_get_string (field->default_value), ==, "jabber:bot");
   g_assert (field->options == NULL);
 
   /* check text-single field */
-  field = g_hash_table_lookup (forms->fields, "botname");
+  field = g_hash_table_lookup (form->fields, "botname");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
 
   /* check text-multi field */
-  field = g_hash_table_lookup (forms->fields, "description");
+  field = g_hash_table_lookup (form->fields, "description");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
 
   /* check boolean field */
-  field = g_hash_table_lookup (forms->fields, "public");
+  field = g_hash_table_lookup (form->fields, "public");
   g_assert (field != NULL);
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_BOOLEAN);
   g_assert (!g_value_get_boolean (field->default_value));
   g_assert (field->options == NULL);
 
   /* check text-private field */
-  field = g_hash_table_lookup (forms->fields, "password");
+  field = g_hash_table_lookup (form->fields, "password");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
 
   /* check list-multi field */
-  field = g_hash_table_lookup (forms->fields, "features");
+  field = g_hash_table_lookup (form->fields, "features");
   g_assert (field != NULL);
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_STRV);
   strv = g_value_get_boxed (field->default_value);
@@ -299,47 +299,47 @@ test_parse_form (void)
   g_assert_cmpuint (g_slist_length (field->options), ==, 5);
   for (l = field->options, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
-      WockyDataFormsFieldOption *option = l->data;
+      WockyDataFormFieldOption *option = l->data;
 
       g_assert_cmpstr (option->value, ==, features_options[i].value);
       g_assert_cmpstr (option->label, ==, features_options[i].label);
     }
 
   /* check list-single field */
-  field = g_hash_table_lookup (forms->fields, "maxsubs");
+  field = g_hash_table_lookup (form->fields, "maxsubs");
   g_assert (field != NULL);
   g_assert (G_VALUE_TYPE (field->default_value) == G_TYPE_STRING);
   g_assert_cmpstr (g_value_get_string (field->default_value), ==, "20");
   g_assert_cmpuint (g_slist_length (field->options), ==, 6);
   for (l = field->options, i = 0; l != NULL; l = g_slist_next (l), i++)
     {
-      WockyDataFormsFieldOption *option = l->data;
+      WockyDataFormFieldOption *option = l->data;
 
       g_assert_cmpstr (option->value, ==, maxsubs_options[i].value);
       g_assert_cmpstr (option->label, ==, maxsubs_options[i].label);
     }
 
   /* check jid-multi field */
-  field = g_hash_table_lookup (forms->fields, "invitelist");
+  field = g_hash_table_lookup (form->fields, "invitelist");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
 
   /* check boolean field */
-  field = g_hash_table_lookup (forms->fields, "botjid");
+  field = g_hash_table_lookup (form->fields, "botjid");
   g_assert (field != NULL);
   g_assert (field->default_value == NULL);
   g_assert (field->options == NULL);
 
-  g_object_unref (forms);
+  g_object_unref (form);
 }
 
 static void
 test_submit (void)
 {
   WockyXmppStanza *stanza;
-  WockyDataForms *forms;
-  WockyDataFormsField *field;
+  WockyDataForm *form;
+  WockyDataFormField *field;
   WockyXmppNode *x;
   GSList *l;
   const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
@@ -347,46 +347,46 @@ test_submit (void)
   const gchar *invitees[] = { "juliet@example.org", "romeo@example.org", NULL };
 
   stanza = create_bot_creation_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
-  g_assert (forms != NULL);
+  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  g_assert (form != NULL);
   g_object_unref (stanza);
 
   /* set text-single field */
-  field = g_hash_table_lookup (forms->fields, "botname");
+  field = g_hash_table_lookup (form->fields, "botname");
   field->value = wocky_g_value_slice_new_string ("The Jabber Google Bot");
 
   /* set text-multi field */
-  field = g_hash_table_lookup (forms->fields, "description");
+  field = g_hash_table_lookup (form->fields, "description");
   field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, description);
 
   /* set boolean field */
-  field = g_hash_table_lookup (forms->fields, "public");
+  field = g_hash_table_lookup (form->fields, "public");
   field->value = wocky_g_value_slice_new_boolean (FALSE);
 
   /* set text-private field */
-  field = g_hash_table_lookup (forms->fields, "password");
+  field = g_hash_table_lookup (form->fields, "password");
   field->value = wocky_g_value_slice_new_string ("S3cr1t");
 
   /* set list-multi field */
-  field = g_hash_table_lookup (forms->fields, "features");
+  field = g_hash_table_lookup (form->fields, "features");
   field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, features);
 
   /* set list-single field */
-  field = g_hash_table_lookup (forms->fields, "maxsubs");
+  field = g_hash_table_lookup (form->fields, "maxsubs");
   field->value = wocky_g_value_slice_new_string ("20");
 
   /* set jid-multi field */
-  field = g_hash_table_lookup (forms->fields, "invitelist");
+  field = g_hash_table_lookup (form->fields, "invitelist");
   field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, invitees);
 
   /* set jid-single field */
-  field = g_hash_table_lookup (forms->fields, "botjid");
+  field = g_hash_table_lookup (form->fields, "botjid");
   field->value = wocky_g_value_slice_new_string ("bobot@example.org");
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       NULL, NULL, WOCKY_STANZA_END);
-  wocky_data_forms_submit (forms, stanza->node);
+  wocky_data_form_submit (form, stanza->node);
 
   x = wocky_xmpp_node_get_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
   g_assert (x != NULL);
@@ -503,13 +503,13 @@ test_submit (void)
     }
 
   g_object_unref (stanza);
-  g_object_unref (forms);
+  g_object_unref (form);
 }
 
 static WockyXmppStanza *
 create_search_form_stanza (void)
 {
-  /* This stanza is inspired from Example 6 of XEP-0004: Data Forms */
+  /* This stanza is inspired from Example 6 of XEP-0004: Data Form */
   return wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
@@ -529,13 +529,13 @@ static void
 test_parse_multi_result (void)
 {
   WockyXmppStanza *stanza;
-  WockyDataForms *forms;
+  WockyDataForm *form;
   GSList *l;
   gboolean item1 = FALSE, item2 = FALSE;
 
   stanza = create_search_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
-  g_assert (forms != NULL);
+  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  g_assert (form != NULL);
   g_object_unref (stanza);
 
   /* create the result stanza */
@@ -581,19 +581,19 @@ test_parse_multi_result (void)
       WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
-  g_assert (wocky_data_forms_parse_result (forms, stanza->node, NULL));
+  g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));
   g_object_unref (stanza);
 
-  g_assert_cmpuint (g_slist_length (forms->results), ==, 2);
+  g_assert_cmpuint (g_slist_length (form->results), ==, 2);
 
-  for (l = forms->results; l != NULL; l = g_slist_next (l))
+  for (l = form->results; l != NULL; l = g_slist_next (l))
     {
       GSList *result = l->data, *m;
       gboolean name = FALSE, url = FALSE;
 
       for (m = result; m != NULL; m = g_slist_next (m))
         {
-          WockyDataFormsField *field = m->data;
+          WockyDataFormField *field = m->data;
 
           if (!wocky_strdiff (field->var, "name"))
             {
@@ -625,20 +625,20 @@ test_parse_multi_result (void)
     }
   g_assert (item1 && item2);
 
-  g_object_unref (forms);
+  g_object_unref (form);
 }
 
 static void
 test_parse_single_result (void)
 {
   WockyXmppStanza *stanza;
-  WockyDataForms *forms;
+  WockyDataForm *form;
   GSList *result, *l;
   gboolean form_type = FALSE, botname = FALSE;
 
   stanza = create_bot_creation_form_stanza ();
-  forms = wocky_data_forms_new_from_form (stanza->node, NULL);
-  g_assert (forms != NULL);
+  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  g_assert (form != NULL);
   g_object_unref (stanza);
 
   /* create the result stanza */
@@ -662,27 +662,27 @@ test_parse_single_result (void)
         WOCKY_NODE_END,
       WOCKY_STANZA_END);
 
-  g_assert (wocky_data_forms_parse_result (forms, stanza->node, NULL));
+  g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));
   g_object_unref (stanza);
 
-  g_assert_cmpuint (g_slist_length (forms->results), ==, 1);
-  result = forms->results->data;
+  g_assert_cmpuint (g_slist_length (form->results), ==, 1);
+  result = form->results->data;
   g_assert_cmpuint (g_slist_length (result), ==, 2);
 
   for (l = result; l != NULL; l = g_slist_next (l))
     {
-      WockyDataFormsField *field = l->data;
+      WockyDataFormField *field = l->data;
 
       if (!wocky_strdiff (field->var, "FORM_TYPE"))
         {
           g_assert_cmpstr (g_value_get_string (field->value), ==, "jabber:bot");
-          g_assert (field->type == WOCKY_DATA_FORMS_FIELD_TYPE_HIDDEN);
+          g_assert (field->type == WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN);
           form_type = TRUE;
         }
       else if (!wocky_strdiff (field->var, "botname"))
         {
           g_assert_cmpstr (g_value_get_string (field->value), ==, "The Bot");
-          g_assert (field->type == WOCKY_DATA_FORMS_FIELD_TYPE_TEXT_SINGLE);
+          g_assert (field->type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE);
           botname = TRUE;
         }
       else
@@ -690,7 +690,7 @@ test_parse_single_result (void)
     }
   g_assert (form_type && botname);
 
-  g_object_unref (forms);
+  g_object_unref (form);
 }
 
 int
@@ -700,11 +700,11 @@ main (int argc, char **argv)
 
   test_init (argc, argv);
 
-  g_test_add_func ("/data-forms/instantiation", test_new_from_form);
-  g_test_add_func ("/data-forms/parse-form", test_parse_form);
-  g_test_add_func ("/data-forms/submit", test_submit);
-  g_test_add_func ("/data-forms/parse-multi-result", test_parse_multi_result);
-  g_test_add_func ("/data-forms/parse-single-result", test_parse_single_result);
+  g_test_add_func ("/data-form/instantiation", test_new_from_form);
+  g_test_add_func ("/data-form/parse-form", test_parse_form);
+  g_test_add_func ("/data-form/submit", test_submit);
+  g_test_add_func ("/data-form/parse-multi-result", test_parse_multi_result);
+  g_test_add_func ("/data-form/parse-single-result", test_parse_single_result);
 
   result = g_test_run ();
   test_deinit ();

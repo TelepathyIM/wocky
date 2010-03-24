@@ -42,7 +42,7 @@ GList * wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
 WockyXmppStanza *wocky_pubsub_service_create_create_node_stanza (
     WockyPubsubService *self,
     const gchar *name,
-    WockyDataForms *config,
+    WockyDataForm *config,
     WockyXmppNode **pubsub_node,
     WockyXmppNode **create_node);
 

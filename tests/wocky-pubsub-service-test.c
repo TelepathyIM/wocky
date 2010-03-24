@@ -126,19 +126,19 @@ test_get_default_node_configuration_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyDataForms *forms;
-  WockyDataFormsField *field;
+  WockyDataForm *form;
+  WockyDataFormField *field;
 
-  forms = wocky_pubsub_service_get_default_node_configuration_finish (
+  form = wocky_pubsub_service_get_default_node_configuration_finish (
       WOCKY_PUBSUB_SERVICE (source), res, NULL);
-  g_assert (forms != NULL);
+  g_assert (form != NULL);
 
-  field = g_hash_table_lookup (forms->fields, "pubsub#title");
+  field = g_hash_table_lookup (form->fields, "pubsub#title");
   g_assert (field != NULL);
-  field = g_hash_table_lookup (forms->fields, "pubsub#deliver_notifications");
+  field = g_hash_table_lookup (form->fields, "pubsub#deliver_notifications");
   g_assert (field != NULL);
 
-  g_object_unref (forms);
+  g_object_unref (form);
   test->outstanding--;
   g_main_loop_quit (test->loop);
 }
@@ -224,12 +224,12 @@ test_get_default_node_configuration_insufficient_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyDataForms *forms;
+  WockyDataForm *form;
   GError *error = NULL;
 
-  forms = wocky_pubsub_service_get_default_node_configuration_finish (
+  form = wocky_pubsub_service_get_default_node_configuration_finish (
       WOCKY_PUBSUB_SERVICE (source), res, &error);
-  g_assert (forms == NULL);
+  g_assert (form == NULL);
   g_assert_error (error, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FORBIDDEN);
   g_error_free (error);
 
@@ -516,24 +516,24 @@ test_create_node_config_config_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyDataForms *forms;
-  WockyDataFormsField *field;
+  WockyDataForm *form;
+  WockyDataFormField *field;
 
-  forms = wocky_pubsub_service_get_default_node_configuration_finish (
+  form = wocky_pubsub_service_get_default_node_configuration_finish (
       WOCKY_PUBSUB_SERVICE (source), res, NULL);
-  g_assert (forms != NULL);
+  g_assert (form != NULL);
 
-  field = g_hash_table_lookup (forms->fields, "pubsub#title");
+  field = g_hash_table_lookup (form->fields, "pubsub#title");
   g_assert (field != NULL);
   field->value = wocky_g_value_slice_new_string ("Badger");
-  field = g_hash_table_lookup (forms->fields, "pubsub#deliver_notifications");
+  field = g_hash_table_lookup (form->fields, "pubsub#deliver_notifications");
   g_assert (field != NULL);
   field->value = wocky_g_value_slice_new_boolean (FALSE);
 
   wocky_pubsub_service_create_node_async (WOCKY_PUBSUB_SERVICE (source),
-      "node1", forms, NULL, test_create_node_no_config_cb, test);
+      "node1", form, NULL, test_create_node_no_config_cb, test);
 
-  g_object_unref (forms);
+  g_object_unref (form);
   test->outstanding--;
   g_main_loop_quit (test->loop);
 }

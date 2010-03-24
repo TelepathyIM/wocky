@@ -410,17 +410,17 @@ default_configuration_iq_cb (GObject *source,
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
   WockyXmppNode *node;
-  WockyDataForms *forms;
+  WockyDataForm *form;
 
   if (!wocky_pubsub_distill_iq_reply (source, res,
         WOCKY_XMPP_NS_PUBSUB_OWNER, "default", &node, &error))
     goto out;
 
-  forms = wocky_data_forms_new_from_form (node, &error);
-  if (forms == NULL)
+  form = wocky_data_form_new_from_form (node, &error);
+  if (form == NULL)
     goto out;
 
-  g_simple_async_result_set_op_res_gpointer (result, forms, NULL);
+  g_simple_async_result_set_op_res_gpointer (result, form, NULL);
 
 out:
   if (error != NULL)
@@ -462,7 +462,7 @@ wocky_pubsub_service_get_default_node_configuration_async (
   g_object_unref (stanza);
 }
 
-WockyDataForms *
+WockyDataForm *
 wocky_pubsub_service_get_default_node_configuration_finish (
     WockyPubsubService *self,
     GAsyncResult *result,
@@ -774,7 +774,7 @@ WockyXmppStanza *
 wocky_pubsub_service_create_create_node_stanza (
     WockyPubsubService *self,
     const gchar *name,
-    WockyDataForms *config,
+    WockyDataForm *config,
     WockyXmppNode **pubsub_node,
     WockyXmppNode **create_node)
 {
@@ -802,7 +802,7 @@ wocky_pubsub_service_create_create_node_stanza (
       WockyXmppNode *configure = wocky_xmpp_node_add_child (pubsub,
           "configure");
 
-      wocky_data_forms_submit (config, configure);
+      wocky_data_form_submit (config, configure);
     }
 
   if (pubsub_node != NULL)
@@ -817,7 +817,7 @@ wocky_pubsub_service_create_create_node_stanza (
 void
 wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     const gchar *name,
-    WockyDataForms *config,
+    WockyDataForm *config,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)

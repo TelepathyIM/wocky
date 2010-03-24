@@ -26,7 +26,7 @@
 #include "wocky-xmpp-stanza.h"
 #include "wocky-session.h"
 #include "wocky-types.h"
-#include "wocky-data-forms.h"
+#include "wocky-data-form.h"
 
 G_BEGIN_DECLS
 
@@ -83,7 +83,7 @@ void wocky_pubsub_service_get_default_node_configuration_async (
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-WockyDataForms * wocky_pubsub_service_get_default_node_configuration_finish (
+WockyDataForm * wocky_pubsub_service_get_default_node_configuration_finish (
     WockyPubsubService *service,
     GAsyncResult *result,
     GError **error);
@@ -103,7 +103,7 @@ gboolean wocky_pubsub_service_retrieve_subscriptions_finish (
 
 void wocky_pubsub_service_create_node_async (WockyPubsubService *service,
     const gchar *name,
-    WockyDataForms *config,
+    WockyDataForm *config,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
