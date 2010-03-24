@@ -115,6 +115,21 @@ GType wocky_data_form_get_type (void);
 WockyDataForm * wocky_data_form_new_from_form (WockyXmppNode *node,
     GError **error);
 
+gboolean wocky_data_form_set_boolean (WockyDataForm *form,
+    const gchar *field_name,
+    gboolean field_value,
+    gboolean create_if_missing);
+
+gboolean wocky_data_form_set_string (WockyDataForm *form,
+    const gchar *field_name,
+    const gchar *field_value,
+    gboolean create_if_missing);
+
+gboolean wocky_data_form_set_strv (WockyDataForm *form,
+    const gchar *field_name,
+    const gchar * const *field_values,
+    gboolean create_if_missing);
+
 void wocky_data_form_submit (WockyDataForm *form,
     WockyXmppNode *node);
 

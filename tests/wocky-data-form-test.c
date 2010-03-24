@@ -353,12 +353,12 @@ test_submit (void)
 {
   WockyXmppStanza *stanza;
   WockyDataForm *form;
-  WockyDataFormField *field;
   WockyXmppNode *x;
   GSList *l;
   const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
   const gchar *features[] = { "news", "search", NULL };
   const gchar *invitees[] = { "juliet@example.org", "romeo@example.org", NULL };
+  gboolean set_succeeded;
 
   stanza = create_bot_creation_form_stanza ();
   form = wocky_data_form_new_from_form (stanza->node, NULL);
@@ -366,36 +366,42 @@ test_submit (void)
   g_object_unref (stanza);
 
   /* set text-single field */
-  field = g_hash_table_lookup (form->fields, "botname");
-  field->value = wocky_g_value_slice_new_string ("The Jabber Google Bot");
+  set_succeeded = wocky_data_form_set_string (form, "botname",
+      "The Jabber Google Bot", FALSE);
+  g_assert (set_succeeded);
 
   /* set text-multi field */
-  field = g_hash_table_lookup (form->fields, "description");
-  field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, description);
+  set_succeeded = wocky_data_form_set_strv (form, "description",
+      description, FALSE);
+  g_assert (set_succeeded);
 
   /* set boolean field */
-  field = g_hash_table_lookup (form->fields, "public");
-  field->value = wocky_g_value_slice_new_boolean (FALSE);
+  set_succeeded = wocky_data_form_set_boolean (form, "public", FALSE, FALSE);
+  g_assert (set_succeeded);
 
   /* set text-private field */
-  field = g_hash_table_lookup (form->fields, "password");
-  field->value = wocky_g_value_slice_new_string ("S3cr1t");
+  set_succeeded = wocky_data_form_set_string (form, "password",
+      "S3cr1t", FALSE);
+  g_assert (set_succeeded);
 
   /* set list-multi field */
-  field = g_hash_table_lookup (form->fields, "features");
-  field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, features);
+  set_succeeded = wocky_data_form_set_strv (form, "features",
+      features, FALSE);
+  g_assert (set_succeeded);
 
   /* set list-single field */
-  field = g_hash_table_lookup (form->fields, "maxsubs");
-  field->value = wocky_g_value_slice_new_string ("20");
+  set_succeeded = wocky_data_form_set_string (form, "maxsubs", "20", FALSE);
+  g_assert (set_succeeded);
 
   /* set jid-multi field */
-  field = g_hash_table_lookup (form->fields, "invitelist");
-  field->value = wocky_g_value_slice_new_boxed (G_TYPE_STRV, invitees);
+  set_succeeded = wocky_data_form_set_strv (form, "invitelist", invitees,
+      FALSE);
+  g_assert (set_succeeded);
 
   /* set jid-single field */
-  field = g_hash_table_lookup (form->fields, "botjid");
-  field->value = wocky_g_value_slice_new_string ("bobot@example.org");
+  set_succeeded = wocky_data_form_set_string (form, "botjid",
+      "bobot@example.org", FALSE);
+  g_assert (set_succeeded);
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
@@ -516,6 +522,88 @@ test_submit (void)
         g_assert_not_reached ();
     }
 
+  g_object_unref (stanza);
+  g_object_unref (form);
+}
+
+/* Test creating and submitting a form response blindly, without first asking
+ * the server for the form fields.
+ */
+static void
+test_submit_blindly (void)
+{
+  WockyDataForm *form = g_object_new (WOCKY_TYPE_DATA_FORM, NULL);
+  const gchar * const the_xx[] = { "Romy", "Oliver", "Jamie", NULL };
+  gboolean succeeded;
+  WockyXmppStanza *stanza, *expected;
+
+  /* The form's empty, so the setters should all fail if we don't tell them to
+   * create the fields if missing.
+   */
+  succeeded = wocky_data_form_set_string (form, "band-name", "The XX", FALSE);
+  g_assert (!succeeded);
+
+  succeeded = wocky_data_form_set_strv (form, "band-members", the_xx, FALSE);
+  g_assert (!succeeded);
+
+  succeeded = wocky_data_form_set_boolean (form, "is-meh", TRUE, FALSE);
+  g_assert (!succeeded);
+
+  g_assert (form->fields_list == NULL);
+  g_assert_cmpuint (0, ==, g_hash_table_size (form->fields));
+
+  /* But if we forcibly create those fields, they should show up when we submit
+   * the form!
+   */
+  succeeded = wocky_data_form_set_string (form, "band-name", "The XX", TRUE);
+  g_assert (succeeded);
+
+  succeeded = wocky_data_form_set_strv (form, "band-members", the_xx, TRUE);
+  g_assert (succeeded);
+
+  succeeded = wocky_data_form_set_boolean (form, "is-meh", TRUE, TRUE);
+  g_assert (succeeded);
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+      WOCKY_STANZA_END);
+  wocky_data_form_submit (form, stanza->node);
+
+  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
+      WOCKY_NODE, "x",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_DATA,
+        WOCKY_NODE_ATTRIBUTE, "type", "submit",
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "var", "band-name",
+          WOCKY_NODE, "value",
+            WOCKY_NODE_TEXT, "The XX",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "var", "band-members",
+          WOCKY_NODE, "value",
+            WOCKY_NODE_TEXT, "Romy",
+          WOCKY_NODE_END,
+          WOCKY_NODE, "value",
+            WOCKY_NODE_TEXT, "Oliver",
+          WOCKY_NODE_END,
+          WOCKY_NODE, "value",
+            WOCKY_NODE_TEXT, "Jamie",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "var", "is-meh",
+          WOCKY_NODE, "value",
+            WOCKY_NODE_TEXT, "1",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  test_assert_stanzas_equal (expected, stanza);
+
+  g_object_unref (expected);
   g_object_unref (stanza);
   g_object_unref (form);
 }
@@ -717,6 +805,7 @@ main (int argc, char **argv)
   g_test_add_func ("/data-form/instantiation", test_new_from_form);
   g_test_add_func ("/data-form/parse-form", test_parse_form);
   g_test_add_func ("/data-form/submit", test_submit);
+  g_test_add_func ("/data-form/submit-blindly", test_submit_blindly);
   g_test_add_func ("/data-form/parse-multi-result", test_parse_multi_result);
   g_test_add_func ("/data-form/parse-single-result", test_parse_single_result);
 

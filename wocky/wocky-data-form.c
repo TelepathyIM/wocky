@@ -507,6 +507,22 @@ data_form_parse_form_field (WockyXmppNode *field_node)
   return field;
 }
 
+static void
+data_form_add_field (WockyDataForm *form,
+    WockyDataFormField *field,
+    gboolean prepend)
+{
+
+  form->fields_list =
+      (prepend ? g_slist_prepend : g_slist_append) (form->fields_list, field);
+
+  /* Fixed fields can be used for instructions to the user. They have
+   * no var='' attribute and hence shouldn't be included in the form
+   * submission.*/
+  if (field->var != NULL)
+    g_hash_table_insert (form->fields, field->var, field);
+}
+
 WockyDataForm *
 wocky_data_form_new_from_form (WockyXmppNode *root,
     GError **error)
@@ -558,20 +574,110 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
       WockyDataFormField *field = data_form_parse_form_field (node);
 
       if (field != NULL)
-        {
-          form->fields_list = g_slist_prepend (form->fields_list, field);
-
-          /* Fixed fields can be used for instructions to the user. They have
-           * no var='' attribute and hence shouldn't be included in the form
-           * submission.*/
-          if (field->var != NULL)
-            g_hash_table_insert (form->fields, field->var, field);
-        }
+        data_form_add_field (form, field, TRUE);
     }
 
   form->fields_list = g_slist_reverse (form->fields_list);
 
   return form;
+}
+
+/*
+ * data_form_set_value:
+ * @form: a data form
+ * @field_name: the name of a field of @form
+ * @value: the value to fill in for @field_name (stolen by this function)
+ * @create_if_missing: if no field named @field_name exists, create it
+ *
+ * Returns: %TRUE if the field was successfully filled in; %FALSE if the field
+ *          did not exist or has a different type to @value.
+ */
+static gboolean
+data_form_set_value (WockyDataForm *form,
+    const gchar *field_name,
+    GValue *value,
+    gboolean create_if_missing)
+{
+  WockyDataFormField *field;
+
+  g_return_val_if_fail (field_name != NULL, FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+
+  field = g_hash_table_lookup (form->fields, field_name);
+
+  if (field == NULL)
+    {
+      if (create_if_missing)
+        {
+          field = wocky_data_form_field_new (
+              WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED, field_name, NULL, NULL,
+              FALSE, NULL, NULL, NULL);
+          data_form_add_field (form, field, FALSE);
+        }
+      else
+        {
+          DEBUG ("field %s not found", field_name);
+          wocky_g_value_slice_free (value);
+          return FALSE;
+        }
+    }
+
+  if (field->value != NULL)
+    wocky_g_value_slice_free (field->value);
+
+  field->value = value;
+  return TRUE;
+}
+
+/**
+ * wocky_data_form_set_boolean:
+ * @form: a data form
+ * @field_name: the name of a boolean field of @form
+ * @value: the value to fill in for @field_name
+ * @create_if_missing: if no field named @field_name exists, create it
+ *
+ * Returns: %TRUE if the field was successfully filled in; %FALSE if the field
+ *          did not exist or does not accept a boolean
+ */
+gboolean
+wocky_data_form_set_boolean (WockyDataForm *form,
+    const gchar *field_name,
+    gboolean field_value,
+    gboolean create_if_missing)
+{
+  return data_form_set_value (form, field_name,
+      wocky_g_value_slice_new_boolean (field_value), create_if_missing);
+}
+
+/**
+ * wocky_data_form_set_boolean:
+ * @form: a data form
+ * @field_name: the name of a boolean field of @form
+ * @value: the value to fill in for @field_name
+ * @create_if_missing: if no field named @field_name exists, create it
+ *
+ * Returns: %TRUE if the field was successfully filled in; %FALSE if the field
+ *          did not exist or does not accept a boolean
+ */
+gboolean
+wocky_data_form_set_string (WockyDataForm *form,
+    const gchar *field_name,
+    const gchar *field_value,
+    gboolean create_if_missing)
+{
+  return data_form_set_value (form, field_name,
+      wocky_g_value_slice_new_string (field_value), create_if_missing);
+}
+
+gboolean
+wocky_data_form_set_strv (WockyDataForm *form,
+    const gchar *field_name,
+    const gchar * const *field_values,
+    gboolean create_if_missing)
+{
+  return data_form_set_value (form, field_name,
+      wocky_g_value_slice_new_boxed (G_TYPE_STRV, field_values),
+      create_if_missing);
 }
 
 static void

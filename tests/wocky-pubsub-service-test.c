@@ -517,18 +517,19 @@ test_create_node_config_config_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyDataForm *form;
-  WockyDataFormField *field;
+  gboolean set_succeeded;
 
   form = wocky_pubsub_service_get_default_node_configuration_finish (
       WOCKY_PUBSUB_SERVICE (source), res, NULL);
   g_assert (form != NULL);
 
-  field = g_hash_table_lookup (form->fields, "pubsub#title");
-  g_assert (field != NULL);
-  field->value = wocky_g_value_slice_new_string ("Badger");
-  field = g_hash_table_lookup (form->fields, "pubsub#deliver_notifications");
-  g_assert (field != NULL);
-  field->value = wocky_g_value_slice_new_boolean (FALSE);
+  set_succeeded = wocky_data_form_set_string (form, "pubsub#title", "Badger",
+      FALSE);
+  g_assert (set_succeeded);
+
+  set_succeeded = wocky_data_form_set_boolean (form,
+      "pubsub#deliver_notifications", FALSE, FALSE);
+  g_assert (set_succeeded);
 
   wocky_pubsub_service_create_node_async (WOCKY_PUBSUB_SERVICE (source),
       "node1", form, NULL, test_create_node_no_config_cb, test);
