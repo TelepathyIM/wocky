@@ -63,7 +63,7 @@ test_new_from_form (void)
 static WockyXmppStanza *
 create_bot_creation_form_stanza (void)
 {
-  /* This stanza is inspired from Example 2 of XEP-0004: Data Form */
+  /* This stanza is inspired from Example 2 of XEP-0004: Data Forms */
   return wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
@@ -628,7 +628,7 @@ test_submit_blindly (void)
 static WockyXmppStanza *
 create_search_form_stanza (void)
 {
-  /* This stanza is inspired from Example 6 of XEP-0004: Data Form */
+  /* This stanza is inspired from Example 6 of XEP-0004: Data Forms */
   return wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
