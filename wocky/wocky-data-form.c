@@ -289,22 +289,19 @@ extract_options_list (WockyXmppNode *node)
 
   while (wocky_xmpp_node_iter_next (&iter, &option_node))
     {
-      WockyXmppNode *value;
       WockyDataFormFieldOption *option;
-      const gchar *label;
+      const gchar *value, *label;
 
+      value = wocky_xmpp_node_get_content_from_child (option_node, "value");
       label = wocky_xmpp_node_get_attribute (option_node, "label");
-      /* the label is optional */
 
-      value = wocky_xmpp_node_get_child (option_node, "value");
       if (value == NULL)
         continue;
 
-      if (value->content == NULL)
-        continue;
+      /* the label is optional */
 
-      DEBUG ("Add option: %s", value->content);
-      option = wocky_data_form_field_option_new (label, value->content);
+      DEBUG ("Add option: %s", value);
+      option = wocky_data_form_field_option_new (label, value);
       result = g_slist_append (result, option);
     }
 
@@ -479,20 +476,14 @@ static WockyDataFormField *
 data_form_parse_form_field (WockyXmppNode *field_node)
 {
   WockyDataFormField *field;
-  const gchar *var, *label;
+  const gchar *var, *label, *desc;
   WockyDataFormFieldType type;
-  WockyXmppNode *desc_node;
-  const gchar *desc = NULL;
   gboolean required;
 
   if (!extract_var_type_label (field_node, &var, &type, &label))
     return NULL;
 
-  desc_node = wocky_xmpp_node_get_child (field_node, "desc");
-
-  if (desc_node != NULL)
-    desc = desc_node->content;
-
+  desc = wocky_xmpp_node_get_content_from_child (field_node, "desc");
   required = (wocky_xmpp_node_get_child (field_node, "required") != NULL);
   field = create_field (field_node, var, type, label, desc, required);
 
@@ -529,7 +520,7 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
 {
   WockyXmppNode *x, *node;
   WockyXmppNodeIter iter;
-  const gchar *type, *title = NULL, *instructions = NULL;
+  const gchar *type, *title, *instructions;
   WockyDataForm *form;
 
   x = wocky_xmpp_node_get_child_ns (root, "x", WOCKY_XMPP_NS_DATA);
@@ -551,15 +542,8 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
       return NULL;
     }
 
-  /* get title */
-  node = wocky_xmpp_node_get_child (x, "title");
-  if (node != NULL)
-    title = node->content;
-
-  /* get instructions */
-  node = wocky_xmpp_node_get_child (x, "instructions");
-  if (node != NULL)
-    instructions = node->content;
+  title = wocky_xmpp_node_get_content_from_child (x, "title");
+  instructions = wocky_xmpp_node_get_content_from_child (x, "instructions");
 
   form = g_object_new (WOCKY_TYPE_DATA_FORM,
       "title", title,

@@ -592,7 +592,6 @@ wocky_xmpp_stream_error_quark (void)
 GError *
 wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
 {
-  WockyXmppNode *text;
   gint code = WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
   const gchar *message = NULL;
 
@@ -600,10 +599,8 @@ wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
   xmpp_error_from_node_for_ns (error, WOCKY_XMPP_STREAM_ERROR,
       WOCKY_TYPE_XMPP_STREAM_ERROR, &code);
 
-  text = wocky_xmpp_node_get_child_ns (error, "text", WOCKY_XMPP_NS_STREAMS);
-
-  if (text != NULL)
-    message = text->content;
+  message = wocky_xmpp_node_get_content_from_child_ns (error, "text",
+      WOCKY_XMPP_NS_STREAMS);
 
   if (message == NULL)
     message = "";
