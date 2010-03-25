@@ -607,7 +607,8 @@ wocky_data_form_set_type (WockyDataForm *form,
  * data_form_set_value:
  * @form: a data form
  * @field_name: the name of a field of @form
- * @value: the value to fill in for @field_name (stolen by this function)
+ * @value: a slice-allocated value to fill in for @field_name (stolen by this
+ *         function)
  * @create_if_missing: if no field named @field_name exists, create it
  *
  * Returns: %TRUE if the field was successfully filled in; %FALSE if the field
