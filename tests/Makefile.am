@@ -67,7 +67,7 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-session-test \
   wocky-pep-service-test \
   wocky-tls-test \
-  wocky-data-forms-test \
+  wocky-data-form-test \
   wocky-pubsub-service-test \
   wocky-pubsub-node-test \
   wocky-connector-test
@@ -183,11 +183,11 @@ wocky_pep_service_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-pep-service-test.c
 
-wocky_data_forms_test_DEPENDENCIES = $(LIBWOCKY)
-wocky_data_forms_test_SOURCES = \
+wocky_data_form_test_DEPENDENCIES = $(LIBWOCKY)
+wocky_data_form_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
-  wocky-data-forms-test.c
+  wocky-data-form-test.c
 
 wocky_pubsub_service_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_pubsub_service_test_SOURCES = \

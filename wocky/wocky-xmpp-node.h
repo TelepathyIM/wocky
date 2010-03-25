@@ -104,6 +104,14 @@ WockyXmppNode *wocky_xmpp_node_get_child_ns (WockyXmppNode *node,
 
 WockyXmppNode *wocky_xmpp_node_get_first_child (WockyXmppNode *node);
 
+/* Getting content from children */
+const gchar *wocky_xmpp_node_get_content_from_child (WockyXmppNode *node,
+    const gchar *name);
+
+const gchar *wocky_xmpp_node_get_content_from_child_ns (WockyXmppNode *node,
+    const gchar *name,
+    const gchar *ns);
+
 /* Creating child nodes */
 WockyXmppNode *wocky_xmpp_node_add_child (WockyXmppNode *node,
     const gchar *name);

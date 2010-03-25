@@ -8,8 +8,8 @@ BUILT_SOURCES = \
   wocky-signals-marshal.list \
   wocky-signals-marshal.h \
   wocky-signals-marshal.c \
-  wocky-data-forms-enumtypes.c \
-  wocky-data-forms-enumtypes.h \
+  wocky-data-form-enumtypes.c \
+  wocky-data-form-enumtypes.h \
   wocky-muc-enumtypes.c \
   wocky-muc-enumtypes.h \
   wocky-pubsub-service-enumtypes.c \
@@ -78,8 +78,8 @@ HANDWRITTEN_SOURCES = \
   wocky-muc.c \
   wocky-pep-service.c \
   wocky-pep-service.h \
-  wocky-data-forms.c \
-  wocky-data-forms.h \
+  wocky-data-form.c \
+  wocky-data-form.h \
   wocky-pubsub-helpers.c \
   wocky-pubsub-helpers.h \
   wocky-pubsub-service.c \

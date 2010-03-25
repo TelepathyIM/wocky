@@ -609,7 +609,6 @@ static gboolean
 store_muc_disco_info_x (WockyXmppNode *field, gpointer data)
 {
   WockyMucPrivate *priv = data;
-  WockyXmppNode *val = NULL;
   const gchar *var = NULL;
 
   if (wocky_strdiff (field->name, "field"))
@@ -620,12 +619,8 @@ store_muc_disco_info_x (WockyXmppNode *field, gpointer data)
   if (wocky_strdiff (var, "muc#roominfo_description"))
     return TRUE;
 
-  val = wocky_xmpp_node_get_child (field, "value");
-
-  if (val == NULL)
-    return TRUE;
-
-  priv->desc = g_strdup (val->content);
+  priv->desc = g_strdup (
+      wocky_xmpp_node_get_content_from_child (field, "value"));
 
   return TRUE;
 }
@@ -1454,13 +1449,8 @@ handle_message (WockyPorter *porter,
         }
     }
 
-  child = wocky_xmpp_node_get_child (msg, "body");
-  if (child != NULL)
-    body = child->content;
-
-  child = wocky_xmpp_node_get_child (msg, "subject");
-  if (child != NULL)
-    subj = child->content;
+  body = wocky_xmpp_node_get_content_from_child (msg, "body");
+  subj = wocky_xmpp_node_get_content_from_child (msg, "subject");
 
   /* ********************************************************************** */
   /* parse timestap, if any */

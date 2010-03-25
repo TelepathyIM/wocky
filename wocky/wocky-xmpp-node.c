@@ -575,6 +575,46 @@ wocky_xmpp_node_get_first_child (WockyXmppNode *node)
 }
 
 /**
+ * wocky_xmpp_node_get_content_from_child:
+ * @node: a #WockyXmppNode
+ * @name: the name of the child whose content to retrieve
+ *
+ * Retrieves the content from a child of a node, if it exists.
+ *
+ * Returns: the content of the child of @node named @name, or %NULL if @node
+ *          has no such child.
+ */
+const gchar *
+wocky_xmpp_node_get_content_from_child (WockyXmppNode *node,
+    const gchar *name)
+{
+  return wocky_xmpp_node_get_content_from_child_ns (node, name, NULL);
+}
+
+/**
+ * wocky_xmpp_node_get_content_from_child_ns:
+ * @node: a #WockyXmppNode
+ * @name: the name of the child whose content to retrieve
+ * @ns: the namespace of the child whose content to retrieve
+ *
+ * Retrieves the content from a child of a node, if it exists.
+ *
+ * Returns: the content of the child of @node named @name in @ns, or %NULL if
+ *          @node has no such child.
+ */
+const gchar *wocky_xmpp_node_get_content_from_child_ns (WockyXmppNode *node,
+    const gchar *name,
+    const gchar *ns)
+{
+  WockyXmppNode *child = wocky_xmpp_node_get_child_ns (node, name, ns);
+
+  if (child == NULL)
+    return NULL;
+  else
+    return child->content;
+}
+
+/**
  * wocky_xmpp_node_add_child:
  * @node: a #WockyXmppNode
  * @name: the name of the child to add
