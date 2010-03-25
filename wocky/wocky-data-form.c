@@ -566,6 +566,43 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
   return form;
 }
 
+/**
+ * wocky_data_form_set_type:
+ * @form: a #WockyDataForm
+ * @form_type: the URI to use as the FORM_TYPE field; may not be %NULL
+ *
+ * Creates a hidden FORM_TYPE field in @form and sets its value to @form_type.
+ * This is intended only to be used on empty forms created for blind
+ * submission.
+ *
+ * Returns: %TRUE if the form's type was set; %FALSE if the form already had a
+ *          type.
+ */
+gboolean
+wocky_data_form_set_type (WockyDataForm *form,
+    const gchar *form_type)
+{
+  WockyDataFormField *field;
+
+  g_return_val_if_fail (form_type != NULL, FALSE);
+
+  field = g_hash_table_lookup (form->fields, "FORM_TYPE");
+
+  if (field != NULL)
+    {
+      DEBUG ("form already has a FORM_TYPE");
+      return FALSE;
+    }
+
+  field = wocky_data_form_field_new (WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN,
+      "FORM_TYPE", NULL, NULL, FALSE, NULL,
+      wocky_g_value_slice_new_string (form_type),
+      NULL);
+  data_form_add_field (form, field, FALSE);
+
+  return TRUE;
+}
+
 /*
  * data_form_set_value:
  * @form: a data form

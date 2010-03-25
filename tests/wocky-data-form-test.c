@@ -537,8 +537,9 @@ test_submit_blindly (void)
   gboolean succeeded;
   WockyXmppStanza *stanza, *expected;
 
-  /* The form's empty, so the setters should all fail if we don't tell them to
-   * create the fields if missing.
+  /* We didn't actually parse a form, so it doesn't have any pre-defined
+   * fields. Thus, the setters should all fail if we don't tell them to create
+   * the fields if missing.
    */
   succeeded = wocky_data_form_set_string (form, "band-name", "The XX", FALSE);
   g_assert (!succeeded);
@@ -552,8 +553,17 @@ test_submit_blindly (void)
   g_assert (form->fields_list == NULL);
   g_assert_cmpuint (0, ==, g_hash_table_size (form->fields));
 
-  /* But if we forcibly create those fields, they should show up when we submit
-   * the form!
+  /* Since the form doesn't have a FORM_TYPE yet, we should be able to set it.
+   */
+  succeeded = wocky_data_form_set_type (form, "http://example.com/band-info");
+  g_assert (succeeded);
+
+  /* But now that it does have one, we shouldn't be able to change it. */
+  succeeded = wocky_data_form_set_type (form, "stoats");
+  g_assert (!succeeded);
+
+  /* If we forcibly create the fields we care about, setting them should
+   * succeed, and they should show up when we submit the form!
    */
   succeeded = wocky_data_form_set_string (form, "band-name", "The XX", TRUE);
   g_assert (succeeded);
@@ -574,6 +584,13 @@ test_submit_blindly (void)
       WOCKY_NODE, "x",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_DATA,
         WOCKY_NODE_ATTRIBUTE, "type", "submit",
+        WOCKY_NODE, "field",
+          WOCKY_NODE_ATTRIBUTE, "type", "hidden",
+          WOCKY_NODE_ATTRIBUTE, "var", "FORM_TYPE",
+          WOCKY_NODE, "value",
+            WOCKY_NODE_TEXT, "http://example.com/band-info",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
         WOCKY_NODE, "field",
           WOCKY_NODE_ATTRIBUTE, "var", "band-name",
           WOCKY_NODE, "value",
