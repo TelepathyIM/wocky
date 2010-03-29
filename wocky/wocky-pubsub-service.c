@@ -32,7 +32,7 @@
 #define DEBUG_FLAG DEBUG_PUBSUB
 #include "wocky-debug.h"
 
-static gboolean pubsub_service_handle_event_stanza (WockyPorter *porter,
+static gboolean pubsub_service_handle_items_event (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
     gpointer user_data);
 
@@ -192,7 +192,7 @@ wocky_pubsub_service_constructed (GObject *object)
       WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
       priv->jid,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
-      pubsub_service_handle_event_stanza, self,
+      pubsub_service_handle_items_event, self,
         WOCKY_NODE, "event",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
           WOCKY_NODE, "items", WOCKY_NODE_END,
@@ -372,7 +372,7 @@ wocky_pubsub_service_lookup_node (WockyPubsubService *self,
 }
 
 static gboolean
-pubsub_service_handle_event_stanza (WockyPorter *porter,
+pubsub_service_handle_items_event (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
     gpointer user_data)
 {
@@ -396,7 +396,7 @@ pubsub_service_handle_event_stanza (WockyPorter *porter,
     }
 
   node = wocky_pubsub_service_ensure_node (self, node_name);
-  _wocky_pubsub_node_handle_event_stanza (node, event_stanza);
+  _wocky_pubsub_node_handle_items_event (node, event_stanza);
   g_object_unref (node);
 
   return TRUE;
