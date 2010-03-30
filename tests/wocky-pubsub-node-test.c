@@ -537,6 +537,106 @@ test_receive_event (void)
   g_assert (!service_event_received);
 }
 
+/* /pubsub-node/subscription-state-changed */
+typedef struct {
+    test_data_t *test;
+    gboolean expecting_node_ssc_received;
+} TestSSCCtx;
+
+static void
+send_subscription_state_change (WockyPorter *porter,
+    const gchar *service,
+    const gchar *node,
+    const gchar *state)
+{
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE,
+      service, NULL,
+      WOCKY_NODE, "event",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
+        WOCKY_NODE, "subscription",
+          WOCKY_NODE_ATTRIBUTE, "node", node,
+          WOCKY_NODE_ATTRIBUTE, "jid", "mighty@pirate.lit",
+          WOCKY_NODE_ATTRIBUTE, "subscription", state,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, stanza);
+  g_object_unref (stanza);
+}
+
+static void
+node_subscription_state_changed_cb (
+    WockyPubsubNode *node,
+    WockyXmppStanza *stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *subscription_node,
+    WockyPubsubSubscription *subscription,
+    TestSSCCtx *ctx)
+{
+  g_assert (ctx->expecting_node_ssc_received);
+  ctx->expecting_node_ssc_received = FALSE;
+
+  g_assert_cmpstr (wocky_pubsub_node_get_name (node), ==, "dairy-farmer");
+
+  g_assert_cmpstr (event_node->name, ==, "event");
+  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+      WOCKY_XMPP_NS_PUBSUB_EVENT);
+
+  g_assert_cmpstr (subscription_node->name, ==, "subscription");
+
+  g_assert (subscription->node == node);
+  g_assert_cmpstr (subscription->jid, ==, "mighty@pirate.lit");
+  g_assert_cmpuint (subscription->state, ==,
+      WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED);
+  g_assert (subscription->subid == NULL);
+
+  ctx->test->outstanding--;
+  g_main_loop_quit (ctx->test->loop);
+}
+
+static void
+test_subscription_state_changed (void)
+{
+  test_data_t *test = setup_test ();
+  TestSSCCtx ctx = { test, FALSE };
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_out, "pubsub.localhost");
+  node = wocky_pubsub_service_ensure_node (pubsub, "dairy-farmer");
+
+  g_signal_connect (node, "subscription-state-changed",
+      (GCallback) node_subscription_state_changed_cb, &ctx);
+
+  /* Send a subscription change notification for a different node. */
+  send_subscription_state_change (test->sched_in, "pubsub.localhost", "cow",
+      "pending");
+
+  /* Send a subscription change notification for @node. */
+  send_subscription_state_change (test->sched_in, "pubsub.localhost",
+      "dairy-farmer", "unconfigured");
+  ctx.expecting_node_ssc_received = TRUE;
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  g_assert (!ctx.expecting_node_ssc_received);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -550,6 +650,8 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/unsubscribe", test_unsubscribe);
   g_test_add_func ("/pubsub-node/delete", test_delete);
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
+  g_test_add_func ("/pubsub-node/subscription-state-changed",
+      test_subscription_state_changed);
 
   result = g_test_run ();
   test_deinit ();

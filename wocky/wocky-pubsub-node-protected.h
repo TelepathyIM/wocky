@@ -28,6 +28,9 @@ WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
 gboolean _wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza);
 
+gboolean _wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza);
+
 WockyXmppStanza *wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
     WockyXmppNode **pubsub_node,

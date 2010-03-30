@@ -33,12 +33,16 @@
 static gboolean pubsub_node_handle_items_event (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
     gpointer user_data);
+static gboolean pubsub_node_handle_subscription_event (WockyPorter *porter,
+    WockyXmppStanza *event_stanza,
+    gpointer user_data);
 
 G_DEFINE_TYPE (WockyPubsubNode, wocky_pubsub_node, G_TYPE_OBJECT)
 
 enum
 {
   SIG_EVENT_RECEIVED,
+  SIG_SUB_STATE_CHANGED,
   LAST_SIGNAL,
 };
 
@@ -60,7 +64,8 @@ struct _WockyPubsubNodePrivate
 
   gchar *service_jid;
   gchar *name;
-  guint handler_id;
+  guint items_handler_id;
+  guint sub_handler_id;
 
   gboolean dispose_has_run;
 };
@@ -140,7 +145,8 @@ wocky_pubsub_node_dispose (GObject *object)
 
   if (priv->porter != NULL)
     {
-      wocky_porter_unregister_handler (priv->porter, priv->handler_id);
+      wocky_porter_unregister_handler (priv->porter, priv->items_handler_id);
+      wocky_porter_unregister_handler (priv->porter, priv->sub_handler_id);
       g_object_unref (priv->porter);
     }
 
@@ -181,7 +187,7 @@ wocky_pubsub_node_constructed (GObject *object)
   g_object_ref (priv->porter);
   g_object_unref (session);
 
-  priv->handler_id = wocky_porter_register_handler (priv->porter,
+  priv->items_handler_id = wocky_porter_register_handler (priv->porter,
       WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
       priv->service_jid,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
@@ -189,6 +195,19 @@ wocky_pubsub_node_constructed (GObject *object)
         WOCKY_NODE, "event",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
           WOCKY_NODE, "items",
+            WOCKY_NODE_ATTRIBUTE, "node", priv->name,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  priv->sub_handler_id = wocky_porter_register_handler (priv->porter,
+      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+      priv->service_jid,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      pubsub_node_handle_subscription_event, self,
+        WOCKY_NODE, "event",
+          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
+          WOCKY_NODE, "subscription",
             WOCKY_NODE_ATTRIBUTE, "node", priv->name,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
@@ -205,6 +224,18 @@ wocky_pubsub_node_emit_event_received (
 {
   g_signal_emit (self, signals[SIG_EVENT_RECEIVED], 0, event_stanza,
       event_node, items_node, items);
+}
+
+static void
+wocky_pubsub_node_emit_subscription_state_changed (
+    WockyPubsubNode *self,
+    WockyXmppStanza *stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *subscription_node,
+    WockyPubsubSubscription *subscription)
+{
+  g_signal_emit (self, signals[SIG_SUB_STATE_CHANGED], 0, stanza,
+      event_node, subscription_node, subscription);
 }
 
 static void
@@ -249,6 +280,21 @@ wocky_pubsub_node_class_init (
       _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER_POINTER,
       G_TYPE_NONE, 4,
       WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
+
+  /**
+   * WockyPubsubNode::subscription-state-changed:
+   * @node: a pubsub node
+   * @stanza: the message/event stanza in its entirety
+   * @event_node: the event node from @stanza
+   * @subscription_node: the subscription node from @stanza
+   * @subscription: subscription information parsed from @subscription_node
+   */
+  signals[SIG_SUB_STATE_CHANGED] = g_signal_new ("subscription-state-changed",
+      ctype, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER_BOXED,
+      G_TYPE_NONE, 4,
+      WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER,
+      WOCKY_TYPE_PUBSUB_SUBSCRIPTION);
 }
 
 static gboolean
@@ -286,6 +332,53 @@ _wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
 
   g_queue_clear (&items);
 
+  return TRUE;
+}
+
+static gboolean
+pubsub_node_handle_subscription_event (WockyPorter *porter,
+    WockyXmppStanza *event_stanza,
+    gpointer user_data)
+{
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (user_data);
+
+  return _wocky_pubsub_node_handle_subscription_event (self, event_stanza);
+}
+
+gboolean
+_wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyXmppNode *event_node, *subscription_node;
+  WockyPubsubSubscription *sub;
+  GError *error = NULL;
+
+  event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
+      WOCKY_XMPP_NS_PUBSUB_EVENT);
+  g_return_val_if_fail (event_node != NULL, FALSE);
+  subscription_node = wocky_xmpp_node_get_child (event_node, "subscription");
+  g_return_val_if_fail (subscription_node != NULL, FALSE);
+
+  sub = wocky_pubsub_service_parse_subscription (priv->service,
+      subscription_node, NULL, &error);
+
+  if (sub == NULL)
+    {
+      DEBUG ("received unparseable subscription state change notification: %s",
+          error->message);
+      g_clear_error (&error);
+    }
+  else
+    {
+      wocky_pubsub_node_emit_subscription_state_changed (self, event_stanza,
+          event_node, subscription_node, sub);
+      wocky_pubsub_subscription_free (sub);
+    }
+
+  /* If we couldn't parse the subscription, nothing else will be able to
+   * either, so we've handled it either way.
+   */
   return TRUE;
 }
 
