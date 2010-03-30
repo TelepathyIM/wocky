@@ -878,7 +878,6 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
           g_assert (e != NULL);
 
           g_propagate_error (error, e);
-          g_error_free (e);
 
           break;
         }
