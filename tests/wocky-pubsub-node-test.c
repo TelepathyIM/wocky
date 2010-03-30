@@ -540,7 +540,9 @@ test_receive_event (void)
 /* /pubsub-node/subscription-state-changed */
 typedef struct {
     test_data_t *test;
+    const gchar *expecting_service_ssc_received_for;
     gboolean expecting_node_ssc_received;
+    WockyPubsubSubscriptionState expected_state;
 } TestSSCCtx;
 
 static void
@@ -569,6 +571,37 @@ send_subscription_state_change (WockyPorter *porter,
 }
 
 static void
+service_subscription_state_changed_cb (
+    WockyPubsubService *service,
+    WockyPubsubNode *node,
+    WockyXmppStanza *stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *subscription_node,
+    WockyPubsubSubscription *subscription,
+    TestSSCCtx *ctx)
+{
+  g_assert (ctx->expecting_service_ssc_received_for != NULL);
+
+  g_assert_cmpstr (wocky_pubsub_node_get_name (node), ==,
+      ctx->expecting_service_ssc_received_for);
+
+  g_assert_cmpstr (event_node->name, ==, "event");
+  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+      WOCKY_XMPP_NS_PUBSUB_EVENT);
+
+  g_assert_cmpstr (subscription_node->name, ==, "subscription");
+
+  g_assert (subscription->node == node);
+  g_assert_cmpstr (subscription->jid, ==, "mighty@pirate.lit");
+  g_assert_cmpuint (subscription->state, ==, ctx->expected_state);
+  g_assert (subscription->subid == NULL);
+
+  ctx->expecting_service_ssc_received_for = NULL;
+  ctx->test->outstanding--;
+  g_main_loop_quit (ctx->test->loop);
+}
+
+static void
 node_subscription_state_changed_cb (
     WockyPubsubNode *node,
     WockyXmppStanza *stanza,
@@ -590,8 +623,7 @@ node_subscription_state_changed_cb (
 
   g_assert (subscription->node == node);
   g_assert_cmpstr (subscription->jid, ==, "mighty@pirate.lit");
-  g_assert_cmpuint (subscription->state, ==,
-      WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED);
+  g_assert_cmpuint (subscription->state, ==, ctx->expected_state);
   g_assert (subscription->subid == NULL);
 
   ctx->test->outstanding--;
@@ -602,7 +634,7 @@ static void
 test_subscription_state_changed (void)
 {
   test_data_t *test = setup_test ();
-  TestSSCCtx ctx = { test, FALSE };
+  TestSSCCtx ctx = { test, FALSE, FALSE, WOCKY_PUBSUB_SUBSCRIPTION_NONE };
   WockyPubsubService *pubsub;
   WockyPubsubNode *node;
 
@@ -611,21 +643,31 @@ test_subscription_state_changed (void)
   wocky_porter_start (test->sched_in);
 
   pubsub = wocky_pubsub_service_new (test->session_out, "pubsub.localhost");
-  node = wocky_pubsub_service_ensure_node (pubsub, "dairy-farmer");
+  g_signal_connect (pubsub, "subscription-state-changed",
+      (GCallback) service_subscription_state_changed_cb, &ctx);
 
+  node = wocky_pubsub_service_ensure_node (pubsub, "dairy-farmer");
   g_signal_connect (node, "subscription-state-changed",
       (GCallback) node_subscription_state_changed_cb, &ctx);
 
   /* Send a subscription change notification for a different node. */
   send_subscription_state_change (test->sched_in, "pubsub.localhost", "cow",
       "pending");
+  ctx.expecting_service_ssc_received_for = "cow";
+  ctx.expecting_node_ssc_received = FALSE;
+  ctx.expected_state = WOCKY_PUBSUB_SUBSCRIPTION_PENDING;
+
+  test->outstanding += 1;
+  test_wait_pending (test);
 
   /* Send a subscription change notification for @node. */
   send_subscription_state_change (test->sched_in, "pubsub.localhost",
       "dairy-farmer", "unconfigured");
+  ctx.expecting_service_ssc_received_for = "dairy-farmer";
   ctx.expecting_node_ssc_received = TRUE;
+  ctx.expected_state = WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED;
 
-  test->outstanding += 1;
+  test->outstanding += 2;
   test_wait_pending (test);
 
   g_assert (!ctx.expecting_node_ssc_received);
