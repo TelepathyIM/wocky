@@ -242,13 +242,13 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
   xmlBufferEmpty (priv->buffer);
   xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)
       "<?xml version='1.0' encoding='UTF-8'?>\n"            \
-      "<stream:stream\n"                                    \
-      "  xmlns='jabber:client'\n"                           \
-      "  xmlns:stream='http://etherx.jabber.org/streams'");
+      "<stream:stream"                                      \
+      " xmlns='jabber:client'"                              \
+      " xmlns:stream='http://etherx.jabber.org/streams'");
 
   if (to != NULL)
     {
-      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\n  to=\"");
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)" to=\"");
       xmlTextWriterFlush (priv->xmlwriter);
       xmlAttrSerializeTxtContent (priv->buffer, NULL, NULL, (xmlChar *) to);
       xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\"");
@@ -256,7 +256,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
 
   if (from != NULL)
     {
-      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\n  from=\"");
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)" from=\"");
       xmlTextWriterFlush (priv->xmlwriter);
       xmlAttrSerializeTxtContent (priv->buffer, NULL, NULL, (xmlChar *) from);
       xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\"");
@@ -264,7 +264,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
 
   if (version != NULL)
     {
-      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\n  version=\"");
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)" version=\"");
       xmlTextWriterFlush (priv->xmlwriter);
       xmlAttrSerializeTxtContent (priv->buffer, NULL,
         NULL, (xmlChar *) version);
@@ -273,7 +273,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
 
   if (lang != NULL)
     {
-      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\n  xml:lang=\"");
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)" xml:lang=\"");
       xmlTextWriterFlush (priv->xmlwriter);
       xmlAttrSerializeTxtContent (priv->buffer, NULL,
         NULL, (xmlChar *) lang);
@@ -282,7 +282,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
 
   if (id != NULL)
     {
-      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\n  id=\"");
+      xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)" id=\"");
       xmlTextWriterFlush (priv->xmlwriter);
       xmlAttrSerializeTxtContent (priv->buffer, NULL, NULL, (xmlChar *) id);
       xmlTextWriterWriteString (priv->xmlwriter, (xmlChar *)"\"");
