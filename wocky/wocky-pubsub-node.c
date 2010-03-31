@@ -256,8 +256,8 @@ wocky_pubsub_node_class_init (
       WOCKY_TYPE_PUBSUB_SUBSCRIPTION);
 }
 
-gboolean
-_wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
+static gboolean
+pubsub_node_handle_items_event (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *items_node)
@@ -280,8 +280,8 @@ _wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
   return TRUE;
 }
 
-gboolean
-_wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
+static gboolean
+pubsub_node_handle_subscription_event (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *subscription_node)
@@ -310,6 +310,18 @@ _wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
    * either, so we've handled it either way.
    */
   return TRUE;
+}
+
+static const WockyPubsubNodeEventMapping mappings[] = {
+    { "items", pubsub_node_handle_items_event, },
+    { "subscription", pubsub_node_handle_subscription_event, },
+    { NULL, }
+};
+
+const WockyPubsubNodeEventMapping *
+_wocky_pubsub_node_get_event_mappings (void)
+{
+  return mappings;
 }
 
 const gchar *

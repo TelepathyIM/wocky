@@ -59,8 +59,7 @@ typedef struct _EventTrampoline EventTrampoline;
 
 struct _EventTrampoline
 {
-  const gchar *action;
-  WockyPubsubNodeEventHandler node_method;
+  const WockyPubsubNodeEventMapping *mapping;
   WockyPubsubService *self;
   guint handler_id;
 };
@@ -198,18 +197,12 @@ wocky_pubsub_service_finalize (GObject *object)
   G_OBJECT_CLASS (wocky_pubsub_service_parent_class)->finalize (object);
 }
 
-static EventTrampoline trampolines[] = {
-    { "items", _wocky_pubsub_node_handle_items_event, },
-    { "subscription", _wocky_pubsub_node_handle_subscription_event, },
-    { NULL, }
-};
-
 static void
 wocky_pubsub_service_constructed (GObject *object)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
-  EventTrampoline *t;
+  const WockyPubsubNodeEventMapping *m;
 
   g_assert (priv->session != NULL);
   g_assert (priv->jid != NULL);
@@ -217,25 +210,28 @@ wocky_pubsub_service_constructed (GObject *object)
   priv->porter = wocky_session_get_porter (priv->session);
   g_object_ref (priv->porter);
 
-  priv->trampolines = g_ptr_array_sized_new (G_N_ELEMENTS (trampolines));
+  priv->trampolines = g_ptr_array_sized_new (3);
 
-  for (t = trampolines; t->action != NULL; t++)
+  for (m = _wocky_pubsub_node_get_event_mappings ();
+       m->action != NULL;
+       m++)
     {
-      EventTrampoline *u = g_slice_dup (EventTrampoline, t);
+      EventTrampoline *t = g_slice_new (EventTrampoline);
 
-      u->self = self;
-      u->handler_id = wocky_porter_register_handler (priv->porter,
+      t->mapping = m;
+      t->self = self;
+      t->handler_id = wocky_porter_register_handler (priv->porter,
           WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
           priv->jid,
           WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
-          pubsub_service_propagate_event, u,
+          pubsub_service_propagate_event, t,
             WOCKY_NODE, "event",
               WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
-              WOCKY_NODE, u->action, WOCKY_NODE_END,
+              WOCKY_NODE, m->action, WOCKY_NODE_END,
             WOCKY_NODE_END,
           WOCKY_STANZA_END);
 
-      g_ptr_array_add (priv->trampolines, u);
+      g_ptr_array_add (priv->trampolines, t);
     }
 }
 
@@ -459,7 +455,8 @@ pubsub_service_propagate_event (WockyPorter *porter,
   event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
       WOCKY_XMPP_NS_PUBSUB_EVENT);
   g_return_val_if_fail (event_node != NULL, FALSE);
-  action_node = wocky_xmpp_node_get_child (event_node, trampoline->action);
+  action_node = wocky_xmpp_node_get_child (event_node,
+      trampoline->mapping->action);
   g_return_val_if_fail (action_node != NULL, FALSE);
 
   node_name = wocky_xmpp_node_get_attribute (action_node, "node");
@@ -467,12 +464,12 @@ pubsub_service_propagate_event (WockyPorter *porter,
   if (node_name == NULL)
     {
       DEBUG_STANZA (event_stanza, "no node='' attribute on <%s/>",
-          trampoline->action);
+          trampoline->mapping->action);
       return FALSE;
     }
 
   node = wocky_pubsub_service_ensure_node (self, node_name);
-  trampoline->node_method (node, event_stanza, event_node, action_node);
+  trampoline->mapping->method (node, event_stanza, event_node, action_node);
   g_object_unref (node);
 
   return TRUE;

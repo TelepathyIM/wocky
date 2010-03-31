@@ -23,7 +23,7 @@
 
 #include "wocky-pubsub-node.h"
 
-WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
+/* for use by WockyPubsubService */
 
 typedef gboolean (*WockyPubsubNodeEventHandler) (
     WockyPubsubNode *self,
@@ -31,15 +31,16 @@ typedef gboolean (*WockyPubsubNodeEventHandler) (
     WockyXmppNode *event_node,
     WockyXmppNode *action_node);
 
-gboolean _wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *items_node);
+typedef struct {
+    const gchar *action;
+    WockyPubsubNodeEventHandler method;
+} WockyPubsubNodeEventMapping;
 
-gboolean _wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *subscription_node);
+const WockyPubsubNodeEventMapping *_wocky_pubsub_node_get_event_mappings (void);
+
+/* for use by subclasses */
+
+WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
 
 WockyXmppStanza *wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
@@ -57,4 +58,5 @@ WockyXmppStanza *wocky_pubsub_node_make_delete_stanza (
     WockyPubsubNode *self,
     WockyXmppNode **pubsub_node,
     WockyXmppNode **delete_node);
+
 #endif /* WOCKY_PUBSUB_NODE_PROTECTED_H */
