@@ -10,9 +10,9 @@
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-xmpp-error.h>
 
-#include "wocky-test-stream.h"
+#include "wocky-pubsub-test-helpers.h"
 #include "wocky-test-helper.h"
-
+#include "wocky-test-stream.h"
 
 /* Test instantiating a WockyPubsubService object */
 static WockySession *
@@ -661,14 +661,6 @@ typedef struct {
     RetrieveSubscriptionsMode mode;
 } RetrieveSubscriptionsCtx;
 
-typedef struct {
-    const gchar *node;
-    const gchar *jid;
-    const gchar *subscription;
-    WockyPubsubSubscriptionState state;
-    const gchar *subid;
-} CannedSubscriptions;
-
 static CannedSubscriptions normal_subs[] = {
   { "node1", "francisco@denmark.lit",
     "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
@@ -702,7 +694,6 @@ make_subscriptions_response (WockyXmppStanza *stanza,
 {
   WockyXmppStanza *reply;
   WockyXmppNode *s;
-  CannedSubscriptions *l;
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
         WOCKY_NODE, "pubsub",
@@ -716,20 +707,7 @@ make_subscriptions_response (WockyXmppStanza *stanza,
   if (node != NULL)
     wocky_xmpp_node_set_attribute (s, "node", node);
 
-  for (l = subs; l != NULL && l->node != NULL; l++)
-    {
-      WockyXmppNode *sub = wocky_xmpp_node_add_child (s, "subscription");
-
-      if (node == NULL)
-	wocky_xmpp_node_set_attribute (sub, "node", l->node);
-
-      wocky_xmpp_node_set_attribute (sub, "jid", l->jid);
-      wocky_xmpp_node_set_attribute (sub, "subscription", l->subscription);
-
-      if (l->subid != NULL)
-        wocky_xmpp_node_set_attribute (sub, "subid", l->subid);
-    }
-
+  test_pubsub_add_subscription_nodes (s, subs, (node == NULL));
   return reply;
 }
 
@@ -799,27 +777,12 @@ check_subscriptions (
     GAsyncResult *res,
     CannedSubscriptions *expected_subs)
 {
-  GList *subscriptions, *l;
-  guint i = 0;
+  GList *subscriptions;
 
   g_assert (wocky_pubsub_service_retrieve_subscriptions_finish (
       WOCKY_PUBSUB_SERVICE (source), res, &subscriptions, NULL));
 
-  for (l = subscriptions; l != NULL; l = l->next, i++)
-    {
-      WockyPubsubSubscription *sub = l->data;
-
-      g_assert (expected_subs[i].jid != NULL);
-      g_assert_cmpstr (expected_subs[i].jid, ==, sub->jid);
-      g_assert_cmpstr (expected_subs[i].node, ==,
-          wocky_pubsub_node_get_name (sub->node));
-      g_assert_cmpuint (expected_subs[i].state, ==, sub->state);
-      g_assert_cmpstr (expected_subs[i].subid, ==, sub->subid);
-    }
-
-  g_assert_cmpstr (expected_subs[i].jid, ==, NULL);
-
-  wocky_pubsub_subscription_list_free (subscriptions);
+  test_pubsub_check_and_free_subscriptions (subscriptions, expected_subs);
 }
 
 static void
