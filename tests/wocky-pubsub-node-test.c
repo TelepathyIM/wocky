@@ -8,8 +8,9 @@
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 
-#include "wocky-test-stream.h"
+#include "wocky-pubsub-test-helpers.h"
 #include "wocky-test-helper.h"
+#include "wocky-test-stream.h"
 
 
 /* Test instantiating a WockyPubsubNode object */
@@ -367,6 +368,128 @@ test_delete (void)
   g_assert (node != NULL);
 
   wocky_pubsub_node_delete_async (node, NULL, test_delete_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
+/* Test retrieving a list of subscribers. See XEP-0060 §8.8.1 Retrieve
+ * Subscriptions List
+ * <http://xmpp.org/extensions/xep-0060.html#owner-subscriptions-retrieve>
+ */
+
+static CannedSubscriptions example_183[] = {
+    { "princely_musings",
+      "hamlet@denmark.lit",
+      "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+      NULL },
+    { "princely_musings",
+      "polonius@denmark.lit",
+      "unconfigured", WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED,
+      NULL },
+    { "princely_musings",
+      "bernardo@denmark.lit",
+      "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+      "123-abc" },
+    { "princely_musings",
+      "bernardo@denmark.lit",
+      "subscribed", WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED,
+      "004-yyy" },
+    { NULL, }
+};
+
+static gboolean
+test_list_subscribers_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *expected, *reply;
+  WockyXmppNode *subscriptions;
+
+  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, NULL, "pubsub.localhost",
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "subscriptions",
+          WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  test_assert_stanzas_equal (stanza, expected);
+
+  g_object_unref (expected);
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "subscriptions",
+          WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
+          WOCKY_NODE_ASSIGN_TO, &subscriptions,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+  test_pubsub_add_subscription_nodes (subscriptions, example_183, FALSE);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_list_subscribers_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GList *subscribers;
+
+  g_assert (wocky_pubsub_node_list_subscribers_finish (
+      WOCKY_PUBSUB_NODE (source), res, &subscribers, NULL));
+
+  test_pubsub_check_and_free_subscriptions (subscribers, example_183);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_list_subscribers (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_list_subscribers_iq_cb, test,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "subscriptions",
+          WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
+  g_assert (node != NULL);
+
+  wocky_pubsub_node_list_subscribers_async (node, NULL,
+      test_list_subscribers_cb, test);
 
   test->outstanding += 2;
   test_wait_pending (test);
@@ -816,6 +939,8 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/subscribe", test_subscribe);
   g_test_add_func ("/pubsub-node/unsubscribe", test_unsubscribe);
   g_test_add_func ("/pubsub-node/delete", test_delete);
+
+  g_test_add_func ("/pubsub-node/list-subscribers", test_list_subscribers);
 
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
   g_test_add_func ("/pubsub-node/subscription-state-changed",

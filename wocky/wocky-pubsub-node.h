@@ -96,6 +96,18 @@ gboolean wocky_pubsub_node_delete_finish (WockyPubsubNode *node,
     GAsyncResult *result,
     GError **error);
 
+void wocky_pubsub_node_list_subscribers_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_list_subscribers_finish (
+    WockyPubsubNode *node,
+    GAsyncResult *result,
+    GList **subscribers,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */
