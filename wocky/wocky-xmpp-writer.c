@@ -298,9 +298,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
   priv->current_ns = g_quark_from_string ("jabber:client");
   priv->stream_ns = g_quark_from_string ("http://etherx.jabber.org/streams");
 
-#ifdef ENABLE_DEBUGGING
-  wocky_debug (DEBUG_NET, "Writing xml: %.*s", (int)*length, *data);
-#endif
+  DEBUG ("Writing stream opening: %.*s", (int) *length, *data);
 }
 
 /**
@@ -327,7 +325,7 @@ wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
   *data = close;
   *length = strlen ((gchar *) close);
 
-  DEBUG ("Writing xml: %.*s", (int)*length, *data);
+  DEBUG ("Writing stream close: %.*s", (int) *length, *data);
 }
 
 static void
