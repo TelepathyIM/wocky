@@ -25,14 +25,21 @@
 
 WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
 
-typedef gboolean (*WockyPubsubNodeEventHandler) (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza);
+typedef gboolean (*WockyPubsubNodeEventHandler) (
+    WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *action_node);
 
 gboolean _wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza);
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *items_node);
 
 gboolean _wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza);
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *subscription_node);
 
 WockyXmppStanza *wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,

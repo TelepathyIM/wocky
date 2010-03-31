@@ -302,24 +302,28 @@ pubsub_node_handle_items_event (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
     gpointer user_data)
 {
+  WockyXmppNode *event_node, *items_node;
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (user_data);
-
-  return _wocky_pubsub_node_handle_items_event (self, event_stanza);
-}
-
-gboolean
-_wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza)
-{
-  WockyXmppNode *event_node, *items_node, *item_node;
-  GQueue items = G_QUEUE_INIT;
-  WockyXmppNodeIter iter;
 
   event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
       WOCKY_XMPP_NS_PUBSUB_EVENT);
   g_return_val_if_fail (event_node != NULL, FALSE);
   items_node = wocky_xmpp_node_get_child (event_node, "items");
   g_return_val_if_fail (items_node != NULL, FALSE);
+
+  return _wocky_pubsub_node_handle_items_event (self, event_stanza, event_node,
+      items_node);
+}
+
+gboolean
+_wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *items_node)
+{
+  WockyXmppNode *item_node;
+  GQueue items = G_QUEUE_INIT;
+  WockyXmppNodeIter iter;
 
   wocky_xmpp_node_iter_init (&iter, items_node, "item", NULL);
 
@@ -341,24 +345,27 @@ pubsub_node_handle_subscription_event (WockyPorter *porter,
     gpointer user_data)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (user_data);
-
-  return _wocky_pubsub_node_handle_subscription_event (self, event_stanza);
-}
-
-gboolean
-_wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza)
-{
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
   WockyXmppNode *event_node, *subscription_node;
-  WockyPubsubSubscription *sub;
-  GError *error = NULL;
 
   event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
       WOCKY_XMPP_NS_PUBSUB_EVENT);
   g_return_val_if_fail (event_node != NULL, FALSE);
   subscription_node = wocky_xmpp_node_get_child (event_node, "subscription");
   g_return_val_if_fail (subscription_node != NULL, FALSE);
+
+  return _wocky_pubsub_node_handle_subscription_event (self, event_stanza,
+      event_node, subscription_node);
+}
+
+gboolean
+_wocky_pubsub_node_handle_subscription_event (WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *subscription_node)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubSubscription *sub;
+  GError *error = NULL;
 
   sub = wocky_pubsub_service_parse_subscription (priv->service,
       subscription_node, NULL, &error);

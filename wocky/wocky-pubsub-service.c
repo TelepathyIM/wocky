@@ -472,7 +472,7 @@ pubsub_service_propagate_event (WockyPorter *porter,
     }
 
   node = wocky_pubsub_service_ensure_node (self, node_name);
-  trampoline->node_method (node, event_stanza);
+  trampoline->node_method (node, event_stanza, event_node, action_node);
   g_object_unref (node);
 
   return TRUE;
