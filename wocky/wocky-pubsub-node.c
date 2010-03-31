@@ -368,6 +368,8 @@ wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
 
 static WockyXmppStanza *
 pubsub_node_make_action_stanza (WockyPubsubNode *self,
+    WockyStanzaSubType sub_type,
+    const gchar *pubsub_ns,
     const gchar *action_name,
     const gchar *jid,
     WockyXmppNode **pubsub_node,
@@ -375,28 +377,17 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
 {
   WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
-  WockyXmppNode *pubsub, *action;
+  WockyXmppNode *action;
 
+  g_assert (pubsub_ns != NULL);
   g_assert (action_name != NULL);
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, priv->service_jid,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE_ASSIGN_TO, &pubsub,
-          WOCKY_NODE, action_name,
-            WOCKY_NODE_ASSIGN_TO, &action,
-            WOCKY_NODE_ATTRIBUTE, "node", priv->name,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  stanza = wocky_pubsub_make_stanza (priv->service_jid, sub_type, pubsub_ns,
+      action_name, pubsub_node, &action);
+  wocky_xmpp_node_set_attribute (action, "node", priv->name);
 
   if (jid != NULL)
     wocky_xmpp_node_set_attribute (action, "jid", jid);
-
-  if (pubsub_node != NULL)
-    *pubsub_node = pubsub;
 
   if (action_node != NULL)
     *action_node = action;
@@ -417,7 +408,8 @@ wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
    */
   g_return_val_if_fail (jid != NULL, NULL);
 
-  return pubsub_node_make_action_stanza (self, "subscribe", jid, pubsub_node,
+  return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
+      WOCKY_XMPP_NS_PUBSUB, "subscribe", jid, pubsub_node,
       subscribe_node);
 }
 
@@ -523,7 +515,8 @@ wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
    */
   g_return_val_if_fail (jid != NULL, NULL);
 
-  stanza = pubsub_node_make_action_stanza (self, "unsubscribe", jid,
+  stanza = pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
+      WOCKY_XMPP_NS_PUBSUB, "unsubscribe", jid,
       pubsub_node, &unsubscribe);
 
   if (subid != NULL)
@@ -631,29 +624,8 @@ wocky_pubsub_node_make_delete_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **delete_node)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
-  WockyXmppStanza *stanza;
-  WockyXmppNode *p, *d; /* if we didn't have these, we'd have a great album */
-
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, priv->service_jid,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-        WOCKY_NODE_ASSIGN_TO, &p,
-        WOCKY_NODE, "delete",
-          WOCKY_NODE_ATTRIBUTE, "node", priv->name,
-          WOCKY_NODE_ASSIGN_TO, &d,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
-
-  if (pubsub_node != NULL)
-    *pubsub_node = p;
-
-  if (delete_node != NULL)
-    *delete_node = d;
-
-  return stanza;
+  return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "delete", NULL, pubsub_node, delete_node);
 }
 
 void

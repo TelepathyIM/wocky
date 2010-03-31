@@ -550,14 +550,8 @@ wocky_pubsub_service_get_default_node_configuration_async (
   WockyXmppStanza *stanza;
   GSimpleAsyncResult *result;
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
-      NULL, priv->jid,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-        WOCKY_NODE, "default",
-      WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  stanza = wocky_pubsub_make_stanza (priv->jid, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "default", NULL, NULL);
 
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
     wocky_pubsub_service_get_default_node_configuration_finish);
@@ -719,26 +713,14 @@ wocky_pubsub_service_create_retrieve_subscriptions_stanza (
 {
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
   WockyXmppStanza *stanza;
-  WockyXmppNode *pubsub, *subscriptions;
+  WockyXmppNode *subscriptions;
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
-      NULL, priv->jid,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE_ASSIGN_TO, &pubsub,
-          WOCKY_NODE, "subscriptions",
-            WOCKY_NODE_ASSIGN_TO, &subscriptions,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  stanza = wocky_pubsub_make_stanza (priv->jid, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_XMPP_NS_PUBSUB, "subscriptions", pubsub_node, &subscriptions);
 
   if (node != NULL)
     wocky_xmpp_node_set_attribute (subscriptions, "node",
         wocky_pubsub_node_get_name (node));
-
-  if (pubsub_node != NULL)
-    *pubsub_node = pubsub;
 
   if (subscriptions_node != NULL)
     *subscriptions_node = subscriptions;
@@ -888,28 +870,15 @@ wocky_pubsub_service_create_create_node_stanza (
   WockyXmppStanza *stanza;
   WockyXmppNode *pubsub, *create;
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, priv->jid,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE_ASSIGN_TO, &pubsub,
-        WOCKY_NODE, "create",
-          WOCKY_NODE_ASSIGN_TO, &create,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  stanza = wocky_pubsub_make_stanza (priv->jid, WOCKY_STANZA_SUB_TYPE_SET,
+        WOCKY_XMPP_NS_PUBSUB, "create", &pubsub, &create);
 
   if (name != NULL)
     wocky_xmpp_node_set_attribute (create, "node", name);
 
   if (config != NULL)
-    {
-      WockyXmppNode *configure = wocky_xmpp_node_add_child (pubsub,
-          "configure");
-
-      wocky_data_form_submit (config, configure);
-    }
+    wocky_data_form_submit (config, wocky_xmpp_node_add_child (pubsub,
+        "configure"));
 
   if (pubsub_node != NULL)
     *pubsub_node = pubsub;

@@ -43,35 +43,70 @@ wocky_pubsub_make_publish_stanza (
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out)
 {
-  WockyXmppNode *pubsub, *publish, *item;
   WockyXmppStanza *stanza;
+  WockyXmppNode *publish, *item;
 
   g_return_val_if_fail (node != NULL, NULL);
 
-  stanza = wocky_xmpp_stanza_build (
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, service,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE_ASSIGN_TO, &pubsub,
-          WOCKY_NODE, "publish",
-            WOCKY_NODE_ASSIGN_TO, &publish,
-            WOCKY_NODE_ATTRIBUTE, "node", node,
-            WOCKY_NODE, "item",
-              WOCKY_NODE_ASSIGN_TO, &item,
-            WOCKY_NODE_END,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  stanza = wocky_pubsub_make_stanza (service, WOCKY_STANZA_SUB_TYPE_SET,
+      WOCKY_XMPP_NS_PUBSUB, "publish", pubsub_out, &publish);
 
-  if (pubsub_out != NULL)
-    *pubsub_out = pubsub;
+  wocky_xmpp_node_set_attribute (publish, "node", node);
+  item = wocky_xmpp_node_add_child (publish, "item");
 
   if (publish_out != NULL)
     *publish_out = publish;
 
   if (item_out != NULL)
     *item_out = item;
+
+  return stanza;
+}
+
+/**
+ * wocky_pubsub_make_stanza:
+ * @service: the JID of a PubSub service, or %NULL
+ * @pubsub_ns: the namespace for the <pubsub/> node of the stanza
+ * @action_name: the action node to add to <pubsub/>
+ * @pubsub_node: address at which to store a pointer to the <pubsub/> node
+ * @action_node: address at wihch to store a pointer to the <@action/> node
+ *
+ * <!-- -->
+ *
+ * Returns: a new iq[type='set']/pubsub/@action stanza
+ */
+WockyXmppStanza *
+wocky_pubsub_make_stanza (
+    const gchar *service,
+    WockyStanzaSubType sub_type,
+    const gchar *pubsub_ns,
+    const gchar *action_name,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **action_node)
+{
+  WockyXmppStanza *stanza;
+  WockyXmppNode *pubsub, *action;
+
+  g_assert (pubsub_ns != NULL);
+  g_assert (action_name != NULL);
+
+  stanza = wocky_xmpp_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, sub_type,
+      NULL, service,
+        WOCKY_NODE, "pubsub",
+          WOCKY_NODE_XMLNS, pubsub_ns,
+          WOCKY_NODE_ASSIGN_TO, &pubsub,
+          WOCKY_NODE, action_name,
+            WOCKY_NODE_ASSIGN_TO, &action,
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  if (pubsub_node != NULL)
+    *pubsub_node = pubsub;
+
+  if (action_node != NULL)
+    *action_node = action;
 
   return stanza;
 }
