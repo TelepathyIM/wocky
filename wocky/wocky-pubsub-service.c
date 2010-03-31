@@ -32,10 +32,7 @@
 #define DEBUG_FLAG DEBUG_PUBSUB
 #include "wocky-debug.h"
 
-static gboolean pubsub_service_handle_items_event (WockyPorter *porter,
-    WockyXmppStanza *event_stanza,
-    gpointer user_data);
-static gboolean pubsub_service_handle_subscription_event (WockyPorter *porter,
+static gboolean pubsub_service_propagate_event (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
     gpointer user_data);
 
@@ -58,6 +55,16 @@ enum
 };
 
 /* private structure */
+typedef struct _EventTrampoline EventTrampoline;
+
+struct _EventTrampoline
+{
+  const gchar *action;
+  WockyPubsubNodeEventHandler node_method;
+  WockyPubsubService *self;
+  guint handler_id;
+};
+
 typedef struct _WockyPubsubServicePrivate WockyPubsubServicePrivate;
 
 struct _WockyPubsubServicePrivate
@@ -69,8 +76,8 @@ struct _WockyPubsubServicePrivate
   /* owned (gchar *) => weak reffed (WockyPubsubNode *) */
   GHashTable *nodes;
 
-  guint items_handler_id;
-  guint subscription_handler_id;
+  /* slice-allocated (EventTrampoline *) s, used for <event> handlers */
+  GPtrArray *trampolines;
 
   gboolean dispose_has_run;
 };
@@ -158,11 +165,18 @@ wocky_pubsub_service_dispose (GObject *object)
 
   if (priv->porter != NULL)
     {
-      wocky_porter_unregister_handler (priv->porter, priv->items_handler_id);
-      priv->items_handler_id = 0;
+      guint i;
 
-      wocky_porter_unregister_handler (priv->porter, priv->subscription_handler_id);
-      priv->subscription_handler_id = 0;
+      for (i = 0; i < priv->trampolines->len; i++)
+        {
+          EventTrampoline *t = g_ptr_array_index (priv->trampolines, i);
+
+          wocky_porter_unregister_handler (priv->porter, t->handler_id);
+          g_slice_free (EventTrampoline, t);
+        }
+
+      g_ptr_array_free (priv->trampolines, TRUE);
+      priv->trampolines = NULL;
 
       g_object_unref (priv->porter);
       priv->porter = NULL;
@@ -184,11 +198,18 @@ wocky_pubsub_service_finalize (GObject *object)
   G_OBJECT_CLASS (wocky_pubsub_service_parent_class)->finalize (object);
 }
 
+static EventTrampoline trampolines[] = {
+    { "items", _wocky_pubsub_node_handle_items_event, },
+    { "subscription", _wocky_pubsub_node_handle_subscription_event, },
+    { NULL, }
+};
+
 static void
 wocky_pubsub_service_constructed (GObject *object)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  EventTrampoline *t;
 
   g_assert (priv->session != NULL);
   g_assert (priv->jid != NULL);
@@ -196,27 +217,26 @@ wocky_pubsub_service_constructed (GObject *object)
   priv->porter = wocky_session_get_porter (priv->session);
   g_object_ref (priv->porter);
 
-  priv->items_handler_id = wocky_porter_register_handler (priv->porter,
-      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
-      priv->jid,
-      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
-      pubsub_service_handle_items_event, self,
-        WOCKY_NODE, "event",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
-          WOCKY_NODE, "items", WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  priv->trampolines = g_ptr_array_sized_new (G_N_ELEMENTS (trampolines));
 
-  priv->subscription_handler_id = wocky_porter_register_handler (priv->porter,
-      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
-      priv->jid,
-      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
-      pubsub_service_handle_subscription_event, self,
-        WOCKY_NODE, "event",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
-          WOCKY_NODE, "subscription", WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+  for (t = trampolines; t->action != NULL; t++)
+    {
+      EventTrampoline *u = g_slice_dup (EventTrampoline, t);
+
+      u->self = self;
+      u->handler_id = wocky_porter_register_handler (priv->porter,
+          WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+          priv->jid,
+          WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
+          pubsub_service_propagate_event, u,
+            WOCKY_NODE, "event",
+              WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
+              WOCKY_NODE, u->action, WOCKY_NODE_END,
+            WOCKY_NODE_END,
+          WOCKY_STANZA_END);
+
+      g_ptr_array_add (priv->trampolines, u);
+    }
 }
 
 static void
@@ -424,62 +444,35 @@ wocky_pubsub_service_lookup_node (WockyPubsubService *self,
 }
 
 static gboolean
-pubsub_service_handle_items_event (WockyPorter *porter,
+pubsub_service_propagate_event (WockyPorter *porter,
     WockyXmppStanza *event_stanza,
     gpointer user_data)
 {
-  WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (user_data);
-  WockyXmppNode *event_node, *items_node;
+  EventTrampoline *trampoline = user_data;
+  WockyPubsubService *self = trampoline->self;
+  WockyXmppNode *event_node, *action_node;
   const gchar *node_name;
   WockyPubsubNode *node;
+
+  g_assert (WOCKY_IS_PUBSUB_SERVICE (self));
 
   event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
       WOCKY_XMPP_NS_PUBSUB_EVENT);
   g_return_val_if_fail (event_node != NULL, FALSE);
-  items_node = wocky_xmpp_node_get_child (event_node, "items");
-  g_return_val_if_fail (items_node != NULL, FALSE);
+  action_node = wocky_xmpp_node_get_child (event_node, trampoline->action);
+  g_return_val_if_fail (action_node != NULL, FALSE);
 
-  node_name = wocky_xmpp_node_get_attribute (items_node, "node");
+  node_name = wocky_xmpp_node_get_attribute (action_node, "node");
 
   if (node_name == NULL)
     {
-      DEBUG_STANZA (event_stanza, "no node='' attribute on <items/>");
+      DEBUG_STANZA (event_stanza, "no node='' attribute on <%s/>",
+          trampoline->action);
       return FALSE;
     }
 
   node = wocky_pubsub_service_ensure_node (self, node_name);
-  _wocky_pubsub_node_handle_items_event (node, event_stanza);
-  g_object_unref (node);
-
-  return TRUE;
-}
-
-static gboolean
-pubsub_service_handle_subscription_event (WockyPorter *porter,
-    WockyXmppStanza *event_stanza,
-    gpointer user_data)
-{
-  WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (user_data);
-  WockyXmppNode *event_node, *subscription_node;
-  const gchar *node_name;
-  WockyPubsubNode *node;
-
-  event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
-      WOCKY_XMPP_NS_PUBSUB_EVENT);
-  g_return_val_if_fail (event_node != NULL, FALSE);
-  subscription_node = wocky_xmpp_node_get_child (event_node, "subscription");
-  g_return_val_if_fail (subscription_node != NULL, FALSE);
-
-  node_name = wocky_xmpp_node_get_attribute (subscription_node, "node");
-
-  if (node_name == NULL)
-    {
-      DEBUG_STANZA (event_stanza, "no node='' attribute on <subscription/>");
-      return FALSE;
-    }
-
-  node = wocky_pubsub_service_ensure_node (self, node_name);
-  _wocky_pubsub_node_handle_subscription_event (node, event_stanza);
+  trampoline->node_method (node, event_stanza);
   g_object_unref (node);
 
   return TRUE;

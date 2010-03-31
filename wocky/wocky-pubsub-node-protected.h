@@ -25,6 +25,9 @@
 
 WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
 
+typedef gboolean (*WockyPubsubNodeEventHandler) (WockyPubsubNode *self,
+    WockyXmppStanza *event_stanza);
+
 gboolean _wocky_pubsub_node_handle_items_event (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza);
 
