@@ -679,6 +679,131 @@ test_subscription_state_changed (void)
   g_object_unref (pubsub);
 }
 
+/* /pubsub-node/deleted */
+typedef struct {
+    test_data_t *test;
+    const gchar *expecting_service_node_deleted_for;
+    gboolean expecting_node_deleted;
+} TestDeletedCtx;
+
+static void
+send_deleted (WockyPorter *porter,
+    const gchar *service,
+    const gchar *node)
+{
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE,
+      service, NULL,
+      WOCKY_NODE, "event",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
+        WOCKY_NODE, "delete",
+          WOCKY_NODE_ATTRIBUTE, "node", node,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END,
+      WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, stanza);
+  g_object_unref (stanza);
+}
+
+static void
+service_node_deleted_cb (
+    WockyPubsubService *service,
+    WockyPubsubNode *node,
+    WockyXmppStanza *stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *delete_node,
+    TestDeletedCtx *ctx)
+{
+  g_assert (ctx->expecting_service_node_deleted_for != NULL);
+
+  g_assert_cmpstr (wocky_pubsub_node_get_name (node), ==,
+      ctx->expecting_service_node_deleted_for);
+
+  g_assert_cmpstr (event_node->name, ==, "event");
+  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+      WOCKY_XMPP_NS_PUBSUB_EVENT);
+
+  g_assert_cmpstr (delete_node->name, ==, "delete");
+
+  ctx->expecting_service_node_deleted_for = NULL;
+  ctx->test->outstanding--;
+  g_main_loop_quit (ctx->test->loop);
+}
+
+static void
+node_deleted_cb (
+    WockyPubsubNode *node,
+    WockyXmppStanza *stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *delete_node,
+    TestDeletedCtx *ctx)
+{
+  g_assert (ctx->expecting_node_deleted);
+  ctx->expecting_node_deleted = FALSE;
+
+  g_assert_cmpstr (wocky_pubsub_node_get_name (node), ==, "dairy-farmer");
+
+  g_assert_cmpstr (event_node->name, ==, "event");
+  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+      WOCKY_XMPP_NS_PUBSUB_EVENT);
+
+  g_assert_cmpstr (delete_node->name, ==, "delete");
+
+  ctx->test->outstanding--;
+  g_main_loop_quit (ctx->test->loop);
+}
+
+static void
+test_deleted (void)
+{
+  test_data_t *test = setup_test ();
+  TestDeletedCtx ctx = { test, FALSE, FALSE };
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_out, "pubsub.localhost");
+  g_signal_connect (pubsub, "node-deleted",
+      (GCallback) service_node_deleted_cb, &ctx);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "dairy-farmer");
+  g_signal_connect (node, "deleted",
+      (GCallback) node_deleted_cb, &ctx);
+
+  /* Send a deletion notification for a different node. */
+  send_deleted (test->sched_in, "pubsub.localhost", "cow");
+  ctx.expecting_service_node_deleted_for = "cow";
+  ctx.expecting_node_deleted = FALSE;
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  g_assert (ctx.expecting_service_node_deleted_for == NULL);
+
+  /* Send a subscription change notification for @node. */
+  send_deleted (test->sched_in, "pubsub.localhost", "dairy-farmer");
+  ctx.expecting_service_node_deleted_for = "dairy-farmer";
+  ctx.expecting_node_deleted = TRUE;
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_assert (ctx.expecting_service_node_deleted_for == NULL);
+  g_assert (!ctx.expecting_node_deleted);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -691,9 +816,11 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/subscribe", test_subscribe);
   g_test_add_func ("/pubsub-node/unsubscribe", test_unsubscribe);
   g_test_add_func ("/pubsub-node/delete", test_delete);
+
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
   g_test_add_func ("/pubsub-node/subscription-state-changed",
       test_subscription_state_changed);
+  g_test_add_func ("/pubsub-node/deleted", test_deleted);
 
   result = g_test_run ();
   test_deinit ();

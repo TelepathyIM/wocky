@@ -43,6 +43,7 @@ enum
 {
   SIG_EVENT_RECEIVED,
   SIG_SUB_STATE_CHANGED,
+  SIG_NODE_DELETED,
   LAST_SIGNAL
 };
 
@@ -299,6 +300,22 @@ wocky_pubsub_service_class_init (
       WOCKY_TYPE_PUBSUB_NODE, WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER,
       G_TYPE_POINTER, WOCKY_TYPE_PUBSUB_SUBSCRIPTION);
 
+  /**
+   * WockyPubsubService::node-deleted
+   * @node: a pubsub node
+   * @stanza: the message/event stanza in its entirety
+   * @event_node: the event node from @stanza
+   * @delete_node: the delete node from @stanza
+   *
+   * Emitted when a notification of a node's deletion is received from the
+   * server.
+   */
+  signals[SIG_NODE_DELETED] = g_signal_new ("node-deleted",
+      ctype, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT_OBJECT_POINTER_POINTER,
+      G_TYPE_NONE, 4, WOCKY_TYPE_PUBSUB_NODE,
+      WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER);
+
   wocky_pubsub_service_class->node_object_type = WOCKY_TYPE_PUBSUB_NODE;
 }
 
@@ -362,6 +379,20 @@ pubsub_service_node_subscription_state_changed_cb (
       event_node, subscription_node, subscription);
 }
 
+static void
+pubsub_service_node_deleted_cb (
+    WockyPubsubNode *node,
+    WockyXmppStanza *stanza,
+    WockyXmppNode *event_node,
+    WockyXmppNode *delete_node,
+    gpointer user_data)
+{
+  WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (user_data);
+
+  g_signal_emit (self, signals[SIG_NODE_DELETED], 0, node, stanza,
+      event_node, delete_node);
+}
+
 static WockyPubsubNode *
 pubsub_service_create_node (WockyPubsubService *self,
     const gchar *name)
@@ -389,6 +420,8 @@ pubsub_service_create_node (WockyPubsubService *self,
       (GCallback) pubsub_service_node_event_received_cb, self);
   g_signal_connect (node, "subscription-state-changed",
       (GCallback) pubsub_service_node_subscription_state_changed_cb, self);
+  g_signal_connect (node, "deleted",
+      (GCallback) pubsub_service_node_deleted_cb, self);
 
   return node;
 }
