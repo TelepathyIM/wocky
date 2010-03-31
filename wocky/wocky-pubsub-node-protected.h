@@ -25,7 +25,7 @@
 
 /* for use by WockyPubsubService */
 
-typedef gboolean (*WockyPubsubNodeEventHandler) (
+typedef void (*WockyPubsubNodeEventHandler) (
     WockyPubsubNode *self,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,

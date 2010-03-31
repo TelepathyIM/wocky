@@ -256,7 +256,7 @@ wocky_pubsub_node_class_init (
       WOCKY_TYPE_PUBSUB_SUBSCRIPTION);
 }
 
-static gboolean
+static void
 pubsub_node_handle_items_event (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
@@ -276,11 +276,9 @@ pubsub_node_handle_items_event (WockyPubsubNode *self,
       items_node, items.head);
 
   g_queue_clear (&items);
-
-  return TRUE;
 }
 
-static gboolean
+static void
 pubsub_node_handle_subscription_event (WockyPubsubNode *self,
     WockyXmppStanza *event_stanza,
     WockyXmppNode *event_node,
@@ -305,11 +303,6 @@ pubsub_node_handle_subscription_event (WockyPubsubNode *self,
           event_node, subscription_node, sub);
       wocky_pubsub_subscription_free (sub);
     }
-
-  /* If we couldn't parse the subscription, nothing else will be able to
-   * either, so we've handled it either way.
-   */
-  return TRUE;
 }
 
 static const WockyPubsubNodeEventMapping mappings[] = {
