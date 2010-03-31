@@ -400,10 +400,24 @@ _start_element_ns (void *user_data, const xmlChar *localname,
           return;
         }
 
+      DEBUG ("Received stream opening: %s, prefix: %s, uri: %s",
+        localname,
+        prefix != NULL ? (gchar *) prefix : "<no prefix>",
+        uri != NULL ? (gchar *) uri : "<no uri>");
+
       priv->state = WOCKY_XMPP_READER_STATE_OPENED;
 
       for (i = 0; i < nb_attributes * 5; i+=5)
         {
+          DEBUG ("Stream opening attribute: %s = '%.*s' (prefix: %s, uri: %s)",
+            attributes[i],
+            (int) (attributes[i+4] - attributes[i+3]),
+            attributes [i + 3],
+            attributes[i+1] != NULL ? (gchar *) attributes[i+1]
+                : "<no prefix>",
+            attributes[i+2] != NULL ? (gchar *) attributes[i+2]
+                : "<no uri>");
+
           if (!strcmp ((gchar *) attributes[i], "to"))
             {
               g_free (priv->to);
