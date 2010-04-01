@@ -752,22 +752,9 @@ wocky_pubsub_node_list_subscribers_finish (
     GList **subscribers,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_pubsub_node_list_subscribers_async),
-      FALSE);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  if (g_simple_async_result_propagate_error (simple, error))
-    return FALSE;
-
-  if (subscribers != NULL)
-    *subscribers = wocky_pubsub_subscription_list_copy (
-        g_simple_async_result_get_op_res_gpointer (simple));
-
-  return TRUE;
+  wocky_implement_finish_copy_pointer (self,
+      wocky_pubsub_node_list_subscribers_async,
+      wocky_pubsub_subscription_list_copy, subscribers)
 }
 
 WockyPorter *

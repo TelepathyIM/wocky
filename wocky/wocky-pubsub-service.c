@@ -757,22 +757,9 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
     GList **subscriptions,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (service), wocky_pubsub_service_retrieve_subscriptions_async),
-      FALSE);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  if (g_simple_async_result_propagate_error (simple, error))
-    return FALSE;
-
-  if (subscriptions != NULL)
-    *subscriptions = wocky_pubsub_subscription_list_copy (
-        g_simple_async_result_get_op_res_gpointer (simple));
-
-  return TRUE;
+  wocky_implement_finish_copy_pointer (service,
+      wocky_pubsub_service_retrieve_subscriptions_async,
+      wocky_pubsub_subscription_list_copy, subscriptions)
 }
 
 WockyPubsubNode *

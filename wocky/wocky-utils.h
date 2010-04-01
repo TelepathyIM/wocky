@@ -61,6 +61,28 @@ const gchar *wocky_enum_to_nick (GType enum_type, gint value);
 
 GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
 
+/* These are macros so that the critical message raised by
+ * g_return_val_if_fail() contains the actual function name and tag. They
+ * magically returns from the function rather than evaluating to a boolean
+ * because doing the latter in macros seems to be a GCC extension. I could
+ * probably rewrite them using , and ?: but...
+ *
+ * They should really be in GLib, but let's experiment here first.
+ */
+#define wocky_implement_finish_copy_pointer(source, tag, copy_func, \
+    out_param) \
+    GSimpleAsyncResult *_simple; \
+    g_return_val_if_fail (g_simple_async_result_is_valid (result, \
+            G_OBJECT (source), tag), \
+        FALSE); \
+    _simple = (GSimpleAsyncResult *) result; \
+    if (g_simple_async_result_propagate_error (_simple, error)) \
+      return FALSE; \
+    if (out_param != NULL) \
+      *out_param = copy_func ( \
+          g_simple_async_result_get_op_res_gpointer (_simple)); \
+    return TRUE;
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_UTIL_H__ */
