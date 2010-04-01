@@ -980,12 +980,8 @@ wocky_pubsub_subscription_free (WockyPubsubSubscription *sub)
 GList *
 wocky_pubsub_subscription_list_copy (GList *subs)
 {
-  GList *ret = NULL, *l;
-
-  for (l = subs; l != NULL; l = l->next)
-    ret = g_list_prepend (ret, wocky_pubsub_subscription_copy (l->data));
-
-  return g_list_reverse (ret);
+  return wocky_list_deep_copy ((GBoxedCopyFunc) wocky_pubsub_subscription_copy,
+      subs);
 }
 
 void
