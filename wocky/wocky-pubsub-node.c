@@ -777,3 +777,63 @@ wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 
   return priv->porter;
 }
+
+
+/* WockyPubsubAffiliation boilerplate */
+
+GType
+wocky_pubsub_affiliation_get_type (void)
+{
+  static GType t = 0;
+
+  if (G_UNLIKELY (t == 0))
+    t = g_boxed_type_register_static ("WockyPubsubAffiliation",
+        (GBoxedCopyFunc) wocky_pubsub_affiliation_copy,
+        (GBoxedFreeFunc) wocky_pubsub_affiliation_free);
+
+  return t;
+}
+
+WockyPubsubAffiliation *
+wocky_pubsub_affiliation_new (
+    WockyPubsubNode *node,
+    const gchar *jid,
+    WockyPubsubAffiliationState state)
+{
+  WockyPubsubAffiliation aff = { g_object_ref (node), g_strdup (jid), state };
+
+  return g_slice_dup (WockyPubsubAffiliation, &aff);
+}
+
+WockyPubsubAffiliation *
+wocky_pubsub_affiliation_copy (
+    WockyPubsubAffiliation *aff)
+{
+  g_return_val_if_fail (aff != NULL, NULL);
+
+  return wocky_pubsub_affiliation_new (aff->node, aff->jid, aff->state);
+}
+
+void
+wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff)
+{
+  g_return_if_fail (aff != NULL);
+
+  g_object_unref (aff->node);
+  g_free (aff->jid);
+  g_slice_free (WockyPubsubAffiliation, aff);
+}
+
+GList *
+wocky_pubsub_affiliation_list_copy (GList *affs)
+{
+  return wocky_list_deep_copy (
+      (GBoxedCopyFunc) wocky_pubsub_affiliation_copy, affs);
+}
+
+void
+wocky_pubsub_affiliation_list_free (GList *affs)
+{
+  g_list_foreach (affs, (GFunc) wocky_pubsub_affiliation_free, NULL);
+  g_list_free (affs);
+}
