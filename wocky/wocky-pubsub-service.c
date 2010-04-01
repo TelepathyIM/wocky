@@ -640,12 +640,10 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
 {
   const gchar *parent_node_attr = wocky_xmpp_node_get_attribute (
       subscriptions_node, "node");
-  GList *subscriptions = NULL;
+  GQueue subs = G_QUEUE_INIT;
+  GQueue sub_nodes = G_QUEUE_INIT;
   WockyXmppNode *n;
   WockyXmppNodeIter i;
-
-  if (subscription_nodes != NULL)
-    *subscription_nodes = NULL;
 
   wocky_xmpp_node_iter_init (&i, subscriptions_node, "subscription", NULL);
 
@@ -657,10 +655,8 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
 
       if (sub != NULL)
         {
-          subscriptions = g_list_prepend (subscriptions, sub);
-
-          if (subscription_nodes != NULL)
-            *subscription_nodes = g_list_prepend (*subscription_nodes, n);
+          g_queue_push_tail (&subs, sub);
+          g_queue_push_tail (&sub_nodes, n);
         }
       else
         {
@@ -669,10 +665,12 @@ wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
         }
     }
 
-  if (subscription_nodes != NULL)
-    *subscription_nodes = g_list_reverse (*subscription_nodes);
+  if (subscription_nodes == NULL)
+    g_queue_clear (&sub_nodes);
+  else
+    *subscription_nodes = sub_nodes.head;
 
-  return g_list_reverse (subscriptions);
+  return subs.head;
 }
 
 static void
