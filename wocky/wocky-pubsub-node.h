@@ -140,6 +140,18 @@ void wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff);
 GList *wocky_pubsub_affiliation_list_copy (GList *affs);
 void wocky_pubsub_affiliation_list_free (GList *affs);
 
+void wocky_pubsub_node_list_affiliates_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_list_affiliates_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GList **affiliates,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */

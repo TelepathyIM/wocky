@@ -64,4 +64,13 @@ WockyXmppStanza *wocky_pubsub_node_make_list_subscribers_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **subscriptions_node);
 
+WockyXmppStanza *wocky_pubsub_node_make_list_affiliates_stanza (
+    WockyPubsubNode *self,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **affiliations_node);
+
+GList *wocky_pubsub_node_parse_affiliations (
+    WockyPubsubNode *self,
+    WockyXmppNode *affiliations_node);
+
 #endif /* WOCKY_PUBSUB_NODE_PROTECTED_H */

@@ -19,6 +19,7 @@
 
 #include "wocky-pubsub-node.h"
 #include "wocky-pubsub-node-protected.h"
+#include "wocky-pubsub-node-enumtypes.h"
 
 #include "wocky-namespaces.h"
 #include "wocky-porter.h"
@@ -755,6 +756,144 @@ wocky_pubsub_node_list_subscribers_finish (
   wocky_implement_finish_copy_pointer (self,
       wocky_pubsub_node_list_subscribers_async,
       wocky_pubsub_subscription_list_copy, subscribers)
+}
+
+WockyXmppStanza *
+wocky_pubsub_node_make_list_affiliates_stanza (
+    WockyPubsubNode *self,
+    WockyXmppNode **pubsub_node,
+    WockyXmppNode **affiliations_node)
+{
+  return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "affiliations", NULL,
+      pubsub_node, affiliations_node);
+}
+
+GList *
+wocky_pubsub_node_parse_affiliations (
+    WockyPubsubNode *self,
+    WockyXmppNode *affiliations_node)
+{
+  GQueue affs = G_QUEUE_INIT;
+  WockyXmppNodeIter i;
+  WockyXmppNode *n;
+
+  wocky_xmpp_node_iter_init (&i, affiliations_node, "affiliation", NULL);
+
+  while (wocky_xmpp_node_iter_next (&i, &n))
+    {
+      const gchar *jid = wocky_xmpp_node_get_attribute (n, "jid");
+      const gchar *affiliation = wocky_xmpp_node_get_attribute (n,
+          "affiliation");
+      gint state;
+
+      if (jid == NULL)
+        {
+          DEBUG ("<affiliation> missing jid=''; skipping");
+          continue;
+        }
+
+      if (affiliation == NULL)
+        {
+          DEBUG ("<affiliation> missing affiliation=''; skipping");
+          continue;
+        }
+
+      if (!wocky_enum_from_nick (WOCKY_TYPE_PUBSUB_AFFILIATION_STATE,
+              affiliation, &state))
+        {
+          DEBUG ("unknown affiliation '%s'; skipping", affiliation);
+          continue;
+        }
+
+      g_queue_push_tail (&affs,
+          wocky_pubsub_affiliation_new (self, jid, state));
+    }
+
+  return affs.head;
+}
+
+static void
+list_affiliates_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
+      g_async_result_get_source_object (user_data));
+  WockyXmppNode *affiliations_node;
+  GError *error = NULL;
+
+  if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB_OWNER,
+          "affiliations", &affiliations_node, &error))
+    {
+      g_simple_async_result_set_op_res_gpointer (simple,
+          wocky_pubsub_node_parse_affiliations (self, affiliations_node),
+          (GDestroyNotify) wocky_pubsub_affiliation_list_free);
+    }
+  else
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
+
+  g_simple_async_result_complete (simple);
+  g_object_unref (simple);
+}
+
+/**
+ * wocky_pubsub_node_list_affiliates_async:
+ *
+ * Retrieves the list ofa entities affilied to a node you own.
+ *
+ * (A note on naming: this is §8.9.1 — Retrieve Affiliations List — in
+ * XEP-0060, not to be confused with §5.7 — Retrieve Affiliations. The
+ * slightly different terminology in Wocky is intended to help disambiguate!)
+ */
+void
+wocky_pubsub_node_list_affiliates_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_list_affiliates_async);
+  WockyXmppStanza *stanza;
+
+  stanza = wocky_pubsub_node_make_list_affiliates_stanza (self, NULL,
+      NULL);
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      list_affiliates_cb, simple);
+  g_object_unref (stanza);
+}
+
+/**
+ * wocky_pubsub_node_list_affiliates_finish:
+ * @self: a pubsub node
+ * @result: the result passed to a callback
+ * @affiliations: location at which to store a list of #WockyPubsubAffiliation
+ *                pointers, or %NULL
+ * @error: location at which to store an error, or %NULL
+ *
+ * Completes a call to wocky_pubsub_node_list_affiliates_async(). The list
+ * returned in @affiliations should be freed with
+ * wocky_pubsub_affiliation_list_free() when it is no longer needed.
+ *
+ * Returns: %TRUE if the list of subscribers was successfully retrieved; %FALSE
+ *          and sets @error if an error occured.
+ */
+gboolean
+wocky_pubsub_node_list_affiliates_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GList **affiliates,
+    GError **error)
+{
+  wocky_implement_finish_copy_pointer (self,
+      wocky_pubsub_node_list_affiliates_async,
+      wocky_pubsub_affiliation_list_copy, affiliates)
 }
 
 WockyPorter *

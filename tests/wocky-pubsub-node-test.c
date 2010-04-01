@@ -501,6 +501,130 @@ test_list_subscribers (void)
   teardown_test (test);
 }
 
+
+/* Test retrieving a list of entities affiliated to a node you own. See
+ * XEP-0060 §8.9.1 Retrieve Affiliations List
+ * <http://xmpp.org/extensions/xep-0060.html#owner-affiliations-retrieve>
+ */
+
+static gboolean
+test_list_affiliates_iq_cb (WockyPorter *porter,
+    WockyXmppStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyXmppStanza *expected, *reply;
+
+  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, NULL, "pubsub.localhost",
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "affiliations",
+          WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  test_assert_stanzas_equal (stanza, expected);
+
+  g_object_unref (expected);
+
+  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "affiliations",
+          WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
+          WOCKY_NODE, "affiliation",
+            WOCKY_NODE_ATTRIBUTE, "jid", "hamlet@denmark.lit",
+            WOCKY_NODE_ATTRIBUTE, "affiliation", "owner",
+          WOCKY_NODE_END,
+          WOCKY_NODE, "affiliation",
+            WOCKY_NODE_ATTRIBUTE, "jid", "polonius@denmark.lit",
+            WOCKY_NODE_ATTRIBUTE, "affiliation", "outcast",
+          WOCKY_NODE_END,
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_list_affiliates_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  GList *affiliates;
+  WockyPubsubAffiliation *aff;
+
+  g_assert (wocky_pubsub_node_list_affiliates_finish (
+      WOCKY_PUBSUB_NODE (source), res, &affiliates, NULL));
+
+  g_assert_cmpuint (2, ==, g_list_length (affiliates));
+
+  aff = affiliates->data;
+  g_assert_cmpstr ("princely_musings", ==,
+      wocky_pubsub_node_get_name (aff->node));
+  g_assert_cmpstr ("hamlet@denmark.lit", ==, aff->jid);
+  g_assert_cmpuint (WOCKY_PUBSUB_AFFILIATION_OWNER, ==, aff->state);
+
+  aff = affiliates->next->data;
+  g_assert_cmpstr ("princely_musings", ==,
+      wocky_pubsub_node_get_name (aff->node));
+  g_assert_cmpstr ("polonius@denmark.lit", ==, aff->jid);
+  g_assert_cmpuint (WOCKY_PUBSUB_AFFILIATION_OUTCAST, ==, aff->state);
+
+  wocky_pubsub_affiliation_list_free (affiliates);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_list_affiliates (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_list_affiliates_iq_cb, test,
+      WOCKY_NODE, "pubsub",
+        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
+        WOCKY_NODE, "affiliations",
+          WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
+        WOCKY_NODE_END,
+      WOCKY_NODE_END, WOCKY_STANZA_END);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
+  g_assert (node != NULL);
+
+  wocky_pubsub_node_list_affiliates_async (node, NULL,
+      test_list_affiliates_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 /* Test that the 'event-received' signals are fired when we expect them to be.
  */
 
@@ -941,6 +1065,7 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/delete", test_delete);
 
   g_test_add_func ("/pubsub-node/list-subscribers", test_list_subscribers);
+  g_test_add_func ("/pubsub-node/list-affiliates", test_list_affiliates);
 
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
   g_test_add_func ("/pubsub-node/subscription-state-changed",
