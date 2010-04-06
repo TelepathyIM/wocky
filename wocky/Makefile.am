@@ -4,7 +4,7 @@ noinst_LTLIBRARIES = libwocky.la
 
 EXTRA_DIST =
 
-BUILT_SOURCES = \
+nodist_libwocky_la_SOURCES = \
   wocky-signals-marshal.list \
   wocky-signals-marshal.h \
   wocky-signals-marshal.c \
@@ -18,6 +18,8 @@ BUILT_SOURCES = \
   wocky-xmpp-error-enumtypes.h \
   wocky-xmpp-reader-enumtypes.c \
   wocky-xmpp-reader-enumtypes.h
+
+BUILT_SOURCES = $(nodist_libwocky_la_SOURCES)
 
 OPENSSL_SRC = \
   wocky-openssl.c \
@@ -97,7 +99,7 @@ else
   EXTRA_DIST += $(OPENSSL_SRC)
 endif
 
-libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES) $(BUILT_SOURCES)
+libwocky_la_SOURCES = $(HANDWRITTEN_SOURCES)
 
 # Coding style checks
 check_c_sources = \
