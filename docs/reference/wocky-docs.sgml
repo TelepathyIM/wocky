@@ -12,27 +12,43 @@
   <chapter>
     <title>API Reference</title>
 
+    <xi:include href="xml/wocky.xml"/>
     <xi:include href="xml/wocky-bare-contact.xml"/>
     <xi:include href="xml/wocky-connector.xml"/>
-    <xi:include href="xml/wocky-connector.xml"/>
-    <xi:include href="xml/wocky-contact-factory.xml"/>
     <xi:include href="xml/wocky-contact.xml"/>
+    <xi:include href="xml/wocky-contact-factory.xml"/>
+    <xi:include href="xml/wocky-data-form.xml"/>
+    <xi:include href="xml/wocky-data-form-enumtypes.xml"/>
     <xi:include href="xml/wocky-debug.xml"/>
+    <xi:include href="xml/wocky-muc.xml"/>
+    <xi:include href="xml/wocky-muc-enumtypes.xml"/>
     <xi:include href="xml/wocky-namespaces.xml"/>
+    <xi:include href="xml/wocky-pep-service.xml"/>
     <xi:include href="xml/wocky-porter.xml"/>
+    <xi:include href="xml/wocky-pubsub-helpers.xml"/>
+    <xi:include href="xml/wocky-pubsub-node.xml"/>
+    <xi:include href="xml/wocky-pubsub-node-protected.xml"/>
+    <xi:include href="xml/wocky-pubsub-service.xml"/>
+    <xi:include href="xml/wocky-pubsub-service-enumtypes.xml"/>
+    <xi:include href="xml/wocky-pubsub-service-protected.xml"/>
     <xi:include href="xml/wocky-resource-contact.xml"/>
     <xi:include href="xml/wocky-roster.xml"/>
     <xi:include href="xml/wocky-sasl-auth.xml"/>
+    <xi:include href="xml/wocky-sasl-digest-md5.xml"/>
+    <xi:include href="xml/wocky-sasl-handler.xml"/>
+    <xi:include href="xml/wocky-sasl-plain.xml"/>
+    <xi:include href="xml/wocky-session.xml"/>
     <xi:include href="xml/wocky-tls.xml"/>
+    <xi:include href="xml/wocky-types.xml"/>
     <xi:include href="xml/wocky-utils.xml"/>
     <xi:include href="xml/wocky-xmpp-connection.xml"/>
     <xi:include href="xml/wocky-xmpp-error.xml"/>
+    <xi:include href="xml/wocky-xmpp-error-enumtypes.xml"/>
     <xi:include href="xml/wocky-xmpp-node.xml"/>
-    <xi:include href="xml/wocky-xmpp-reader-enumtypes.xml"/>
     <xi:include href="xml/wocky-xmpp-reader.xml"/>
+    <xi:include href="xml/wocky-xmpp-reader-enumtypes.xml"/>
     <xi:include href="xml/wocky-xmpp-stanza.xml"/>
     <xi:include href="xml/wocky-xmpp-writer.xml"/>
-    <xi:include href="xml/wocky.xml"/>
 
   </chapter>
 
