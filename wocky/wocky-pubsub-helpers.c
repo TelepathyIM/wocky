@@ -27,9 +27,10 @@
  * wocky_pubsub_make_publish_stanza:
  * @service: the JID of a PubSub service, or %NULL
  * @node: the name of a node on @service; may not be %NULL
- * @pubsub_out: address at which to store a pointer to the <pubsub/> node
- * @publish_out: address at which to store a pointer to the <publish/> node
- * @item_out: address at which to store a pointer to the <item/> node
+ * @pubsub_out: address at which to store a pointer to the &lt;pubsub/&gt; node
+ * @publish_out: address at which to store a pointer to the &lt;publish/&gt;
+ *               node
+ * @item_out: address at which to store a pointer to the &lt;item/&gt; node
  *
  * <!-- -->
  *
@@ -66,10 +67,11 @@ wocky_pubsub_make_publish_stanza (
 /**
  * wocky_pubsub_make_stanza:
  * @service: the JID of a PubSub service, or %NULL
- * @pubsub_ns: the namespace for the <pubsub/> node of the stanza
- * @action_name: the action node to add to <pubsub/>
- * @pubsub_node: address at which to store a pointer to the <pubsub/> node
- * @action_node: address at wihch to store a pointer to the <@action/> node
+ * @pubsub_ns: the namespace for the &lt;pubsub/&gt; node of the stanza
+ * @action_name: the action node to add to &lt;pubsub/&gt;
+ * @pubsub_node: address at which to store a pointer to the &lt;pubsub/&gt; node
+ * @action_node: address at wihch to store a pointer to the &lt;@action/&gt;
+ *               node
  *
  * <!-- -->
  *
@@ -128,7 +130,7 @@ get_pubsub_child_node (WockyXmppStanza *reply,
     {
       g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
           WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
-          "Reply doesn't contain <pubsub/> node");
+          "Reply doesn't contain &lt;pubsub/&gt; node");
       return FALSE;
     }
 
@@ -205,10 +207,10 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
  * wocky_pubsub_distill_iq_reply:
  * @source: a #WockyPorter instance
  * @res: a result passed to the callback for wocky_porter_send_iq_async()
- * @pubsub_ns: the namespace of the <pubsub/> node expected in this reply (such
- *              WOCKY_XMPP_NS_PUBSUB), or %NULL if one is not expected
- * @child_name: the name of the child of <pubsub/> expected in this reply (such
- *              as "subscriptions"); ignored if @pubsub_ns is %NULL
+ * @pubsub_ns: the namespace of the &lt;pubsub/&gt; node expected in this reply
+ *             (such as #WOCKY_XMPP_NS_PUBSUB), or %NULL if one is not expected
+ * @child_name: the name of the child of &lt;pubsub/&gt; expected in this reply
+ *              (such as "subscriptions"); ignored if @pubsub_ns is %NULL
  * @child_out: location at which to store a pointer to that child node, or
  *             %NULL if you don't need it
  * @error: location at which to store an error if the call to
@@ -262,10 +264,10 @@ wocky_pubsub_distill_void_iq_reply (GObject *source,
  * wocky_pubsub_distill_ambivalent_iq_reply:
  * @source: a #WockyPorter instance
  * @res: a result passed to the callback for wocky_porter_send_iq_async()
- * @pubsub_ns: the namespace of the <pubsub/> node accepted in this reply (such
- *              WOCKY_XMPP_NS_PUBSUB)
- * @child_name: the name of the child of <pubsub/> accepted in this reply (such
- *              as "subscriptions")
+ * @pubsub_ns: the namespace of the &lt;pubsub/&gt; node accepted in this reply
+ *             (such as #WOCKY_XMPP_NS_PUBSUB)
+ * @child_name: the name of the child of &lt;pubsub/&gt; accepted in this reply
+ *              (such as "subscriptions")
  * @child_out: location at which to store a pointer to the node named
  *             @child_name, if is found, or to be set to %NULL if it is not
  *             found
@@ -276,7 +278,7 @@ wocky_pubsub_distill_void_iq_reply (GObject *source,
  * Helper function to finish a wocky_porter_send_iq_async() operation
  * and extract a particular pubsub child from the resulting reply, if it is
  * present. This is like wocky_pubsub_distill_iq_reply(), but is ambivalent as
- * to whether the <pubsub/> structure has to be included.
+ * to whether the &lt;pubsub/&gt; structure has to be included.
  *
  * Returns: %TRUE if the IQ was a success; %FALSE if
  *          sending the IQ failed or the reply had type='error',
