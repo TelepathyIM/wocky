@@ -36,7 +36,8 @@ typedef struct {
     WockyPubsubNodeEventHandler method;
 } WockyPubsubNodeEventMapping;
 
-const WockyPubsubNodeEventMapping *_wocky_pubsub_node_get_event_mappings (void);
+const WockyPubsubNodeEventMapping *_wocky_pubsub_node_get_event_mappings (
+    guint *n_mappings);
 
 /* for use by subclasses */
 

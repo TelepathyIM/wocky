@@ -204,6 +204,7 @@ wocky_pubsub_service_constructed (GObject *object)
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
   WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
   const WockyPubsubNodeEventMapping *m;
+  guint n_mappings;
 
   g_assert (priv->session != NULL);
   g_assert (priv->jid != NULL);
@@ -211,11 +212,10 @@ wocky_pubsub_service_constructed (GObject *object)
   priv->porter = wocky_session_get_porter (priv->session);
   g_object_ref (priv->porter);
 
-  priv->trampolines = g_ptr_array_sized_new (3);
+  m = _wocky_pubsub_node_get_event_mappings (&n_mappings);
+  priv->trampolines = g_ptr_array_sized_new (n_mappings);
 
-  for (m = _wocky_pubsub_node_get_event_mappings ();
-       m->action != NULL;
-       m++)
+  for (; m->action != NULL; m++)
     {
       EventTrampoline *t = g_slice_new (EventTrampoline);
 

@@ -342,8 +342,11 @@ static const WockyPubsubNodeEventMapping mappings[] = {
 };
 
 const WockyPubsubNodeEventMapping *
-_wocky_pubsub_node_get_event_mappings (void)
+_wocky_pubsub_node_get_event_mappings (guint *n_mappings)
 {
+  if (n_mappings != NULL)
+    *n_mappings = G_N_ELEMENTS (mappings) - 1;
+
   return mappings;
 }
 
