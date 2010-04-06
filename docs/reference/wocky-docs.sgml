@@ -11,27 +11,29 @@
 
   <chapter>
     <title>API Reference</title>
-    <xi:include href="xml/wocky-sasl-auth.xml"/>
-    <xi:include href="xml/wocky-xmpp-reader.xml"/>
-    <xi:include href="xml/wocky-contact.xml"/>
+
     <xi:include href="xml/wocky-bare-contact.xml"/>
-    <xi:include href="xml/wocky-resource-contact.xml"/>
-    <xi:include href="xml/wocky-contact-factory.xml"/>
-    <xi:include href="xml/wocky-porter.xml"/>
     <xi:include href="xml/wocky-connector.xml"/>
+    <xi:include href="xml/wocky-connector.xml"/>
+    <xi:include href="xml/wocky-contact-factory.xml"/>
+    <xi:include href="xml/wocky-contact.xml"/>
+    <xi:include href="xml/wocky-debug.xml"/>
+    <xi:include href="xml/wocky-namespaces.xml"/>
+    <xi:include href="xml/wocky-porter.xml"/>
+    <xi:include href="xml/wocky-resource-contact.xml"/>
+    <xi:include href="xml/wocky-roster.xml"/>
+    <xi:include href="xml/wocky-sasl-auth.xml"/>
+    <xi:include href="xml/wocky-tls.xml"/>
+    <xi:include href="xml/wocky-utils.xml"/>
+    <xi:include href="xml/wocky-xmpp-connection.xml"/>
+    <xi:include href="xml/wocky-xmpp-error.xml"/>
+    <xi:include href="xml/wocky-xmpp-node.xml"/>
+    <xi:include href="xml/wocky-xmpp-reader-enumtypes.xml"/>
+    <xi:include href="xml/wocky-xmpp-reader.xml"/>
     <xi:include href="xml/wocky-xmpp-stanza.xml"/>
     <xi:include href="xml/wocky-xmpp-writer.xml"/>
-    <xi:include href="xml/wocky-xmpp-connection.xml"/>
-    <xi:include href="xml/wocky-connector.xml"/>
-    <xi:include href="xml/wocky-roster.xml"/>
-    <xi:include href="xml/wocky-debug.xml"/>
     <xi:include href="xml/wocky.xml"/>
-    <xi:include href="xml/wocky-xmpp-reader-enumtypes.xml"/>
-    <xi:include href="xml/wocky-namespaces.xml"/>
-    <xi:include href="xml/wocky-utils.xml"/>
-    <xi:include href="xml/wocky-xmpp-node.xml"/>
-    <xi:include href="xml/wocky-xmpp-error.xml"/>
-    <xi:include href="xml/wocky-tls.xml"/>
+
   </chapter>
 
   <chapter id="object-tree">
