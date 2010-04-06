@@ -84,10 +84,19 @@
  * </informalexample>
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "wocky-connector.h"
+
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include <gio/gio.h>
 
@@ -99,7 +108,6 @@
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-error.h"
 #include "wocky-xmpp-error-enumtypes.h"
-#include "wocky-connector.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
@@ -1548,7 +1556,7 @@ starttls_handshake_cb (GObject *source,
   const gchar *tla = priv->legacy_ssl ? "SSL" : "TLS";
   long flags = WOCKY_TLS_VERIFY_NORMAL;
   const gchar *peer = NULL;
-  guint status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+  WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
 
   priv->tls = wocky_tls_session_handshake_finish (sess, res, &error);
   DEBUG ("completed %s handshake", tla);
@@ -2736,7 +2744,7 @@ wocky_connector_add_ca (WockyConnector *self,
     const gchar *path)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
-  gchar *abspath = realpath (path, NULL);
+  gchar *abspath = wocky_absolutize_path (path);
 
   if (abspath != NULL)
     priv->cas = g_slist_prepend (priv->cas, abspath);
@@ -2761,7 +2769,7 @@ wocky_connector_add_crl (WockyConnector *self,
     const gchar *path)
 {
   WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
-  gchar *abspath = realpath (path, NULL);
+  gchar *abspath = wocky_absolutize_path (path);
 
   if (abspath != NULL)
     priv->crl = g_slist_prepend (priv->crl, abspath);

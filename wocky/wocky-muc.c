@@ -18,7 +18,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#define _GNU_SOURCE /* for strptime */
 #include <string.h>
 #include <time.h>
 
@@ -908,7 +907,7 @@ presence_code (WockyXmppNode *node, gpointer data)
 
   if (code == NULL)    return TRUE;
 
-  cnum = g_ascii_strtoull (code, NULL, 10);
+  cnum = (gulong) g_ascii_strtoull (code, NULL, 10);
 
   if (cnum == 0)
     return TRUE;
@@ -1460,14 +1459,21 @@ handle_message (WockyPorter *porter,
     {
       const gchar *tm = wocky_xmpp_node_get_attribute (child, "stamp");
 
+      /* These timestamps do not contain a timezone, but are understood to be
+       * in GMT. They're in the format yyyymmddThhmmss, so if we append 'Z'
+       * we'll get (one of the many valid syntaxes for) an ISO-8601 timestamp.
+       */
       if (tm != NULL)
         {
-          struct tm when = { 0, };
-          char *ok = strptime (tm, "%Y%m%dT%T", &when);
-          if (ok == NULL || *ok != '\0')
+          GTimeVal timeval = { 0, 0 };
+          gchar *tm_dup = g_strdup_printf ("%sZ", tm);
+
+          if (!g_time_val_from_iso8601 (tm_dup, &timeval))
             DEBUG ("Malformed date string '%s' for " WOCKY_XMPP_NS_DELAY, tm);
           else
-            stamp = timegm (&when);
+            stamp = timeval.tv_sec;
+
+          g_free (tm_dup);
         }
     }
 

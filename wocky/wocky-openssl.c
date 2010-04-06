@@ -33,12 +33,25 @@
  * debugging output from within wocky-openssl.c as well.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-tls.h"
+
+/* Apparently an implicit requirement of OpenSSL's headers... */
+#ifdef G_OS_WIN32
+#include <windows.h>
+#endif
 
 #include <openssl/ssl.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include <openssl/err.h>
 #include <openssl/engine.h>
@@ -58,7 +71,6 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 enum
 {
@@ -231,7 +243,7 @@ wocky_tls_error_quark (void)
  * not actually guaranteed anywhere so we have to check for it here:         */
 static const gchar *error_to_string (long error)
 {
-  static const gchar ssl_error[256];
+  static gchar ssl_error[256];
   int e;
   int x;
   /* SSL_ERROR_NONE from ERR_get_error means we have emptied the stack, *
@@ -242,8 +254,8 @@ static const gchar *error_to_string (long error)
   /* we found an error in the stack, or were passed one in errnum: */
   if (e != SSL_ERROR_NONE)
     {
-      ERR_error_string_n ((gulong) e, (gchar *) ssl_error, sizeof (ssl_error));
-      return (const gchar *) ssl_error;
+      ERR_error_string_n ((gulong) e, ssl_error, sizeof (ssl_error));
+      return ssl_error;
     }
 
   /* No useful/informative/relevant error found */
@@ -334,7 +346,7 @@ handshake_write (WockyTLSSession *session)
   long wsize = BIO_get_mem_data (session->wbio, &wbuf);
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   g_output_stream_write_async (output, wbuf, wsize, prio, cancel,
                                wocky_tls_session_write_ready, session);
@@ -347,7 +359,7 @@ handshake_read (WockyTLSSession *session)
   WockyTLSJob *handshake = (WockyTLSJob *) &session->job.handshake.job;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   g_input_stream_read_async (input,
                              &(handshake->rbuf),
@@ -370,7 +382,7 @@ ssl_handshake (WockyTLSSession *session)
   gboolean fatal = FALSE;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   if (!done)
     {
@@ -467,7 +479,7 @@ ssl_fill (WockyTLSSession *session)
   GCancellable *cancel = session->job.read.cancellable;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   g_input_stream_read_async (input, rbuf, MAX_SSLV3_BLOCK_SIZE, prio, cancel,
                              wocky_tls_session_read_ready, session);
@@ -483,7 +495,7 @@ ssl_flush (WockyTLSSession *session)
   GCancellable *cancel = session->job.read.cancellable;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   wsize = BIO_get_mem_data (session->wbio, &wbuf);
 
@@ -716,21 +728,20 @@ add_ca_or_crl (WockyTLSSession *session,
                const gchar *label)
 {
   gboolean ok = FALSE;
-  struct stat target;
 
-  if (stat (path, &target) != 0)
+  if (!g_file_test (path, G_FILE_TEST_EXISTS))
     {
       DEBUG ("%s file or path '%s' not accessible", label, path);
       return;
     }
 
-  if (S_ISDIR (target.st_mode))
+  if (g_file_test (path, G_FILE_TEST_IS_DIR))
     {
       DEBUG ("Loading %s directory", label);
       ok = SSL_CTX_load_verify_locations (session->ctx, NULL, path);
     }
 
-  if (S_ISREG (target.st_mode))
+  if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
     {
       DEBUG ("Loading %s file", label);
       ok = SSL_CTX_load_verify_locations (session->ctx, path, NULL);
@@ -769,7 +780,7 @@ wocky_tls_session_handshake_async (WockyTLSSession         *session,
                                    GAsyncReadyCallback  callback,
                                    gpointer             user_data)
 {
-  DEBUG ();
+  DEBUG ("");
   wocky_tls_job_start (&session->job.handshake.job, session,
                        io_priority, cancellable, callback, user_data,
                        wocky_tls_session_handshake_async);
@@ -782,7 +793,7 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
                                     GError       **error)
 {
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
-  DEBUG ();
+  DEBUG ("");
   {
     GObject *source_object;
 
@@ -928,7 +939,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   X509 *cert;
   gboolean lenient = (level == WOCKY_TLS_VERIFY_LENIENT);
 
-  DEBUG ();
+  DEBUG ("");
   g_assert (status != NULL);
   *status = WOCKY_TLS_CERT_OK;
 
@@ -1079,7 +1090,7 @@ wocky_tls_input_stream_read_async (GInputStream        *stream,
   int ret;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   g_assert (session->job.read.active == FALSE);
 
@@ -1131,7 +1142,7 @@ wocky_tls_input_stream_read_finish (GInputStream  *stream,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (stream), wocky_tls_input_stream_read_async), -1);
@@ -1211,7 +1222,7 @@ wocky_tls_output_stream_write_finish (GOutputStream   *stream,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
   {
     GObject *source_object;
 
@@ -1369,7 +1380,7 @@ wocky_tls_session_read_ready (GObject      *object,
     session->job.handshake.job.rbuf : session->job.read.rbuf;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   rsize = g_input_stream_read_finish (input, result, error);
 
@@ -1386,7 +1397,7 @@ wocky_tls_session_read_ready (GObject      *object,
             for (y = 0; y < 16 && x + y < rsize; y++)
               {
                 char c = *(buf + x + y);
-                char d = (isprint (c) && !isblank (c)) ? c : '.';
+                char d = (g_ascii_isprint (c) && g_ascii_isgraph (c)) ? c : '.';
                 fprintf (stderr, "%02x %c ", c & 0xff, d);
               }
             fprintf (stderr, "\n");
@@ -1433,7 +1444,7 @@ wocky_tls_session_write_ready (GObject      *object,
   gssize written;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-    DEBUG ();
+    DEBUG ("");
 
   written = g_output_stream_write_finish (G_OUTPUT_STREAM (object), result,
                                           &(session->job.write.error));

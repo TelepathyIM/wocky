@@ -69,11 +69,38 @@ static void _characters (void *user_data, const xmlChar *ch, int len);
 static void _error (void *user_data, xmlErrorPtr error);
 
 static xmlSAXHandler parser_handler = {
-  .initialized = XML_SAX2_MAGIC,
-  .startElementNs = _start_element_ns,
-  .endElementNs   = _end_element_ns,
-  .characters     = _characters,
-  .serror         = _error,
+  /* internalSubset         */ NULL,
+  /* isStandalone           */ NULL,
+  /* hasInternalSubset      */ NULL,
+  /* hasExternalSubset      */ NULL,
+  /* resolveEntity          */ NULL,
+  /* getEntity              */ NULL,
+  /* entityDecl             */ NULL,
+  /* notationDecl           */ NULL,
+  /* attributeDecl          */ NULL,
+  /* elementDecl            */ NULL,
+  /* unparsedEntityDecl     */ NULL,
+  /* setDocumentLocator     */ NULL,
+  /* startDocument          */ NULL,
+  /* endDocument            */ NULL,
+  /* startElement           */ NULL,
+  /* endElement             */ NULL,
+  /* reference              */ NULL,
+  /* characters             */ _characters,
+  /* ignorableWhitespace    */ NULL,
+  /* processingInstruction  */ NULL,
+  /* comment                */ NULL,
+  /* warning                */ NULL,
+  /* error                  */ NULL,
+  /* fatalError             */ NULL,
+  /* getParameterEntity     */ NULL,
+  /* cdataBlock             */ NULL,
+  /* externalSubset         */ NULL,
+  /* initialized            */ XML_SAX2_MAGIC,
+  /* _private               */ NULL,
+  /* startElementNs         */ _start_element_ns,
+  /* endElementNs           */ _end_element_ns,
+  /* serror                 */ _error
 };
 
 /* private structure */

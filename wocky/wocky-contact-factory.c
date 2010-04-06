@@ -29,14 +29,22 @@
  * without creating them again.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "wocky-contact-factory.h"
+
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <string.h>
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#include <stdlib.h>
 
 #include <gio/gio.h>
 
-#include "wocky-contact-factory.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 

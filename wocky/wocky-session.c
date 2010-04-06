@@ -26,13 +26,20 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "wocky-session.h"
+
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
-#include "wocky-session.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 

@@ -65,7 +65,7 @@ AC_ARG_ENABLE(coding-style-checks,
     [ # Wocky is version x.y.z.1 - enable coding style checks by default
 AC_ARG_ENABLE(coding-style-checks,
   AC_HELP_STRING([--disable-coding-style-checks],
-                 [don't check coding style using grep]),
+                 [do not check coding style using grep]),
     [ENABLE_CODING_STYLE_CHECKS=$enableval], [ENABLE_CODING_STYLE_CHECKS=yes])
     ])
 
@@ -93,6 +93,7 @@ fi
 
 dnl Check for code generation tools
 AC_HEADER_STDC([])
+AC_CHECK_HEADERS_ONCE([unistd.h])
 AC_C_INLINE
 
 dnl Check endianness (Needed for the sha1 implementation)
