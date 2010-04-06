@@ -712,7 +712,6 @@ wocky_data_forms_field_type_get_type
 <TITLE>WockyPubsubNode</TITLE>
 WockyPubsubNode
 WockyPubsubNodeClass
-wocky_pubsub_node_new
 wocky_pubsub_node_get_name
 wocky_pubsub_node_delete_async
 wocky_pubsub_node_delete_finish
