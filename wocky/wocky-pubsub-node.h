@@ -96,6 +96,62 @@ gboolean wocky_pubsub_node_delete_finish (WockyPubsubNode *node,
     GAsyncResult *result,
     GError **error);
 
+void wocky_pubsub_node_list_subscribers_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_list_subscribers_finish (
+    WockyPubsubNode *node,
+    GAsyncResult *result,
+    GList **subscribers,
+    GError **error);
+
+/*< prefix=WOCKY_PUBSUB_AFFILIATION >*/
+typedef enum {
+    WOCKY_PUBSUB_AFFILIATION_OWNER,
+    WOCKY_PUBSUB_AFFILIATION_PUBLISHER,
+    WOCKY_PUBSUB_AFFILIATION_PUBLISH_ONLY,
+    WOCKY_PUBSUB_AFFILIATION_MEMBER,
+    WOCKY_PUBSUB_AFFILIATION_NONE,
+    WOCKY_PUBSUB_AFFILIATION_OUTCAST
+} WockyPubsubAffiliationState;
+
+typedef struct _WockyPubsubAffiliation WockyPubsubAffiliation;
+struct _WockyPubsubAffiliation {
+    WockyPubsubNode *node;
+    gchar *jid;
+    WockyPubsubAffiliationState state;
+};
+
+#define WOCKY_TYPE_PUBSUB_AFFILIATION \
+  (wocky_pubsub_affiliation_get_type ())
+GType wocky_pubsub_affiliation_get_type (void);
+
+WockyPubsubAffiliation *wocky_pubsub_affiliation_new (
+    WockyPubsubNode *node,
+    const gchar *jid,
+    WockyPubsubAffiliationState state);
+WockyPubsubAffiliation *wocky_pubsub_affiliation_copy (
+    WockyPubsubAffiliation *aff);
+void wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff);
+
+GList *wocky_pubsub_affiliation_list_copy (GList *affs);
+void wocky_pubsub_affiliation_list_free (GList *affs);
+
+void wocky_pubsub_node_list_affiliates_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_list_affiliates_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GList **affiliates,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */

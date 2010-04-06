@@ -666,3 +666,18 @@ wocky_absolutize_path (const gchar *path)
   g_object_unref (absolute);
   return ret;
 }
+
+GList *
+wocky_list_deep_copy (GBoxedCopyFunc copy,
+    const GList *items)
+{
+  GList *ret = NULL;
+  const GList *l;
+
+  g_return_val_if_fail (copy != NULL, NULL);
+
+  for (l = items; l != NULL; l = l->next)
+    ret = g_list_prepend (ret, copy (l->data));
+
+  return g_list_reverse (ret);
+}
