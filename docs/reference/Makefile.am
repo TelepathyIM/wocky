@@ -46,11 +46,20 @@ MKHTML_OPTIONS=
 # e.g. FIXXREF_OPTIONS=--extra-dir=../gdk-pixbuf/html --extra-dir=../gdk/html
 FIXXREF_OPTIONS=
 
+# If we're building out of tree, we need to scan wocky/ under the builddir as
+# well as under the sourcedir (which is specified above with DOC_SOURCE_DIR) to
+# pick up the enumtypes.
+#
+# If we're building in-tree, well, we'd just better hope gtkdoc doesn't mind
+# scanning stuff twice.
+SCAN_OPTIONS += --source-dir=$(abs_top_builddir)/wocky
+MKDB_OPTIONS += --source-dir=$(abs_top_builddir)/wocky
+
 # Used for dependencies. The docs will be rebuilt if any of these change.
 # e.g. HFILE_GLOB=$(top_srcdir)/gtk/*.h
 # e.g. CFILE_GLOB=$(top_srcdir)/gtk/*.c
-HFILE_GLOB=$(top_srcdir)/wocky/*.h
-CFILE_GLOB=$(top_srcdir)/wocky/*.c
+HFILE_GLOB=$(top_srcdir)/wocky/*.h $(top_builddir)/wocky/*.h
+CFILE_GLOB=$(top_srcdir)/wocky/*.c $(top_builddir)/wocky/*.c
 
 # Header files to ignore when scanning.
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
