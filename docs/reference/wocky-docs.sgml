@@ -29,7 +29,6 @@
     <xi:include href="xml/wocky-pubsub-node.xml"/>
     <xi:include href="xml/wocky-pubsub-node-protected.xml"/>
     <xi:include href="xml/wocky-pubsub-service.xml"/>
-    <xi:include href="xml/wocky-pubsub-service-enumtypes.xml"/>
     <xi:include href="xml/wocky-pubsub-service-protected.xml"/>
     <xi:include href="xml/wocky-resource-contact.xml"/>
     <xi:include href="xml/wocky-roster.xml"/>
@@ -39,7 +38,6 @@
     <xi:include href="xml/wocky-sasl-plain.xml"/>
     <xi:include href="xml/wocky-session.xml"/>
     <xi:include href="xml/wocky-tls.xml"/>
-    <xi:include href="xml/wocky-types.xml"/>
     <xi:include href="xml/wocky-utils.xml"/>
     <xi:include href="xml/wocky-xmpp-connection.xml"/>
     <xi:include href="xml/wocky-xmpp-error.xml"/>
