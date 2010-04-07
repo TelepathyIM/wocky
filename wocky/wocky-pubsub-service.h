@@ -71,37 +71,37 @@ GType wocky_pubsub_service_get_type (void);
 WockyPubsubService * wocky_pubsub_service_new (WockySession *session,
     const gchar *jid);
 
-WockyPubsubNode * wocky_pubsub_service_ensure_node (WockyPubsubService *service,
+WockyPubsubNode * wocky_pubsub_service_ensure_node (WockyPubsubService *self,
     const gchar *name);
 
-WockyPubsubNode * wocky_pubsub_service_lookup_node (WockyPubsubService *service,
+WockyPubsubNode * wocky_pubsub_service_lookup_node (WockyPubsubService *self,
     const gchar *name);
 
 void wocky_pubsub_service_get_default_node_configuration_async (
-    WockyPubsubService *service,
+    WockyPubsubService *self,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
 WockyDataForm * wocky_pubsub_service_get_default_node_configuration_finish (
-    WockyPubsubService *service,
+    WockyPubsubService *self,
     GAsyncResult *result,
     GError **error);
 
 void wocky_pubsub_service_retrieve_subscriptions_async (
-    WockyPubsubService *service,
+    WockyPubsubService *self,
     WockyPubsubNode *node,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
 gboolean wocky_pubsub_service_retrieve_subscriptions_finish (
-    WockyPubsubService *service,
+    WockyPubsubService *self,
     GAsyncResult *result,
     GList **subscriptions,
     GError **error);
 
-void wocky_pubsub_service_create_node_async (WockyPubsubService *service,
+void wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     const gchar *name,
     WockyDataForm *config,
     GCancellable *cancellable,
@@ -109,7 +109,7 @@ void wocky_pubsub_service_create_node_async (WockyPubsubService *service,
     gpointer user_data);
 
 WockyPubsubNode * wocky_pubsub_service_create_node_finish (
-    WockyPubsubService *service,
+    WockyPubsubService *self,
     GAsyncResult *result,
     GError **error);
 

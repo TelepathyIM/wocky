@@ -57,7 +57,7 @@ GType wocky_pubsub_node_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_PUBSUB_NODE, \
    WockyPubsubNodeClass))
 
-const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *node);
+const gchar * wocky_pubsub_node_get_name (WockyPubsubNode *self);
 
 WockyXmppStanza *wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
     WockyXmppNode **pubsub_out,
@@ -87,12 +87,12 @@ gboolean wocky_pubsub_node_unsubscribe_finish (
     GAsyncResult *result,
     GError **error);
 
-void wocky_pubsub_node_delete_async (WockyPubsubNode *node,
+void wocky_pubsub_node_delete_async (WockyPubsubNode *self,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-gboolean wocky_pubsub_node_delete_finish (WockyPubsubNode *node,
+gboolean wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error);
 
@@ -103,7 +103,7 @@ void wocky_pubsub_node_list_subscribers_async (
     gpointer user_data);
 
 gboolean wocky_pubsub_node_list_subscribers_finish (
-    WockyPubsubNode *node,
+    WockyPubsubNode *self,
     GAsyncResult *result,
     GList **subscribers,
     GError **error);

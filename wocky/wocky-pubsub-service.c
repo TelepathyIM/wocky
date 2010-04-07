@@ -750,12 +750,12 @@ wocky_pubsub_service_retrieve_subscriptions_async (
 
 gboolean
 wocky_pubsub_service_retrieve_subscriptions_finish (
-    WockyPubsubService *service,
+    WockyPubsubService *self,
     GAsyncResult *result,
     GList **subscriptions,
     GError **error)
 {
-  wocky_implement_finish_copy_pointer (service,
+  wocky_implement_finish_copy_pointer (self,
       wocky_pubsub_service_retrieve_subscriptions_async,
       wocky_pubsub_subscription_list_copy, subscriptions)
 }

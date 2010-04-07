@@ -115,34 +115,34 @@ GType wocky_data_form_get_type (void);
 WockyDataForm * wocky_data_form_new_from_form (WockyXmppNode *node,
     GError **error);
 
-gboolean wocky_data_form_set_type (WockyDataForm *form,
+gboolean wocky_data_form_set_type (WockyDataForm *self,
     const gchar *form_type);
 
-gboolean wocky_data_form_set_boolean (WockyDataForm *form,
+gboolean wocky_data_form_set_boolean (WockyDataForm *self,
     const gchar *field_name,
     gboolean field_value,
     gboolean create_if_missing);
 
-gboolean wocky_data_form_set_string (WockyDataForm *form,
+gboolean wocky_data_form_set_string (WockyDataForm *self,
     const gchar *field_name,
     const gchar *field_value,
     gboolean create_if_missing);
 
-gboolean wocky_data_form_set_strv (WockyDataForm *form,
+gboolean wocky_data_form_set_strv (WockyDataForm *self,
     const gchar *field_name,
     const gchar * const *field_values,
     gboolean create_if_missing);
 
-void wocky_data_form_submit (WockyDataForm *form,
+void wocky_data_form_submit (WockyDataForm *self,
     WockyXmppNode *node);
 
-gboolean wocky_data_form_parse_result (WockyDataForm *form,
+gboolean wocky_data_form_parse_result (WockyDataForm *self,
     WockyXmppNode *node,
     GError **error);
 
-const gchar *wocky_data_form_get_title (WockyDataForm *form);
+const gchar *wocky_data_form_get_title (WockyDataForm *self);
 
-const gchar *wocky_data_form_get_instructions (WockyDataForm *form);
+const gchar *wocky_data_form_get_instructions (WockyDataForm *self);
 
 G_END_DECLS
 
