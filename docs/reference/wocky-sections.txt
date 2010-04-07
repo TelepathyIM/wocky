@@ -377,6 +377,9 @@ wocky_g_value_slice_free
 wocky_g_value_slice_dup
 wocky_enum_from_nick
 wocky_enum_to_nick
+wocky_absolutize_path
+wocky_implement_finish_copy_pointer
+wocky_list_deep_copy
 </SECTION>
 
 <SECTION>
@@ -724,6 +727,23 @@ wocky_pubsub_node_subscribe_async
 wocky_pubsub_node_subscribe_finish
 wocky_pubsub_node_unsubscribe_async
 wocky_pubsub_node_unsubscribe_finish
+wocky_pubsub_node_list_affiliates_async
+wocky_pubsub_node_list_affiliates_finish
+wocky_pubsub_node_list_subscribers_async
+wocky_pubsub_node_list_subscribers_finish
+wocky_pubsub_node_make_list_affiliates_stanza
+wocky_pubsub_node_make_list_subscribers_stanza
+wocky_pubsub_node_parse_affiliations
+<SUBSECTION>
+WOCKY_TYPE_PUBSUB_AFFILIATION
+WOCKY_TYPE_PUBSUB_AFFILIATION_STATE
+WockyPubsubAffiliation
+WockyPubsubAffiliationState
+wocky_pubsub_affiliation_copy
+wocky_pubsub_affiliation_free
+wocky_pubsub_affiliation_list_copy
+wocky_pubsub_affiliation_list_free
+wocky_pubsub_affiliation_new
 <SUBSECTION Standard>
 WOCKY_TYPE_PUBSUB_NODE
 WOCKY_IS_PUBSUB_NODE
@@ -732,6 +752,11 @@ WOCKY_PUBSUB_NODE
 WOCKY_PUBSUB_NODE_CLASS
 WOCKY_PUBSUB_NODE_GET_CLASS
 wocky_pubsub_node_get_type
+wocky_pubsub_affiliation_get_type
+wocky_pubsub_affiliation_state_get_type
+<SUBSECTION Private>
+WockyPubsubNodeEventHandler
+WockyPubsubNodeEventMapping
 </SECTION>
 
 <SECTION>
@@ -804,4 +829,5 @@ wocky_pubsub_distill_ambivalent_iq_reply
 wocky_pubsub_distill_iq_reply
 wocky_pubsub_distill_void_iq_reply
 wocky_pubsub_make_publish_stanza
+wocky_pubsub_make_stanza
 </SECTION>
