@@ -452,6 +452,7 @@ subscribe_cb (GObject *source,
 }
 
 /**
+ * wocky_pubsub_node_subscribe_async:
  * @self: a pubsub node
  * @jid: the JID to use as the subscribed JID (usually the connection's bare or
  *       full JID); may not be %NULL
@@ -551,6 +552,7 @@ unsubscribe_cb (GObject *source,
 }
 
 /**
+ * wocky_pubsub_node_unsubscribe_async:
  * @self: a pubsub node
  * @jid: the JID subscribed to @self (usually the connection's bare or
  *       full JID); may not be %NULL
@@ -708,8 +710,14 @@ list_subscribers_cb (GObject *source,
 
 /**
  * wocky_pubsub_node_list_subscribers_async:
+ * @self: a pubsub node
+ * @cancellable: optional #GCancellable object
+ * @callback: function to call when the subscribers have been retrieved or an
+ *            error has occured
+ * @user_data: data to pass to @callback.
  *
- * Retrieves the list of subscriptions to a node you own.
+ * Retrieves the list of subscriptions to a node you own. @callback may
+ * complete the call using wocky_pubsub_node_list_subscribers_finish().
  *
  * (A note on naming: this is §8.8.1 — Retrieve Subscriptions List — in
  * XEP-0060, not to be confused with §5.6 — Retrieve Subscriptions. The
@@ -846,8 +854,14 @@ list_affiliates_cb (GObject *source,
 
 /**
  * wocky_pubsub_node_list_affiliates_async:
+ * @self: a pubsub node
+ * @cancellable: optional #GCancellable object
+ * @callback: function to call when the affiliates have been retrieved or an
+ *            error has occured
+ * @user_data: data to pass to @callback.
  *
- * Retrieves the list ofa entities affilied to a node you own.
+ * Retrieves the list of entities affilied to a node you own. @callback may
+ * complete the call using wocky_pubsub_node_list_affiliates_finish().
  *
  * (A note on naming: this is §8.9.1 — Retrieve Affiliations List — in
  * XEP-0060, not to be confused with §5.7 — Retrieve Affiliations. The
@@ -876,12 +890,12 @@ wocky_pubsub_node_list_affiliates_async (
  * wocky_pubsub_node_list_affiliates_finish:
  * @self: a pubsub node
  * @result: the result passed to a callback
- * @affiliations: location at which to store a list of #WockyPubsubAffiliation
- *                pointers, or %NULL
+ * @affiliates: location at which to store a list of #WockyPubsubAffiliation
+ *              pointers, or %NULL
  * @error: location at which to store an error, or %NULL
  *
  * Completes a call to wocky_pubsub_node_list_affiliates_async(). The list
- * returned in @affiliations should be freed with
+ * returned in @affiliates should be freed with
  * wocky_pubsub_affiliation_list_free() when it is no longer needed.
  *
  * Returns: %TRUE if the list of subscribers was successfully retrieved; %FALSE

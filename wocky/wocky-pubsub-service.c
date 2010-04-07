@@ -432,10 +432,11 @@ pubsub_service_create_node (WockyPubsubService *self,
  * @name: the name of a node on @self
  *
  * Fetches or creates an object representing a node on the pubsub service. Note
- * that this does not ensure that @node exists on the server; it merely ensures
- * a local representation.
+ * that this does not ensure that a node exists on the server; it merely
+ * ensures a local representation.
  *
- * Returns: a new reference to an object representing @node on @self
+ * Returns: a new reference to an object representing a node named @name on
+ *          @self
  */
 WockyPubsubNode *
 wocky_pubsub_service_ensure_node (WockyPubsubService *self,
@@ -459,7 +460,7 @@ wocky_pubsub_service_ensure_node (WockyPubsubService *self,
  *
  * Fetches an object representing a node on a pubsub service, if the object
  * already exists; if not, returns %NULL. Note that this does not check whether
- * @node exists on the server; it only chceks for a local representation.
+ * a node exists on the server; it only checks for a local representation.
  *
  * Returns: a borrowed reference to a node, or %NULL
  */
@@ -991,6 +992,7 @@ wocky_pubsub_subscription_get_type (void)
 
 /**
  * WockyPubsubServiceClass:
+ * @parent_class: parent
  * @node_object_type: the subtype of #WOCKY_TYPE_PUBSUB_NODE to be created by
  *                    wocky_pubsub_service_ensure_node()
  *
