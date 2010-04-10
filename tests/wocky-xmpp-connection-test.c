@@ -167,7 +167,7 @@ test_send_simple_message (void)
           WOCKY_NODE_TEXT, "Art thou not Romeo, and a Montague?",
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-    WOCKY_STANZA_END);
+    NULL);
 
   wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (test->in),
     s, NULL, send_stanza_cb, test);
@@ -355,7 +355,7 @@ test_error_pending_send_pending (test_data_t *test)
   WockyXmppStanza *stanza;
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   /* should get a _PENDING error */
   wocky_xmpp_connection_send_open_async (test->in, NULL, NULL, NULL, NULL, NULL,
@@ -381,7 +381,7 @@ test_error_pending (void)
   WockyXmppStanza *stanza;
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   wocky_xmpp_connection_recv_open_async (test->out, NULL,
     error_pending_open_received_cb, test);
@@ -508,7 +508,7 @@ test_error_not_open (void)
   WockyXmppStanza *stanza;
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   wocky_xmpp_connection_send_stanza_async (test->in, stanza, NULL,
     error_not_open_send_stanza_cb, test);
@@ -734,7 +734,7 @@ test_error_is_open_or_closed (void)
   WockyXmppStanza *stanza;
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
 
   wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (test->in),
@@ -807,7 +807,7 @@ test_recv_cancel (void)
   test_open_connection (test);
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", WOCKY_STANZA_END);
+    WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   cancellable = g_cancellable_new ();
 

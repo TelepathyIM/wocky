@@ -185,14 +185,14 @@ wocky_xmpp_stanza_new (const gchar *name)
 
 static gboolean
 wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
-                                 WockyBuildTag arg,
-                                 va_list ap)
+                                va_list ap)
 {
   GSList *stack = NULL;
+  WockyBuildTag arg;
 
   stack = g_slist_prepend (stack, node);
 
-  while (arg != WOCKY_STANZA_END)
+  while ((arg = va_arg (ap, WockyBuildTag)) != 0)
     {
       switch (arg)
         {
@@ -256,8 +256,6 @@ wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
         default:
           g_assert_not_reached ();
         }
-
-      arg = va_arg (ap, WockyBuildTag);
     }
 
   if (G_UNLIKELY (stack != NULL && stack->data != node))
@@ -357,10 +355,8 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  *           #WOCKY_STANZA_SUB_TYPE_SUBSCRIBED.)
  * @from: The sender's JID, or %NULL to leave it unspecified.
  * @to: The target's JID, or %NULL to leave it unspecified.
- * @spec: The beginning of a description of the stanza to build,
- *  or %WOCKY_STANZA_END to build an empty stanza
- * @Varargs: The rest of the description of the stanza to build,
- *  terminated with %WOCKY_STANZA_END
+ * @Varargs: the description of the stanza to build,
+ *  terminated with %NULL
  *
  * Build a XMPP stanza from a list of arguments.
  * Example:
@@ -376,7 +372,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  *        WOCKY_NODE_TEXT, "Telepathy rocks!",
  *      WOCKY_NODE_END,
  *    WOCKY_NODE_END,
- *   WOCKY_STANZA_END);
+ *   NULL);
  * <!-- -->
  * /<!-- -->* produces
  * &lt;message from='alice@<!-- -->collabora.co.uk' to='bob@<!-- -->collabora.co.uk'&gt;
@@ -404,7 +400,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  *        '$', "Telepathy rocks!",
  *      ')',
  *    ')'
- *   0);
+ *   NULL);
  * </programlisting></example>
  *
  * Returns: a new stanza object
@@ -414,15 +410,14 @@ wocky_xmpp_stanza_build (WockyStanzaType type,
                           WockyStanzaSubType sub_type,
                           const gchar *from,
                           const gchar *to,
-                          WockyBuildTag spec,
                           ...)
 
 {
   WockyXmppStanza *stanza;
   va_list ap;
 
-  va_start (ap, spec);
-  stanza = wocky_xmpp_stanza_build_va (type, sub_type, from, to, spec, ap);
+  va_start (ap, to);
+  stanza = wocky_xmpp_stanza_build_va (type, sub_type, from, to, ap);
   va_end (ap);
 
   return stanza;
@@ -433,7 +428,6 @@ wocky_xmpp_stanza_build_va (WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
     const gchar *to,
-    WockyBuildTag spec,
     va_list ap)
 {
   WockyXmppStanza *stanza;
@@ -451,7 +445,7 @@ wocky_xmpp_stanza_build_va (WockyStanzaType type,
   if (to != NULL)
     wocky_xmpp_node_set_attribute (stanza->node, "to", to);
 
-  if (!wocky_xmpp_stanza_add_build_va (stanza->node, spec, ap))
+  if (!wocky_xmpp_stanza_add_build_va (stanza->node, ap))
     {
       g_object_unref (stanza);
       stanza = NULL;
@@ -521,7 +515,6 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
 static WockyXmppStanza *
 create_iq_reply (WockyXmppStanza *iq,
     WockyStanzaSubType sub_type_reply,
-    WockyBuildTag spec,
     va_list ap)
 {
   WockyXmppStanza *reply;
@@ -542,7 +535,7 @@ create_iq_reply (WockyXmppStanza *iq,
   g_return_val_if_fail (id != NULL, NULL);
 
   reply = wocky_xmpp_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
-      sub_type_reply, to, from, spec, ap);
+      sub_type_reply, to, from, ap);
 
   wocky_xmpp_node_set_attribute (reply->node, "id", id);
   return reply;
@@ -550,14 +543,13 @@ create_iq_reply (WockyXmppStanza *iq,
 
 WockyXmppStanza *
 wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
-    WockyBuildTag spec,
     ...)
 {
   WockyXmppStanza *reply;
   va_list ap;
 
-  va_start (ap, spec);
-  reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_RESULT, spec, ap);
+  va_start (ap, iq);
+  reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_RESULT, ap);
   va_end (ap);
 
   return reply;
@@ -565,14 +557,13 @@ wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
 
 WockyXmppStanza *
 wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
-    WockyBuildTag spec,
     ...)
 {
   WockyXmppStanza *reply;
   va_list ap;
 
-  va_start (ap, spec);
-  reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, spec, ap);
+  va_start (ap, iq);
+  reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, ap);
   va_end (ap);
 
   return reply;

@@ -264,7 +264,7 @@ wocky_pep_service_start (WockyPepService *self,
         WOCKY_NODE_ATTRIBUTE, "node", priv->node,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* TODO: subscribe to node if needed */
 }
@@ -323,7 +323,7 @@ wocky_pep_service_get_async (WockyPepService *self,
         WOCKY_NODE, "items",
           WOCKY_NODE_ATTRIBUTE, "node", priv->node,
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_pep_service_get_finish);

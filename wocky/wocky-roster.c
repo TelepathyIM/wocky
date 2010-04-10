@@ -539,12 +539,12 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       DEBUG ("Failed to update roster: %s",
           error ? error->message : "no message");
       g_error_free (error);
-      reply = wocky_xmpp_stanza_build_iq_error (stanza, WOCKY_STANZA_END);
+      reply = wocky_xmpp_stanza_build_iq_error (stanza, NULL);
     }
   else
     {
       /* ack */
-      reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+      reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
     }
 
   wocky_porter_send (porter, reply);
@@ -576,7 +576,7 @@ wocky_roster_constructed (GObject *object)
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_set_cb, self,
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   priv->contact_factory = wocky_session_get_contact_factory (priv->session);
   g_assert (priv->contact_factory != NULL);
@@ -723,7 +723,7 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
         WOCKY_NODE, "query",
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   priv->fetch_result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_roster_fetch_roster_finish);
@@ -799,7 +799,7 @@ build_iq_for_contact (WockyBareContact *contact,
             WOCKY_NODE_ATTRIBUTE, "jid", jid,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   g_assert (item != NULL);
 
@@ -843,7 +843,7 @@ build_remove_contact_iq (WockyBareContact *contact)
             WOCKY_NODE_ATTRIBUTE, "subscription", "remove",
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 }
 
 static WockyXmppStanza *

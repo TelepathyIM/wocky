@@ -110,7 +110,7 @@ test_get_default_node_configuration_iq_cb (WockyPorter *porter,
             WOCKY_NODE_END,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -165,7 +165,7 @@ get_default_node_configuration_test (WockyPorterHandlerFunc iq_cb,
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
         WOCKY_NODE, "default", WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
       get_cb, test);
@@ -210,7 +210,7 @@ test_get_default_node_configuration_insufficient_iq_cb (WockyPorter *porter,
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -265,7 +265,7 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
         "node1"));
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -317,7 +317,7 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create", WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_pubsub_service_create_node_async (pubsub, node_name, NULL, NULL,
       create_cb, test);
@@ -365,7 +365,7 @@ test_create_node_unsupported_iq_cb (WockyPorter *porter,
           WOCKY_NODE_ATTRIBUTE, "feature", "create-nodes",
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -417,7 +417,7 @@ test_create_instant_node_iq_cb (WockyPorter *porter,
         WOCKY_NODE, "create",
           WOCKY_NODE_ATTRIBUTE, "node", "instant_node",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -477,7 +477,7 @@ test_create_node_renamed_iq_cb (WockyPorter *porter,
         WOCKY_NODE, "create",
           WOCKY_NODE_ATTRIBUTE, "node", "metal-bird",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -599,7 +599,7 @@ test_create_node_config_create_iq_cb (WockyPorter *porter,
     }
   g_assert (form_type && title && notif);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -630,7 +630,7 @@ test_create_node_config (void)
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
         WOCKY_NODE, "default", WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
@@ -640,7 +640,7 @@ test_create_node_config (void)
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
         WOCKY_NODE, "create", WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
       test_create_node_config_config_cb, test);
@@ -708,7 +708,7 @@ make_subscriptions_response (WockyXmppStanza *stanza,
             WOCKY_NODE_ASSIGN_TO, &s,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   if (node != NULL)
     wocky_xmpp_node_set_attribute (s, "node", node);
@@ -737,7 +737,7 @@ test_retrieve_subscriptions_iq_cb (
             WOCKY_NODE_ASSIGN_TO, &subscriptions,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   if (ctx->mode == MODE_AT_NODE)
     wocky_xmpp_node_set_attribute (subscriptions, "node", "bonghits");
@@ -758,7 +758,7 @@ test_retrieve_subscriptions_iq_cb (
 	GError e = { WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
 	    "FIXME: <unsupported feature='retrieve-subscriptions'/>" };
 
-	reply = wocky_xmpp_stanza_build_iq_error (stanza, WOCKY_STANZA_END);
+	reply = wocky_xmpp_stanza_build_iq_error (stanza, NULL);
 	wocky_stanza_error_to_node (&e, reply->node);
 	break;
       }
@@ -851,7 +851,7 @@ test_retrieve_subscriptions (gconstpointer mode_)
           WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
           WOCKY_NODE, "subscriptions", WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   if (mode == MODE_AT_NODE)
     node = wocky_pubsub_service_ensure_node (pubsub, "bonghits");

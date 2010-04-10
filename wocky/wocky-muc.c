@@ -791,7 +791,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       WOCKY_NODE, "query",
       WOCKY_NODE_XMLNS, NS_DISCO_INFO,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   result = g_simple_async_result_new (G_OBJECT (muc), callback, data,
     wocky_muc_disco_info_finish);
@@ -816,7 +816,7 @@ wocky_muc_create_presence (WockyMuc *muc,
         type,
         priv->user,
         priv->jid,
-        WOCKY_STANZA_END);
+        NULL);
   WockyXmppNode *presence = stanza->node;
   WockyXmppNode *x = wocky_xmpp_node_add_child_ns (presence, "x", WOCKY_NS_MUC);
 
@@ -867,7 +867,7 @@ register_presence_handler (WockyMuc *muc)
         priv->rjid,
         WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
         handle_presence, muc,
-        WOCKY_STANZA_END);
+        NULL);
 
   return priv->pres_handler;
 }
@@ -886,7 +886,7 @@ register_message_handler (WockyMuc *muc)
         priv->rjid,
         WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
         handle_message, muc,
-        WOCKY_STANZA_END);
+        NULL);
 
     return priv->mesg_handler;
 }

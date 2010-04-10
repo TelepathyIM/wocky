@@ -21,7 +21,7 @@ test_new_from_form (void)
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
-      NULL, NULL, WOCKY_STANZA_END);
+      NULL, NULL, NULL);
 
   /* node doesn't contain a form */
   form = wocky_data_form_new_from_form (stanza->node, &error);
@@ -187,7 +187,7 @@ create_bot_creation_form_stanza (void)
           WOCKY_NODE_ATTRIBUTE, "var", "botjid",
           WOCKY_NODE_ATTRIBUTE, "label", "The JID of the bot",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 }
 
 static void
@@ -405,7 +405,7 @@ test_submit (void)
 
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      NULL, NULL, WOCKY_STANZA_END);
+      NULL, NULL, NULL);
   wocky_data_form_submit (form, stanza->node);
 
   x = wocky_xmpp_node_get_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
@@ -576,7 +576,7 @@ test_submit_blindly (void)
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-      WOCKY_STANZA_END);
+      NULL);
   wocky_data_form_submit (form, stanza->node);
 
   expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -616,7 +616,7 @@ test_submit_blindly (void)
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   test_assert_stanzas_equal (expected, stanza);
 
@@ -641,7 +641,7 @@ create_search_form_stanza (void)
           WOCKY_NODE_ATTRIBUTE, "type", "text-single",
           WOCKY_NODE_ATTRIBUTE, "var", "search_request",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 }
 
 static void
@@ -698,7 +698,7 @@ test_parse_multi_result (void)
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));
   g_object_unref (stanza);
@@ -780,7 +780,7 @@ test_parse_single_result (void)
           WOCKY_NODE, "value", WOCKY_NODE_TEXT, "The Bot", WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));
   g_object_unref (stanza);

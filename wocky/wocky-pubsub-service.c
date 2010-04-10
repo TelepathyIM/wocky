@@ -230,7 +230,7 @@ wocky_pubsub_service_constructed (GObject *object)
               WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
               WOCKY_NODE, m->action, WOCKY_NODE_END,
             WOCKY_NODE_END,
-          WOCKY_STANZA_END);
+          NULL);
 
       g_ptr_array_add (priv->trampolines, t);
     }

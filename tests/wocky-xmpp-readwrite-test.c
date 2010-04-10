@@ -30,7 +30,7 @@ create_stanza (void)
           WOCKY_NODE_TEXT, "Art thou not Romeo, and a Montague?",
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-    WOCKY_STANZA_END);
+    NULL);
 
   html = wocky_xmpp_node_get_child (stanza->node, "html");
   head = wocky_xmpp_node_add_child (html, "head");

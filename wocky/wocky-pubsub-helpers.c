@@ -102,7 +102,7 @@ wocky_pubsub_make_stanza (
             WOCKY_NODE_ASSIGN_TO, &action,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   if (pubsub_node != NULL)
     *pubsub_node = pubsub;

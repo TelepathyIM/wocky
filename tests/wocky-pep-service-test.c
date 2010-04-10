@@ -62,7 +62,7 @@ send_pep_event (WockyPorter *porter,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, stanza);
   g_object_unref (stanza);
@@ -149,7 +149,7 @@ test_send_query_stanza_received_cb (WockyPorter *porter,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -198,7 +198,7 @@ test_get (void)
   handler_id = wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      test_send_query_stanza_received_cb, test, WOCKY_STANZA_END);
+      test_send_query_stanza_received_cb, test, NULL);
 
   contact_factory = wocky_session_get_contact_factory (test->session_in);
   contact = wocky_contact_factory_ensure_bare_contact (contact_factory,

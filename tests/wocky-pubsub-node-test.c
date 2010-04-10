@@ -93,7 +93,7 @@ test_make_publish_stanza (void)
             WOCKY_NODE_END,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   test_assert_nodes_equal (stanza->node, expected->node);
 
@@ -124,7 +124,7 @@ test_subscribe_iq_cb (WockyPorter *porter,
             WOCKY_NODE_ATTRIBUTE, "subscription", "subscribed",
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
@@ -180,7 +180,7 @@ test_subscribe (void)
           WOCKY_NODE_ATTRIBUTE, "node", "node1",
           WOCKY_NODE_ATTRIBUTE, "jid", "mighty@pirate.lit",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   node = wocky_pubsub_service_ensure_node (pubsub, "node1");
   g_assert (node != NULL);
@@ -230,7 +230,7 @@ test_unsubscribe_iq_cb (WockyPorter *porter,
   else
     g_assert_cmpstr (NULL, ==, subid);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
@@ -281,7 +281,7 @@ test_unsubscribe (void)
           WOCKY_NODE_ATTRIBUTE, "node", "node1",
           WOCKY_NODE_ATTRIBUTE, "jid", "mighty@pirate.lit",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   node = wocky_pubsub_service_ensure_node (pubsub, "node1");
   g_assert (node != NULL);
@@ -316,7 +316,7 @@ test_delete_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
@@ -362,7 +362,7 @@ test_delete (void)
         WOCKY_NODE, "delete",
           WOCKY_NODE_ATTRIBUTE, "node", "node1",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   node = wocky_pubsub_service_ensure_node (pubsub, "node1");
   g_assert (node != NULL);
@@ -420,7 +420,7 @@ test_list_subscribers_iq_cb (WockyPorter *porter,
         WOCKY_NODE, "subscriptions",
           WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   test_assert_stanzas_equal (stanza, expected);
 
@@ -433,7 +433,7 @@ test_list_subscribers_iq_cb (WockyPorter *porter,
           WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
           WOCKY_NODE_ASSIGN_TO, &subscriptions,
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
   test_pubsub_add_subscription_nodes (subscriptions, example_183, FALSE);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -483,7 +483,7 @@ test_list_subscribers (void)
         WOCKY_NODE, "subscriptions",
           WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
   g_assert (node != NULL);
@@ -522,7 +522,7 @@ test_list_affiliates_iq_cb (WockyPorter *porter,
         WOCKY_NODE, "affiliations",
           WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   test_assert_stanzas_equal (stanza, expected);
 
@@ -542,7 +542,7 @@ test_list_affiliates_iq_cb (WockyPorter *porter,
             WOCKY_NODE_ATTRIBUTE, "affiliation", "outcast",
           WOCKY_NODE_END,
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -607,7 +607,7 @@ test_list_affiliates (void)
         WOCKY_NODE, "affiliations",
           WOCKY_NODE_ATTRIBUTE, "node", "princely_musings",
         WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      WOCKY_NODE_END, NULL);
 
   node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
   g_assert (node != NULL);
@@ -715,7 +715,7 @@ send_pubsub_event (WockyPorter *porter,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, stanza);
   g_object_unref (stanza);
@@ -811,7 +811,7 @@ send_subscription_state_change (WockyPorter *porter,
           WOCKY_NODE_ATTRIBUTE, "subscription", state,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, stanza);
   g_object_unref (stanza);
@@ -949,7 +949,7 @@ send_deleted (WockyPorter *porter,
           WOCKY_NODE_ATTRIBUTE, "node", node,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, stanza);
   g_object_unref (stanza);

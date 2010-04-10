@@ -81,7 +81,7 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -116,7 +116,7 @@ test_fetch_roster_send_iq (void)
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      fetch_roster_send_iq_cb, test, WOCKY_STANZA_END);
+      fetch_roster_send_iq_cb, test, NULL);
 
   wocky_porter_start (test->sched_out);
   wocky_session_start (test->session_in);
@@ -247,7 +247,7 @@ fetch_roster_reply_cb (WockyPorter *porter,
           WOCKY_NODE_END,
         WOCKY_NODE_END,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, reply);
 
@@ -264,7 +264,7 @@ create_initial_roster (test_data_t *test)
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      fetch_roster_reply_cb, test, WOCKY_STANZA_END);
+      fetch_roster_reply_cb, test, NULL);
 
   wocky_porter_start (test->sched_out);
   wocky_session_start (test->session_in);
@@ -374,7 +374,7 @@ send_roster_update (test_data_t *test,
         WOCKY_NODE_ASSIGN_TO, &item,
       WOCKY_NODE_END,
     WOCKY_NODE_END,
-    WOCKY_STANZA_END);
+    NULL);
 
   if (jid != NULL)
     wocky_xmpp_node_set_attribute (item, "jid", jid);
@@ -557,7 +557,7 @@ ack_iq (WockyPorter *porter,
       WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -721,7 +721,7 @@ test_roster_add_contact (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   mercutio = create_mercutio ();
   /* Add the Mercutio to our roster */
@@ -824,7 +824,7 @@ test_roster_remove_contact (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Keep a ref on the contact as the roster will release its ref when
    * removing it */
@@ -953,7 +953,7 @@ test_roster_change_name (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
       contact_name_changed_cb, test);
@@ -1102,7 +1102,7 @@ test_contact_add_group (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_roster_contact_add_group_async (roster, contact, "Badger", NULL,
       contact_group_added_cb, test);
@@ -1235,7 +1235,7 @@ test_contact_remove_group (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_roster_contact_remove_group_async (roster, contact, "Friends", NULL,
       contact_group_removed_cb, test);
@@ -1311,7 +1311,7 @@ test_remove_contact_re_add (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   wocky_roster_remove_contact_async (roster, contact, NULL,
       contact_removed_cb, test);
@@ -1394,7 +1394,7 @@ test_remove_contact_edit (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Keep a ref on the contact as the roster will release its ref when
    * removing it */
@@ -1464,7 +1464,7 @@ test_multi_contact_edit (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Change's Romeo's name */
   wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
@@ -1577,7 +1577,7 @@ test_edit_contact_remove (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* change contact's name */
   wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
@@ -1658,7 +1658,7 @@ test_change_name_twice (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Change's Romeo's name */
   wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
@@ -1725,7 +1725,7 @@ test_remove_contact_twice (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Keep a ref on the contact as the roster will release its ref when
    * removing it */
@@ -1794,7 +1794,7 @@ test_change_name_remove_add (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Change's Romeo's name */
   wocky_roster_change_contact_name_async (roster, contact, "Badger", NULL,
@@ -1871,7 +1871,7 @@ test_add_two_groups (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Add a group to Romeo */
   wocky_roster_contact_add_group_async (roster, contact, "School", NULL,
@@ -1956,7 +1956,7 @@ test_remove_two_groups (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   /* Remove a group from Juliet */
   wocky_roster_contact_remove_group_async (roster, contact, "Girlz", NULL,
@@ -2035,7 +2035,7 @@ test_add_contact_twice (void)
       WOCKY_NODE, "query",
         WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_ROSTER,
       WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      NULL);
 
   mercutio = create_mercutio ();
   /* Add the Mercutio to our roster */
