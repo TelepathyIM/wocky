@@ -934,12 +934,12 @@ jabber_auth_init (WockyConnector *connector)
   DEBUG ("");
   iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, priv->domain,
-      WOCKY_NODE_ATTRIBUTE, "id", id,
-      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
-      WOCKY_NODE, "username",
-      WOCKY_NODE_TEXT, priv->user,
-      WOCKY_NODE_END,
-      WOCKY_NODE_END,
+      '@', "id", id,
+      '(', "query", ':', WOCKY_JABBER_NS_AUTH,
+      '(', "username",
+      '$', priv->user,
+      ')',
+      ')',
       NULL);
 
   wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
@@ -1067,12 +1067,12 @@ jabber_auth_try_digest (WockyConnector *self)
   gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", iqid,
-      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
-      WOCKY_NODE, "username", WOCKY_NODE_TEXT, priv->user, WOCKY_NODE_END,
-      WOCKY_NODE, "digest", WOCKY_NODE_TEXT, sha1, WOCKY_NODE_END,
-      WOCKY_NODE, "resource", WOCKY_NODE_TEXT, priv->resource, WOCKY_NODE_END,
-      WOCKY_NODE_END,
+      '@', "id", iqid,
+      '(', "query", ':', WOCKY_JABBER_NS_AUTH,
+      '(', "username", '$', priv->user, ')',
+      '(', "digest", '$', sha1, ')',
+      '(', "resource", '$', priv->resource, ')',
+      ')',
       NULL);
 
   DEBUG ("checksum: %s", sha1);
@@ -1093,12 +1093,12 @@ jabber_auth_try_passwd (WockyConnector *self)
   gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
-      WOCKY_NODE_ATTRIBUTE, "id", iqid,
-      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_JABBER_NS_AUTH,
-      WOCKY_NODE, "username", WOCKY_NODE_TEXT, priv->user, WOCKY_NODE_END,
-      WOCKY_NODE, "password", WOCKY_NODE_TEXT, priv->pass, WOCKY_NODE_END,
-      WOCKY_NODE, "resource", WOCKY_NODE_TEXT, priv->resource, WOCKY_NODE_END,
-      WOCKY_NODE_END,
+      '@', "id", iqid,
+      '(', "query", ':', WOCKY_JABBER_NS_AUTH,
+      '(', "username", '$', priv->user, ')',
+      '(', "password", '$', priv->pass, ')',
+      '(', "resource", '$', priv->resource, ')',
+      ')',
       NULL);
 
   DEBUG ("");
@@ -1740,10 +1740,10 @@ xep77_cancel_send (WockyConnector *self)
        * that we SHOULD NOT, at least in some use cases                 */
       NULL /* priv->identity */,
       priv->domain,
-      WOCKY_NODE_ATTRIBUTE, "id", iid,
-      WOCKY_NODE, "query", WOCKY_NODE_XMLNS, WOCKY_XEP77_NS_REGISTER,
-      WOCKY_NODE, "remove", WOCKY_NODE_END,
-      WOCKY_NODE_END,
+      '@', "id", iid,
+      '(', "query", ':', WOCKY_XEP77_NS_REGISTER,
+      '(', "remove", ')',
+      ')',
       NULL);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, NULL,
@@ -1890,10 +1890,10 @@ xep77_begin (WockyConnector *self)
   iqs = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET,
       jid, priv->domain,
-      WOCKY_NODE_ATTRIBUTE, "id", iid,
-      WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, WOCKY_XEP77_NS_REGISTER,
-      WOCKY_NODE_END,
+      '@', "id", iid,
+      '(', "query",
+      ':', WOCKY_XEP77_NS_REGISTER,
+      ')',
       NULL);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, NULL,
@@ -2039,7 +2039,7 @@ xep77_signup_send (WockyConnector *self,
   riq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET,
       jid, priv->domain,
-      WOCKY_NODE_ATTRIBUTE, "id", iid, NULL);
+      '@', "id", iid, NULL);
   reg = wocky_xmpp_node_add_child_ns (riq->node, "query",
       WOCKY_XEP77_NS_REGISTER);
 
@@ -2197,9 +2197,9 @@ iq_bind_resource (WockyConnector *self)
   WockyXmppStanza *iq =
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
         NULL, NULL,
-        WOCKY_NODE_ATTRIBUTE, "id", id,
-        WOCKY_NODE, "bind", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_BIND,
-        WOCKY_NODE_END,
+        '@', "id", id,
+        '(', "bind", ':', WOCKY_XMPP_NS_BIND,
+        ')',
         NULL);
 
   /* if we have a specific resource to ask for, ask for it: otherwise the
@@ -2344,9 +2344,9 @@ establish_session (WockyConnector *self)
         wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
             WOCKY_STANZA_SUB_TYPE_SET,
             NULL, NULL,
-            WOCKY_NODE_ATTRIBUTE, "id", id,
-            WOCKY_NODE, "session", WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_SESSION,
-            WOCKY_NODE_END,
+            '@', "id", id,
+            '(', "session", ':', WOCKY_XMPP_NS_SESSION,
+            ')',
             NULL);
       wocky_xmpp_connection_send_stanza_async (conn, session, NULL,
           establish_session_sent_cb, self);

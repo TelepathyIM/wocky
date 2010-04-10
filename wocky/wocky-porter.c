@@ -1366,10 +1366,10 @@ compare_handler (StanzaHandler *a,
  *   WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
  *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, jingle_cb,
  *   "juliet@example.com/Balcony",
- *   WOCKY_NODE, "jingle",
- *     WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
- *     WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
- *   WOCKY_NODE_END, NULL);
+ *   '(', "jingle",
+ *     ':', "urn:xmpp:jingle:1",
+ *     '@', "sid", "my_sid",
+ *   ')', NULL);
  * ]|
  *
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().

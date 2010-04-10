@@ -162,11 +162,11 @@ test_send_simple_message (void)
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
-      WOCKY_NODE, "html", WOCKY_NODE_XMLNS, "http://www.w3.org/1999/xhtml",
-        WOCKY_NODE, "body",
-          WOCKY_NODE_TEXT, "Art thou not Romeo, and a Montague?",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
+      '(', "html", ':', "http://www.w3.org/1999/xhtml",
+        '(', "body",
+          '$', "Art thou not Romeo, and a Montague?",
+        ')',
+      ')',
     NULL);
 
   wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (test->in),

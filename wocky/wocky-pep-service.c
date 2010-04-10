@@ -258,12 +258,12 @@ wocky_pep_service_start (WockyPepService *self,
       WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       msg_event_cb, self,
-      WOCKY_NODE, "event",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
-        WOCKY_NODE, "items",
-        WOCKY_NODE_ATTRIBUTE, "node", priv->node,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
+      '(', "event",
+        ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+        '(', "items",
+        '@', "node", priv->node,
+        ')',
+      ')',
       NULL);
 
   /* TODO: subscribe to node if needed */
@@ -318,12 +318,12 @@ wocky_pep_service_get_async (WockyPepService *self,
   msg = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, jid,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "items",
-          WOCKY_NODE_ATTRIBUTE, "node", priv->node,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END, NULL);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "items",
+          '@', "node", priv->node,
+        ')',
+      ')', NULL);
 
   result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_pep_service_get_finish);

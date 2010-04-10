@@ -95,13 +95,13 @@ wocky_pubsub_make_stanza (
   stanza = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, sub_type,
       NULL, service,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, pubsub_ns,
-          WOCKY_NODE_ASSIGN_TO, &pubsub,
-          WOCKY_NODE, action_name,
-            WOCKY_NODE_ASSIGN_TO, &action,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
+        '(', "pubsub",
+          ':', pubsub_ns,
+          '*', &pubsub,
+          '(', action_name,
+            '*', &action,
+          ')',
+        ')',
       NULL);
 
   if (pubsub_node != NULL)

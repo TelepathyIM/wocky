@@ -788,9 +788,9 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       WOCKY_STANZA_SUB_TYPE_GET,
       priv->user,
       priv->jid,
-      WOCKY_NODE, "query",
-      WOCKY_NODE_XMLNS, NS_DISCO_INFO,
-      WOCKY_NODE_END,
+      '(', "query",
+      ':', NS_DISCO_INFO,
+      ')',
       NULL);
 
   result = g_simple_async_result_new (G_OBJECT (muc), callback, data,

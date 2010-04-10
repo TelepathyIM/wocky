@@ -226,10 +226,10 @@ wocky_pubsub_service_constructed (GObject *object)
           priv->jid,
           WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
           pubsub_service_propagate_event, t,
-            WOCKY_NODE, "event",
-              WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
-              WOCKY_NODE, m->action, WOCKY_NODE_END,
-            WOCKY_NODE_END,
+            '(', "event",
+              ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+              '(', m->action, ')',
+            ')',
           NULL);
 
       g_ptr_array_add (priv->trampolines, t);

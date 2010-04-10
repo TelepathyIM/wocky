@@ -27,7 +27,7 @@ test_node_equal (void)
   /* Same as 'a' but with an ID attribute */
   b = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
-      WOCKY_NODE_ATTRIBUTE, "id", "one",
+      '@', "id", "one",
       NULL);
   test_assert_nodes_equal (b->node, b->node);
 
@@ -48,7 +48,7 @@ test_set_attribute (void)
 
   b = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
-      WOCKY_NODE_ATTRIBUTE, "foo", "badger",
+      '@', "foo", "badger",
       NULL);
 
   test_assert_nodes_not_equal (a->node, b->node);
@@ -57,7 +57,7 @@ test_set_attribute (void)
 
   c = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
-      WOCKY_NODE_ATTRIBUTE, "foo", "snake",
+      '@', "foo", "snake",
       NULL);
 
   test_assert_nodes_not_equal (b->node, c->node);
@@ -277,29 +277,29 @@ test_node_iteration (void)
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "to", "from",
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_PHONE,
-      WOCKY_NODE_ATTRIBUTE, "name", "SPEEX",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
-      WOCKY_NODE_ATTRIBUTE, "name", "THEORA",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_PHONE,
-      WOCKY_NODE_ATTRIBUTE, "name", "GSM",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
-      WOCKY_NODE_ATTRIBUTE, "name", "H264",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "video",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
-      WOCKY_NODE_ATTRIBUTE, "name", "VIDEO?",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "misc",
-      WOCKY_NODE_ATTRIBUTE, "name", "other",
-    WOCKY_NODE_END,
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_PHONE,
+      '@', "name", "SPEEX",
+    ')',
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      '@', "name", "THEORA",
+    ')',
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_PHONE,
+      '@', "name", "GSM",
+    ')',
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      '@', "name", "H264",
+    ')',
+    '(', "video",
+      ':', WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      '@', "name", "VIDEO?",
+    ')',
+    '(', "misc",
+      '@', "name", "other",
+    ')',
     NULL);
 
   /* All children */
