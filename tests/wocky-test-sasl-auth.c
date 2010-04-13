@@ -38,7 +38,7 @@ post_auth_recv_stanza (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   GError *e = NULL;
 
   /* ignore all stanza until close */
@@ -135,7 +135,7 @@ feature_stanza_received (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockySaslHandler *test_handler;
   test_t *test = (test_t *) user_data;
 

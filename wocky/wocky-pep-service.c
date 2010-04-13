@@ -206,7 +206,7 @@ wocky_pep_service_new (const gchar *node,
 
 static gboolean
 msg_event_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   WockyPepService *self = WOCKY_PEP_SERVICE (user_data);
@@ -268,7 +268,7 @@ send_query_cb (GObject *source,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
   if (reply == NULL)
@@ -293,7 +293,7 @@ wocky_pep_service_get_async (WockyPepService *self,
     gpointer user_data)
 {
   WockyPepServicePrivate *priv = self->priv;
-  WockyXmppStanza *msg;
+  WockyStanza *msg;
   GSimpleAsyncResult *result;
   const gchar *jid;
 
@@ -307,7 +307,7 @@ wocky_pep_service_get_async (WockyPepService *self,
 
   jid = wocky_bare_contact_get_jid (contact);
 
-  msg = wocky_xmpp_stanza_build (
+  msg = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, jid,
       '(', "pubsub",
@@ -326,7 +326,7 @@ wocky_pep_service_get_async (WockyPepService *self,
   g_object_unref (msg);
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
     GError **error)
@@ -342,7 +342,7 @@ wocky_pep_service_get_finish (WockyPepService *self,
   return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pep_service_make_publish_stanza (WockyPepService *self,
     WockyXmppNode **item)
 {

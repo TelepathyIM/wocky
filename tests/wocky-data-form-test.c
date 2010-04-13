@@ -5,7 +5,7 @@
 #include <glib.h>
 
 #include <wocky/wocky-data-form.h>
-#include <wocky/wocky-xmpp-stanza.h>
+#include <wocky/wocky-stanza.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-utils.h>
 
@@ -14,12 +14,12 @@
 static void
 test_new_from_form (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *node;
   WockyDataForm *form;
   GError *error = NULL;
 
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL, NULL);
 
@@ -60,11 +60,11 @@ test_new_from_form (void)
   g_object_unref (stanza);
 }
 
-static WockyXmppStanza *
+static WockyStanza *
 create_bot_creation_form_stanza (void)
 {
   /* This stanza is inspired from Example 2 of XEP-0004: Data Forms */
-  return wocky_xmpp_stanza_build (
+  return wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       '(', "x",
@@ -193,7 +193,7 @@ create_bot_creation_form_stanza (void)
 static void
 test_parse_form (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyDataForm *form;
   GSList *l;
   /* used to check that fields are stored in the right order */
@@ -351,7 +351,7 @@ test_parse_form (void)
 static void
 test_submit (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyDataForm *form;
   WockyXmppNode *x;
   GSList *l;
@@ -403,7 +403,7 @@ test_submit (void)
       "bobot@example.org", FALSE);
   g_assert (set_succeeded);
 
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       NULL, NULL, NULL);
   wocky_data_form_submit (form, stanza->node);
@@ -535,7 +535,7 @@ test_submit_blindly (void)
   WockyDataForm *form = g_object_new (WOCKY_TYPE_DATA_FORM, NULL);
   const gchar * const the_xx[] = { "Romy", "Oliver", "Jamie", NULL };
   gboolean succeeded;
-  WockyXmppStanza *stanza, *expected;
+  WockyStanza *stanza, *expected;
 
   /* We didn't actually parse a form, so it doesn't have any pre-defined
    * fields. Thus, the setters should all fail if we don't tell them to create
@@ -574,12 +574,12 @@ test_submit_blindly (void)
   succeeded = wocky_data_form_set_boolean (form, "is-meh", TRUE, TRUE);
   g_assert (succeeded);
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
       NULL);
   wocky_data_form_submit (form, stanza->node);
 
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
       '(', "x",
         ':', WOCKY_XMPP_NS_DATA,
@@ -625,11 +625,11 @@ test_submit_blindly (void)
   g_object_unref (form);
 }
 
-static WockyXmppStanza *
+static WockyStanza *
 create_search_form_stanza (void)
 {
   /* This stanza is inspired from Example 6 of XEP-0004: Data Forms */
-  return wocky_xmpp_stanza_build (
+  return wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ,WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       '(', "x",
@@ -647,7 +647,7 @@ create_search_form_stanza (void)
 static void
 test_parse_multi_result (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyDataForm *form;
   GSList *l;
   gboolean item1 = FALSE, item2 = FALSE;
@@ -658,7 +658,7 @@ test_parse_multi_result (void)
   g_object_unref (stanza);
 
   /* create the result stanza */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       '(', "x",
@@ -750,7 +750,7 @@ test_parse_multi_result (void)
 static void
 test_parse_single_result (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyDataForm *form;
   GSList *result, *l;
   gboolean form_type = FALSE, botname = FALSE;
@@ -761,7 +761,7 @@ test_parse_single_result (void)
   g_object_unref (stanza);
 
   /* create the result stanza */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       '(', "x",

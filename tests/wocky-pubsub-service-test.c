@@ -78,13 +78,13 @@ test_ensure_node (void)
 /* Test wocky_pubsub_service_get_default_node_configuration_async */
 static gboolean
 test_get_default_node_configuration_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
         '(', "default",
@@ -191,13 +191,13 @@ test_get_default_node_configuration (void)
  * privileges error */
 static gboolean
 test_get_default_node_configuration_insufficient_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_error (stanza,
+  reply = wocky_stanza_build_iq_error (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
         '(', "configure",
@@ -250,11 +250,11 @@ test_get_default_node_configuration_insufficient (void)
 /* Create a node with default config */
 static gboolean
 test_create_node_no_config_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   WockyXmppNode *node;
 
   node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
@@ -265,7 +265,7 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
         "node1"));
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
+  reply = wocky_stanza_build_iq_result (stanza, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -341,13 +341,13 @@ test_create_node_no_config (void)
 /* creation of a node fails because service does not support node creation */
 static gboolean
 test_create_node_unsupported_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_error (stanza,
+  reply = wocky_stanza_build_iq_error (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB,
         '(', "create",
@@ -405,13 +405,13 @@ test_create_node_unsupported (void)
 /* Create an instant node (no name passed) */
 static gboolean
 test_create_instant_node_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB,
         '(', "create",
@@ -456,11 +456,11 @@ test_create_instant_node (void)
 /* Ask for a node with one name, get one back with another */
 static gboolean
 test_create_node_renamed_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   WockyXmppNode *node;
 
   node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
@@ -471,7 +471,7 @@ test_create_node_renamed_iq_cb (WockyPorter *porter,
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
         "node1"));
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB,
         '(', "create",
@@ -545,11 +545,11 @@ test_create_node_config_config_cb (GObject *source,
 
 static gboolean
 test_create_node_config_create_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   WockyXmppNode *node;
   GSList *l;
   gboolean form_type = FALSE, title = FALSE, notif = FALSE;
@@ -599,7 +599,7 @@ test_create_node_config_create_iq_cb (WockyPorter *porter,
     }
   g_assert (form_type && title && notif);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
+  reply = wocky_stanza_build_iq_result (stanza, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -693,15 +693,15 @@ static CannedSubscriptions bonghit_subs[] = {
   { NULL, }
 };
 
-static WockyXmppStanza *
-make_subscriptions_response (WockyXmppStanza *stanza,
+static WockyStanza *
+make_subscriptions_response (WockyStanza *stanza,
     const gchar *node,
     CannedSubscriptions *subs)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   WockyXmppNode *s;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
         '(', "pubsub",
           ':', WOCKY_XMPP_NS_PUBSUB,
           '(', "subscriptions",
@@ -720,15 +720,15 @@ make_subscriptions_response (WockyXmppStanza *stanza,
 static gboolean
 test_retrieve_subscriptions_iq_cb (
     WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   RetrieveSubscriptionsCtx *ctx = user_data;
   test_data_t *test = ctx->test;
-  WockyXmppStanza *reply, *expected;
+  WockyStanza *reply, *expected;
   WockyXmppNode *subscriptions;
 
-  expected = wocky_xmpp_stanza_build (
+  expected = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, "pubsub.localhost",
         '(', "pubsub",
@@ -758,7 +758,7 @@ test_retrieve_subscriptions_iq_cb (
 	GError e = { WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
 	    "FIXME: <unsupported feature='retrieve-subscriptions'/>" };
 
-	reply = wocky_xmpp_stanza_build_iq_error (stanza, NULL);
+	reply = wocky_stanza_build_iq_error (stanza, NULL);
 	wocky_stanza_error_to_node (&e, reply->node);
 	break;
       }

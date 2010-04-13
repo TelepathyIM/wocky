@@ -23,7 +23,7 @@
  * @title: WockyXmppReader
  * @short_description: Xmpp XML to stanza deserializer
  *
- * The #WockyXmppReader deserializes XML to #WockyXmppStanza<!-- -->s,
+ * The #WockyXmppReader deserializes XML to #WockyStanza<!-- -->s,
  * misc, other
  */
 
@@ -38,7 +38,7 @@
 
 #include "wocky-namespaces.h"
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 #define DEBUG_FLAG DEBUG_XMPP_READER
 #include "wocky-debug.h"
@@ -108,7 +108,7 @@ struct _WockyXmppReaderPrivate
 {
   xmlParserCtxtPtr parser;
   guint depth;
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *node;
   GQueue *nodes;
   gchar *to;
@@ -480,7 +480,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
 
   if (priv->stanza == NULL)
     {
-      priv->stanza = wocky_xmpp_stanza_new ((gchar *) localname);
+      priv->stanza = wocky_stanza_new ((gchar *) localname);
       priv->node = priv->stanza->node;
     }
   else
@@ -653,14 +653,14 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
  * wocky_xmpp_reader_peek_stanza:
  * @reader: a #WockyXmppReader
  *
- * Returns the first #WockyXmppStanza available from reader or NULL
+ * Returns the first #WockyStanza available from reader or NULL
  * if there are no available stanzas. The stanza is not removed from the
  * readers queue
  *
- * Returns: One #WockyXmppStanza or NULL if there are no available stanzas. The
+ * Returns: One #WockyStanza or NULL if there are no available stanzas. The
  * stanza is owned by the #WockyXmppReader
  */
-WockyXmppStanza *
+WockyStanza *
 wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader)
 {
   WockyXmppReaderPrivate *priv = reader->priv;
@@ -672,17 +672,17 @@ wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader)
  * wocky_xmpp_reader_pop_stanza:
  * @reader: a #WockyXmppReader
  *
- * Gets one #WockyXmppStanza out of the reader or NULL if there are no
+ * Gets one #WockyStanza out of the reader or NULL if there are no
  * available stanzas.
  *
- * Returns: One #WockyXmppStanza or NULL if there are no available stanzas.
+ * Returns: One #WockyStanza or NULL if there are no available stanzas.
  * Caller owns the returned stanza.
  */
-WockyXmppStanza *
+WockyStanza *
 wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
 {
   WockyXmppReaderPrivate *priv = reader->priv;
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   if (g_queue_is_empty (priv->stanzas))
     return NULL;

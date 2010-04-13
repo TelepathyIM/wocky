@@ -25,7 +25,7 @@
 
 #include "wocky-sasl-auth.h"
 #include "wocky-xmpp-connection.h"
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 #include "wocky-tls.h"
 

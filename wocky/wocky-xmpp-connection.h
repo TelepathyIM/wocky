@@ -23,7 +23,7 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 G_BEGIN_DECLS
 
@@ -125,7 +125,7 @@ gboolean wocky_xmpp_connection_recv_open_finish (
     GError **error);
 
 void wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
@@ -140,7 +140,7 @@ void wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-WockyXmppStanza *wocky_xmpp_connection_recv_stanza_finish (
+WockyStanza *wocky_xmpp_connection_recv_stanza_finish (
     WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error);

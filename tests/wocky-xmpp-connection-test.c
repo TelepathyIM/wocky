@@ -5,7 +5,7 @@
 #include <glib.h>
 
 #include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-xmpp-stanza.h>
+#include <wocky/wocky-stanza.h>
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
@@ -39,7 +39,7 @@ static void
 stanza_received_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
@@ -126,7 +126,7 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   gpointer user_data)
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
 
@@ -155,12 +155,12 @@ send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 test_send_simple_message (void)
 {
-  WockyXmppStanza *s;
+  WockyStanza *s;
   test_data_t *test = setup_test ();
 
   test_open_connection (test);
 
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
       '(', "html", ':', "http://www.w3.org/1999/xhtml",
         '(', "body",
@@ -224,7 +224,7 @@ error_pending_stanza_received_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   g_assert ((s = wocky_xmpp_connection_recv_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), result, NULL)) != NULL);
@@ -352,9 +352,9 @@ error_pending_close_pending_cb (GObject *source,
 static void
 test_error_pending_send_pending (test_data_t *test)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   /* should get a _PENDING error */
@@ -378,9 +378,9 @@ static void
 test_error_pending (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   wocky_xmpp_connection_recv_open_async (test->out, NULL,
@@ -505,9 +505,9 @@ static void
 test_error_not_open (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   wocky_xmpp_connection_send_stanza_async (test->in, stanza, NULL,
@@ -731,9 +731,9 @@ static void
 test_error_is_open_or_closed (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
 
@@ -800,13 +800,13 @@ recv_cancelled_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 test_recv_cancel (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   test_data_t *test = setup_test ();
   GCancellable *cancellable;
 
   test_open_connection (test);
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
   cancellable = g_cancellable_new ();

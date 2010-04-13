@@ -265,7 +265,7 @@ static GList *error_domains = NULL;
  * Registers a new set of application-specific stanza errors. This allows
  * GErrors in that domain to be passed to wocky_stanza_error_to_node(), and to
  * be recognized and returned by wocky_xmpp_error_extract() (and
- * wocky_xmpp_stanza_extract_errors(), by extension).
+ * wocky_stanza_extract_errors(), by extension).
  */
 void
 wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain)

@@ -6,7 +6,7 @@
 
 #include <glib.h>
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 G_BEGIN_DECLS
 
@@ -40,7 +40,7 @@ void wocky_debug_set_flags (DebugFlags flags);
 gboolean wocky_debug_flag_is_set (DebugFlags flag);
 void wocky_debug (DebugFlags flag, const gchar *format, ...)
     G_GNUC_PRINTF (2, 3);
-void wocky_debug_stanza (DebugFlags flag, WockyXmppStanza *stanza,
+void wocky_debug_stanza (DebugFlags flag, WockyStanza *stanza,
     const gchar *format, ...)
     G_GNUC_PRINTF (3, 4);
 

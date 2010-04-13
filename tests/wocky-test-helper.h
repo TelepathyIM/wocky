@@ -40,7 +40,7 @@ void test_open_both_connections (test_data_t *test);
 void test_close_porter (test_data_t *test);
 
 void test_expected_stanza_received (test_data_t *test,
-    WockyXmppStanza *stanza);
+    WockyStanza *stanza);
 
 void test_close_both_porters (test_data_t *test);
 

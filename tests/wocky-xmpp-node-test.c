@@ -4,7 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-xmpp-stanza.h>
+#include <wocky/wocky-stanza.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-xmpp-error.h>
@@ -17,15 +17,15 @@
 static void
 test_node_equal (void)
 {
-  WockyXmppStanza *a, *b;
+  WockyStanza *a, *b;
 
   /* Simple IQ node */
-  a = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  a = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", NULL);
   test_assert_nodes_equal (a->node, (a->node));
 
   /* Same as 'a' but with an ID attribute */
-  b = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  b = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
       '@', "id", "one",
       NULL);
@@ -41,12 +41,12 @@ test_node_equal (void)
 static void
 test_set_attribute (void)
 {
-  WockyXmppStanza *a, *b, *c;
+  WockyStanza *a, *b, *c;
 
-  a = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  a = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", NULL);
 
-  b = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  b = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
       '@', "foo", "badger",
       NULL);
@@ -55,7 +55,7 @@ test_set_attribute (void)
   wocky_xmpp_node_set_attribute (a->node, "foo", "badger");
   test_assert_nodes_equal (a->node, b->node);
 
-  c = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  c = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
       '@', "foo", "snake",
       NULL);
@@ -93,12 +93,12 @@ _check_attr_prefix (const gchar *urn,
 static void
 test_append_content_n (void)
 {
-  WockyXmppStanza *a;
+  WockyStanza *a;
   const gchar *content = "badger badger badger";
   guint i;
   size_t l;
 
-  a = wocky_xmpp_stanza_new ("message");
+  a = wocky_stanza_new ("message");
 
   l = strlen (content);
   /* Append content byte by byte */
@@ -114,8 +114,8 @@ test_append_content_n (void)
 static void
 test_set_attribute_ns (void)
 {
-  WockyXmppStanza *sa;
-  WockyXmppStanza *sb;
+  WockyStanza *sa;
+  WockyStanza *sb;
   WockyXmppNode *na;
   WockyXmppNode *nb;
   const gchar *ca;
@@ -128,9 +128,9 @@ test_set_attribute_ns (void)
   gchar *pb;
   GQuark qa;
 
-  sa = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  sa = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", NULL);
-  sb = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+  sb = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", NULL);
   na = sa->node;
   nb = sb->node;
@@ -265,7 +265,7 @@ do_test_iteration (WockyXmppNodeIter *iter, const gchar **names)
 static void
 test_node_iteration (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNodeIter iter;
   const gchar *all[] = { "SPEEX", "THEORA", "GSM", "H264",
                           "VIDEO?", "other", NULL };
@@ -275,7 +275,7 @@ test_node_iteration (void)
   const gchar *video_ns[] = { "THEORA", "H264", "VIDEO?", NULL };
   const gchar *nothing[] = { NULL };
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "to", "from",
     '(', "payload-type",
       ':', WOCKY_NS_GOOGLE_SESSION_PHONE,

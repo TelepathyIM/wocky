@@ -16,14 +16,14 @@
 #define LANG "en"
 #define DUMMY_NS "urn:wocky:test:blah:blah:blah"
 
-static WockyXmppStanza *
+static WockyStanza *
 create_stanza (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *html;
   WockyXmppNode *head;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
       '(', "html", ':', "http://www.w3.org/1999/xhtml",
         '(', "body",
@@ -44,7 +44,7 @@ test_readwrite (void)
 {
   WockyXmppReader *reader;
   WockyXmppWriter *writer;
-  WockyXmppStanza *received = NULL, *sent;
+  WockyStanza *received = NULL, *sent;
   const guint8 *data;
   gsize length;
   gchar *to, *from, *version, *lang;
@@ -157,7 +157,7 @@ test_readwrite_nostream (void)
 {
   WockyXmppReader *reader;
   WockyXmppWriter *writer;
-  WockyXmppStanza *received = NULL, *sent;
+  WockyStanza *received = NULL, *sent;
   const guint8 *data;
   gsize length;
   int i;

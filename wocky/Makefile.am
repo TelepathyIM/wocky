@@ -50,8 +50,6 @@ HANDWRITTEN_SOURCES = \
   wocky-xmpp-node.h \
   wocky-xmpp-reader.c \
   wocky-xmpp-reader.h \
-  wocky-xmpp-stanza.c \
-  wocky-xmpp-stanza.h \
   wocky-xmpp-writer.c \
   wocky-xmpp-writer.h \
   wocky-xmpp-error.c \
@@ -64,6 +62,8 @@ HANDWRITTEN_SOURCES = \
   wocky-sasl-handler.h \
   wocky-sasl-plain.c \
   wocky-sasl-plain.h \
+  wocky-stanza.c \
+  wocky-stanza.h \
   wocky-porter.c \
   wocky-porter.h \
   wocky-contact.c \

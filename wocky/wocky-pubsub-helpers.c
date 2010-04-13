@@ -36,7 +36,7 @@
  *
  * Returns: a new iq[type='set']/pubsub/publish/item stanza
  */
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_make_publish_stanza (
     const gchar *service,
     const gchar *node,
@@ -44,7 +44,7 @@ wocky_pubsub_make_publish_stanza (
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *publish, *item;
 
   g_return_val_if_fail (node != NULL, NULL);
@@ -77,7 +77,7 @@ wocky_pubsub_make_publish_stanza (
  *
  * Returns: a new iq[type='set']/pubsub/@action stanza
  */
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_make_stanza (
     const gchar *service,
     WockyStanzaSubType sub_type,
@@ -86,13 +86,13 @@ wocky_pubsub_make_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **action_node)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *pubsub, *action;
 
   g_assert (pubsub_ns != NULL);
   g_assert (action_name != NULL);
 
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, sub_type,
       NULL, service,
         '(', "pubsub",
@@ -114,7 +114,7 @@ wocky_pubsub_make_stanza (
 }
 
 static gboolean
-get_pubsub_child_node (WockyXmppStanza *reply,
+get_pubsub_child_node (WockyStanza *reply,
     const gchar *pubsub_ns,
     const gchar *child_name,
     WockyXmppNode **child_out,
@@ -159,7 +159,7 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
     WockyXmppNode **child_out,
     GError **error)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   gboolean ret = FALSE;
 
   if (child_out != NULL)
@@ -174,7 +174,7 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
   if (reply == NULL)
     return FALSE;
 
-  if (!wocky_xmpp_stanza_extract_errors (reply, NULL, error, NULL, NULL))
+  if (!wocky_stanza_extract_errors (reply, NULL, error, NULL, NULL))
     {
       ret = TRUE;
 

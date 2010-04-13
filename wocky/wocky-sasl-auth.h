@@ -24,7 +24,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 #include "wocky-sasl-handler.h"
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 #include "wocky-xmpp-connection.h"
 
 G_BEGIN_DECLS
@@ -95,7 +95,7 @@ void wocky_sasl_auth_add_handler (WockySaslAuth *sasl,
     WockySaslHandler *handler);
 
 void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
-    WockyXmppStanza *features,
+    WockyStanza *features,
     gboolean allow_plain,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

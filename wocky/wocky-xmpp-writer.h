@@ -23,7 +23,7 @@
 
 #include <glib-object.h>
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 G_BEGIN_DECLS
 
@@ -78,7 +78,7 @@ void wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
     const guint8 **data, gsize *length);
 
 void wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     const guint8 **data,
     gsize *length);
 

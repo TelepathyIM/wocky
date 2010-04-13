@@ -51,7 +51,7 @@ test_make_publish_stanza (void)
   WockyTestStream *stream;
   WockySession *session;
   WockyPubsubNode *node;
-  WockyXmppStanza *stanza, *expected;
+  WockyStanza *stanza, *expected;
   WockyXmppNode *pubsub_node, *publish, *item;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
@@ -76,7 +76,7 @@ test_make_publish_stanza (void)
   wocky_xmpp_node_add_child_with_content_ns (item, "castle", "bone chaos",
       "urn:example:songs");
 
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET,
       NULL, "pubsub.localhost",
         '(', "pubsub",
@@ -109,13 +109,13 @@ test_make_publish_stanza (void)
 /* Test subscribing to a node. */
 static gboolean
 test_subscribe_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
         '(', "pubsub",
           ':', WOCKY_XMPP_NS_PUBSUB,
           '(', "subscription",
@@ -208,14 +208,14 @@ typedef struct {
 
 static gboolean
 test_unsubscribe_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   TestUnsubscribeCtx *ctx = user_data;
   test_data_t *test = ctx->test;
   WockyXmppNode *unsubscribe;
   const gchar *subid;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
   unsubscribe = wocky_xmpp_node_get_child (
       wocky_xmpp_node_get_child_ns (stanza->node,
@@ -230,7 +230,7 @@ test_unsubscribe_iq_cb (WockyPorter *porter,
   else
     g_assert_cmpstr (NULL, ==, subid);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
+  reply = wocky_stanza_build_iq_result (stanza, NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
@@ -310,13 +310,13 @@ test_unsubscribe (void)
 /* test wocky_pubsub_node_delete_async */
 static gboolean
 test_delete_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
+  reply = wocky_stanza_build_iq_result (stanza, NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
@@ -406,14 +406,14 @@ static CannedSubscriptions example_183[] = {
 
 static gboolean
 test_list_subscribers_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected, *reply;
+  WockyStanza *expected, *reply;
   WockyXmppNode *subscriptions;
 
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET, NULL, "pubsub.localhost",
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
@@ -426,7 +426,7 @@ test_list_subscribers_iq_cb (WockyPorter *porter,
 
   g_object_unref (expected);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
         '(', "subscriptions",
@@ -509,13 +509,13 @@ test_list_subscribers (void)
 
 static gboolean
 test_list_affiliates_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *expected, *reply;
+  WockyStanza *expected, *reply;
 
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET, NULL, "pubsub.localhost",
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
@@ -528,7 +528,7 @@ test_list_affiliates_iq_cb (WockyPorter *porter,
 
   g_object_unref (expected);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
       '(', "pubsub",
         ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
         '(', "affiliations",
@@ -635,7 +635,7 @@ WockyPubsubNode *expected_node;
 static void
 service_event_received_cb (WockyPubsubService *service,
     WockyPubsubNode *node,
-    WockyXmppStanza *event_stanza,
+    WockyStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *items_node,
     GList *items,
@@ -666,7 +666,7 @@ service_event_received_cb (WockyPubsubService *service,
 
 static void
 node_event_received_cb (WockyPubsubNode *node,
-    WockyXmppStanza *event_stanza,
+    WockyStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *items_node,
     GList *items,
@@ -696,9 +696,9 @@ send_pubsub_event (WockyPorter *porter,
     const gchar *service,
     const gchar *node)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE,
       service, NULL,
       '(', "event",
@@ -798,9 +798,9 @@ send_subscription_state_change (WockyPorter *porter,
     const gchar *node,
     const gchar *state)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE,
       service, NULL,
       '(', "event",
@@ -821,7 +821,7 @@ static void
 service_subscription_state_changed_cb (
     WockyPubsubService *service,
     WockyPubsubNode *node,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *subscription_node,
     WockyPubsubSubscription *subscription,
@@ -851,7 +851,7 @@ service_subscription_state_changed_cb (
 static void
 node_subscription_state_changed_cb (
     WockyPubsubNode *node,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *subscription_node,
     WockyPubsubSubscription *subscription,
@@ -938,9 +938,9 @@ send_deleted (WockyPorter *porter,
     const gchar *service,
     const gchar *node)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE,
       service, NULL,
       '(', "event",
@@ -959,7 +959,7 @@ static void
 service_node_deleted_cb (
     WockyPubsubService *service,
     WockyPubsubNode *node,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *delete_node,
     TestDeletedCtx *ctx)
@@ -983,7 +983,7 @@ service_node_deleted_cb (
 static void
 node_deleted_cb (
     WockyPubsubNode *node,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *delete_node,
     TestDeletedCtx *ctx)

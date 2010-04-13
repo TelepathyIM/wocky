@@ -66,7 +66,7 @@ ssl_features_received_cb (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
@@ -143,7 +143,7 @@ tcp_start_tls_recv_cb (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   GError *error = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
@@ -189,9 +189,9 @@ tcp_features_received_cb (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *tls;
-  WockyXmppStanza *starttls;
+  WockyStanza *starttls;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
@@ -214,7 +214,7 @@ tcp_features_received_cb (GObject *source,
       g_main_loop_quit (mainloop);
     }
 
-  starttls = wocky_xmpp_stanza_new ("starttls");
+  starttls = wocky_stanza_new ("starttls");
   wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
 
   wocky_xmpp_connection_send_stanza_async (conn, starttls,

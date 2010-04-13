@@ -23,9 +23,9 @@
 
 #include <gio/gio.h>
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
-WockyXmppStanza *wocky_pubsub_make_stanza (
+WockyStanza *wocky_pubsub_make_stanza (
     const gchar *service,
     WockyStanzaSubType sub_type,
     const gchar *pubsub_ns,
@@ -33,7 +33,7 @@ WockyXmppStanza *wocky_pubsub_make_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **action_node);
 
-WockyXmppStanza *wocky_pubsub_make_publish_stanza (
+WockyStanza *wocky_pubsub_make_publish_stanza (
     const gchar *service,
     const gchar *node,
     WockyXmppNode **pubsub_out,

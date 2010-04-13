@@ -41,18 +41,18 @@ test_instantiation (void)
 /* Test if the Roster sends the right IQ query when fetching the roster */
 static gboolean
 fetch_roster_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   WockyXmppNode *node;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   const char *id;
 
   /* Make sure stanza is as expected. */
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
@@ -66,7 +66,7 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
   g_assert (id != NULL);
 
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       '@', "id", id,
@@ -208,10 +208,10 @@ fetch_roster_reply_roster_cb (GObject *source_object,
 
 static gboolean
 fetch_roster_reply_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
   /* We're acting like the server here. The client doesn't need to send a
    * "from" attribute, and in fact it doesn't when fetch_roster is called. It
@@ -222,7 +222,7 @@ fetch_roster_reply_cb (WockyPorter *porter,
     wocky_xmpp_node_set_attribute (stanza->node, "from",
         "juliet@example.com/balcony");
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza,
+  reply = wocky_stanza_build_iq_result (stanza,
       '(', "query",
         ':', "jabber:iq:roster",
         /* Romeo */
@@ -339,14 +339,14 @@ roster_update_reply_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, NULL);
   g_assert (reply != NULL);
 
-  wocky_xmpp_stanza_get_type_info (reply, &type, &sub_type);
+  wocky_stanza_get_type_info (reply, &type, &sub_type);
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_RESULT);
 
@@ -362,11 +362,11 @@ send_roster_update (test_data_t *test,
     const gchar *subscription,
     const gchar **groups)
 {
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyXmppNode *item;
   guint i;
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
     '(', "query",
       ':', WOCKY_XMPP_NS_ROSTER,
@@ -545,15 +545,15 @@ test_roster_upgrade_change (void)
 
 static void
 ack_iq (WockyPorter *porter,
-    WockyXmppStanza *stanza)
+    WockyStanza *stanza)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   const gchar *id;
 
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
   g_assert (id != NULL);
 
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_RESULT,
       NULL, NULL,
       '@', "id", id,
@@ -565,7 +565,7 @@ ack_iq (WockyPorter *porter,
 
 /* Test adding a contact to the roster */
 static void
-check_edit_roster_stanza (WockyXmppStanza *stanza,
+check_edit_roster_stanza (WockyStanza *stanza,
     const gchar *jid,
     const gchar *name,
     const gchar *subscription,
@@ -578,7 +578,7 @@ check_edit_roster_stanza (WockyXmppStanza *stanza,
   guint i;
   GHashTable *expected_groups;
 
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
@@ -631,7 +631,7 @@ check_edit_roster_stanza (WockyXmppStanza *stanza,
 }
 
 static void
-check_add_contact_stanza (WockyXmppStanza *stanza,
+check_add_contact_stanza (WockyStanza *stanza,
     const gchar *jid,
     const gchar *name,
     const gchar **groups)
@@ -643,7 +643,7 @@ static gboolean first_add = TRUE;
 
 static gboolean
 add_contact_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -762,7 +762,7 @@ test_roster_add_contact (void)
 }
 
 static void
-check_remove_contact_stanza (WockyXmppStanza *stanza,
+check_remove_contact_stanza (WockyStanza *stanza,
     const gchar *jid)
 {
   check_edit_roster_stanza (stanza, jid, NULL, "remove", NULL);
@@ -771,7 +771,7 @@ check_remove_contact_stanza (WockyXmppStanza *stanza,
 /* Test removing a contact from the roster */
 static gboolean
 remove_contact_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -855,7 +855,7 @@ test_roster_remove_contact (void)
 /* test changing the name of a roster item */
 static gboolean
 change_name_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -865,7 +865,7 @@ change_name_send_iq_cb (WockyPorter *porter,
   const gchar *group[] = { "Friends", NULL };
 
   /* Make sure stanza is as expected. */
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
@@ -991,7 +991,7 @@ test_roster_change_name (void)
 /* test adding a group to a contact */
 static gboolean
 add_group_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1003,7 +1003,7 @@ add_group_send_iq_cb (WockyPorter *porter,
   gboolean group_friend = FALSE, group_badger = FALSE;
 
   /* Make sure stanza is as expected. */
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
@@ -1140,7 +1140,7 @@ test_contact_add_group (void)
 /* test removing a group from a contact */
 static gboolean
 remove_group_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1150,7 +1150,7 @@ remove_group_send_iq_cb (WockyPorter *porter,
   const gchar *groups[] = { NULL };
 
   /* Make sure stanza is as expected. */
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &sub_type);
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
@@ -1271,11 +1271,11 @@ test_contact_remove_group (void)
 }
 
 /* Remove a contact and re-add it before the remove operation is completed */
-static WockyXmppStanza *received_iq = NULL;
+static WockyStanza *received_iq = NULL;
 
 static gboolean
 iq_set_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;

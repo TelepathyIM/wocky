@@ -4,7 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-xmpp-stanza.h>
+#include <wocky/wocky-stanza.h>
 #include <wocky/wocky-xmpp-error.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
@@ -14,9 +14,9 @@
 static void
 test_build_iq_result (void)
 {
-  WockyXmppStanza *iq, *reply, *expected;
+  WockyStanza *iq, *reply, *expected;
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     '@', "id", "one",
       '(', "query",
@@ -25,12 +25,12 @@ test_build_iq_result (void)
     NULL);
 
   /* Send a simple ACK */
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "romeo@example.net", "juliet@example.com",
     '@', "id", "one",
     NULL);
 
-  reply = wocky_xmpp_stanza_build_iq_result (iq, NULL);
+  reply = wocky_stanza_build_iq_result (iq, NULL);
 
   g_assert (reply != NULL);
   test_assert_nodes_equal (reply->node, expected->node);
@@ -39,7 +39,7 @@ test_build_iq_result (void)
   g_object_unref (expected);
 
   /* Send a more complex reply */
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "romeo@example.net", "juliet@example.com",
     '@', "id", "one",
       '(', "query",
@@ -51,7 +51,7 @@ test_build_iq_result (void)
       ')',
     NULL);
 
-  reply = wocky_xmpp_stanza_build_iq_result (iq,
+  reply = wocky_stanza_build_iq_result (iq,
       '(', "query",
         ':', "http://jabber.org/protocol/disco#items",
         '(', "item",
@@ -69,7 +69,7 @@ test_build_iq_result (void)
   g_object_unref (iq);
 
   /* Send a reply to an IQ with no "to" attribute. */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
     '@', "id", "one",
       '(', "query",
@@ -78,12 +78,12 @@ test_build_iq_result (void)
     NULL);
 
   /* Send a simple ACK */
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, NULL, "juliet@example.com",
     '@', "id", "one",
     NULL);
 
-  reply = wocky_xmpp_stanza_build_iq_result (iq, NULL);
+  reply = wocky_stanza_build_iq_result (iq, NULL);
 
   g_assert (reply != NULL);
   test_assert_nodes_equal (reply->node, expected->node);
@@ -96,9 +96,9 @@ test_build_iq_result (void)
 static void
 test_build_iq_error (void)
 {
-  WockyXmppStanza *iq, *reply, *expected;
+  WockyStanza *iq, *reply, *expected;
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     '@', "id", "one",
       '(', "query",
@@ -107,12 +107,12 @@ test_build_iq_error (void)
     NULL);
 
   /* Send a simple error */
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_ERROR, "romeo@example.net", "juliet@example.com",
     '@', "id", "one",
     NULL);
 
-  reply = wocky_xmpp_stanza_build_iq_error (iq, NULL);
+  reply = wocky_stanza_build_iq_error (iq, NULL);
 
   g_assert (reply != NULL);
   test_assert_nodes_equal (reply->node, expected->node);
@@ -121,7 +121,7 @@ test_build_iq_error (void)
   g_object_unref (expected);
 
   /* Send a more complex reply */
-  expected = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_ERROR, "romeo@example.net", "juliet@example.com",
     '@', "id", "one",
       '(', "query",
@@ -133,7 +133,7 @@ test_build_iq_error (void)
       ')',
     NULL);
 
-  reply = wocky_xmpp_stanza_build_iq_error (iq,
+  reply = wocky_stanza_build_iq_error (iq,
       '(', "query",
         ':', "http://jabber.org/protocol/disco#items",
         '(', "error",
@@ -152,14 +152,14 @@ test_build_iq_error (void)
 }
 
 static void
-check_error (WockyXmppStanza *stanza,
+check_error (WockyStanza *stanza,
     GQuark domain,
     gint code,
     const gchar *msg)
 {
   GError *error = NULL;
 
-  g_assert (wocky_xmpp_stanza_extract_stream_error (stanza, &error));
+  g_assert (wocky_stanza_extract_stream_error (stanza, &error));
 
   g_assert_error (error, domain, code);
   g_assert_cmpstr (error->message, ==, msg);
@@ -169,11 +169,11 @@ check_error (WockyXmppStanza *stanza,
 static void
 test_extract_stanza_error (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   GError *error = NULL;
 
   /* Valid stream error without message */
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     ':', WOCKY_XMPP_NS_STREAM,
     '(', "conflict",
@@ -186,7 +186,7 @@ test_extract_stanza_error (void)
   g_object_unref (stanza);
 
   /* Valid stream error with message */
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     ':', WOCKY_XMPP_NS_STREAM,
     '(', "system-shutdown",
@@ -203,7 +203,7 @@ test_extract_stanza_error (void)
   g_object_unref (stanza);
 
   /* Unknown stream error */
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     ':', WOCKY_XMPP_NS_STREAM,
     '(', "badger",
@@ -216,12 +216,12 @@ test_extract_stanza_error (void)
   g_object_unref (stanza);
 
   /* Not an error */
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     ':', WOCKY_XMPP_NS_STREAM,
     NULL);
 
-  g_assert (!wocky_xmpp_stanza_extract_stream_error (stanza, &error));
+  g_assert (!wocky_stanza_extract_stream_error (stanza, &error));
   g_assert_no_error (error);
   g_object_unref (stanza);
 }
@@ -229,7 +229,7 @@ test_extract_stanza_error (void)
 static void
 test_extract_errors (void)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   const gchar *description = "I am a sentence.";
   WockyXmppErrorType type;
   GError *core = NULL, *specialized = NULL;
@@ -237,14 +237,14 @@ test_extract_errors (void)
   gboolean ret;
 
   /* As a prelude, check that it does the right thing for non-errors. */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       "from", "to",
         '(', "hello-thar",
         ')',
       NULL);
 
-  ret = wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  ret = wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   g_assert (!ret);
@@ -255,7 +255,7 @@ test_extract_errors (void)
   g_object_unref (stanza);
 
   /* Test a boring error with no description */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -266,7 +266,7 @@ test_extract_errors (void)
         ')',
       NULL);
 
-  ret = wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  ret = wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   g_assert (ret);
@@ -282,7 +282,7 @@ test_extract_errors (void)
   g_object_unref (stanza);
 
   /* Now a different error with some text */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -297,7 +297,7 @@ test_extract_errors (void)
         ')',
       NULL);
 
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
@@ -312,7 +312,7 @@ test_extract_errors (void)
   g_object_unref (stanza);
 
   /* Another error, with an application-specific element we don't understand */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -326,7 +326,7 @@ test_extract_errors (void)
         ')',
       NULL);
 
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
@@ -348,7 +348,7 @@ test_extract_errors (void)
   g_object_unref (stanza);
 
   /* A Jingle error! With the child nodes in an erratic order */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -366,7 +366,7 @@ test_extract_errors (void)
         ')',
       NULL);
 
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
@@ -384,12 +384,12 @@ test_extract_errors (void)
   g_assert_cmpstr (specialized_node->name, ==, "tie-break");
 
   /* With the same stanza, let's try ignoring all out params: */
-  wocky_xmpp_stanza_extract_errors (stanza, NULL, NULL, NULL, NULL);
+  wocky_stanza_extract_errors (stanza, NULL, NULL, NULL, NULL);
 
   g_object_unref (stanza);
 
   /* How about a legacy error code? */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -397,7 +397,7 @@ test_extract_errors (void)
         ')',
       NULL);
 
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   /* XEP-0086 §3 says that 408 maps to remote-server-timeout, type=wait */
@@ -416,7 +416,7 @@ test_extract_errors (void)
   g_object_unref (stanza);
 
   /* An error that makes no sense */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -429,7 +429,7 @@ test_extract_errors (void)
         ')',
       NULL);
 
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   /* 'cancel' is the most sensible default if we have no idea. */
@@ -444,10 +444,10 @@ test_extract_errors (void)
   g_object_unref (stanza);
 
   /* And finally, a stanza with type='error' but no <error/> at all... */
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to", NULL);
-  wocky_xmpp_stanza_extract_errors (stanza, &type, &core, &specialized,
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
       &specialized_node);
 
   /* 'cancel' is the most sensible default if we have no idea. */
@@ -474,20 +474,20 @@ test_stanza_error_to_node (void)
   GError *e = NULL;
   GError *core = NULL, *specialized = NULL;
   const gchar *description = "bzzzt";
-  WockyXmppStanza *stanza, *expected;
+  WockyStanza *stanza, *expected;
 
   /* An XMPP Core stanza error */
   g_set_error_literal (&e, WOCKY_XMPP_ERROR,
       WOCKY_XMPP_ERROR_REMOTE_SERVER_TIMEOUT, description);
 
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
       NULL);
 
   wocky_stanza_error_to_node (e, stanza->node);
 
-  expected = wocky_xmpp_stanza_build (
+  expected = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -505,7 +505,7 @@ test_stanza_error_to_node (void)
   test_assert_nodes_equal (stanza->node, expected->node);
 
   /* Let's see how it roundtrips: */
-  wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
+  wocky_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
 
   assert_cmperr (e, core);
   g_assert_no_error (specialized);
@@ -519,14 +519,14 @@ test_stanza_error_to_node (void)
   g_set_error_literal (&e, WOCKY_JINGLE_ERROR,
       WOCKY_JINGLE_ERROR_UNKNOWN_SESSION, description);
 
-  stanza = wocky_xmpp_stanza_build (
+  stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
       NULL);
 
   wocky_stanza_error_to_node (e, stanza->node);
 
-  expected = wocky_xmpp_stanza_build (
+  expected = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       "from", "to",
         '(', "error",
@@ -547,7 +547,7 @@ test_stanza_error_to_node (void)
   test_assert_nodes_equal (stanza->node, expected->node);
 
   /* Let's see how it roundtrips: */
-  wocky_xmpp_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
+  wocky_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
 
   g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_ITEM_NOT_FOUND);
   assert_cmperr (e, specialized);

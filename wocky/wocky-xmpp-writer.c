@@ -23,7 +23,7 @@
  * @title: WockyXmppWriter
  * @short_description: Xmpp stanza to XML serializer
  *
- * The #WockyXmppWriter serializes #WockyXmppStanzas and xmpp stream opening
+ * The #WockyXmppWriter serializes #WockyStanzas and xmpp stream opening
  * and closing to raw XML. The various functions provide a pointer to an
  * internal buffer, which remains valid until the next call to the writer.
  */
@@ -433,7 +433,7 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
  */
 void
 wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     const guint8 **data,
     gsize *length)
 {

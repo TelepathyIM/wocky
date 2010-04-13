@@ -23,7 +23,7 @@
 
 #include "wocky-pubsub-service.h"
 
-WockyXmppStanza *wocky_pubsub_service_create_retrieve_subscriptions_stanza (
+WockyStanza *wocky_pubsub_service_create_retrieve_subscriptions_stanza (
     WockyPubsubService *self,
     WockyPubsubNode *node,
     WockyXmppNode **pubsub_node,
@@ -39,7 +39,7 @@ GList * wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
     WockyXmppNode *subscriptions_node,
     GList **subscription_nodes);
 
-WockyXmppStanza *wocky_pubsub_service_create_create_node_stanza (
+WockyStanza *wocky_pubsub_service_create_create_node_stanza (
     WockyPubsubService *self,
     const gchar *name,
     WockyDataForm *config,

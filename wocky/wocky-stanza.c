@@ -1,5 +1,5 @@
 /*
- * wocky-xmpp-stanza.c - Source for WockyXmppStanza
+ * wocky-stanza.c - Source for WockyStanza
  * Copyright (C) 2006 Collabora Ltd.
  * @author Sjoerd Simons <sjoerd@luon.net>
  *
@@ -23,15 +23,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 #include "wocky-xmpp-error.h"
 #include "wocky-namespaces.h"
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE(WockyXmppStanza, wocky_xmpp_stanza, G_TYPE_OBJECT)
+G_DEFINE_TYPE(WockyStanza, wocky_stanza, G_TYPE_OBJECT)
 
 /* private structure */
-struct _WockyXmppStanzaPrivate
+struct _WockyStanzaPrivate
 {
   gboolean dispose_has_run;
 };
@@ -118,34 +118,32 @@ static const StanzaSubTypeName sub_type_names[NUM_WOCKY_STANZA_SUB_TYPE] =
 };
 
 static void
-wocky_xmpp_stanza_init (WockyXmppStanza *self)
+wocky_stanza_init (WockyStanza *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_STANZA,
-      WockyXmppStanzaPrivate);
-
-  self->node = NULL;
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_STANZA,
+      WockyStanzaPrivate);
 }
 
-static void wocky_xmpp_stanza_dispose (GObject *object);
-static void wocky_xmpp_stanza_finalize (GObject *object);
+static void wocky_stanza_dispose (GObject *object);
+static void wocky_stanza_finalize (GObject *object);
 
 static void
-wocky_xmpp_stanza_class_init (WockyXmppStanzaClass *wocky_xmpp_stanza_class)
+wocky_stanza_class_init (WockyStanzaClass *wocky_stanza_class)
 {
-  GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_stanza_class);
+  GObjectClass *object_class = G_OBJECT_CLASS (wocky_stanza_class);
 
-  g_type_class_add_private (wocky_xmpp_stanza_class, sizeof (WockyXmppStanzaPrivate));
+  g_type_class_add_private (wocky_stanza_class, sizeof (WockyStanzaPrivate));
 
-  object_class->dispose = wocky_xmpp_stanza_dispose;
-  object_class->finalize = wocky_xmpp_stanza_finalize;
+  object_class->dispose = wocky_stanza_dispose;
+  object_class->finalize = wocky_stanza_finalize;
 
 }
 
 void
-wocky_xmpp_stanza_dispose (GObject *object)
+wocky_stanza_dispose (GObject *object)
 {
-  WockyXmppStanza *self = WOCKY_XMPP_STANZA (object);
-  WockyXmppStanzaPrivate *priv = self->priv;
+  WockyStanza *self = WOCKY_STANZA (object);
+  WockyStanzaPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -154,35 +152,35 @@ wocky_xmpp_stanza_dispose (GObject *object)
 
   /* release any references held by the object here */
 
-  if (G_OBJECT_CLASS (wocky_xmpp_stanza_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_xmpp_stanza_parent_class)->dispose (object);
+  if (G_OBJECT_CLASS (wocky_stanza_parent_class)->dispose)
+    G_OBJECT_CLASS (wocky_stanza_parent_class)->dispose (object);
 }
 
 void
-wocky_xmpp_stanza_finalize (GObject *object)
+wocky_stanza_finalize (GObject *object)
 {
-  WockyXmppStanza *self = WOCKY_XMPP_STANZA (object);
+  WockyStanza *self = WOCKY_STANZA (object);
 
   /* free any data held directly by the object here */
   wocky_xmpp_node_free (self->node);
 
-  G_OBJECT_CLASS (wocky_xmpp_stanza_parent_class)->finalize (object);
+  G_OBJECT_CLASS (wocky_stanza_parent_class)->finalize (object);
 }
 
 
-WockyXmppStanza *
-wocky_xmpp_stanza_new (const gchar *name)
+WockyStanza *
+wocky_stanza_new (const gchar *name)
 {
-  WockyXmppStanza *result;
+  WockyStanza *result;
 
-  result = WOCKY_XMPP_STANZA (g_object_new (WOCKY_TYPE_XMPP_STANZA, NULL));
+  result = WOCKY_STANZA (g_object_new (WOCKY_TYPE_STANZA, NULL));
   result->node = wocky_xmpp_node_new (name);
 
   return result;
 }
 
 static gboolean
-wocky_xmpp_stanza_add_build_va (WockyXmppNode *node,
+wocky_stanza_add_build_va (WockyXmppNode *node,
                                 va_list ap)
 {
   GSList *stack = NULL;
@@ -325,17 +323,17 @@ check_sub_type (WockyStanzaType type,
   return TRUE;
 }
 
-static WockyXmppStanza *
-wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
+static WockyStanza *
+wocky_stanza_new_with_sub_type (WockyStanzaType type,
                                       WockyStanzaSubType sub_type)
 {
-  WockyXmppStanza *stanza = NULL;
+  WockyStanza *stanza = NULL;
   const gchar *sub_type_name;
 
   if (!check_sub_type (type, sub_type))
     return NULL;
 
-  stanza = wocky_xmpp_stanza_new (get_type_name (type));
+  stanza = wocky_stanza_new (get_type_name (type));
   wocky_xmpp_node_set_ns (stanza->node, get_type_ns (type));
 
   sub_type_name = get_sub_type_name (sub_type);
@@ -346,7 +344,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
 }
 
 /**
- * wocky_xmpp_stanza_build:
+ * wocky_stanza_build:
  * @type: The type of stanza to build
  * @sub_type: The stanza's subtype; valid values depend on @type. (For instance,
  *           #WOCKY_STANZA_TYPE_IQ can use #WOCKY_STANZA_SUB_TYPE_GET, but not
@@ -360,7 +358,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  * Example:
  *
  * <example><programlisting>
- * wocky_xmpp_stanza_build (
+ * wocky_stanza_build (
  *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
  *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
  *    WOCKY_NODE, "html",
@@ -388,7 +386,7 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  * above stanza could be written as:
  *
  * <example><programlisting>
- * wocky_xmpp_stanza_build (
+ * wocky_stanza_build (
  *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
  *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
  *    '(', "html",
@@ -403,37 +401,37 @@ wocky_xmpp_stanza_new_with_sub_type (WockyStanzaType type,
  *
  * Returns: a new stanza object
  */
-WockyXmppStanza *
-wocky_xmpp_stanza_build (WockyStanzaType type,
+WockyStanza *
+wocky_stanza_build (WockyStanzaType type,
                           WockyStanzaSubType sub_type,
                           const gchar *from,
                           const gchar *to,
                           ...)
 
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   va_list ap;
 
   va_start (ap, to);
-  stanza = wocky_xmpp_stanza_build_va (type, sub_type, from, to, ap);
+  stanza = wocky_stanza_build_va (type, sub_type, from, to, ap);
   va_end (ap);
 
   return stanza;
 }
 
-WockyXmppStanza *
-wocky_xmpp_stanza_build_va (WockyStanzaType type,
+WockyStanza *
+wocky_stanza_build_va (WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
     const gchar *to,
     va_list ap)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   g_return_val_if_fail (type < NUM_WOCKY_STANZA_TYPE, NULL);
   g_return_val_if_fail (sub_type < NUM_WOCKY_STANZA_SUB_TYPE, NULL);
 
-  stanza = wocky_xmpp_stanza_new_with_sub_type (type, sub_type);
+  stanza = wocky_stanza_new_with_sub_type (type, sub_type);
   if (stanza == NULL)
     return NULL;
 
@@ -443,7 +441,7 @@ wocky_xmpp_stanza_build_va (WockyStanzaType type,
   if (to != NULL)
     wocky_xmpp_node_set_attribute (stanza->node, "to", to);
 
-  if (!wocky_xmpp_stanza_add_build_va (stanza->node, ap))
+  if (!wocky_stanza_add_build_va (stanza->node, ap))
     {
       g_object_unref (stanza);
       stanza = NULL;
@@ -495,7 +493,7 @@ get_sub_type_from_name (const gchar *name)
 }
 
 void
-wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
+wocky_stanza_get_type_info (WockyStanza *stanza,
                                   WockyStanzaType *type,
                                   WockyStanzaSubType *sub_type)
 {
@@ -510,19 +508,19 @@ wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
           stanza->node, "type"));
 }
 
-static WockyXmppStanza *
-create_iq_reply (WockyXmppStanza *iq,
+static WockyStanza *
+create_iq_reply (WockyStanza *iq,
     WockyStanzaSubType sub_type_reply,
     va_list ap)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   const gchar *from, *to, *id;
 
   g_return_val_if_fail (iq != NULL, NULL);
 
-  wocky_xmpp_stanza_get_type_info (iq, &type, &sub_type);
+  wocky_stanza_get_type_info (iq, &type, &sub_type);
   g_return_val_if_fail (type == WOCKY_STANZA_TYPE_IQ, NULL);
   g_return_val_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
       sub_type == WOCKY_STANZA_SUB_TYPE_SET, NULL);
@@ -532,18 +530,18 @@ create_iq_reply (WockyXmppStanza *iq,
   id = wocky_xmpp_node_get_attribute (iq->node, "id");
   g_return_val_if_fail (id != NULL, NULL);
 
-  reply = wocky_xmpp_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
       sub_type_reply, to, from, ap);
 
   wocky_xmpp_node_set_attribute (reply->node, "id", id);
   return reply;
 }
 
-WockyXmppStanza *
-wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
+WockyStanza *
+wocky_stanza_build_iq_result (WockyStanza *iq,
     ...)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   va_list ap;
 
   va_start (ap, iq);
@@ -553,11 +551,11 @@ wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
   return reply;
 }
 
-WockyXmppStanza *
-wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
+WockyStanza *
+wocky_stanza_build_iq_error (WockyStanza *iq,
     ...)
 {
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   va_list ap;
 
   va_start (ap, iq);
@@ -568,7 +566,7 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
 }
 
 /**
- * wocky_xmpp_stanza_extract_errors:
+ * wocky_stanza_extract_errors:
  * @stanza: a message/iq/presence stanza
  * @type: location at which to store the error type
  * @core: location at which to store an error in the domain #WOCKY_XMPP_ERROR
@@ -590,7 +588,7 @@ wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
  * Returns: %TRUE if the stanza had type='error'; %FALSE otherwise
  */
 gboolean
-wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
+wocky_stanza_extract_errors (WockyStanza *stanza,
     WockyXmppErrorType *type,
     GError **core,
     GError **specialized,
@@ -599,7 +597,7 @@ wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
   WockyStanzaSubType sub_type;
   WockyXmppNode *error;
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
   if (sub_type != WOCKY_STANZA_SUB_TYPE_ERROR)
     return FALSE;
@@ -627,7 +625,7 @@ wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
 }
 
 /**
- * wocky_xmpp_stanza_extract_stream_error:
+ * wocky_stanza_extract_stream_error:
  * @stanza: a stanza
  * @stream_error: location at which to store an error in domain
  *                #WOCKY_XMPP_STREAM_ERROR, if one is found.
@@ -636,12 +634,12 @@ wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
  *          error.
  */
 gboolean
-wocky_xmpp_stanza_extract_stream_error (WockyXmppStanza *stanza,
+wocky_stanza_extract_stream_error (WockyStanza *stanza,
     GError **stream_error)
 {
   WockyStanzaType type;
 
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+  wocky_stanza_get_type_info (stanza, &type, NULL);
 
   if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
     return FALSE;

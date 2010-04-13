@@ -34,7 +34,7 @@
 
 #include "wocky-bare-contact.h"
 #include "wocky-namespaces.h"
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 #include "wocky-utils.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-contact-factory.h"
@@ -369,7 +369,7 @@ remove_item (WockyRoster *self,
 
 static gboolean
 roster_update (WockyRoster *self,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gboolean fire_signals,
     GError **error)
 {
@@ -515,13 +515,13 @@ roster_update (WockyRoster *self,
 
 static gboolean
 roster_iq_handler_set_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   WockyRoster *self = WOCKY_ROSTER (user_data);
   const gchar *from;
   GError *error = NULL;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
   from = wocky_xmpp_node_get_attribute (stanza->node, "from");
 
@@ -537,12 +537,12 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       DEBUG ("Failed to update roster: %s",
           error ? error->message : "no message");
       g_error_free (error);
-      reply = wocky_xmpp_stanza_build_iq_error (stanza, NULL);
+      reply = wocky_stanza_build_iq_error (stanza, NULL);
     }
   else
     {
       /* ack */
-      reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
+      reply = wocky_stanza_build_iq_result (stanza, NULL);
     }
 
   wocky_porter_send (porter, reply);
@@ -668,7 +668,7 @@ roster_fetch_roster_cb (GObject *source_object,
     gpointer user_data)
 {
   GError *error = NULL;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyRoster *self = WOCKY_ROSTER (user_data);
   WockyRosterPrivate *priv = self->priv;
 
@@ -702,7 +702,7 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
     gpointer user_data)
 {
   WockyRosterPrivate *priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   g_return_if_fail (WOCKY_IS_ROSTER (self));
 
@@ -716,7 +716,7 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
       return;
     }
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET, NULL, NULL,
         '(', "query",
           ':', WOCKY_XMPP_NS_ROSTER,
@@ -774,11 +774,11 @@ wocky_roster_get_all_contacts (WockyRoster *self)
 
 /* Build an IQ set stanza containing the current state of the contact.
  * If not NULL, item_node will contain a pointer on the "item" node */
-static WockyXmppStanza *
+static WockyStanza *
 build_iq_for_contact (WockyBareContact *contact,
     WockyXmppNode **item_node)
 {
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyXmppNode *item = NULL;
   const gchar *jid, *name;
   const gchar * const *groups;
@@ -788,7 +788,7 @@ build_iq_for_contact (WockyBareContact *contact,
   jid = wocky_bare_contact_get_jid (contact);
   g_return_val_if_fail (jid != NULL, NULL);
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
         '(', "query",
           ':', WOCKY_XMPP_NS_ROSTER,
@@ -829,10 +829,10 @@ build_iq_for_contact (WockyBareContact *contact,
   return iq;
 }
 
-static WockyXmppStanza *
+static WockyStanza *
 build_remove_contact_iq (WockyBareContact *contact)
 {
-  return wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  return wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
         '(', "query",
           ':', WOCKY_XMPP_NS_ROSTER,
@@ -844,13 +844,13 @@ build_remove_contact_iq (WockyBareContact *contact)
       NULL);
 }
 
-static WockyXmppStanza *
+static WockyStanza *
 build_iq_for_pending (WockyRoster *self,
     PendingOperation *pending)
 {
   WockyRosterPrivate *priv = self->priv;
   WockyBareContact *contact, *tmp;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   GHashTableIter iter;
   gpointer group;
 
@@ -953,7 +953,7 @@ flying_operation_completed (PendingOperation *pending,
 {
   WockyRoster *self = pending->self;
   WockyRosterPrivate *priv = self->priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   GSList *l;
 
   /* Flying operations are completed */
@@ -999,7 +999,7 @@ change_roster_iq_cb (GObject *source_object,
     gpointer user_data)
 {
   PendingOperation *pending = (PendingOperation *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   GError *error = NULL;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object),
@@ -1007,7 +1007,7 @@ change_roster_iq_cb (GObject *source_object,
   if (reply == NULL)
     goto out;
 
-  wocky_xmpp_stanza_extract_errors (reply, NULL, &error, NULL, NULL);
+  wocky_stanza_extract_errors (reply, NULL, &error, NULL, NULL);
 
   /* According to the XMPP RFC, the server has to send a roster upgrade to
    * each client (including the one which requested the change) before
@@ -1065,7 +1065,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
     gpointer user_data)
 {
   WockyRosterPrivate *priv = self->priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   GSimpleAsyncResult *result;
   WockyBareContact *contact, *existing_contact;
   PendingOperation *pending;
@@ -1165,7 +1165,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
     gpointer user_data)
 {
   WockyRosterPrivate *priv = self->priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   GSimpleAsyncResult *result;
   PendingOperation *pending;
   const gchar *jid;
@@ -1229,7 +1229,7 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
     gpointer user_data)
 {
   WockyRosterPrivate *priv = self->priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyXmppNode *item;
   GSimpleAsyncResult *result;
   PendingOperation *pending;
@@ -1306,7 +1306,7 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
     gpointer user_data)
 {
   WockyRosterPrivate *priv = self->priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyXmppNode *item, *group_node;
   GSimpleAsyncResult *result;
   PendingOperation *pending;
@@ -1385,7 +1385,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
     gpointer user_data)
 {
   WockyRosterPrivate *priv = self->priv;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyXmppNode *item;
   GSimpleAsyncResult *result;
   GSList *l;

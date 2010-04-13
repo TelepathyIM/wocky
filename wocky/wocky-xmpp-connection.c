@@ -23,7 +23,7 @@
  * @title: WockyXmppConnection
  * @short_description: Low-level XMPP connection.
  *
- * Sends and receives #WockyXmppStanzas from an underlying GIOStream.
+ * Sends and receives #WockyStanzas from an underlying GIOStream.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -46,7 +46,7 @@
 
 #include "wocky-xmpp-reader.h"
 #include "wocky-xmpp-writer.h"
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 #define BUFFER_SIZE 1024
 
@@ -657,12 +657,12 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
 /**
  * wocky_xmpp_connection_send_stanza_async:
  * @connection: a #WockyXmppConnection
- * @stanza: #WockyXmppStanza to send.
+ * @stanza: #WockyStanza to send.
  * @cancellable: optional GCancellable object, NULL to ignore.
  * @callback: callback to call when the request is satisfied.
  * @user_data: the data to pass to callback function.
  *
- * Request asynchronous sending of a #WockyXmppStanza. When the operation is
+ * Request asynchronous sending of a #WockyStanza. When the operation is
  * finished @callback will be called. You can then call
  * wocky_xmpp_connection_send_stanza_finish() to get the result of
  * the operation.
@@ -673,7 +673,7 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
  */
 void
 wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -763,7 +763,7 @@ wocky_xmpp_connection_send_stanza_finish (
  * @callback: callback to call when the request is satisfied.
  * @user_data: the data to pass to callback function.
  *
- * Asynchronous receive a #WockyXmppStanza. When the operation is
+ * Asynchronous receive a #WockyStanza. When the operation is
  * finished @callback will be called. You can then call
  * wocky_xmpp_connection_recv_stanza_finish() to get the result of
  * the operation.
@@ -841,16 +841,16 @@ is_closed:
  *
  * Finishes receiving a stanza
  *
- * Returns: A #WockyXmppStanza or NULL on error (unref after usage)
+ * Returns: A #WockyStanza or NULL on error (unref after usage)
  */
 
-WockyXmppStanza *
+WockyStanza *
 wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error)
 {
   WockyXmppConnectionPrivate *priv;
-  WockyXmppStanza *stanza = NULL;
+  WockyStanza *stanza = NULL;
 
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))

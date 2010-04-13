@@ -170,7 +170,7 @@ wocky_pubsub_node_constructed (GObject *object)
 static void
 wocky_pubsub_node_emit_event_received (
     WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza,
+    WockyStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *items_node,
     GList *items)
@@ -182,7 +182,7 @@ wocky_pubsub_node_emit_event_received (
 static void
 wocky_pubsub_node_emit_subscription_state_changed (
     WockyPubsubNode *self,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *subscription_node,
     WockyPubsubSubscription *subscription)
@@ -194,7 +194,7 @@ wocky_pubsub_node_emit_subscription_state_changed (
 static void
 wocky_pubsub_node_emit_deleted (
     WockyPubsubNode *self,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *delete_node)
 {
@@ -243,7 +243,7 @@ wocky_pubsub_node_class_init (
       0, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER_POINTER,
       G_TYPE_NONE, 4,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
+      WOCKY_TYPE_STANZA, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
 
   /**
    * WockyPubsubNode::subscription-state-changed:
@@ -257,7 +257,7 @@ wocky_pubsub_node_class_init (
       ctype, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER_BOXED,
       G_TYPE_NONE, 4,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER,
+      WOCKY_TYPE_STANZA, G_TYPE_POINTER, G_TYPE_POINTER,
       WOCKY_TYPE_PUBSUB_SUBSCRIPTION);
 
   /**
@@ -274,12 +274,12 @@ wocky_pubsub_node_class_init (
       ctype, G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_POINTER_POINTER,
       G_TYPE_NONE, 3,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_POINTER, G_TYPE_POINTER);
+      WOCKY_TYPE_STANZA, G_TYPE_POINTER, G_TYPE_POINTER);
 }
 
 static void
 pubsub_node_handle_items_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza,
+    WockyStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *items_node)
 {
@@ -301,7 +301,7 @@ pubsub_node_handle_items_event (WockyPubsubNode *self,
 
 static void
 pubsub_node_handle_subscription_event (WockyPubsubNode *self,
-    WockyXmppStanza *event_stanza,
+    WockyStanza *event_stanza,
     WockyXmppNode *event_node,
     WockyXmppNode *subscription_node)
 {
@@ -350,7 +350,7 @@ wocky_pubsub_node_get_name (WockyPubsubNode *self)
   return priv->name;
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
     WockyXmppNode **pubsub_out,
     WockyXmppNode **publish_out,
@@ -362,7 +362,7 @@ wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
       pubsub_out, publish_out, item_out);
 }
 
-static WockyXmppStanza *
+static WockyStanza *
 pubsub_node_make_action_stanza (WockyPubsubNode *self,
     WockyStanzaSubType sub_type,
     const gchar *pubsub_ns,
@@ -372,7 +372,7 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
     WockyXmppNode **action_node)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *action;
 
   g_assert (pubsub_ns != NULL);
@@ -391,7 +391,7 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
   return stanza;
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
     WockyXmppNode **pubsub_node,
@@ -464,7 +464,7 @@ wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
   WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_subscribe_async);
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   g_return_if_fail (jid != NULL);
 
@@ -495,14 +495,14 @@ wocky_pubsub_node_subscribe_finish (WockyPubsubNode *self,
         g_simple_async_result_get_op_res_gpointer (simple));
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
     const gchar *subid,
     WockyXmppNode **pubsub_node,
     WockyXmppNode **unsubscribe_node)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockyXmppNode *unsubscribe;
 
   /* TODO: when the connection/porter/session/something knows our own JID, we
@@ -566,7 +566,7 @@ wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
   WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_unsubscribe_async);
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   g_return_if_fail (jid != NULL);
 
@@ -616,7 +616,7 @@ delete_node_iq_cb (GObject *source,
   g_object_unref (result);
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_node_make_delete_stanza (
     WockyPubsubNode *self,
     WockyXmppNode **pubsub_node,
@@ -633,7 +633,7 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   GSimpleAsyncResult *result;
 
   stanza = wocky_pubsub_node_make_delete_stanza (self, NULL, NULL);
@@ -659,7 +659,7 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
   return !g_simple_async_result_propagate_error (simple, error);
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_node_make_list_subscribers_stanza (
     WockyPubsubNode *self,
     WockyXmppNode **pubsub_node,
@@ -725,7 +725,7 @@ wocky_pubsub_node_list_subscribers_async (
   WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_list_subscribers_async);
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   stanza = wocky_pubsub_node_make_list_subscribers_stanza (self, NULL,
       NULL);
@@ -761,7 +761,7 @@ wocky_pubsub_node_list_subscribers_finish (
       wocky_pubsub_subscription_list_copy, subscribers)
 }
 
-WockyXmppStanza *
+WockyStanza *
 wocky_pubsub_node_make_list_affiliates_stanza (
     WockyPubsubNode *self,
     WockyXmppNode **pubsub_node,
@@ -869,7 +869,7 @@ wocky_pubsub_node_list_affiliates_async (
   WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_list_affiliates_async);
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   stanza = wocky_pubsub_node_make_list_affiliates_stanza (self, NULL,
       NULL);

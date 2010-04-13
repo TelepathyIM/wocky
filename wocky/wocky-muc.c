@@ -100,11 +100,11 @@ static void wocky_muc_set_property (GObject *object,
 
 /* private functions */
 static gboolean handle_presence (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer data);
 
 static gboolean handle_message (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer data);
 
 enum
@@ -359,45 +359,45 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__POINTER_POINTER,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE);
+      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE);
 
   signals[SIG_PRESENCE] = g_signal_new ("presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_BOXED_POINTER,
       G_TYPE_NONE, 3,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE, G_TYPE_POINTER);
+      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE, G_TYPE_POINTER);
 
   signals[SIG_OWN_PRESENCE] = g_signal_new ("own-presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_BOXED,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE);
+      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE);
 
   signals[SIG_JOINED] = g_signal_new ("joined", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__POINTER_POINTER,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE);
+      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE);
 
   signals[SIG_PRESENCE_ERROR] = g_signal_new ("error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING,
       G_TYPE_NONE, 3,
-      WOCKY_TYPE_XMPP_STANZA, WOCKY_TYPE_XMPP_ERROR, G_TYPE_STRING);
+      WOCKY_TYPE_STANZA, WOCKY_TYPE_XMPP_ERROR, G_TYPE_STRING);
 
   /* These signals convey actor(jid) + reason */
   signals[SIG_PERM_CHANGE] = g_signal_new ("permissions", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__POINTER_POINTER_POINTER_POINTER,
       G_TYPE_NONE, 4,
-      WOCKY_TYPE_XMPP_STANZA, G_TYPE_HASH_TABLE, G_TYPE_STRING, G_TYPE_STRING);
+      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE, G_TYPE_STRING, G_TYPE_STRING);
 
   /* and these two pass on any message as well: */
   signals[SIG_PARTED] = g_signal_new ("parted", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_BOXED_STRING_STRING_STRING,
       G_TYPE_NONE, 5,
-      WOCKY_TYPE_XMPP_STANZA,
+      WOCKY_TYPE_STANZA,
       G_TYPE_HASH_TABLE,
       G_TYPE_STRING,  /* actor jid */
       G_TYPE_STRING,  /* reason    */
@@ -407,7 +407,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_BOXED_POINTER_STRING_STRING_STRING,
       G_TYPE_NONE, 6,
-      WOCKY_TYPE_XMPP_STANZA,
+      WOCKY_TYPE_STANZA,
       G_TYPE_HASH_TABLE,
       G_TYPE_POINTER,  /* member struct   */
       G_TYPE_STRING,   /* actor jid       */
@@ -418,7 +418,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_STRING_ENUM,
       G_TYPE_NONE, 8,
-      WOCKY_TYPE_XMPP_STANZA,
+      WOCKY_TYPE_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
       G_TYPE_STRING,  /* XMPP msg ID      */
       G_TYPE_LONG,    /* time_t           */
@@ -431,7 +431,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_ENUM,
       G_TYPE_NONE, 8,
-      WOCKY_TYPE_XMPP_STANZA,
+      WOCKY_TYPE_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
       G_TYPE_STRING,  /* XMPP msg ID      */
       G_TYPE_LONG,    /* time_t           */
@@ -444,7 +444,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
         _wocky_signals_marshal_VOID__OBJECT,
         G_TYPE_NONE, 1,
-        WOCKY_TYPE_XMPP_STANZA);
+        WOCKY_TYPE_STANZA);
 }
 
 static void
@@ -656,7 +656,7 @@ muc_disco_info (GObject *source,
   WockyMuc *muc;
   WockyMucPrivate *priv;
   GError *error = NULL;
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   WockyStanzaType type;
   WockyStanzaSubType sub;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (data);
@@ -680,7 +680,7 @@ muc_disco_info (GObject *source,
   if (iq == NULL)
     goto out;
 
-  wocky_xmpp_stanza_get_type_info (iq, &type, &sub);
+  wocky_stanza_get_type_info (iq, &type, &sub);
 
   if (type != WOCKY_STANZA_TYPE_IQ)
     {
@@ -737,7 +737,7 @@ muc_disco_info (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
-        wocky_xmpp_stanza_extract_errors (iq, NULL, &error, NULL, NULL);
+        wocky_stanza_extract_errors (iq, NULL, &error, NULL, NULL);
         break;
 
       default:
@@ -780,7 +780,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
 {
   WockyMucPrivate *priv = muc->priv;
   GSimpleAsyncResult *result;
-  WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  WockyStanza *iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET,
       priv->user,
       priv->jid,
@@ -800,15 +800,15 @@ wocky_muc_disco_info_async (WockyMuc *muc,
 
 /* ************************************************************************ */
 /* send presence to MUC */
-WockyXmppStanza *
+WockyStanza *
 wocky_muc_create_presence (WockyMuc *muc,
     WockyStanzaSubType type,
     const gchar *status,
     const gchar *password)
 {
   WockyMucPrivate *priv = muc->priv;
-  WockyXmppStanza *stanza =
-    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_PRESENCE,
+  WockyStanza *stanza =
+    wocky_stanza_build (WOCKY_STANZA_TYPE_PRESENCE,
         type,
         priv->user,
         priv->jid,
@@ -843,7 +843,7 @@ wocky_muc_send_presence (WockyMuc *muc,
     const gchar *status)
 {
   WockyMucPrivate *priv = muc->priv;
-  WockyXmppStanza *pres = wocky_muc_create_presence (muc, type, status,
+  WockyStanza *pres = wocky_muc_create_presence (muc, type, status,
       priv->pass);
 
   wocky_porter_send (priv->porter, pres);
@@ -991,7 +991,7 @@ presence_features (gpointer key,
 
 static gboolean
 handle_self_presence (WockyMuc *muc,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     const gchar *nick,
     WockyMucRole role,
     WockyMucAffiliation aff,
@@ -1033,7 +1033,7 @@ handle_self_presence (WockyMuc *muc,
 
 static gboolean
 handle_user_presence (WockyMuc *muc,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     const gchar *from,
     const gchar *jid,
     const gchar *nick,
@@ -1117,7 +1117,7 @@ string_to_aff (const gchar *aff)
 
 static gboolean
 handle_presence_standard (WockyMuc *muc,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyStanzaSubType type)
 {
   gchar *room = NULL;
@@ -1284,7 +1284,7 @@ handle_presence_standard (WockyMuc *muc,
 
 static gboolean
 handle_presence_error (WockyMuc *muc,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     WockyStanzaSubType type)
 {
   gboolean ok = FALSE;
@@ -1307,7 +1307,7 @@ handle_presence_error (WockyMuc *muc,
       goto out;
     }
 
-  wocky_xmpp_stanza_extract_errors (stanza, NULL, &error, NULL, NULL);
+  wocky_stanza_extract_errors (stanza, NULL, &error, NULL, NULL);
 
   if (priv->state >= WOCKY_MUC_JOINED)
     {
@@ -1330,7 +1330,7 @@ handle_presence_error (WockyMuc *muc,
 
 static gboolean
 handle_presence (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer data)
 {
   WockyMuc *muc = WOCKY_MUC (data);
@@ -1338,7 +1338,7 @@ handle_presence (WockyPorter *porter,
   WockyStanzaSubType subtype;
   gboolean handled = FALSE;
 
-  wocky_xmpp_stanza_get_type_info (stanza, &type, &subtype);
+  wocky_stanza_get_type_info (stanza, &type, &subtype);
 
   if (type != WOCKY_STANZA_TYPE_PRESENCE)
     {
@@ -1367,7 +1367,7 @@ handle_presence (WockyPorter *porter,
 /* handle message from MUC */
 static gboolean
 handle_message (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer data)
 {
   WockyMuc *muc = WOCKY_MUC (data);
@@ -1387,7 +1387,7 @@ handle_message (WockyPorter *porter,
   WockyMucMsgType mtype = WOCKY_MUC_MSG_NOTICE;
   WockyMucMsgState mstate = WOCKY_MUC_MSG_STATE_NONE;
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &stype);
+  wocky_stanza_get_type_info (stanza, NULL, &stype);
 
   /* ***************************************************************** *
    * HACK: we interrupt this function for a HACK:                      *
@@ -1499,7 +1499,7 @@ handle_message (WockyPorter *porter,
       WockyXmppErrorType etype;
       GError *error = NULL;
 
-      wocky_xmpp_stanza_extract_errors (stanza, &etype, &error, NULL, NULL);
+      wocky_stanza_extract_errors (stanza, &etype, &error, NULL, NULL);
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
           stanza, mtype, id, stamp, who, body, error->code, etype);
       g_clear_error (&error);

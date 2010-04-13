@@ -37,10 +37,10 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   gpointer user_data)
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
-  WockyXmppStanza *expected;
+  WockyStanza *expected;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
   g_assert (s != NULL);
@@ -99,12 +99,12 @@ static void
 test_send (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   test_open_connection (test);
 
   /* Send a stanza */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -114,7 +114,7 @@ test_send (void)
   test->outstanding++;
 
   /* Send a stanza */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     NULL);
 
@@ -124,7 +124,7 @@ test_send (void)
   test->outstanding++;
 
   /* Send two stanzas and cancel them immediately */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "peter@example.net",
     NULL);
 
@@ -133,7 +133,7 @@ test_send (void)
   g_object_unref (s);
   test->outstanding++;
 
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "samson@example.net",
     NULL);
 
@@ -146,7 +146,7 @@ test_send (void)
   g_cancellable_cancel (test->cancellable);
 
   /* ... and a second (using the simple send method) */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "nurse@example.net",
     NULL);
 
@@ -158,7 +158,7 @@ test_send (void)
    * sending operation have been finished. This is important because
    * test_close_connection() will have to use this function to close the
    * connection. If there is still a pending sending operation, it will fail. */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "tybalt@example.net",
     NULL);
 
@@ -179,7 +179,7 @@ test_send (void)
 /* receive testing */
 static gboolean
 test_receive_stanza_received_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -221,7 +221,7 @@ wait_close_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
@@ -245,12 +245,12 @@ static void
 test_receive (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   test_open_both_connections (test);
 
   /* Send a stanza */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -276,7 +276,7 @@ test_receive (void)
 /* filter testing */
 static gboolean
 test_filter_iq_received_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -286,7 +286,7 @@ test_filter_iq_received_cb (WockyPorter *porter,
 
 static gboolean
 test_filter_presence_received_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   /* We didn't send any presence stanza so this callback shouldn't be
@@ -299,7 +299,7 @@ static void
 test_filter (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *msg, *iq;
+  WockyStanza *msg, *iq;
 
   test_open_both_connections (test);
 
@@ -316,7 +316,7 @@ test_filter (void)
   wocky_porter_start (test->sched_out);
 
   /* Send a message */
-  msg = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  msg = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -324,7 +324,7 @@ test_filter (void)
   /* We don't expect this stanza as we didn't register any message filter */
 
   /* Send an IQ */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -347,14 +347,14 @@ test_close_stanza_received_cb (GObject *source,
     gpointer user_data)
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
   if (g_queue_get_length (test->expected_stanzas) > 0)
     {
-      WockyXmppStanza *expected;
+      WockyStanza *expected;
       g_assert (s != NULL);
 
       expected = g_queue_pop_head (test->expected_stanzas);
@@ -409,13 +409,13 @@ static void
 test_close_flush (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   test_open_both_connections (test);
 
   wocky_porter_start (test->sched_in);
 
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
   wocky_porter_send (test->sched_in, s);
@@ -744,7 +744,7 @@ static void
 test_send_closed (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   test_open_both_connections (test);
 
@@ -755,7 +755,7 @@ test_send_closed (void)
   wocky_porter_close_async (test->sched_in, NULL, sched_close_cb,
       test);
 
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -778,7 +778,7 @@ test_send_closed (void)
 /* test if the handler with the higher priority is called */
 static void
 send_stanza (test_data_t *test,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gboolean expected)
 {
   wocky_porter_send (test->sched_in, stanza);
@@ -797,7 +797,7 @@ send_stanza (test_data_t *test,
 
 static gboolean
 test_handler_priority_5 (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   /* This handler has the lowest priority and is not supposed to be called */
@@ -807,7 +807,7 @@ test_handler_priority_5 (WockyPorter *porter,
 
 static gboolean
 test_handler_priority_10 (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -815,7 +815,7 @@ test_handler_priority_10 (WockyPorter *porter,
 
   test_expected_stanza_received (test, stanza);
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
   /* This handler is supposed to only handle the get stanza */
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
   return TRUE;
@@ -823,7 +823,7 @@ test_handler_priority_10 (WockyPorter *porter,
 
 static gboolean
 test_handler_priority_15 (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -835,7 +835,7 @@ static void
 test_handler_priority (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
@@ -852,7 +852,7 @@ test_handler_priority (void)
   wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -864,7 +864,7 @@ test_handler_priority (void)
       test_handler_priority_15, test, NULL);
 
   /* Send a 'set' IQ */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -877,7 +877,7 @@ test_handler_priority (void)
 /* Test unregistering a handler */
 static gboolean
 test_unregister_handler_10 (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   /* this handler is unregistred so shouldn't called */
@@ -887,7 +887,7 @@ test_unregister_handler_10 (WockyPorter *porter,
 
 static gboolean
 test_unregister_handler_5 (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -899,7 +899,7 @@ static void
 test_unregister_handler (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   guint id;
 
   test_open_both_connections (test);
@@ -920,7 +920,7 @@ test_unregister_handler (void)
   wocky_porter_unregister_handler (test->sched_out, id);
 
   /* Send a 'get' IQ */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -933,7 +933,7 @@ test_unregister_handler (void)
 /* test registering a handler using a bare JID as filter criteria */
 static gboolean
 test_handler_bare_jid_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -945,7 +945,7 @@ static void
 test_handler_bare_jid (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
@@ -957,19 +957,19 @@ test_handler_bare_jid (void)
   wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ from the bare jid */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
   send_stanza (test, iq, TRUE);
 
   /* Send a 'get' IQ from another contact */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "samson@example.com/House", "romeo@example.net",
     NULL);
   send_stanza (test, iq, FALSE);
 
   /* Send a 'get' IQ from the bare jid + resource */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com/Pub", "romeo@example.net",
     NULL);
   send_stanza (test, iq, TRUE);
@@ -981,7 +981,7 @@ test_handler_bare_jid (void)
 /* test registering a handler using a full JID as filter criteria */
 static gboolean
 test_handler_full_jid_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -993,7 +993,7 @@ static void
 test_handler_full_jid (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
@@ -1006,19 +1006,19 @@ test_handler_full_jid (void)
   wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ from the bare jid */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
   send_stanza (test, iq, FALSE);
 
   /* Send a 'get' IQ from another contact */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "samson@example.com/House", "romeo@example.net",
     NULL);
   send_stanza (test, iq, FALSE);
 
   /* Send a 'get' IQ from the bare jid + resource */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com/Pub", "romeo@example.net",
     NULL);
   send_stanza (test, iq, TRUE);
@@ -1030,7 +1030,7 @@ test_handler_full_jid (void)
 /* test registering a handler using a stanza as filter criteria */
 static gboolean
 test_handler_stanza_jingle_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1045,7 +1045,7 @@ test_handler_stanza_jingle_cb (WockyPorter *porter,
 
 static gboolean
 test_handler_stanza_terminate_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1061,7 +1061,7 @@ static void
 test_handler_stanza (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
@@ -1079,14 +1079,14 @@ test_handler_stanza (void)
   wocky_porter_start (test->sched_out);
 
   /* Send a not jingle IQ */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     '@', "id", "1",
     NULL);
   send_stanza (test, iq, FALSE);
 
   /* Send a jingle IQ but related to another session */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     '@', "id", "2",
     '(', "jingle",
@@ -1096,7 +1096,7 @@ test_handler_stanza (void)
   send_stanza (test, iq, FALSE);
 
   /* Send a jingle IQ related to the right session */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     '@', "id", "3",
     '(', "jingle",
@@ -1123,7 +1123,7 @@ test_handler_stanza (void)
       ')', NULL);
 
   /* Send a session-terminate with the wrong message */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     '@', "id", "4",
     '(', "jingle",
@@ -1140,7 +1140,7 @@ test_handler_stanza (void)
   send_stanza (test, iq, TRUE);
 
   /* Send a session-terminate with the right message */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     '@', "id", "5",
     '(', "jingle",
@@ -1163,7 +1163,7 @@ test_handler_stanza (void)
 /* Cancel the sending of a stanza after it has been received */
 static gboolean
 test_cancel_sent_stanza_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1192,7 +1192,7 @@ static void
 test_cancel_sent_stanza (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
@@ -1204,7 +1204,7 @@ test_cancel_sent_stanza (void)
       NULL, 0,
       test_cancel_sent_stanza_cb, test, NULL);
 
-  stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", "romeo@example.net",
     NULL);
   wocky_porter_send_async (test->sched_in, stanza,
@@ -1241,13 +1241,13 @@ static void
 test_writing_error (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   test_open_connection (test);
 
   wocky_test_output_stream_set_write_error (test->stream->stream0_output);
 
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -1277,11 +1277,11 @@ test_send_iq_sent_cb (GObject *source,
 
 static gboolean
 test_send_iq_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   const gchar *id;
   gboolean cancelled;
   WockyStanzaSubType sub_type;
@@ -1290,7 +1290,7 @@ test_send_iq_cb (WockyPorter *porter,
 
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
   /* Reply of the "set" IQ is not expected as we are going to cancel it */
   cancelled = (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
@@ -1299,7 +1299,7 @@ test_send_iq_cb (WockyPorter *porter,
     g_cancellable_cancel (test->cancellable);
 
   /* Send a spoofed reply; should be ignored */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "oscar@example.net", "juliet@example.com",
     '@', "id", id,
     NULL);
@@ -1307,14 +1307,14 @@ test_send_iq_cb (WockyPorter *porter,
   g_object_unref (reply);
 
   /* Send a reply without 'id' attribute; should be ignored */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "romeo@example.net", "juliet@example.com",
     NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
   /* Send reply */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "romeo@example.net", "juliet@example.com",
     '@', "id", id,
     NULL);
@@ -1332,11 +1332,11 @@ test_send_iq_cb (WockyPorter *porter,
 
 static gboolean
 test_send_iq_abnormal_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   const gchar *id;
   WockyStanzaSubType sub_type;
 
@@ -1344,10 +1344,10 @@ test_send_iq_abnormal_cb (WockyPorter *porter,
 
   id = wocky_xmpp_node_get_attribute (stanza->node, "id");
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
   /* Send a spoofed reply; should be ignored */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "oscar@example.net", "juliet@example.com",
     '@', "id", id,
     NULL);
@@ -1355,14 +1355,14 @@ test_send_iq_abnormal_cb (WockyPorter *porter,
   g_object_unref (reply);
 
   /* Send a reply without 'id' attribute; should be ignored */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "rOmeO@examplE.neT", "juLiet@Example.cOm",
     NULL);
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
   /* Send reply */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "roMeo@eXampLe.net", "JulieT@ExamplE.com",
     '@', "id", id,
     NULL);
@@ -1383,7 +1383,7 @@ test_send_iq_reply_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
       res, NULL);
@@ -1399,7 +1399,7 @@ test_send_iq_cancelled_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   GError *error = NULL;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
@@ -1416,7 +1416,7 @@ static void
 test_send_iq (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
@@ -1430,7 +1430,7 @@ test_send_iq (void)
 
   /* Send an IQ query. We are going to cancel it after it has been received
    * but before we receive the reply so the callback won't be called.*/
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     NULL);
   wocky_porter_send_iq_async (test->sched_in, iq,
@@ -1442,7 +1442,7 @@ test_send_iq (void)
   test_wait_pending (test);
 
   /* Send an IQ query */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     '@', "id", "1",
     NULL);
@@ -1462,7 +1462,7 @@ static void
 test_send_iq_abnormal (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
@@ -1475,7 +1475,7 @@ test_send_iq_abnormal (void)
       test_send_iq_abnormal_cb, test, NULL);
 
   /* Send an IQ query */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "julIet@exampLe.com", "RoMeO@eXample.net",
     '@', "id", "1",
     NULL);
@@ -1514,13 +1514,13 @@ static void
 test_send_iq_error (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_connection (test);
 
   wocky_test_output_stream_set_write_error (test->stream->stream0_output);
 
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     '@', "id", "one",
     NULL);
@@ -1538,14 +1538,14 @@ test_send_iq_error (void)
 /* Test implementing a filter using handlers */
 static gboolean
 test_handler_filter_get_filter (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanzaSubType sub_type;
   gboolean result;
 
-  wocky_xmpp_stanza_get_type_info (stanza, NULL, &sub_type);
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
   if (sub_type == WOCKY_STANZA_SUB_TYPE_GET)
     {
       /* We filter 'get' IQ. Return TRUE to say that we handled this stanza so
@@ -1567,7 +1567,7 @@ test_handler_filter_get_filter (WockyPorter *porter,
 
 static gboolean
 test_handler_filter_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1579,7 +1579,7 @@ static void
 test_handler_filter (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
@@ -1597,14 +1597,14 @@ test_handler_filter (void)
   wocky_porter_start (test->sched_out);
 
   /* Send a 'get' IQ that will be filtered */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
 
   send_stanza (test, iq, TRUE);
 
   /* Send a 'set' IQ that won't be filtered */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -1616,7 +1616,7 @@ test_handler_filter (void)
 
 static gboolean
 test_handler_filter_from_juliet_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1631,7 +1631,7 @@ test_handler_filter_from_juliet_cb (WockyPorter *porter,
 
 static gboolean
 test_handler_filter_from_null_cb (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
@@ -1643,7 +1643,7 @@ static void
 test_handler_filter_from (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
@@ -1660,21 +1660,21 @@ test_handler_filter_from (void)
   wocky_porter_start (test->sched_out);
 
   /* Send an IQ that will be filtered by from_juliet only */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     NULL);
 
   send_stanza (test, iq, TRUE);
 
   /* Send an IQ that will be filtered by from_null only */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "romeo@example.com", "juliet@example.net",
     NULL);
 
   send_stanza (test, iq, TRUE);
 
   /* Send an IQ that will be filtered by from_null only */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, NULL, "romeo@example.net",
     NULL);
 
@@ -1691,7 +1691,7 @@ test_send_invalid_iq_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   GError *error = NULL;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
@@ -1709,14 +1709,14 @@ static void
 test_send_invalid_iq (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
 
   wocky_porter_start (test->sched_out);
 
   /* Try to send a message as an IQ */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_NONE, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -1726,7 +1726,7 @@ test_send_invalid_iq (void)
   test->outstanding++;
 
   /* Try to send an IQ reply */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -1744,11 +1744,11 @@ test_send_invalid_iq (void)
 /* Test sending IQ's to the server (no 'to' attribute) */
 static gboolean
 test_send_iq_server_received_cb (WockyPorter *porter,
-    WockyXmppStanza *iq,
+    WockyStanza *iq,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   const gchar *id;
   const gchar *from;
 
@@ -1769,7 +1769,7 @@ test_send_iq_server_received_cb (WockyPorter *porter,
     g_assert_not_reached ();
 
   /* Send reply */
-  reply = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_RESULT, from, "juliet@example.com/Balcony",
     '@', "id", id,
     NULL);
@@ -1786,7 +1786,7 @@ static void
 test_send_iq_server (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
   const gchar *node[] = { "first", "second", "third", NULL };
   guint i;
 
@@ -1812,7 +1812,7 @@ test_send_iq_server (void)
 
   for (i = 0; node[i] != NULL; i++)
     {
-      iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
         WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
         '(', node[i], ')',
         NULL);
@@ -1874,7 +1874,7 @@ test_close_simultanously_recv_stanza_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *s;
+  WockyStanza *s;
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (WOCKY_XMPP_CONNECTION (source),
@@ -1972,7 +1972,7 @@ static void
 test_cancel_iq_closing (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_in);
@@ -1982,7 +1982,7 @@ test_cancel_iq_closing (void)
       test_close_sched_close_cb, test);
 
   /* Try to send a stanza using the closing porter */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -2044,7 +2044,7 @@ static void
 test_stream_error (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *error;
+  WockyStanza *error;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
@@ -2054,7 +2054,7 @@ test_stream_error (void)
   test->outstanding++;
 
   /* Try to send a stanza using the closing porter */
-  error = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+  error = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     ':', WOCKY_XMPP_NS_STREAM,
     '(', "conflict",
@@ -2141,13 +2141,13 @@ static void
 test_close_force (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *s;
+  WockyStanza *s;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_in);
 
   /* Try to send a stanza; it will never reach the other side */
-  s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+  s = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
     NULL);
 
@@ -2195,7 +2195,7 @@ static void
 test_close_force_after_error (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *error;
+  WockyStanza *error;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
@@ -2204,7 +2204,7 @@ test_close_force_after_error (void)
       G_CALLBACK (test_close_force_after_error_error_cb), test);
   test->outstanding++;
 
-  error = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+  error = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
     ':', WOCKY_XMPP_NS_STREAM,
     '(', "conflict",
@@ -2236,7 +2236,7 @@ test_close_force_after_close_sent_stanza_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
@@ -2286,7 +2286,7 @@ static void
 open_connections_and_send_one_iq (test_data_t *test,
     GAsyncReadyCallback send_iq_callback)
 {
-  WockyXmppStanza *iq;
+  WockyStanza *iq;
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
@@ -2299,7 +2299,7 @@ open_connections_and_send_one_iq (test_data_t *test,
       test_receive_stanza_received_cb, test, NULL);
 
   /* Send an IQ query */
-  iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
     '@', "id", "1",
     NULL);
@@ -2319,7 +2319,7 @@ test_wait_iq_reply_close_reply_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   GError *error = NULL;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
@@ -2366,7 +2366,7 @@ test_wait_iq_reply_force_close_reply_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  WockyXmppStanza *reply;
+  WockyStanza *reply;
   GError *error = NULL;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
@@ -2418,8 +2418,8 @@ static void
 test_remote_error (void)
 {
   test_data_t *test = setup_test ();
-  WockyXmppStanza *error =
-    wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+  WockyStanza *error =
+    wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
         WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
         ':', WOCKY_XMPP_NS_STREAM,
         '(', "conflict",

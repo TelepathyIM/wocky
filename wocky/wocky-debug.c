@@ -76,7 +76,7 @@ void wocky_debug (DebugFlags flag,
 
 void
 wocky_debug_stanza (DebugFlags flag,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     const gchar *format,
     ...)
 {

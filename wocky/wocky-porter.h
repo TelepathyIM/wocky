@@ -24,7 +24,7 @@
 #include <glib-object.h>
 
 #include "wocky-xmpp-connection.h"
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 G_BEGIN_DECLS
 
@@ -43,7 +43,7 @@ typedef struct _WockyPorterPrivate WockyPorterPrivate;
  * @WOCKY_PORTER_ERROR_NOT_STARTED : The #WockyPorter has not been started yet
  * @WOCKY_PORTER_ERROR_CLOSING : The #WockyPorter is closing
  * @WOCKY_PORTER_ERROR_CLOSED : The #WockyPorter is closed
- * @WOCKY_PORTER_ERROR_NOT_IQ : The #WockyXmppStanza is not an IQ
+ * @WOCKY_PORTER_ERROR_NOT_IQ : The #WockyStanza is not an IQ
  * @WOCKY_PORTER_ERROR_FORCIBLY_CLOSED : The #WockyPorter has been forced to
  * close
  *
@@ -102,7 +102,7 @@ GType wocky_porter_get_type (void);
 WockyPorter * wocky_porter_new (WockyXmppConnection *connection);
 
 void wocky_porter_send_async (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
@@ -113,14 +113,14 @@ gboolean wocky_porter_send_finish (
     GError **error);
 
 void wocky_porter_send (WockyPorter *porter,
-    WockyXmppStanza *stanza);
+    WockyStanza *stanza);
 
 void wocky_porter_start (WockyPorter *porter);
 
 /**
  * WockyPorterHandlerFunc:
- * @porter: the #WockyPorter dispatching the #WockyXmppStanza
- * @stanza: the #WockyXmppStanza being dispatched
+ * @porter: the #WockyPorter dispatching the #WockyStanza
+ * @stanza: the #WockyStanza being dispatched
  * @user_data: the data passed when the handler has been registered
  *
  * Handler called when a matching stanza has been received by the
@@ -140,7 +140,7 @@ void wocky_porter_start (WockyPorter *porter);
  */
 typedef gboolean (* WockyPorterHandlerFunc) (
     WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     gpointer user_data);
 
 guint wocky_porter_register_handler (WockyPorter *self,
@@ -166,12 +166,12 @@ gboolean wocky_porter_close_finish (
     GError **error);
 
 void wocky_porter_send_iq_async (WockyPorter *porter,
-    WockyXmppStanza *stanza,
+    WockyStanza *stanza,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-WockyXmppStanza * wocky_porter_send_iq_finish (
+WockyStanza * wocky_porter_send_iq_finish (
     WockyPorter *porter,
     GAsyncResult *result,
     GError **error);

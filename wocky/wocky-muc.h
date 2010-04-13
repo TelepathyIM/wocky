@@ -143,7 +143,7 @@ typedef struct {
   WockyMucRole role;
   WockyMucAffiliation affiliation;
   gchar *status; /* user set status string */
-  WockyXmppStanza *presence_stanza;
+  WockyStanza *presence_stanza;
 } WockyMucMember;
 
 GType wocky_muc_get_type (void);
@@ -185,7 +185,7 @@ gboolean wocky_muc_disco_info_finish (WockyMuc *muc,
     GError **error);
 
 /* presence */
-WockyXmppStanza *wocky_muc_create_presence (WockyMuc *muc,
+WockyStanza *wocky_muc_create_presence (WockyMuc *muc,
     WockyStanzaSubType type,
     const gchar *status,
     const gchar *password);

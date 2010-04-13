@@ -291,7 +291,7 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
 }
 
 static gboolean
-stream_error (WockySaslAuth *sasl, WockyXmppStanza *stanza)
+stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 {
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
   WockyXmppNode *xmpp = NULL;
@@ -307,7 +307,7 @@ stream_error (WockySaslAuth *sasl, WockyXmppStanza *stanza)
       return TRUE;
     }
 
-  wocky_xmpp_stanza_get_type_info (stanza, &type, NULL);
+  wocky_stanza_get_type_info (stanza, &type, NULL);
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
@@ -393,7 +393,7 @@ wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
 
 static void
 sasl_auth_got_failure (WockySaslAuth *sasl,
-  WockyXmppStanza *stanza,
+  WockyStanza *stanza,
   GError **error)
 {
   WockyXmppNode *reason = NULL;
@@ -421,7 +421,7 @@ sasl_auth_stanza_received (GObject *source,
 {
   WockySaslAuth *sasl = WOCKY_SASL_AUTH (user_data);
   WockySaslAuthPrivate *priv = sasl->priv;
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   GError *error = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
@@ -447,14 +447,14 @@ sasl_auth_stanza_received (GObject *source,
 
   if (!wocky_strdiff (stanza->node->name, "challenge"))
     {
-      WockyXmppStanza *response_stanza;
+      WockyStanza *response_stanza;
       gchar *response = NULL;
 
       if (!wocky_sasl_handler_handle_auth_data (priv->handler,
           stanza->node->content, &response, &error))
         goto failure;
 
-      response_stanza = wocky_xmpp_stanza_new ("response");
+      response_stanza = wocky_stanza_new ("response");
       wocky_xmpp_node_set_ns (
          response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (response_stanza->node, response);
@@ -520,7 +520,7 @@ static gboolean
 wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     WockySaslHandler *handler)
 {
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
   WockySaslAuthPrivate *priv = sasl->priv;
   gboolean ret = TRUE;
   gchar *initial_response = NULL;
@@ -528,7 +528,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
   priv->handler = handler;
 
-  stanza = wocky_xmpp_stanza_new ("auth");
+  stanza = wocky_stanza_new ("auth");
   wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
 
   /* google JID domain discovery - client sets a namespaced attribute */
@@ -629,7 +629,7 @@ wocky_sasl_auth_select_handler (
  * receiver from the server */
 void
 wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
-    WockyXmppStanza *features, gboolean allow_plain,
+    WockyStanza *features, gboolean allow_plain,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)

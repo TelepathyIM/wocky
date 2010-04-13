@@ -133,7 +133,7 @@ wait_close_cb (GObject *source, GAsyncResult *res,
   gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  WockyXmppStanza *s;
+  WockyStanza *s;
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (WOCKY_XMPP_CONNECTION (source),
@@ -199,7 +199,7 @@ wait_sched_close_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
-  WockyXmppStanza *s;
+  WockyStanza *s;
   GError *error = NULL;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
@@ -235,9 +235,9 @@ test_close_porter (test_data_t *test)
 
 void
 test_expected_stanza_received (test_data_t *test,
-    WockyXmppStanza *stanza)
+    WockyStanza *stanza)
 {
-  WockyXmppStanza *expected;
+  WockyStanza *expected;
 
   expected = g_queue_pop_head (test->expected_stanzas);
   g_assert (expected != NULL);

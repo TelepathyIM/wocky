@@ -22,7 +22,7 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 #include "wocky-session.h"
 
 G_BEGIN_DECLS
@@ -72,11 +72,11 @@ void wocky_pep_service_get_async (WockyPepService *pep,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-WockyXmppStanza * wocky_pep_service_get_finish (WockyPepService *pep,
+WockyStanza * wocky_pep_service_get_finish (WockyPepService *pep,
     GAsyncResult *result,
     GError **error);
 
-WockyXmppStanza * wocky_pep_service_make_publish_stanza (WockyPepService *pep,
+WockyStanza * wocky_pep_service_make_publish_stanza (WockyPepService *pep,
     WockyXmppNode **item);
 
 G_END_DECLS

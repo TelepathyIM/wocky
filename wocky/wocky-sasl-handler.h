@@ -4,7 +4,7 @@
 
 #include <glib.h>
 
-#include "wocky-xmpp-stanza.h"
+#include "wocky-stanza.h"
 
 G_BEGIN_DECLS
 

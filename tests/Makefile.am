@@ -59,7 +59,7 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-connection-test \
   wocky-porter-test \
   wocky-xmpp-node-test \
-  wocky-xmpp-stanza-test \
+  wocky-stanza-test \
   wocky-roster-test \
   wocky-bare-contact-test \
   wocky-resource-contact-test \
@@ -142,11 +142,11 @@ wocky_xmpp_node_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-node-test.c
 
-wocky_xmpp_stanza_test_DEPENDENCIES = $(LIBWOCKY)
-wocky_xmpp_stanza_test_SOURCES = \
+wocky_stanza_test_DEPENDENCIES = $(LIBWOCKY)
+wocky_stanza_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
-  wocky-xmpp-stanza-test.c
+  wocky-stanza-test.c
 
 wocky_roster_test_SOURCES = \
   wocky-roster-test.c \

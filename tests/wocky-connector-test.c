@@ -3305,7 +3305,7 @@ run_test (gpointer data)
           gchar *identity = NULL;
           WockyConnector *tmp =
             wocky_connector_new ("foo@bar.org","abc","xyz");
-          WockyXmppStanza *feat = NULL;
+          WockyStanza *feat = NULL;
           gboolean jabber;
           gboolean oldssl;
           XmppProblem xproblem = test->server_parameters.problem.conn.xmpp;
@@ -3324,7 +3324,7 @@ run_test (gpointer data)
           g_assert (identity != NULL);
           g_assert (*identity |= '\0');
           g_assert (feat != NULL);
-          g_assert (G_OBJECT_TYPE (feat) == WOCKY_TYPE_XMPP_STANZA);
+          g_assert (G_OBJECT_TYPE (feat) == WOCKY_TYPE_STANZA);
           g_free (identity);
           g_object_unref (feat);
           identity = NULL;

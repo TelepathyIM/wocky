@@ -164,7 +164,7 @@ static void
 test_no_stream_hunks (void)
 {
   WockyXmppReader *reader;
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   reader = wocky_xmpp_reader_new_no_stream ();
 
@@ -200,7 +200,7 @@ static void
 test_vcard_namespace (void)
 {
   WockyXmppReader *reader;
-  WockyXmppStanza *stanza;
+  WockyStanza *stanza;
 
   reader = wocky_xmpp_reader_new_no_stream ();
 
