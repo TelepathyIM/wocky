@@ -1272,6 +1272,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
           break;
 
         default:
+          g_critical ("unknown build tag %c", arg);
           g_assert_not_reached ();
         }
     }
