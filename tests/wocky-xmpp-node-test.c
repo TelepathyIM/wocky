@@ -21,14 +21,14 @@ test_node_equal (void)
 
   /* Simple IQ node */
   a = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
+      "juliet@example.com", "romeo@example.org", NULL);
   test_assert_nodes_equal (a->node, (a->node));
 
   /* Same as 'a' but with an ID attribute */
   b = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
-      WOCKY_NODE_ATTRIBUTE, "id", "one",
-      WOCKY_STANZA_END);
+      '@', "id", "one",
+      NULL);
   test_assert_nodes_equal (b->node, b->node);
 
   test_assert_nodes_not_equal (a->node, b->node);
@@ -44,12 +44,12 @@ test_set_attribute (void)
   WockyXmppStanza *a, *b, *c;
 
   a = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
+      "juliet@example.com", "romeo@example.org", NULL);
 
   b = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
-      WOCKY_NODE_ATTRIBUTE, "foo", "badger",
-      WOCKY_STANZA_END);
+      '@', "foo", "badger",
+      NULL);
 
   test_assert_nodes_not_equal (a->node, b->node);
   wocky_xmpp_node_set_attribute (a->node, "foo", "badger");
@@ -57,8 +57,8 @@ test_set_attribute (void)
 
   c = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
-      WOCKY_NODE_ATTRIBUTE, "foo", "snake",
-      WOCKY_STANZA_END);
+      '@', "foo", "snake",
+      NULL);
 
   test_assert_nodes_not_equal (b->node, c->node);
   wocky_xmpp_node_set_attribute (b->node, "foo", "snake");
@@ -129,9 +129,9 @@ test_set_attribute_ns (void)
   GQuark qa;
 
   sa = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
+      "juliet@example.com", "romeo@example.org", NULL);
   sb = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
-      "juliet@example.com", "romeo@example.org", WOCKY_STANZA_END);
+      "juliet@example.com", "romeo@example.org", NULL);
   na = sa->node;
   nb = sb->node;
 
@@ -277,29 +277,30 @@ test_node_iteration (void)
 
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_SET, "to", "from",
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_PHONE,
-      WOCKY_NODE_ATTRIBUTE, "name", "SPEEX",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
-      WOCKY_NODE_ATTRIBUTE, "name", "THEORA",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_PHONE,
-      WOCKY_NODE_ATTRIBUTE, "name", "GSM",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "payload-type",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
-      WOCKY_NODE_ATTRIBUTE, "name", "H264",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "video",
-      WOCKY_NODE_XMLNS, WOCKY_NS_GOOGLE_SESSION_VIDEO,
-      WOCKY_NODE_ATTRIBUTE, "name", "VIDEO?",
-    WOCKY_NODE_END,
-    WOCKY_NODE, "misc",
-      WOCKY_NODE_ATTRIBUTE, "name", "other",
-    WOCKY_STANZA_END);
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_PHONE,
+      '@', "name", "SPEEX",
+    ')',
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      '@', "name", "THEORA",
+    ')',
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_PHONE,
+      '@', "name", "GSM",
+    ')',
+    '(', "payload-type",
+      ':', WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      '@', "name", "H264",
+    ')',
+    '(', "video",
+      ':', WOCKY_NS_GOOGLE_SESSION_VIDEO,
+      '@', "name", "VIDEO?",
+    ')',
+    '(', "misc",
+      '@', "name", "other",
+    ')',
+    NULL);
 
   /* All children */
   wocky_xmpp_node_iter_init (&iter, stanza->node, NULL, NULL);

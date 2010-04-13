@@ -406,18 +406,18 @@ wocky_porter_constructed (GObject *object)
   wocky_porter_register_handler (self,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      handle_iq_reply, self, WOCKY_STANZA_END);
+      handle_iq_reply, self, NULL);
 
   wocky_porter_register_handler (self,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      handle_iq_reply, self, WOCKY_STANZA_END);
+      handle_iq_reply, self, NULL);
 
   /* Register the stream error handler */
   wocky_porter_register_handler (self,
       WOCKY_STANZA_TYPE_STREAM_ERROR, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      handle_stream_error, self, WOCKY_STANZA_END);
+      handle_stream_error, self, NULL);
 }
 
 static void
@@ -1334,12 +1334,9 @@ compare_handler (StanzaHandler *a,
  *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
  *  stop further processing.
  * @user_data: Passed to @callback.
- * @spec: The start of a wocky_xmpp_stanza_build() specification. The handler
+ * @Varargs: a wocky_xmpp_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
- *  built with @spec and its subsequent arguments, as per
- *  wocky_xmpp_node_is_superset().
- * @Varargs: the rest of the args to wocky_xmpp_stanza_build(),
- *  terminated by %WOCKY_STANZA_END
+ *  passed to this function, as per wocky_xmpp_node_is_superset().
  *
  * Register a new stanza handler.
  * Stanza handlers are called when the Porter receives a new stanza matching
@@ -1358,7 +1355,7 @@ compare_handler (StanzaHandler *a,
  * id = wocky_porter_register_handler (porter,
  *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
  *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, message_received_cb, NULL,
- *   WOCKY_STANZA_END);
+ *   NULL);
  * ]|
  *
  * To register an IQ handler from Juliet for all the Jingle stanzas related
@@ -1369,10 +1366,10 @@ compare_handler (StanzaHandler *a,
  *   WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
  *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, jingle_cb,
  *   "juliet@example.com/Balcony",
- *   WOCKY_NODE, "jingle",
- *     WOCKY_NODE_XMLNS, "urn:xmpp:jingle:1",
- *     WOCKY_NODE_ATTRIBUTE, "sid", "my_sid",
- *   WOCKY_NODE_END, WOCKY_STANZA_END);
+ *   '(', "jingle",
+ *     ':', "urn:xmpp:jingle:1",
+ *     '@', "sid", "my_sid",
+ *   ')', NULL);
  * ]|
  *
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
@@ -1385,7 +1382,6 @@ wocky_porter_register_handler (WockyPorter *self,
     guint priority,
     WockyPorterHandlerFunc callback,
     gpointer user_data,
-    WockyBuildTag spec,
     ...)
 {
   WockyPorterPrivate *priv = WOCKY_PORTER_GET_PRIVATE (self);
@@ -1393,9 +1389,9 @@ wocky_porter_register_handler (WockyPorter *self,
   WockyXmppStanza *stanza;
   va_list ap;
 
-  va_start (ap, spec);
+  va_start (ap, user_data);
   stanza = wocky_xmpp_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
-      NULL, NULL, spec, ap);
+      NULL, NULL, ap);
   g_assert (stanza != NULL);
   va_end (ap);
 

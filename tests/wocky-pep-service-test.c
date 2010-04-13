@@ -52,17 +52,17 @@ send_pep_event (WockyPorter *porter,
   stanza = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE,
       "alice@example.org", NULL,
-      WOCKY_NODE, "event",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_EVENT,
-        WOCKY_NODE, "items",
-        WOCKY_NODE_ATTRIBUTE, "node", node,
-          WOCKY_NODE, "item",
-          WOCKY_NODE_ATTRIBUTE, "id", "1",
-            WOCKY_NODE, "payload", WOCKY_NODE_END,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      '(', "event",
+        ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+        '(', "items",
+        '@', "node", node,
+          '(', "item",
+          '@', "id", "1",
+            '(', "payload", ')',
+          ')',
+        ')',
+      ')',
+      NULL);
 
   wocky_porter_send (porter, stanza);
   g_object_unref (stanza);
@@ -139,17 +139,17 @@ test_send_query_stanza_received_cb (WockyPorter *porter,
   WockyXmppStanza *reply;
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "items",
-          WOCKY_NODE_ATTRIBUTE, "node", "node1",
-          WOCKY_NODE, "item",
-            WOCKY_NODE_ATTRIBUTE, "id", "1",
-            WOCKY_NODE, "payload", WOCKY_NODE_END,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "items",
+          '@', "node", "node1",
+          '(', "item",
+            '@', "id", "1",
+            '(', "payload", ')',
+          ')',
+        ')',
+      ')',
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -198,7 +198,7 @@ test_get (void)
   handler_id = wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
-      test_send_query_stanza_received_cb, test, WOCKY_STANZA_END);
+      test_send_query_stanza_received_cb, test, NULL);
 
   contact_factory = wocky_session_get_contact_factory (test->session_in);
   contact = wocky_contact_factory_ensure_bare_contact (contact_factory,

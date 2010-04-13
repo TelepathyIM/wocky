@@ -85,32 +85,32 @@ test_get_default_node_configuration_iq_cb (WockyPorter *porter,
   WockyXmppStanza *reply;
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-        WOCKY_NODE, "default",
-          WOCKY_NODE, "x",
-            WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_DATA,
-            WOCKY_NODE_ATTRIBUTE, "type", "form",
-            WOCKY_NODE, "field",
-              WOCKY_NODE_ATTRIBUTE, "type", "hidden",
-              WOCKY_NODE_ATTRIBUTE, "var", "FORM_TYPE",
-              WOCKY_NODE, "value",
-                WOCKY_NODE_TEXT, WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG,
-              WOCKY_NODE_END,
-            WOCKY_NODE_END,
-            WOCKY_NODE, "field",
-              WOCKY_NODE_ATTRIBUTE, "var", "pubsub#title",
-              WOCKY_NODE_ATTRIBUTE, "type", "text-single",
-              WOCKY_NODE_ATTRIBUTE, "label", "Title",
-            WOCKY_NODE_END,
-            WOCKY_NODE, "field",
-              WOCKY_NODE_ATTRIBUTE, "var", "pubsub#deliver_notifications",
-              WOCKY_NODE_ATTRIBUTE, "type", "boolean",
-              WOCKY_NODE_ATTRIBUTE, "label", "Deliver event notifications",
-            WOCKY_NODE_END,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "default",
+          '(', "x",
+            ':', WOCKY_XMPP_NS_DATA,
+            '@', "type", "form",
+            '(', "field",
+              '@', "type", "hidden",
+              '@', "var", "FORM_TYPE",
+              '(', "value",
+                '$', WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG,
+              ')',
+            ')',
+            '(', "field",
+              '@', "var", "pubsub#title",
+              '@', "type", "text-single",
+              '@', "label", "Title",
+            ')',
+            '(', "field",
+              '@', "var", "pubsub#deliver_notifications",
+              '@', "type", "boolean",
+              '@', "label", "Deliver event notifications",
+            ')',
+          ')',
+        ')',
+      ')', NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -161,10 +161,11 @@ get_default_node_configuration_test (WockyPorterHandlerFunc iq_cb,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       iq_cb, test,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-      WOCKY_NODE, "default",
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "default", ')',
+      ')',
+      NULL);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
       get_cb, test);
@@ -197,18 +198,19 @@ test_get_default_node_configuration_insufficient_iq_cb (WockyPorter *porter,
   WockyXmppStanza *reply;
 
   reply = wocky_xmpp_stanza_build_iq_error (stanza,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-        WOCKY_NODE, "configure",
-          WOCKY_NODE_ATTRIBUTE, "node", "node1",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_NODE, "error",
-        WOCKY_NODE_ATTRIBUTE, "type", "auth",
-        WOCKY_NODE, "forbidden",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "configure",
+          '@', "node", "node1",
+        ')',
+      ')',
+      '(', "error",
+        '@', "type", "auth",
+        '(', "forbidden",
+          ':', WOCKY_XMPP_NS_STANZAS,
+        ')',
+      ')',
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -263,7 +265,7 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
         "node1"));
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -311,10 +313,11 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       iq_cb, test,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create", WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "create", ')',
+      ')',
+      NULL);
 
   wocky_pubsub_service_create_node_async (pubsub, node_name, NULL, NULL,
       create_cb, test);
@@ -345,24 +348,24 @@ test_create_node_unsupported_iq_cb (WockyPorter *porter,
   WockyXmppStanza *reply;
 
   reply = wocky_xmpp_stanza_build_iq_error (stanza,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create",
-          WOCKY_NODE_ATTRIBUTE, "node", "node1",
-        WOCKY_NODE_END,
-        WOCKY_NODE, "configure", WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_NODE, "error",
-        WOCKY_NODE_ATTRIBUTE, "type", "cancel",
-        WOCKY_NODE, "feature-not-implemented",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_STANZAS,
-        WOCKY_NODE_END,
-        WOCKY_NODE, "unsupported",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_ERRORS,
-          WOCKY_NODE_ATTRIBUTE, "feature", "create-nodes",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "create",
+          '@', "node", "node1",
+        ')',
+        '(', "configure", ')',
+      ')',
+      '(', "error",
+        '@', "type", "cancel",
+        '(', "feature-not-implemented",
+          ':', WOCKY_XMPP_NS_STANZAS,
+        ')',
+        '(', "unsupported",
+          ':', WOCKY_XMPP_NS_PUBSUB_ERRORS,
+          '@', "feature", "create-nodes",
+        ')',
+      ')',
+      NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -409,11 +412,12 @@ test_create_instant_node_iq_cb (WockyPorter *porter,
   WockyXmppStanza *reply;
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create",
-          WOCKY_NODE_ATTRIBUTE, "node", "instant_node",
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "create",
+          '@', "node", "instant_node",
+        ')',
+      ')', NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -468,12 +472,12 @@ test_create_node_renamed_iq_cb (WockyPorter *porter,
         "node1"));
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create",
-          WOCKY_NODE_ATTRIBUTE, "node", "metal-bird",
-        WOCKY_NODE_END,
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "create",
+          '@', "node", "metal-bird",
+        ')',
+      ')', NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -595,7 +599,7 @@ test_create_node_config_create_iq_cb (WockyPorter *porter,
     }
   g_assert (form_type && title && notif);
 
-  reply = wocky_xmpp_stanza_build_iq_result (stanza, WOCKY_STANZA_END);
+  reply = wocky_xmpp_stanza_build_iq_result (stanza, NULL);
 
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
@@ -622,19 +626,21 @@ test_create_node_config (void)
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_get_default_node_configuration_iq_cb, test,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB_OWNER,
-      WOCKY_NODE, "default",
-      WOCKY_NODE_END, WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "default", ')',
+      ')',
+      NULL);
 
   wocky_porter_register_handler (test->sched_out,
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_create_node_config_create_iq_cb, test,
-      WOCKY_NODE, "pubsub",
-        WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-        WOCKY_NODE, "create", WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB,
+        '(', "create", ')',
+      ')',
+      NULL);
 
   wocky_pubsub_service_get_default_node_configuration_async (pubsub, NULL,
       test_create_node_config_config_cb, test);
@@ -696,13 +702,13 @@ make_subscriptions_response (WockyXmppStanza *stanza,
   WockyXmppNode *s;
 
   reply = wocky_xmpp_stanza_build_iq_result (stanza,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE, "subscriptions",
-            WOCKY_NODE_ASSIGN_TO, &s,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+        '(', "pubsub",
+          ':', WOCKY_XMPP_NS_PUBSUB,
+          '(', "subscriptions",
+            '*', &s,
+          ')',
+        ')',
+      NULL);
 
   if (node != NULL)
     wocky_xmpp_node_set_attribute (s, "node", node);
@@ -725,13 +731,13 @@ test_retrieve_subscriptions_iq_cb (
   expected = wocky_xmpp_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, "pubsub.localhost",
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE, "subscriptions",
-            WOCKY_NODE_ASSIGN_TO, &subscriptions,
-          WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+        '(', "pubsub",
+          ':', WOCKY_XMPP_NS_PUBSUB,
+          '(', "subscriptions",
+            '*', &subscriptions,
+          ')',
+        ')',
+      NULL);
 
   if (ctx->mode == MODE_AT_NODE)
     wocky_xmpp_node_set_attribute (subscriptions, "node", "bonghits");
@@ -752,7 +758,7 @@ test_retrieve_subscriptions_iq_cb (
 	GError e = { WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
 	    "FIXME: <unsupported feature='retrieve-subscriptions'/>" };
 
-	reply = wocky_xmpp_stanza_build_iq_error (stanza, WOCKY_STANZA_END);
+	reply = wocky_xmpp_stanza_build_iq_error (stanza, NULL);
 	wocky_stanza_error_to_node (&e, reply->node);
 	break;
       }
@@ -841,11 +847,11 @@ test_retrieve_subscriptions (gconstpointer mode_)
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_retrieve_subscriptions_iq_cb, &ctx,
-        WOCKY_NODE, "pubsub",
-          WOCKY_NODE_XMLNS, WOCKY_XMPP_NS_PUBSUB,
-          WOCKY_NODE, "subscriptions", WOCKY_NODE_END,
-        WOCKY_NODE_END,
-      WOCKY_STANZA_END);
+        '(', "pubsub",
+          ':', WOCKY_XMPP_NS_PUBSUB,
+          '(', "subscriptions", ')',
+        ')',
+      NULL);
 
   if (mode == MODE_AT_NODE)
     node = wocky_pubsub_service_ensure_node (pubsub, "bonghits");

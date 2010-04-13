@@ -413,8 +413,8 @@ not_authorized (TestSaslAuthServer *self)
 
   s = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_FAILURE,
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
-      WOCKY_NODE, "not-authorized", WOCKY_NODE_END,
-    WOCKY_STANZA_END);
+      '(', "not-authorized", ')',
+    NULL);
   wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
     failure_sent, self);
 

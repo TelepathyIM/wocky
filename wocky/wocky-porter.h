@@ -148,8 +148,7 @@ guint wocky_porter_register_handler (WockyPorter *self,
     guint priority,
     WockyPorterHandlerFunc callback,
     gpointer user_data,
-    WockyBuildTag spec,
-    ...);
+    ...) G_GNUC_NULL_TERMINATED;
 
 void wocky_porter_unregister_handler (WockyPorter *porter,
     guint id);

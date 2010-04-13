@@ -100,20 +100,19 @@ typedef enum
 
 typedef enum
 {
-  WOCKY_NODE,
-  WOCKY_NODE_TEXT,
-  WOCKY_NODE_END,
-  WOCKY_NODE_ATTRIBUTE,
-  WOCKY_NODE_XMLNS,
-  WOCKY_NODE_ASSIGN_TO,
-  WOCKY_STANZA_END
+  WOCKY_NODE = '(',
+  WOCKY_NODE_TEXT = '$',
+  WOCKY_NODE_END = ')',
+  WOCKY_NODE_ATTRIBUTE = '@',
+  WOCKY_NODE_XMLNS = ':',
+  WOCKY_NODE_ASSIGN_TO = '*'
 } WockyBuildTag;
 
 WockyXmppStanza * wocky_xmpp_stanza_new (const gchar *name);
 
 WockyXmppStanza * wocky_xmpp_stanza_build (WockyStanzaType type,
     WockyStanzaSubType sub_type, const gchar *from, const gchar *to,
-    WockyBuildTag spec, ...);
+    ...) G_GNUC_NULL_TERMINATED;
 
 void wocky_xmpp_stanza_get_type_info (WockyXmppStanza *stanza,
     WockyStanzaType *type, WockyStanzaSubType *sub_type);
@@ -122,14 +121,13 @@ WockyXmppStanza * wocky_xmpp_stanza_build_va (WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
     const gchar *to,
-    WockyBuildTag spec,
     va_list ap);
 
 WockyXmppStanza * wocky_xmpp_stanza_build_iq_result (WockyXmppStanza *iq,
-    WockyBuildTag spec, ...);
+    ...) G_GNUC_NULL_TERMINATED;
 
 WockyXmppStanza * wocky_xmpp_stanza_build_iq_error (WockyXmppStanza *iq,
-    WockyBuildTag spec, ...);
+    ...) G_GNUC_NULL_TERMINATED;
 
 gboolean wocky_xmpp_stanza_extract_errors (WockyXmppStanza *stanza,
     WockyXmppErrorType *type,
