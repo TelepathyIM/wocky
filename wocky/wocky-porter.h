@@ -36,6 +36,7 @@ G_BEGIN_DECLS
  */
 typedef struct _WockyPorter WockyPorter;
 typedef struct _WockyPorterClass WockyPorterClass;
+typedef struct _WockyPorterPrivate WockyPorterPrivate;
 
 /**
  * WockyPorterError:
@@ -76,6 +77,7 @@ struct _WockyPorterClass {
 
 struct _WockyPorter {
     GObject parent;
+    WockyPorterPrivate *priv;
 };
 
 GType wocky_porter_get_type (void);

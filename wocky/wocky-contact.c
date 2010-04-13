@@ -61,24 +61,16 @@ static guint signals[LAST_SIGNAL] = {0};
 */
 
 /* private structure */
-typedef struct _WockyContactPrivate WockyContactPrivate;
-
 struct _WockyContactPrivate
 {
   gboolean dispose_has_run;
 };
 
-#define WOCKY_CONTACT_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_CONTACT, \
-    WockyContactPrivate))
-
 static void
-wocky_contact_init (WockyContact *obj)
+wocky_contact_init (WockyContact *self)
 {
-  /*
-  WockyContact *self = WOCKY_CONTACT (obj);
-  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
-  */
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_CONTACT,
+    WockyContactPrivate);
 }
 
 static void
@@ -89,7 +81,7 @@ wocky_contact_set_property (GObject *object,
 {
   /*
   WockyContactPrivate *priv =
-      WOCKY_CONTACT_GET_PRIVATE (object);
+      object->priv;
   */
 
   switch (property_id)
@@ -108,7 +100,7 @@ wocky_contact_get_property (GObject *object,
 {
   /*
   WockyContactPrivate *priv =
-      WOCKY_CONTACT_GET_PRIVATE (object);
+      object->priv;
   */
 
   switch (property_id)
@@ -128,7 +120,7 @@ static void
 wocky_contact_dispose (GObject *object)
 {
   WockyContact *self = WOCKY_CONTACT (object);
-  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  WockyContactPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -144,7 +136,7 @@ wocky_contact_finalize (GObject *object)
 {
   /*
   WockyContact *self = WOCKY_CONTACT (object);
-  WockyContactPrivate *priv = WOCKY_CONTACT_GET_PRIVATE (self);
+  WockyContactPrivate *priv = self->priv;
   */
 
   G_OBJECT_CLASS (wocky_contact_parent_class)->finalize (object);

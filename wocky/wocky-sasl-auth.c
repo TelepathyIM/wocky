@@ -46,8 +46,6 @@ enum
 };
 
 /* private structure */
-typedef struct _WockySaslAuthPrivate WockySaslAuthPrivate;
-
 struct _WockySaslAuthPrivate
 {
   gboolean dispose_has_run;
@@ -61,8 +59,6 @@ struct _WockySaslAuthPrivate
   GSList *handlers;
 };
 
-#define WOCKY_SASL_AUTH_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_SASL_AUTH, WockySaslAuthPrivate))
-
 GQuark
 wocky_sasl_auth_error_quark (void) {
   static GQuark quark = 0;
@@ -74,11 +70,10 @@ wocky_sasl_auth_error_quark (void) {
 }
 
 static void
-wocky_sasl_auth_init (WockySaslAuth *obj)
+wocky_sasl_auth_init (WockySaslAuth *self)
 {
-  //WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (obj);
-
-  /* allocate any data required by the object here */
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_SASL_AUTH,
+      WockySaslAuthPrivate);
 }
 
 static void wocky_sasl_auth_dispose (GObject *object);
@@ -91,7 +86,7 @@ wocky_sasl_auth_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockySaslAuth *sasl = WOCKY_SASL_AUTH (object);
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
 
   switch (property_id)
     {
@@ -123,7 +118,7 @@ wocky_sasl_auth_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockySaslAuth *sasl = WOCKY_SASL_AUTH (object);
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
 
   switch (property_id)
     {
@@ -188,7 +183,7 @@ void
 wocky_sasl_auth_dispose (GObject *object)
 {
   WockySaslAuth *self = WOCKY_SASL_AUTH (object);
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (self);
+  WockySaslAuthPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -220,7 +215,7 @@ void
 wocky_sasl_auth_finalize (GObject *object)
 {
   WockySaslAuth *self = WOCKY_SASL_AUTH (object);
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (self);
+  WockySaslAuthPrivate *priv = self->priv;
 
   /* free any data held directly by the object here */
   g_free (priv->server);
@@ -233,7 +228,7 @@ wocky_sasl_auth_finalize (GObject *object)
 static void
 auth_reset (WockySaslAuth *sasl)
 {
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
 
   g_free (priv->server);
   priv->server = NULL;
@@ -254,7 +249,7 @@ auth_reset (WockySaslAuth *sasl)
 static void
 auth_succeeded (WockySaslAuth *sasl)
 {
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
   GSimpleAsyncResult *r;
 
   DEBUG ("Authentication succeeded");
@@ -273,7 +268,7 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   gchar *message;
   va_list args;
   GSimpleAsyncResult *r;
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
 
   auth_reset (sasl);
 
@@ -425,7 +420,7 @@ sasl_auth_stanza_received (GObject *source,
   gpointer user_data)
 {
   WockySaslAuth *sasl = WOCKY_SASL_AUTH (user_data);
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
@@ -526,7 +521,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
     WockySaslHandler *handler)
 {
   WockyXmppStanza *stanza;
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE(sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
   gboolean ret = TRUE;
   gchar *initial_response = NULL;
   GError *error = NULL;
@@ -586,7 +581,7 @@ static WockySaslHandler *
 wocky_sasl_auth_select_handler (
     WockySaslAuth *sasl, gboolean allow_plain, GSList *mechanisms)
 {
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
   GSList *i, *k;
 
   for (k = priv->handlers; k != NULL; k = k->next)
@@ -639,7 +634,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (sasl);
+  WockySaslAuthPrivate *priv = sasl->priv;
   WockyXmppNode *mech_node;
   GSList *mechanisms, *t;
   WockySaslHandler *handler = NULL;
@@ -702,7 +697,7 @@ out:
 void
 wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler)
 {
-  WockySaslAuthPrivate *priv = WOCKY_SASL_AUTH_GET_PRIVATE (auth);
+  WockySaslAuthPrivate *priv = auth->priv;
 
   g_object_ref (handler);
   priv->handlers = g_slist_append (priv->handlers, handler);

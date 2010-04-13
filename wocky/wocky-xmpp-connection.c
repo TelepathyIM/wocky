@@ -63,8 +63,6 @@ enum
 };
 
 /* private structure */
-typedef struct _WockyXmppConnectionPrivate WockyXmppConnectionPrivate;
-
 struct _WockyXmppConnectionPrivate
 {
   gboolean dispose_has_run;
@@ -114,14 +112,14 @@ wocky_xmpp_connection_error_quark (void)
   return quark;
 }
 
-#define WOCKY_XMPP_CONNECTION_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_CONNECTION, \
-    WockyXmppConnectionPrivate))
-
 static void
-wocky_xmpp_connection_init (WockyXmppConnection *obj)
+wocky_xmpp_connection_init (WockyXmppConnection *self)
 {
-  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (obj);
+  WockyXmppConnectionPrivate *priv;
+
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_CONNECTION,
+      WockyXmppConnectionPrivate);
+  priv = self->priv;
 
   priv->writer = wocky_xmpp_writer_new ();
   priv->reader = wocky_xmpp_reader_new ();
@@ -138,7 +136,7 @@ wocky_xmpp_connection_set_property (GObject *object,
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (object);
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   switch (property_id)
     {
@@ -161,7 +159,7 @@ wocky_xmpp_connection_get_property (GObject *object,
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (object);
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   switch (property_id)
     {
@@ -203,7 +201,7 @@ wocky_xmpp_connection_dispose (GObject *object)
 {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (object);
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+      self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -268,7 +266,7 @@ wocky_xmpp_connection_write_cb (GObject *source,
 {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+      self->priv;
   gssize written;
   GError *error = NULL;
 
@@ -318,7 +316,7 @@ static void
 wocky_xmpp_connection_do_write (WockyXmppConnection *self)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+      self->priv;
   GOutputStream *output = g_io_stream_get_output_stream (priv->stream);
 
   g_assert (priv->length != priv->offset);
@@ -361,7 +359,7 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
     gpointer user_data)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   if (G_UNLIKELY (priv->output_result != NULL))
     goto pending;
@@ -426,7 +424,7 @@ wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
     GError **error)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
@@ -444,7 +442,7 @@ static void
 wocky_xmpp_connection_do_read (WockyXmppConnection *self)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+      self->priv;
   GInputStream *input = g_io_stream_get_input_stream (priv->stream);
 
   g_input_stream_read_async (input,
@@ -458,7 +456,7 @@ wocky_xmpp_connection_do_read (WockyXmppConnection *self)
 static gboolean
 input_is_closed (WockyXmppConnection *self)
 {
-  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+  WockyXmppConnectionPrivate *priv = self->priv;
 
   return wocky_xmpp_reader_get_state (priv->reader) >
     WOCKY_XMPP_READER_STATE_OPENED;
@@ -470,7 +468,7 @@ _xmpp_connection_received_data (GObject *source,
     gpointer user_data)
 {
   WockyXmppConnection *self = WOCKY_XMPP_CONNECTION (user_data);
-  WockyXmppConnectionPrivate *priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+  WockyXmppConnectionPrivate *priv = self->priv;
   gssize size;
   GError *error = NULL;
 
@@ -552,7 +550,7 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
     gpointer user_data)
 {
   WockyXmppConnectionPrivate *priv =
-    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+    connection->priv;
 
   if (G_UNLIKELY (priv->input_result != NULL))
     goto pending;
@@ -635,7 +633,7 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (connection), wocky_xmpp_connection_recv_open_finish), FALSE);
 
-  priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+  priv = connection->priv;
   priv->input_open = TRUE;
 
   if (to != NULL)
@@ -681,7 +679,7 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
     gpointer user_data)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   if (G_UNLIKELY (priv->output_result != NULL))
     goto pending;
@@ -780,7 +778,7 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
     gpointer user_data)
 {
   WockyXmppConnectionPrivate *priv =
-    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+    connection->priv;
 
   if (G_UNLIKELY (priv->input_result != NULL))
     goto pending;
@@ -861,7 +859,7 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (connection), wocky_xmpp_connection_recv_stanza_finish), NULL);
 
-  priv = WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+  priv = connection->priv;
 
   switch (wocky_xmpp_reader_get_state (priv->reader))
     {
@@ -916,7 +914,7 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
     gpointer user_data)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   if (G_UNLIKELY (priv->output_result != NULL))
     goto pending;
@@ -981,7 +979,7 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
     GError **error)
 {
   WockyXmppConnectionPrivate *priv =
-      WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+      connection->priv;
 
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
@@ -1007,7 +1005,7 @@ void
 wocky_xmpp_connection_reset (WockyXmppConnection *connection)
 {
   WockyXmppConnectionPrivate *priv =
-    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+    connection->priv;
 
   /* There can't be any pending operations */
   g_assert (priv->input_result == NULL);
@@ -1032,7 +1030,7 @@ gchar *
 wocky_xmpp_connection_new_id (WockyXmppConnection *self)
 {
   WockyXmppConnectionPrivate *priv =
-    WOCKY_XMPP_CONNECTION_GET_PRIVATE (self);
+    self->priv;
   GTimeVal tv;
   glong val;
 
@@ -1049,7 +1047,7 @@ stream_close_cb (GObject *source,
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (user_data);
   WockyXmppConnectionPrivate *priv =
-    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+    connection->priv;
   GError *error = NULL;
   GSimpleAsyncResult *r = priv->force_close_result;
 
@@ -1071,7 +1069,7 @@ wocky_xmpp_connection_force_close_async (WockyXmppConnection *connection,
     gpointer user_data)
 {
   WockyXmppConnectionPrivate *priv =
-    WOCKY_XMPP_CONNECTION_GET_PRIVATE (connection);
+    connection->priv;
 
   if (G_UNLIKELY (priv->force_close_result != NULL))
     {

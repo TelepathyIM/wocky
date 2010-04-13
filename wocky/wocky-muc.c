@@ -127,8 +127,6 @@ enum
   PROP_AFFILIATION,
 };
 
-typedef struct _WockyMucPrivate WockyMucPrivate;
-
 struct _WockyMucPrivate
 {
   /* properties */
@@ -159,9 +157,6 @@ struct _WockyMucPrivate
   GSimpleAsyncResult *join_cb;
 };
 
-#define WOCKY_MUC_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_MUC,WockyMucPrivate))
-
 static void
 free_member (gpointer data)
 {
@@ -187,9 +182,10 @@ alloc_member (void)
 static void
 wocky_muc_init (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  muc->priv = G_TYPE_INSTANCE_GET_PRIVATE (muc, WOCKY_TYPE_MUC,
+      WockyMucPrivate);
 
-  priv->members = g_hash_table_new_full (g_str_hash,
+  muc->priv->members = g_hash_table_new_full (g_str_hash,
       g_str_equal,
       g_free,
       free_member);
@@ -199,7 +195,7 @@ static void
 wocky_muc_dispose (GObject *object)
 {
   WockyMuc *muc = WOCKY_MUC (object);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -232,7 +228,7 @@ static void
 wocky_muc_finalize (GObject *object)
 {
   WockyMuc *muc = WOCKY_MUC (object);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   GFREE_AND_FORGET (priv->user);
   GFREE_AND_FORGET (priv->jid);
@@ -458,7 +454,7 @@ wocky_muc_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyMuc *muc = WOCKY_MUC (object);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   switch (property_id)
     {
@@ -514,7 +510,7 @@ wocky_muc_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyMuc *muc = WOCKY_MUC (object);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   switch (property_id)
     {
@@ -666,7 +662,7 @@ muc_disco_info (GObject *source,
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (data);
 
   muc = WOCKY_MUC (g_async_result_get_source_object (G_ASYNC_RESULT (result)));
-  priv = WOCKY_MUC_GET_PRIVATE (muc);
+  priv = muc->priv;
 
   iq = wocky_porter_send_iq_finish (priv->porter, res, &error);
 
@@ -782,7 +778,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
     GCancellable *cancel,
     gpointer data)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   GSimpleAsyncResult *result;
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET,
@@ -810,7 +806,7 @@ wocky_muc_create_presence (WockyMuc *muc,
     const gchar *status,
     const gchar *password)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   WockyXmppStanza *stanza =
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_PRESENCE,
         type,
@@ -846,7 +842,7 @@ wocky_muc_send_presence (WockyMuc *muc,
     WockyStanzaSubType type,
     const gchar *status)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   WockyXmppStanza *pres = wocky_muc_create_presence (muc, type, status,
       priv->pass);
 
@@ -858,7 +854,7 @@ wocky_muc_send_presence (WockyMuc *muc,
 static guint
 register_presence_handler (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   if (priv->pres_handler == 0)
     priv->pres_handler = wocky_porter_register_handler (priv->porter,
@@ -877,7 +873,7 @@ register_presence_handler (WockyMuc *muc)
 static guint
 register_message_handler (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   if (priv->mesg_handler == 0)
     priv->mesg_handler = wocky_porter_register_handler (priv->porter,
@@ -1006,7 +1002,7 @@ handle_self_presence (WockyMuc *muc,
 {
   gboolean nick_update = FALSE;
   gboolean permission_update = FALSE;
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   DEBUG ("Received our own presence");
 
@@ -1048,7 +1044,7 @@ handle_user_presence (WockyMuc *muc,
     const gchar *status,
     GHashTable *code)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   WockyMucMember *member = NULL;
 
   if (nick == NULL)
@@ -1139,7 +1135,7 @@ handle_presence_standard (WockyMuc *muc,
   GHashTable *code = NULL;
   const gchar *ajid = NULL;
   const gchar *why = NULL;
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   WockyMucRole r = WOCKY_MUC_ROLE_NONE;
   WockyMucAffiliation a = WOCKY_MUC_AFFILIATION_NONE;
   gboolean self_presence = FALSE;
@@ -1296,7 +1292,7 @@ handle_presence_error (WockyMuc *muc,
   gchar *serv = NULL;
   gchar *nick = NULL;
   const gchar *from = wocky_xmpp_node_get_attribute (stanza->node, "from");
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   GError *error = NULL;
 
   if (!wocky_decode_jid (from, &room, &serv, &nick))
@@ -1375,7 +1371,7 @@ handle_message (WockyPorter *porter,
     gpointer data)
 {
   WockyMuc *muc = WOCKY_MUC (data);
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   WockyStanzaSubType stype;
   WockyXmppNode *msg = stanza->node;
   const gchar *from = NULL;
@@ -1534,7 +1530,7 @@ void
 wocky_muc_join (WockyMuc *muc,
     GCancellable *cancel)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   if (priv->state < WOCKY_MUC_INITIATED)
     {
@@ -1552,35 +1548,35 @@ wocky_muc_join (WockyMuc *muc,
 const gchar *
 wocky_muc_jid (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   return priv->jid;
 }
 
 WockyMucRole
 wocky_muc_role (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   return priv->role;
 }
 
 WockyMucAffiliation
 wocky_muc_affiliation (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   return priv->affiliation;
 }
 
 const gchar *
 wocky_muc_user (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
   return priv->user;
 }
 
 GHashTable *
 wocky_muc_members (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   if (priv->members != NULL)
     return g_hash_table_ref (priv->members);
@@ -1591,7 +1587,7 @@ wocky_muc_members (WockyMuc *muc)
 WockyMucState
 wocky_muc_get_state (WockyMuc *muc)
 {
-  WockyMucPrivate *priv = WOCKY_MUC_GET_PRIVATE (muc);
+  WockyMucPrivate *priv = muc->priv;
 
   return priv->state;
 }

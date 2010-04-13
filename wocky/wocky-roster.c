@@ -233,8 +233,6 @@ enum
 static guint signals[LAST_SIGNAL] = {0};
 
 /* private structure */
-typedef struct _WockyRosterPrivate WockyRosterPrivate;
-
 struct _WockyRosterPrivate
 {
   WockySession *session;
@@ -255,10 +253,6 @@ struct _WockyRosterPrivate
 
   gboolean dispose_has_run;
 };
-
-#define WOCKY_ROSTER_GET_PRIVATE(o) \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_ROSTER, \
-    WockyRosterPrivate))
 
 /**
  * wocky_roster_error_quark
@@ -283,8 +277,10 @@ static void change_roster_iq_cb (GObject *source_object,
     gpointer user_data);
 
 static void
-wocky_roster_init (WockyRoster *obj)
+wocky_roster_init (WockyRoster *self)
 {
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_ROSTER,
+      WockyRosterPrivate);
 }
 
 static void
@@ -293,7 +289,8 @@ wocky_roster_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (object);
+  WockyRoster *self = WOCKY_ROSTER (object);
+  WockyRosterPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -314,7 +311,8 @@ wocky_roster_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (object);
+  WockyRoster *self = WOCKY_ROSTER (object);
+  WockyRosterPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -350,7 +348,7 @@ static void
 remove_item (WockyRoster *self,
     const gchar *jid)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyBareContact *contact;
 
   contact = g_hash_table_lookup (priv->items, jid);
@@ -375,7 +373,7 @@ roster_update (WockyRoster *self,
     gboolean fire_signals,
     GError **error)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   gboolean google_roster = FALSE;
   WockyXmppNode *query_node;
   GSList *j;
@@ -557,7 +555,7 @@ static void
 wocky_roster_constructed (GObject *object)
 {
   WockyRoster *self = WOCKY_ROSTER (object);
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   priv->items = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, g_object_unref);
@@ -587,7 +585,7 @@ static void
 wocky_roster_dispose (GObject *object)
 {
   WockyRoster *self = WOCKY_ROSTER (object);
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -611,7 +609,7 @@ static void
 wocky_roster_finalize (GObject *object)
 {
   WockyRoster *self = WOCKY_ROSTER (object);
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   g_hash_table_destroy (priv->items);
   g_hash_table_destroy (priv->pending_operations);
@@ -672,7 +670,7 @@ roster_fetch_roster_cb (GObject *source_object,
   GError *error = NULL;
   WockyXmppStanza *iq;
   WockyRoster *self = WOCKY_ROSTER (user_data);
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
 
@@ -708,7 +706,7 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
 
   g_return_if_fail (WOCKY_IS_ROSTER (self));
 
-  priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  priv = self->priv;
 
   if (priv->fetch_result != NULL)
     {
@@ -752,7 +750,7 @@ WockyBareContact *
 wocky_roster_get_contact (WockyRoster *self,
     const gchar *jid)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   return g_hash_table_lookup (priv->items, jid);
 }
@@ -760,7 +758,7 @@ wocky_roster_get_contact (WockyRoster *self,
 GSList *
 wocky_roster_get_all_contacts (WockyRoster *self)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   GSList *result = NULL;
   GHashTableIter iter;
   gpointer value;
@@ -850,7 +848,7 @@ static WockyXmppStanza *
 build_iq_for_pending (WockyRoster *self,
     PendingOperation *pending)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyBareContact *contact, *tmp;
   WockyXmppStanza *iq;
   GHashTableIter iter;
@@ -954,7 +952,7 @@ flying_operation_completed (PendingOperation *pending,
     GError *error)
 {
   WockyRoster *self = pending->self;
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyXmppStanza *iq;
   GSList *l;
 
@@ -1033,7 +1031,7 @@ static PendingOperation *
 get_pending_operation (WockyRoster *self,
     const gchar *jid)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   DEBUG ("Look for pending operation with contact %s", jid);
   return g_hash_table_lookup (priv->pending_operations, jid);
@@ -1049,7 +1047,7 @@ add_pending_operation (WockyRoster *self,
     const gchar *jid,
     GSimpleAsyncResult *result)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   PendingOperation *pending = pending_operation_new (self, result, jid);
 
   DEBUG ("Add pending operation for %s", jid);
@@ -1066,7 +1064,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
   WockyBareContact *contact, *existing_contact;
@@ -1154,7 +1152,7 @@ static gboolean
 contact_in_roster (WockyRoster *self,
     WockyBareContact *contact)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
 
   return g_hash_table_find (priv->items, is_contact, contact) != NULL;
 }
@@ -1166,7 +1164,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyXmppStanza *iq;
   GSimpleAsyncResult *result;
   PendingOperation *pending;
@@ -1230,7 +1228,7 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyXmppStanza *iq;
   WockyXmppNode *item;
   GSimpleAsyncResult *result;
@@ -1307,7 +1305,7 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyXmppStanza *iq;
   WockyXmppNode *item, *group_node;
   GSimpleAsyncResult *result;
@@ -1386,7 +1384,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyRosterPrivate *priv = WOCKY_ROSTER_GET_PRIVATE (self);
+  WockyRosterPrivate *priv = self->priv;
   WockyXmppStanza *iq;
   WockyXmppNode *item;
   GSimpleAsyncResult *result;

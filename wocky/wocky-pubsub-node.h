@@ -30,6 +30,8 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyPubsubNodeClass WockyPubsubNodeClass;
+typedef struct _WockyPubsubNodePrivate WockyPubsubNodePrivate;
+
 
 struct _WockyPubsubNodeClass {
   GObjectClass parent_class;
@@ -37,6 +39,8 @@ struct _WockyPubsubNodeClass {
 
 struct _WockyPubsubNode {
   GObject parent;
+
+  WockyPubsubNodePrivate *priv;
 };
 
 GType wocky_pubsub_node_get_type (void);

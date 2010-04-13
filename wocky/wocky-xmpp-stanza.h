@@ -31,6 +31,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockyXmppStanza WockyXmppStanza;
 typedef struct _WockyXmppStanzaClass WockyXmppStanzaClass;
+typedef struct _WockyXmppStanzaPrivate WockyXmppStanzaPrivate;
 
 struct _WockyXmppStanzaClass {
     GObjectClass parent_class;
@@ -38,7 +39,10 @@ struct _WockyXmppStanzaClass {
 
 struct _WockyXmppStanza {
     GObject parent;
+
     WockyXmppNode *node;
+
+    WockyXmppStanzaPrivate *priv;
 };
 
 GType wocky_xmpp_stanza_get_type (void);

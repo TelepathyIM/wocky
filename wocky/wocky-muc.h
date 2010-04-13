@@ -29,6 +29,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockyMuc WockyMuc;
 typedef struct _WockyMucClass WockyMucClass;
+typedef struct _WockyMucPrivate WockyMucPrivate;
 
 /**
  * WockyMucStatusCode:
@@ -153,6 +154,7 @@ struct _WockyMucClass {
 
 struct _WockyMuc {
     GObject parent;
+    WockyMucPrivate *priv;
 };
 
 /* TYPE MACROS */

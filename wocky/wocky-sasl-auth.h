@@ -57,6 +57,8 @@ typedef enum
 
 typedef struct _WockySaslAuth WockySaslAuth;
 typedef struct _WockySaslAuthClass WockySaslAuthClass;
+typedef struct _WockySaslAuthPrivate WockySaslAuthPrivate;
+
 
 struct _WockySaslAuthClass {
     GObjectClass parent_class;
@@ -64,6 +66,8 @@ struct _WockySaslAuthClass {
 
 struct _WockySaslAuth {
     GObject parent;
+
+    WockySaslAuthPrivate *priv;
 };
 
 GType wocky_sasl_auth_get_type (void);

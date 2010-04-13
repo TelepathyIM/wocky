@@ -50,8 +50,6 @@ enum
 };
 
 /* private structure */
-typedef struct _WockyPubsubNodePrivate WockyPubsubNodePrivate;
-
 struct _WockyPubsubNodePrivate
 {
   WockyPubsubService *service;
@@ -63,17 +61,11 @@ struct _WockyPubsubNodePrivate
   gboolean dispose_has_run;
 };
 
-#define WOCKY_PUBSUB_NODE_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_PUBSUB_NODE, \
-    WockyPubsubNodePrivate))
-
 static void
-wocky_pubsub_node_init (WockyPubsubNode *obj)
+wocky_pubsub_node_init (WockyPubsubNode *self)
 {
-  /*
-  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (obj);
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
-  */
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_PUBSUB_NODE,
+      WockyPubsubNodePrivate);
 }
 
 static void
@@ -83,7 +75,7 @@ wocky_pubsub_node_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (object);
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -106,7 +98,7 @@ wocky_pubsub_node_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (object);
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -127,7 +119,7 @@ static void
 wocky_pubsub_node_dispose (GObject *object)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (object);
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -145,7 +137,7 @@ static void
 wocky_pubsub_node_finalize (GObject *object)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (object);
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   g_free (priv->name);
   g_free (priv->service_jid);
@@ -157,7 +149,7 @@ static void
 wocky_pubsub_node_constructed (GObject *object)
 {
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (object);
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   WockySession *session;
 
   g_assert (priv->service != NULL);
@@ -313,7 +305,7 @@ pubsub_node_handle_subscription_event (WockyPubsubNode *self,
     WockyXmppNode *event_node,
     WockyXmppNode *subscription_node)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   WockyPubsubSubscription *sub;
   GError *error = NULL;
 
@@ -353,7 +345,7 @@ _wocky_pubsub_node_get_event_mappings (guint *n_mappings)
 const gchar *
 wocky_pubsub_node_get_name (WockyPubsubNode *self)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   return priv->name;
 }
@@ -364,7 +356,7 @@ wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
     WockyXmppNode **publish_out,
     WockyXmppNode **item_out)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   return wocky_pubsub_make_publish_stanza (priv->service_jid, priv->name,
       pubsub_out, publish_out, item_out);
@@ -379,7 +371,7 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
     WockyXmppNode **pubsub_node,
     WockyXmppNode **action_node)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   WockyXmppStanza *stanza;
   WockyXmppNode *action;
 
@@ -425,7 +417,7 @@ subscribe_cb (GObject *source,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   WockyXmppNode *subscription_node;
   WockyPubsubSubscription *sub = NULL;
   GError *error = NULL;
@@ -469,7 +461,7 @@ wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_subscribe_async);
   WockyXmppStanza *stanza;
@@ -571,7 +563,7 @@ wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_unsubscribe_async);
   WockyXmppStanza *stanza;
@@ -640,7 +632,7 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   WockyXmppStanza *stanza;
   GSimpleAsyncResult *result;
 
@@ -686,7 +678,7 @@ list_subscribers_cb (GObject *source,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   WockyXmppNode *subscriptions_node;
   GError *error = NULL;
 
@@ -730,7 +722,7 @@ wocky_pubsub_node_list_subscribers_async (
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_list_subscribers_async);
   WockyXmppStanza *stanza;
@@ -874,7 +866,7 @@ wocky_pubsub_node_list_affiliates_async (
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_node_list_affiliates_async);
   WockyXmppStanza *stanza;
@@ -916,7 +908,7 @@ wocky_pubsub_node_list_affiliates_finish (
 WockyPorter *
 wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 {
-  WockyPubsubNodePrivate *priv = WOCKY_PUBSUB_NODE_GET_PRIVATE (self);
+  WockyPubsubNodePrivate *priv = self->priv;
 
   return priv->porter;
 }

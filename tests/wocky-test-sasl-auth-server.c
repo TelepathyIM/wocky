@@ -80,8 +80,6 @@ typedef enum {
 } AuthState;
 
 /* private structure */
-typedef struct _TestSaslAuthServerPrivate TestSaslAuthServerPrivate;
-
 struct _TestSaslAuthServerPrivate
 {
   gboolean dispose_has_run;
@@ -100,23 +98,22 @@ struct _TestSaslAuthServerPrivate
   GCancellable *cancellable;
 };
 
-#define TEST_SASL_AUTH_SERVER_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), TEST_TYPE_SASL_AUTH_SERVER, \
-   TestSaslAuthServerPrivate))
-
 static void
 received_stanza (GObject *source, GAsyncResult *result, gpointer user_data);
 
 static void
-test_sasl_auth_server_init (TestSaslAuthServer *obj)
+test_sasl_auth_server_init (TestSaslAuthServer *self)
 {
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (obj);
+  TestSaslAuthServerPrivate *priv;
+
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, TEST_TYPE_SASL_AUTH_SERVER,
+      TestSaslAuthServerPrivate);
+  priv = self->priv;
+
   priv->username = NULL;
   priv->password = NULL;
   priv->mech = NULL;
   priv->state = AUTH_STATE_STARTED;
-
-  /* allocate any data required by the object here */
 }
 
 static void test_sasl_auth_server_dispose (GObject *object);
@@ -140,7 +137,7 @@ void
 test_sasl_auth_server_dispose (GObject *object)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (object);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -172,7 +169,7 @@ void
 test_sasl_auth_server_finalize (GObject *object)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (object);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
 
   /* free any data held directly by the object here */
   g_free (priv->username);
@@ -189,7 +186,7 @@ features_sent (GObject *source,
     gpointer user_data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (user_data);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
 
   g_assert (wocky_xmpp_connection_send_stanza_finish (
     WOCKY_XMPP_CONNECTION (source), res, NULL));
@@ -205,7 +202,7 @@ stream_open_sent (GObject *source,
     gpointer user_data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate * priv = self->priv;
   WockyXmppStanza *stanza;
 
   g_assert (wocky_xmpp_connection_send_open_finish (
@@ -228,7 +225,7 @@ stream_open_received (GObject *source,
     gpointer user_data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate * priv = self->priv;
 
   g_assert (wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), res,
@@ -255,7 +252,7 @@ post_auth_recv_stanza (GObject *source,
   gpointer user_data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate * priv = self->priv;
   WockyXmppStanza *stanza;
   GError *error = NULL;
 
@@ -297,7 +294,7 @@ post_auth_features_sent (GObject *source,
     gpointer user_data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate * priv = self->priv;
   g_assert (wocky_xmpp_connection_send_stanza_finish (
     WOCKY_XMPP_CONNECTION (source), result, NULL));
 
@@ -311,7 +308,7 @@ post_auth_open_sent (GObject *source,
     gpointer user_data)
 {
   TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (tsas);
+  TestSaslAuthServerPrivate *priv = tsas->priv;
   g_assert (wocky_xmpp_connection_send_open_finish (
     WOCKY_XMPP_CONNECTION (source), result, NULL));
 
@@ -366,7 +363,7 @@ success_sent (GObject *source,
 static void
 auth_succeeded (TestSaslAuthServer *self, const gchar *challenge)
 {
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE(self);
+  TestSaslAuthServerPrivate *priv = self->priv;
   WockyXmppStanza *s;
 
   g_assert (priv->state < AUTH_STATE_AUTHENTICATED);
@@ -388,7 +385,7 @@ failure_sent (GObject *source,
     gpointer user_data)
 {
   TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (tsas);
+  TestSaslAuthServerPrivate *priv = tsas->priv;
   GSimpleAsyncResult *r = priv->result;
 
   priv->result = NULL;
@@ -405,7 +402,7 @@ failure_sent (GObject *source,
 static void
 not_authorized (TestSaslAuthServer *self)
 {
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE(self);
+  TestSaslAuthServerPrivate *priv = self->priv;
   WockyXmppStanza *s;
 
   g_assert (priv->state < AUTH_STATE_AUTHENTICATED);
@@ -426,7 +423,7 @@ not_authorized (TestSaslAuthServer *self)
 static gboolean
 check_sasl_return (TestSaslAuthServer *self, int ret)
 {
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate * priv = self->priv;
 
   switch (ret)
     {
@@ -586,7 +583,7 @@ static gchar * slash_challenge (const gchar *challenge, unsigned *len)
 static void
 handle_auth (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 {
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
   guchar *response = NULL;
   const gchar *challenge;
   unsigned challenge_len;
@@ -719,7 +716,7 @@ out:
 static void
 handle_response (TestSaslAuthServer *self, WockyXmppStanza *stanza)
 {
-  TestSaslAuthServerPrivate * priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate * priv = self->priv;
   guchar *response = NULL;
   const gchar *challenge;
   unsigned challenge_len;
@@ -840,7 +837,7 @@ received_stanza (GObject *source,
     }
 
   self = TEST_SASL_AUTH_SERVER (user_data);
-  priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  priv = self->priv;
 
   g_assert (stanza != NULL);
 
@@ -929,7 +926,7 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
 #endif
 
   server = g_object_new (TEST_TYPE_SASL_AUTH_SERVER, NULL);
-  priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (server);
+  priv = server->priv;
 
   priv->state = AUTH_STATE_STARTED;
 
@@ -966,7 +963,7 @@ test_sasl_auth_server_auth_finish (TestSaslAuthServer *self,
     GError **error)
 {
   gboolean ok = FALSE;
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
 
   if (g_simple_async_result_propagate_error (
       G_SIMPLE_ASYNC_RESULT (res), error))
@@ -989,7 +986,7 @@ test_sasl_auth_server_auth_async (GObject *obj,
     gpointer data)
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
 
   /* we would normally expect this to be NULL in a take-over situation,
      but just in case: */
@@ -1019,7 +1016,7 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat)
 {
   int ret = 0;
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
   WockyXmppNode *mechnode = NULL;
 
   if (priv->problem != SERVER_PROBLEM_NO_SASL)
@@ -1064,7 +1061,7 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyXmppStanza *feat)
 const gchar *
 test_sasl_auth_server_get_selected_mech (TestSaslAuthServer *self)
 {
-  TestSaslAuthServerPrivate *priv = TEST_SASL_AUTH_SERVER_GET_PRIVATE (self);
+  TestSaslAuthServerPrivate *priv = self->priv;
 
   return priv->selected_mech;
 }

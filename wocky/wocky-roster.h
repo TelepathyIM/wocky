@@ -30,6 +30,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockyRoster WockyRoster;
 typedef struct _WockyRosterClass WockyRosterClass;
+typedef struct _WockyRosterPrivate WockyRosterPrivate;
 
 GQuark wocky_roster_error_quark (void);
 
@@ -39,6 +40,8 @@ struct _WockyRosterClass {
 
 struct _WockyRoster {
   GObject parent;
+
+  WockyRosterPrivate *priv;
 };
 
 GType wocky_roster_get_type (void);

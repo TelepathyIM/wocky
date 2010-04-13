@@ -29,6 +29,8 @@ G_BEGIN_DECLS
 
 typedef struct _WockyXmppWriter WockyXmppWriter;
 typedef struct _WockyXmppWriterClass WockyXmppWriterClass;
+typedef struct _WockyXmppWriterPrivate WockyXmppWriterPrivate;
+
 
 struct _WockyXmppWriterClass {
     GObjectClass parent_class;
@@ -36,6 +38,8 @@ struct _WockyXmppWriterClass {
 
 struct _WockyXmppWriter {
     GObject parent;
+
+    WockyXmppWriterPrivate *priv;
 };
 
 GType wocky_xmpp_writer_get_type (void);

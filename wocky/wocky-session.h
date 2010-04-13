@@ -31,6 +31,8 @@
 G_BEGIN_DECLS
 
 typedef struct _WockySessionClass WockySessionClass;
+typedef struct _WockySessionPrivate WockySessionPrivate;
+
 
 struct _WockySessionClass {
   GObjectClass parent_class;
@@ -38,6 +40,8 @@ struct _WockySessionClass {
 
 struct _WockySession {
   GObject parent;
+
+  WockySessionPrivate *priv;
 };
 
 GType wocky_session_get_type (void);

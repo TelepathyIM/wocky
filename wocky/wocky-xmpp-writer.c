@@ -47,8 +47,6 @@ enum {
 };
 
 /* private structure */
-typedef struct _WockyXmppWriterPrivate WockyXmppWriterPrivate;
-
 struct _WockyXmppWriterPrivate
 {
   gboolean dispose_has_run;
@@ -59,16 +57,15 @@ struct _WockyXmppWriterPrivate
   xmlBufferPtr buffer;
 };
 
-#define WOCKY_XMPP_WRITER_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_WRITER, \
-   WockyXmppWriterPrivate))
-
 static void
-wocky_xmpp_writer_init (WockyXmppWriter *obj)
+wocky_xmpp_writer_init (WockyXmppWriter *self)
 {
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (obj);
+  WockyXmppWriterPrivate *priv;
 
-  /* allocate any data required by the object here */
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_WRITER,
+      WockyXmppWriterPrivate);
+  priv = self->priv;
+
   priv->current_ns = 0;
   priv->stream_ns = 0;
   priv->buffer = xmlBufferCreate ();
@@ -116,7 +113,7 @@ void
 wocky_xmpp_writer_dispose (GObject *object)
 {
   WockyXmppWriter *self = WOCKY_XMPP_WRITER (object);
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (self);
+  WockyXmppWriterPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -132,7 +129,7 @@ void
 wocky_xmpp_writer_finalize (GObject *object)
 {
   WockyXmppWriter *self = WOCKY_XMPP_WRITER (object);
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (self);
+  WockyXmppWriterPrivate *priv = self->priv;
 
   /* free any data held directly by the object here */
   xmlFreeTextWriter (priv->xmlwriter);
@@ -148,7 +145,7 @@ wocky_xmpp_write_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyXmppWriter *writer = WOCKY_XMPP_WRITER (object);
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
 
   switch (property_id)
     {
@@ -168,7 +165,7 @@ wocky_xmpp_write_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyXmppWriter *writer = WOCKY_XMPP_WRITER (object);
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
 
   switch (property_id)
     {
@@ -235,7 +232,7 @@ wocky_xmpp_writer_stream_open (WockyXmppWriter *writer,
     const guint8 **data,
     gsize *length)
 {
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
 
   g_assert (priv->stream_mode);
 
@@ -317,7 +314,7 @@ void
 wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
     const guint8 **data, gsize *length)
 {
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
   static const guint8 *close = (const guint8 *)"</stream:stream>\n";
 
   g_assert (priv->stream_mode);
@@ -337,7 +334,7 @@ _write_attr (const gchar *key, const gchar *value,
     gpointer user_data)
 {
   WockyXmppWriter *self = WOCKY_XMPP_WRITER (user_data);
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (self);
+  WockyXmppWriterPrivate *priv = self->priv;
   GQuark attrns = 0;
 
   if (ns != NULL)
@@ -378,7 +375,7 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
 {
   const gchar *l;
   GQuark oldns;
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
 
   oldns = priv->current_ns;
 
@@ -440,7 +437,7 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
     const guint8 **data,
     gsize *length)
 {
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
 
   xmlBufferEmpty (priv->buffer);
 
@@ -476,7 +473,7 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
 void
 wocky_xmpp_writer_flush (WockyXmppWriter *writer)
 {
-  WockyXmppWriterPrivate *priv = WOCKY_XMPP_WRITER_GET_PRIVATE (writer);
+  WockyXmppWriterPrivate *priv = writer->priv;
 
   xmlBufferFree (priv->buffer);
   priv->buffer = xmlBufferCreate ();

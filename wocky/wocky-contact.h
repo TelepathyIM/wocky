@@ -28,6 +28,7 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyContactClass WockyContactClass;
+typedef struct _WockyContactPrivate WockyContactPrivate;
 
 struct _WockyContactClass {
   GObjectClass parent_class;
@@ -35,6 +36,8 @@ struct _WockyContactClass {
 
 struct _WockyContact {
   GObject parent;
+
+  WockyContactPrivate *priv;
 };
 
 GType wocky_contact_get_type (void);

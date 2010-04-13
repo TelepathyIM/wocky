@@ -134,6 +134,7 @@ typedef struct
 
 typedef struct _TestConnectorServer TestConnectorServer;
 typedef struct _TestConnectorServerClass TestConnectorServerClass;
+typedef struct _TestConnectorServerPrivate TestConnectorServerPrivate;
 
 struct _TestConnectorServerClass {
     GObjectClass parent_class;
@@ -141,6 +142,8 @@ struct _TestConnectorServerClass {
 
 struct _TestConnectorServer {
     GObject parent;
+
+    TestConnectorServerPrivate *priv;
 };
 
 GType test_connector_server_get_type (void);

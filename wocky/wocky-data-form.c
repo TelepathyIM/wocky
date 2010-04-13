@@ -37,8 +37,6 @@ enum
 };
 
 /* private structure */
-typedef struct _WockyDataFormPrivate WockyDataFormPrivate;
-
 struct _WockyDataFormPrivate
 {
   gchar *title;
@@ -60,10 +58,6 @@ wocky_data_form_error_quark (void)
 
   return quark;
 }
-
-#define WOCKY_DATA_FORM_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_DATA_FORM, \
-    WockyDataFormPrivate))
 
 static WockyDataFormFieldOption *
 wocky_data_form_field_option_new (const gchar *label,
@@ -135,15 +129,15 @@ wocky_data_form_field_free (WockyDataFormField *field)
 }
 
 static void
-wocky_data_form_init (WockyDataForm *obj)
+wocky_data_form_init (WockyDataForm *self)
 {
-  WockyDataForm *self = WOCKY_DATA_FORM (obj);
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_DATA_FORM,
+      WockyDataFormPrivate);
 
   self->fields = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
   self->fields_list = NULL;
 
-  priv->reported = g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
+  self->priv->reported = g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
       (GDestroyNotify) wocky_data_form_field_free);
   self->results = NULL;
 }
@@ -155,7 +149,7 @@ wocky_data_form_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyDataForm *self = WOCKY_DATA_FORM (object);
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -178,7 +172,7 @@ wocky_data_form_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyDataForm *self = WOCKY_DATA_FORM (object);
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -199,7 +193,7 @@ static void
 wocky_data_form_dispose (GObject *object)
 {
   WockyDataForm *self = WOCKY_DATA_FORM (object);
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -221,7 +215,7 @@ static void
 wocky_data_form_finalize (GObject *object)
 {
   WockyDataForm *self = WOCKY_DATA_FORM (object);
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
 
   g_free (priv->title);
   g_free (priv->instructions);
@@ -781,7 +775,7 @@ static void
 data_form_parse_reported (WockyDataForm *self,
     WockyXmppNode *reported_node)
 {
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
   GSList *l;
 
   for (l = reported_node->children; l != NULL; l = g_slist_next (l))
@@ -806,7 +800,7 @@ static void
 data_form_parse_item (WockyDataForm *self,
     WockyXmppNode *item_node)
 {
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
   WockyXmppNodeIter iter;
   WockyXmppNode *field_node;
   GSList *item = NULL;
@@ -929,7 +923,7 @@ wocky_data_form_parse_result (WockyDataForm *self,
 const gchar *
 wocky_data_form_get_title (WockyDataForm *self)
 {
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
 
   return priv->title;
 }
@@ -937,7 +931,7 @@ wocky_data_form_get_title (WockyDataForm *self)
 const gchar *
 wocky_data_form_get_instructions (WockyDataForm *self)
 {
-  WockyDataFormPrivate *priv = WOCKY_DATA_FORM_GET_PRIVATE (self);
+  WockyDataFormPrivate *priv = self->priv;
 
   return priv->instructions;
 }

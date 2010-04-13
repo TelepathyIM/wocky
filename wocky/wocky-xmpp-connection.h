@@ -29,6 +29,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockyXmppConnection WockyXmppConnection;
 typedef struct _WockyXmppConnectionClass WockyXmppConnectionClass;
+typedef struct _WockyXmppConnectionPrivate WockyXmppConnectionPrivate;
 
 /**
  * WockyXmppConnectionError:
@@ -68,6 +69,8 @@ struct _WockyXmppConnectionClass {
 
 struct _WockyXmppConnection {
     GObject parent;
+
+    WockyXmppConnectionPrivate *priv;
 };
 
 GType wocky_xmpp_connection_get_type (void);

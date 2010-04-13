@@ -30,6 +30,7 @@ G_BEGIN_DECLS
 
 typedef struct _WockyContactFactory WockyContactFactory;
 typedef struct _WockyContactFactoryClass WockyContactFactoryClass;
+typedef struct _WockyContactFactoryPrivate WockyContactFactoryPrivate;
 
 struct _WockyContactFactoryClass {
   GObjectClass parent_class;
@@ -37,6 +38,7 @@ struct _WockyContactFactoryClass {
 
 struct _WockyContactFactory {
   GObject parent;
+  WockyContactFactoryPrivate *priv;
 };
 
 GType wocky_contact_factory_get_type (void);

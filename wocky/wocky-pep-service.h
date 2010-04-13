@@ -29,6 +29,8 @@ G_BEGIN_DECLS
 
 typedef struct _WockyPepService WockyPepService;
 typedef struct _WockyPepServiceClass WockyPepServiceClass;
+typedef struct _WockyPepServicePrivate WockyPepServicePrivate;
+
 
 struct _WockyPepServiceClass {
   GObjectClass parent_class;
@@ -36,6 +38,8 @@ struct _WockyPepServiceClass {
 
 struct _WockyPepService {
   GObject parent;
+
+  WockyPepServicePrivate *priv;
 };
 
 GType wocky_pep_service_get_type (void);

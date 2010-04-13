@@ -266,8 +266,6 @@ typedef enum
 } WockyConnectorState;
 
 
-typedef struct _WockyConnectorPrivate WockyConnectorPrivate;
-
 struct _WockyConnectorPrivate
 {
   /* properties: */
@@ -318,9 +316,6 @@ struct _WockyConnectorPrivate
   WockyXmppConnection *conn;
 };
 
-#define WOCKY_CONNECTOR_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE((o),WOCKY_TYPE_CONNECTOR,WockyConnectorPrivate))
-
 /* choose an appropriate chunk of text describing our state for debug/error */
 static char *
 state_message (WockyConnectorPrivate *priv, const char *str)
@@ -357,7 +352,7 @@ abort_connect_error (WockyConnector *connector,
   va_list args;
 
   DEBUG ("connector: %p", connector);
-  priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  priv = connector->priv;
 
   g_assert (error != NULL);
   g_assert (*error != NULL);
@@ -390,7 +385,7 @@ abort_connect (WockyConnector *connector,
     GError *error)
 {
   GSimpleAsyncResult *tmp = NULL;
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  WockyConnectorPrivate *priv = connector->priv;
 
   if (priv->sock != NULL)
     {
@@ -435,8 +430,10 @@ wocky_connector_error_quark (void)
 }
 
 static void
-wocky_connector_init (WockyConnector *obj)
+wocky_connector_init (WockyConnector *self)
 {
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_CONNECTOR,
+      WockyConnectorPrivate);
 }
 
 static void
@@ -446,7 +443,7 @@ wocky_connector_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyConnector *connector = WOCKY_CONNECTOR (object);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  WockyConnectorPrivate *priv = connector->priv;
 
   switch (property_id)
     {
@@ -519,7 +516,7 @@ wocky_connector_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyConnector *connector = WOCKY_CONNECTOR (object);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  WockyConnectorPrivate *priv = connector->priv;
 
   switch (property_id)
     {
@@ -781,7 +778,7 @@ static void
 wocky_connector_dispose (GObject *object)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -809,7 +806,7 @@ static void
 wocky_connector_finalize (GObject *object)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   GFREE_AND_FORGET (priv->jid);
   GFREE_AND_FORGET (priv->user);
@@ -831,7 +828,7 @@ tcp_srv_connected (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (connector);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   priv->sock =
     g_socket_client_connect_to_service_finish (G_SOCKET_CLIENT (source),
@@ -901,7 +898,7 @@ tcp_host_connected (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (connector);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   GSocketClient *sock = G_SOCKET_CLIENT (source);
 
   priv->sock = g_socket_client_connect_to_host_finish (sock, result, &error);
@@ -926,7 +923,7 @@ tcp_host_connected (GObject *source,
 static void
 jabber_auth_init (WockyConnector *connector)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (connector);
+  WockyConnectorPrivate *priv = connector->priv;
   WockyXmppConnection *conn = priv->conn;
   gchar *id = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = NULL;
@@ -955,7 +952,7 @@ jabber_auth_init_sent (GObject *source,
     gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   GError *error = NULL;
 
@@ -977,7 +974,7 @@ jabber_auth_fields (GObject *source,
     gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   GError *error = NULL;
   WockyXmppStanza *fields = NULL;
@@ -1060,7 +1057,7 @@ jabber_auth_fields (GObject *source,
 static void
 jabber_auth_try_digest (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   gchar *hsrc = g_strconcat (priv->session_id, priv->pass, NULL);
   gchar *sha1 = g_compute_checksum_for_string (G_CHECKSUM_SHA1, hsrc, -1);
@@ -1088,7 +1085,7 @@ jabber_auth_try_digest (WockyConnector *self)
 static void
 jabber_auth_try_passwd (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   gchar *iqid = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq = wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -1113,7 +1110,7 @@ static void
 jabber_auth_query (GObject *source, GAsyncResult *res, gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   GError *error = NULL;
 
@@ -1135,7 +1132,7 @@ jabber_auth_reply (GObject *source,
     gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   GError *error = NULL;
   WockyXmppStanza *reply = NULL;
@@ -1219,7 +1216,7 @@ jabber_auth_reply (GObject *source,
 static void
 maybe_old_ssl (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   if (priv->legacy_ssl && !priv->encrypted)
     {
@@ -1255,7 +1252,7 @@ static void
 xmpp_init (WockyConnector *connector, gboolean new_conn)
 {
   WockyConnector *self = WOCKY_CONNECTOR (connector);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   if (new_conn)
     {
@@ -1275,7 +1272,7 @@ xmpp_init_sent_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   if (!wocky_xmpp_connection_send_open_finish (priv->conn, result, &error))
     {
@@ -1296,7 +1293,7 @@ xmpp_init_recv_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   gchar *debug = NULL;
   gchar *version = NULL;
   gchar *from = NULL;
@@ -1367,7 +1364,7 @@ xmpp_features_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *stanza;
   WockyXmppNode   *node;
   gboolean can_encrypt = FALSE;
@@ -1470,7 +1467,7 @@ starttls_sent_cb (GObject *source,
     gpointer data)
 {
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   GError *error = NULL;
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result,
@@ -1494,7 +1491,7 @@ starttls_recv_cb (GObject *source,
   WockyXmppStanza *stanza;
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppNode *node;
 
   stanza =
@@ -1551,7 +1548,7 @@ starttls_handshake_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyTLSSession *sess = priv->tls_sess;
   const gchar *tla = priv->legacy_ssl ? "SSL" : "TLS";
   long flags = WOCKY_TLS_VERIFY_NORMAL;
@@ -1670,7 +1667,7 @@ request_auth (WockyConnector *object,
     WockyXmppStanza *stanza)
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockySaslAuth *s =
     wocky_sasl_auth_new (priv->domain, priv->user, priv->pass, priv->conn);
   gboolean clear = FALSE;
@@ -1690,7 +1687,7 @@ auth_done (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockySaslAuth *sasl = WOCKY_SASL_AUTH (source);
 
   if (!wocky_sasl_auth_authenticate_finish (sasl, result, &error))
@@ -1726,7 +1723,7 @@ auth_done (GObject *source,
 static void
 xep77_cancel_send (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *iqs = NULL;
   gchar *iid = NULL;
 
@@ -1760,7 +1757,7 @@ xep77_cancel_sent (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   DEBUG ("");
 
@@ -1782,7 +1779,7 @@ xep77_cancel_recv (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *iq = NULL;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
@@ -1871,7 +1868,7 @@ xep77_cancel_recv (GObject *source,
 static void
 xep77_begin (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *iqs = NULL;
   gchar *iid = NULL;
   gchar *jid = NULL;
@@ -1911,7 +1908,7 @@ xep77_begin_sent (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   DEBUG ("");
 
@@ -1933,7 +1930,7 @@ xep77_begin_recv (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *iq = NULL;
   WockyXmppNode *query = NULL;
   WockyStanzaType type;
@@ -2026,7 +2023,7 @@ static void
 xep77_signup_send (WockyConnector *self,
     WockyXmppNode *req)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *riq = NULL;
   WockyXmppNode *reg = NULL;
   GSList *arg = NULL;
@@ -2097,7 +2094,7 @@ xep77_signup_sent (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   DEBUG ("");
 
@@ -2119,7 +2116,7 @@ xep77_signup_recv (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *iq = NULL;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
@@ -2192,7 +2189,7 @@ xep77_signup_recv (GObject *source,
 static void
 iq_bind_resource (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   gchar *id = wocky_xmpp_connection_new_id (priv->conn);
   WockyXmppStanza *iq =
     wocky_xmpp_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
@@ -2224,7 +2221,7 @@ iq_bind_resource_sent_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
     {
@@ -2245,7 +2242,7 @@ iq_bind_resource_recv_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *reply = NULL;
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
   WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
@@ -2330,7 +2327,7 @@ iq_bind_resource_recv_cb (GObject *source,
 void
 establish_session (WockyConnector *self)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppNode *feat = (priv->features != NULL) ? priv->features->node : NULL;
 
   /* _if_ session setup is advertised, a session _must_ be established to *
@@ -2375,7 +2372,7 @@ establish_session_sent_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result, &error))
     {
@@ -2395,7 +2392,7 @@ establish_session_recv_cb (GObject *source,
 {
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   WockyXmppStanza *reply = NULL;
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
   WockyStanzaSubType sub = WOCKY_STANZA_SUB_TYPE_NONE;
@@ -2497,7 +2494,7 @@ wocky_connector_connect_finish (WockyConnector *self,
     gchar **jid,
     gchar **sid)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
   GObject *obj = G_OBJECT (self);
   gboolean ok = FALSE;
@@ -2590,7 +2587,7 @@ wocky_connector_connect_async (WockyConnector *self,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   /* 'host' is (by default) the part of the jid after the @
    *  it must be non-empty (although this test may need to be changed
@@ -2694,7 +2691,7 @@ wocky_connector_unregister_async (WockyConnector *self,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   priv->reg_op = XEP77_CANCEL;
   wocky_connector_connect_async (self, cb, user_data);
@@ -2715,7 +2712,7 @@ wocky_connector_register_async (WockyConnector *self,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
 
   priv->reg_op = XEP77_SIGNUP;
   wocky_connector_connect_async (self, cb, user_data);
@@ -2743,7 +2740,7 @@ gboolean
 wocky_connector_add_ca (WockyConnector *self,
     const gchar *path)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   gchar *abspath = wocky_absolutize_path (path);
 
   if (abspath != NULL)
@@ -2768,7 +2765,7 @@ gboolean
 wocky_connector_add_crl (WockyConnector *self,
     const gchar *path)
 {
-  WockyConnectorPrivate *priv = WOCKY_CONNECTOR_GET_PRIVATE (self);
+  WockyConnectorPrivate *priv = self->priv;
   gchar *abspath = wocky_absolutize_path (path);
 
   if (abspath != NULL)

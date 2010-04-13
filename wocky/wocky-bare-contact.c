@@ -72,8 +72,6 @@ static guint signals[LAST_SIGNAL] = {0};
 */
 
 /* private structure */
-typedef struct _WockyBareContactPrivate WockyBareContactPrivate;
-
 struct _WockyBareContactPrivate
 {
   gboolean dispose_has_run;
@@ -89,17 +87,13 @@ struct _WockyBareContactPrivate
   GSList *resources;
 };
 
-#define WOCKY_BARE_CONTACT_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_BARE_CONTACT, \
-    WockyBareContactPrivate))
-
 static void
-wocky_bare_contact_init (WockyBareContact *obj)
+wocky_bare_contact_init (WockyBareContact *self)
 {
-  WockyBareContact *self = WOCKY_BARE_CONTACT (obj);
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
+      WOCKY_TYPE_BARE_CONTACT, WockyBareContactPrivate);
 
-  priv->resources = NULL;
+  self->priv->resources = NULL;
 }
 
 static void
@@ -108,8 +102,8 @@ wocky_bare_contact_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  WockyBareContactPrivate *priv =
-      WOCKY_BARE_CONTACT_GET_PRIVATE (object);
+  WockyBareContact *self = WOCKY_BARE_CONTACT (object);
+  WockyBareContactPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -138,8 +132,8 @@ wocky_bare_contact_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  WockyBareContactPrivate *priv =
-      WOCKY_BARE_CONTACT_GET_PRIVATE (object);
+  WockyBareContact *self = WOCKY_BARE_CONTACT (object);
+  WockyBareContactPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -165,7 +159,7 @@ static void
 wocky_bare_contact_constructed (GObject *object)
 {
   WockyBareContact *self = WOCKY_BARE_CONTACT (object);
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
 
   g_assert (priv->jid != NULL);
 }
@@ -175,7 +169,7 @@ resource_disposed_cb (gpointer user_data,
     GObject *resource)
 {
   WockyBareContact *self = WOCKY_BARE_CONTACT (user_data);
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
 
   priv->resources = g_slist_remove (priv->resources, resource);
 }
@@ -184,7 +178,7 @@ static void
 wocky_bare_contact_dispose (GObject *object)
 {
   WockyBareContact *self = WOCKY_BARE_CONTACT (object);
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
   GSList *l;
 
   if (priv->dispose_has_run)
@@ -205,7 +199,7 @@ static void
 wocky_bare_contact_finalize (GObject *object)
 {
   WockyBareContact *self = WOCKY_BARE_CONTACT (object);
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
 
   if (priv->jid != NULL)
     g_free (priv->jid);
@@ -319,7 +313,7 @@ wocky_bare_contact_get_jid (WockyBareContact *contact)
 
   g_return_val_if_fail (WOCKY_IS_BARE_CONTACT (contact), NULL);
 
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   return priv->jid;
 }
@@ -339,7 +333,7 @@ wocky_bare_contact_get_name (WockyBareContact *contact)
 
   g_return_val_if_fail (WOCKY_IS_BARE_CONTACT (contact), NULL);
 
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   return priv->name;
 }
@@ -362,7 +356,7 @@ wocky_bare_contact_set_name (WockyBareContact *contact,
 
   g_return_if_fail (WOCKY_IS_BARE_CONTACT (contact));
 
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   if (!wocky_strdiff (priv->name, name))
     return;
@@ -387,7 +381,7 @@ wocky_bare_contact_get_subscription (WockyBareContact *contact)
 
   g_return_val_if_fail (WOCKY_IS_BARE_CONTACT (contact),
       WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE);
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   return priv->subscription;
 }
@@ -408,7 +402,7 @@ wocky_bare_contact_set_subscription (WockyBareContact *contact,
 
   g_return_if_fail (WOCKY_IS_BARE_CONTACT (contact));
 
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   if (priv->subscription == subscription)
     return;
@@ -431,7 +425,7 @@ wocky_bare_contact_get_groups (WockyBareContact *contact)
   WockyBareContactPrivate *priv;
 
   g_return_val_if_fail (WOCKY_IS_BARE_CONTACT (contact), NULL);
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   return (const gchar * const *) priv->groups;
 }
@@ -511,7 +505,7 @@ wocky_bare_contact_set_groups (WockyBareContact *contact,
 
   g_return_if_fail (WOCKY_IS_BARE_CONTACT (contact));
 
-  priv = WOCKY_BARE_CONTACT_GET_PRIVATE (contact);
+  priv = contact->priv;
 
   if (groups_equal ((const gchar * const *) groups,
         (const gchar * const *) priv->groups))
@@ -573,7 +567,7 @@ void
 wocky_bare_contact_add_group (WockyBareContact *self,
     const gchar *group)
 {
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
   GPtrArray *arr;
   gboolean group_already_present = FALSE;
 
@@ -622,7 +616,7 @@ gboolean
 wocky_bare_contact_in_group (WockyBareContact *self,
     const gchar *group)
 {
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
   guint i;
 
   if (priv->groups == NULL)
@@ -648,7 +642,7 @@ void
 wocky_bare_contact_remove_group (WockyBareContact *self,
     const gchar *group)
 {
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
   GPtrArray *arr;
   guint len, i;
 
@@ -703,7 +697,7 @@ wocky_bare_contact_copy (WockyBareContact *contact)
 void
 wocky_bare_contact_debug_print (WockyBareContact *self)
 {
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
   guint i;
 
   DEBUG ("Contact: %s  Name: %s  Subscription: %s  Groups:",
@@ -726,7 +720,7 @@ void
 wocky_bare_contact_add_resource (WockyBareContact *self,
     WockyResourceContact *resource)
 {
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
 
   g_object_weak_ref (G_OBJECT (resource), resource_disposed_cb, self);
   priv->resources = g_slist_append (priv->resources, resource);
@@ -744,7 +738,7 @@ wocky_bare_contact_add_resource (WockyBareContact *self,
 GSList *
 wocky_bare_contact_get_resources (WockyBareContact *self)
 {
-  WockyBareContactPrivate *priv = WOCKY_BARE_CONTACT_GET_PRIVATE (self);
+  WockyBareContactPrivate *priv = self->priv;
 
   return g_slist_copy (priv->resources);
 }

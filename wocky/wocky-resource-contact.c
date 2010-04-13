@@ -68,8 +68,6 @@ static guint signals[LAST_SIGNAL] = {0};
 */
 
 /* private structure */
-typedef struct _WockyResourceContactPrivate WockyResourceContactPrivate;
-
 struct _WockyResourceContactPrivate
 {
   gboolean dispose_has_run;
@@ -78,17 +76,11 @@ struct _WockyResourceContactPrivate
   WockyBareContact *bare_contact;
 };
 
-#define WOCKY_RESOURCE_CONTACT_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_RESOURCE_CONTACT, \
-    WockyResourceContactPrivate))
-
 static void
-wocky_resource_contact_init (WockyResourceContact *obj)
+wocky_resource_contact_init (WockyResourceContact *self)
 {
-  /*
-  WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (obj);
-  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
-  */
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_RESOURCE_CONTACT,
+      WockyResourceContactPrivate);
 }
 
 static void
@@ -97,8 +89,8 @@ wocky_resource_contact_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  WockyResourceContactPrivate *priv =
-      WOCKY_RESOURCE_CONTACT_GET_PRIVATE (object);
+  WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (object);
+  WockyResourceContactPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -120,8 +112,8 @@ wocky_resource_contact_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  WockyResourceContactPrivate *priv =
-      WOCKY_RESOURCE_CONTACT_GET_PRIVATE (object);
+  WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (object);
+  WockyResourceContactPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -141,7 +133,7 @@ static void
 wocky_resource_contact_constructed (GObject *object)
 {
   WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (object);
-  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+  WockyResourceContactPrivate *priv = self->priv;
 
   g_assert (priv->resource != NULL);
   g_assert (priv->bare_contact != NULL);
@@ -151,7 +143,7 @@ static void
 wocky_resource_contact_dispose (GObject *object)
 {
   WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (object);
-  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+  WockyResourceContactPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -168,7 +160,7 @@ static void
 wocky_resource_contact_finalize (GObject *object)
 {
   WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (object);
-  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+  WockyResourceContactPrivate *priv = self->priv;
 
   g_free (priv->resource);
 
@@ -229,7 +221,7 @@ wocky_resource_contact_new (WockyBareContact *bare,
 const gchar *
 wocky_resource_contact_get_resource (WockyResourceContact *self)
 {
-  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+  WockyResourceContactPrivate *priv = self->priv;
 
   return priv->resource;
 }
@@ -237,7 +229,7 @@ wocky_resource_contact_get_resource (WockyResourceContact *self)
 WockyBareContact *
 wocky_resource_contact_get_bare_contact (WockyResourceContact *self)
 {
-  WockyResourceContactPrivate *priv = WOCKY_RESOURCE_CONTACT_GET_PRIVATE (self);
+  WockyResourceContactPrivate *priv = self->priv;
 
   return priv->bare_contact;
 }

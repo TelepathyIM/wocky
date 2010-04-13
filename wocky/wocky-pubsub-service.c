@@ -65,8 +65,6 @@ struct _EventTrampoline
   guint handler_id;
 };
 
-typedef struct _WockyPubsubServicePrivate WockyPubsubServicePrivate;
-
 struct _WockyPubsubServicePrivate
 {
   WockySession *session;
@@ -92,18 +90,14 @@ wocky_pubsub_service_error_quark (void)
 
   return quark;
 }
-
-#define WOCKY_PUBSUB_SERVICE_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_PUBSUB_SERVICE, \
-    WockyPubsubServicePrivate))
-
 static void
-wocky_pubsub_service_init (WockyPubsubService *obj)
+wocky_pubsub_service_init (WockyPubsubService *self)
 {
-  WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (obj);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
+      WOCKY_TYPE_PUBSUB_SERVICE, WockyPubsubServicePrivate);
 
-  priv->nodes = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  self->priv->nodes = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, NULL);
 }
 
 static void
@@ -113,7 +107,7 @@ wocky_pubsub_service_set_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -136,7 +130,7 @@ wocky_pubsub_service_get_property (GObject *object,
     GParamSpec *pspec)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -156,7 +150,7 @@ static void
 wocky_pubsub_service_dispose (GObject *object)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -190,7 +184,7 @@ static void
 wocky_pubsub_service_finalize (GObject *object)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   g_free (priv->jid);
   g_hash_table_unref (priv->nodes);
@@ -202,7 +196,7 @@ static void
 wocky_pubsub_service_constructed (GObject *object)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (object);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   const WockyPubsubNodeEventMapping *m;
   guint n_mappings;
 
@@ -344,7 +338,7 @@ node_disposed_cb (gpointer user_data,
     GObject *node)
 {
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (user_data);
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   g_hash_table_foreach_remove (priv->nodes, remove_node, node);
 }
@@ -397,7 +391,7 @@ static WockyPubsubNode *
 pubsub_service_create_node (WockyPubsubService *self,
     const gchar *name)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   WockyPubsubServiceClass *class = WOCKY_PUBSUB_SERVICE_GET_CLASS (self);
   WockyPubsubNode *node;
 
@@ -442,7 +436,7 @@ WockyPubsubNode *
 wocky_pubsub_service_ensure_node (WockyPubsubService *self,
     const gchar *name)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   WockyPubsubNode *node;
 
   node = g_hash_table_lookup (priv->nodes, name);
@@ -468,7 +462,7 @@ WockyPubsubNode *
 wocky_pubsub_service_lookup_node (WockyPubsubService *self,
     const gchar *name)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   return g_hash_table_lookup (priv->nodes, name);
 }
@@ -547,7 +541,7 @@ wocky_pubsub_service_get_default_node_configuration_async (
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   WockyXmppStanza *stanza;
   GSimpleAsyncResult *result;
 
@@ -710,7 +704,7 @@ wocky_pubsub_service_create_retrieve_subscriptions_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **subscriptions_node)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   WockyXmppStanza *stanza;
   WockyXmppNode *subscriptions;
 
@@ -735,7 +729,7 @@ wocky_pubsub_service_retrieve_subscriptions_async (
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_pubsub_service_retrieve_subscriptions_async);
   WockyXmppStanza *stanza;
@@ -852,7 +846,7 @@ wocky_pubsub_service_create_create_node_stanza (
     WockyXmppNode **pubsub_node,
     WockyXmppNode **create_node)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   WockyXmppStanza *stanza;
   WockyXmppNode *pubsub, *create;
 
@@ -883,7 +877,7 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
   WockyXmppStanza *stanza = wocky_pubsub_service_create_create_node_stanza (
       self, name, config, NULL, NULL);
   GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
@@ -921,7 +915,7 @@ wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
 WockyPorter *
 wocky_pubsub_service_get_porter (WockyPubsubService *self)
 {
-  WockyPubsubServicePrivate *priv = WOCKY_PUBSUB_SERVICE_GET_PRIVATE (self);
+  WockyPubsubServicePrivate *priv = self->priv;
 
   return priv->porter;
 }

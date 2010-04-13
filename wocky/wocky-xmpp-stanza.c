@@ -31,14 +31,10 @@
 G_DEFINE_TYPE(WockyXmppStanza, wocky_xmpp_stanza, G_TYPE_OBJECT)
 
 /* private structure */
-typedef struct _WockyXmppStanzaPrivate WockyXmppStanzaPrivate;
-
 struct _WockyXmppStanzaPrivate
 {
   gboolean dispose_has_run;
 };
-
-#define WOCKY_XMPP_STANZA_GET_PRIVATE(o)     (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_XMPP_STANZA, WockyXmppStanzaPrivate))
 
 typedef struct
 {
@@ -122,10 +118,12 @@ static const StanzaSubTypeName sub_type_names[NUM_WOCKY_STANZA_SUB_TYPE] =
 };
 
 static void
-wocky_xmpp_stanza_init (WockyXmppStanza *obj)
+wocky_xmpp_stanza_init (WockyXmppStanza *self)
 {
-  /* allocate any data required by the object here */
-  obj->node = NULL;
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_STANZA,
+      WockyXmppStanzaPrivate);
+
+  self->node = NULL;
 }
 
 static void wocky_xmpp_stanza_dispose (GObject *object);
@@ -147,7 +145,7 @@ void
 wocky_xmpp_stanza_dispose (GObject *object)
 {
   WockyXmppStanza *self = WOCKY_XMPP_STANZA (object);
-  WockyXmppStanzaPrivate *priv = WOCKY_XMPP_STANZA_GET_PRIVATE (self);
+  WockyXmppStanzaPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;

@@ -65,6 +65,7 @@ typedef struct
 
 typedef struct _WockyDataForm WockyDataForm;
 typedef struct _WockyDataFormClass WockyDataFormClass;
+typedef struct _WockyDataFormPrivate WockyDataFormPrivate;
 
 typedef enum {
   WOCKY_DATA_FORM_ERROR_NOT_FORM,
@@ -92,6 +93,8 @@ struct _WockyDataForm {
   /* list of GSList * of (WockyDataFormField *), representing one or more sets
    * of results */
   GSList *results;
+
+  WockyDataFormPrivate *priv;
 };
 
 GType wocky_data_form_get_type (void);

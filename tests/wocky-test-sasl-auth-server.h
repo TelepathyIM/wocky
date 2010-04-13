@@ -47,6 +47,8 @@ typedef enum {
 
 typedef struct _TestSaslAuthServer TestSaslAuthServer;
 typedef struct _TestSaslAuthServerClass TestSaslAuthServerClass;
+typedef struct _TestSaslAuthServerPrivate TestSaslAuthServerPrivate;
+
 
 struct _TestSaslAuthServerClass {
     GObjectClass parent_class;
@@ -54,6 +56,8 @@ struct _TestSaslAuthServerClass {
 
 struct _TestSaslAuthServer {
     GObject parent;
+
+    TestSaslAuthServerPrivate *priv;
 };
 
 GType test_sasl_auth_server_get_type (void);

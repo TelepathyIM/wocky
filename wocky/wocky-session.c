@@ -64,8 +64,6 @@ static guint signals[LAST_SIGNAL] = {0};
 */
 
 /* private structure */
-typedef struct _WockySessionPrivate WockySessionPrivate;
-
 struct _WockySessionPrivate
 {
   gboolean dispose_has_run;
@@ -75,17 +73,13 @@ struct _WockySessionPrivate
   WockyContactFactory *contact_factory;
 };
 
-#define WOCKY_SESSION_GET_PRIVATE(o)  \
-    (G_TYPE_INSTANCE_GET_PRIVATE ((o), WOCKY_TYPE_SESSION, \
-    WockySessionPrivate))
-
 static void
-wocky_session_init (WockySession *obj)
+wocky_session_init (WockySession *self)
 {
-  WockySession *self = WOCKY_SESSION (obj);
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_SESSION,
+      WockySessionPrivate);
 
-  priv->contact_factory = wocky_contact_factory_new ();
+  self->priv->contact_factory = wocky_contact_factory_new ();
 }
 
 static void
@@ -94,8 +88,8 @@ wocky_session_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  WockySessionPrivate *priv =
-      WOCKY_SESSION_GET_PRIVATE (object);
+  WockySession *self = WOCKY_SESSION (object);
+  WockySessionPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -114,8 +108,8 @@ wocky_session_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  WockySessionPrivate *priv =
-      WOCKY_SESSION_GET_PRIVATE (object);
+  WockySession *self = WOCKY_SESSION (object);
+  WockySessionPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -138,7 +132,7 @@ static void
 wocky_session_constructed (GObject *object)
 {
   WockySession *self = WOCKY_SESSION (object);
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  WockySessionPrivate *priv = self->priv;
 
   g_assert (priv->connection != NULL);
 
@@ -149,7 +143,7 @@ static void
 wocky_session_dispose (GObject *object)
 {
   WockySession *self = WOCKY_SESSION (object);
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  WockySessionPrivate *priv = self->priv;
 
   if (priv->dispose_has_run)
     return;
@@ -169,7 +163,7 @@ wocky_session_finalize (GObject *object)
 {
   /*
   WockySession *self = WOCKY_SESSION (object);
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  WockySessionPrivate *priv = self->priv;
   */
 
   G_OBJECT_CLASS (wocky_session_parent_class)->finalize (object);
@@ -222,7 +216,7 @@ wocky_session_new (WockyXmppConnection *conn)
 
 void wocky_session_start (WockySession *self)
 {
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  WockySessionPrivate *priv = self->priv;
 
   wocky_porter_start (priv->porter);
 }
@@ -230,7 +224,7 @@ void wocky_session_start (WockySession *self)
 WockyPorter *
 wocky_session_get_porter (WockySession *self)
 {
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  WockySessionPrivate *priv = self->priv;
 
   return priv->porter;
 }
@@ -238,7 +232,7 @@ wocky_session_get_porter (WockySession *self)
 WockyContactFactory *
 wocky_session_get_contact_factory (WockySession *self)
 {
-  WockySessionPrivate *priv = WOCKY_SESSION_GET_PRIVATE (self);
+  WockySessionPrivate *priv = self->priv;
 
   return priv->contact_factory;
 }
