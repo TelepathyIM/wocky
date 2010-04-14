@@ -422,7 +422,7 @@ test_list_subscribers_iq_cb (WockyPorter *porter,
         ')',
       ')', NULL);
 
-  test_assert_stanzas_equal (stanza, expected);
+  test_assert_stanzas_equal_no_id (stanza, expected);
 
   g_object_unref (expected);
 
@@ -524,7 +524,7 @@ test_list_affiliates_iq_cb (WockyPorter *porter,
         ')',
       ')', NULL);
 
-  test_assert_stanzas_equal (stanza, expected);
+  test_assert_stanzas_equal_no_id (stanza, expected);
 
   g_object_unref (expected);
 

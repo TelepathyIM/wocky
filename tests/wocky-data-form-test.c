@@ -618,7 +618,7 @@ test_submit_blindly (void)
       ')',
       NULL);
 
-  test_assert_stanzas_equal (expected, stanza);
+  test_assert_stanzas_equal_no_id (expected, stanza);
 
   g_object_unref (expected);
   g_object_unref (stanza);

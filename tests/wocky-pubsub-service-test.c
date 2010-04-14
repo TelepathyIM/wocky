@@ -742,7 +742,7 @@ test_retrieve_subscriptions_iq_cb (
   if (ctx->mode == MODE_AT_NODE)
     wocky_xmpp_node_set_attribute (subscriptions, "node", "bonghits");
 
-  test_assert_stanzas_equal (stanza, expected);
+  test_assert_stanzas_equal_no_id (stanza, expected);
   g_object_unref (expected);
 
   switch (ctx->mode)

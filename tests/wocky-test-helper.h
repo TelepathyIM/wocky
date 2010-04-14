@@ -62,11 +62,12 @@ void test_close_both_porters (test_data_t *test);
               wocky_xmpp_node_to_string (n2))); \
   } G_STMT_END
 
+
 /* Slightly evil macro that tests that two stanzas are equal, except that if
  * one has an id and the other does not this is not considered a difference. It
  * modifies the stanzas because I am lazy.
  */
-#define test_assert_stanzas_equal(s1, s2) \
+#define test_assert_stanzas_equal_no_id(s1, s2) \
   G_STMT_START { \
     const gchar *_id1 = wocky_xmpp_node_get_attribute ((s1)->node, "id"); \
     const gchar *_id2 = wocky_xmpp_node_get_attribute ((s2)->node, "id"); \
