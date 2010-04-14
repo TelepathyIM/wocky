@@ -95,7 +95,7 @@ test_make_publish_stanza (void)
         ')',
       NULL);
 
-  test_assert_nodes_equal (stanza->node, expected->node);
+  test_assert_stanzas_equal (stanza, expected);
 
   g_object_unref (expected);
   g_object_unref (stanza);

@@ -48,7 +48,7 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   expected = g_queue_pop_head (data->expected_stanzas);
   g_assert (expected != NULL);
 
-  test_assert_nodes_equal (s->node, expected->node);
+  test_assert_stanzas_equal (s, expected);
 
   if (g_queue_get_length (data->expected_stanzas) > 0)
     {
@@ -360,7 +360,7 @@ test_close_stanza_received_cb (GObject *source,
       expected = g_queue_pop_head (test->expected_stanzas);
       g_assert (expected != NULL);
 
-      test_assert_nodes_equal (s->node, expected->node);
+      test_assert_stanzas_equal (s, expected);
 
       wocky_xmpp_connection_recv_stanza_async (connection, NULL,
           test_close_stanza_received_cb, user_data);

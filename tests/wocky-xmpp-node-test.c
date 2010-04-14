@@ -22,17 +22,17 @@ test_node_equal (void)
   /* Simple IQ node */
   a = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", NULL);
-  test_assert_nodes_equal (a->node, (a->node));
+  test_assert_stanzas_equal (a, a);
 
   /* Same as 'a' but with an ID attribute */
   b = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
       '@', "id", "one",
       NULL);
-  test_assert_nodes_equal (b->node, b->node);
+  test_assert_stanzas_equal (b, b);
 
-  test_assert_nodes_not_equal (a->node, b->node);
-  test_assert_nodes_not_equal (b->node, a->node);
+  test_assert_stanzas_not_equal (a, b);
+  test_assert_stanzas_not_equal (b, a);
 
   g_object_unref (a);
   g_object_unref (b);
@@ -51,18 +51,20 @@ test_set_attribute (void)
       '@', "foo", "badger",
       NULL);
 
-  test_assert_nodes_not_equal (a->node, b->node);
-  wocky_xmpp_node_set_attribute (a->node, "foo", "badger");
-  test_assert_nodes_equal (a->node, b->node);
+  test_assert_stanzas_not_equal (a, b);
+  wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (a),
+      "foo", "badger");
+  test_assert_stanzas_equal (a, b);
 
   c = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org",
       '@', "foo", "snake",
       NULL);
 
-  test_assert_nodes_not_equal (b->node, c->node);
-  wocky_xmpp_node_set_attribute (b->node, "foo", "snake");
-  test_assert_nodes_equal (b->node, c->node);
+  test_assert_stanzas_not_equal (b, c);
+  wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (b),
+      "foo", "snake");
+  test_assert_stanzas_equal (b, c);
 
   g_object_unref (a);
   g_object_unref (b);

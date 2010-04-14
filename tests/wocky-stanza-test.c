@@ -33,7 +33,7 @@ test_build_iq_result (void)
   reply = wocky_stanza_build_iq_result (iq, NULL);
 
   g_assert (reply != NULL);
-  test_assert_nodes_equal (reply->node, expected->node);
+  test_assert_stanzas_equal (reply, expected);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -62,7 +62,7 @@ test_build_iq_result (void)
       NULL);
 
   g_assert (reply != NULL);
-  test_assert_nodes_equal (reply->node, expected->node);
+  test_assert_stanzas_equal (reply, expected);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -86,7 +86,7 @@ test_build_iq_result (void)
   reply = wocky_stanza_build_iq_result (iq, NULL);
 
   g_assert (reply != NULL);
-  test_assert_nodes_equal (reply->node, expected->node);
+  test_assert_stanzas_equal (reply, expected);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -115,7 +115,7 @@ test_build_iq_error (void)
   reply = wocky_stanza_build_iq_error (iq, NULL);
 
   g_assert (reply != NULL);
-  test_assert_nodes_equal (reply->node, expected->node);
+  test_assert_stanzas_equal (reply, expected);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -144,7 +144,7 @@ test_build_iq_error (void)
       NULL);
 
   g_assert (reply != NULL);
-  test_assert_nodes_equal (reply->node, expected->node);
+  test_assert_stanzas_equal (reply, expected);
 
   g_object_unref (reply);
   g_object_unref (expected);
@@ -502,7 +502,7 @@ test_stanza_error_to_node (void)
           ')',
         ')',
       NULL);
-  test_assert_nodes_equal (stanza->node, expected->node);
+  test_assert_stanzas_equal (stanza, expected);
 
   /* Let's see how it roundtrips: */
   wocky_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
@@ -544,7 +544,7 @@ test_stanza_error_to_node (void)
           ')',
         ')',
       NULL);
-  test_assert_nodes_equal (stanza->node, expected->node);
+  test_assert_stanzas_equal (stanza, expected);
 
   /* Let's see how it roundtrips: */
   wocky_stanza_extract_errors (stanza, NULL, &core, &specialized, NULL);
