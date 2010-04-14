@@ -1,6 +1,6 @@
 /*
  * wocky-stanza.h - Header for WockyStanza
- * Copyright (C) 2006 Collabora Ltd.
+ * Copyright (C) 2006, 2010 Collabora Ltd.
  * @author Sjoerd Simons <sjoerd@luon.net>
  *
  * This library is free software; you can redistribute it and/or
@@ -113,6 +113,8 @@ typedef enum
 } WockyBuildTag;
 
 WockyStanza * wocky_stanza_new (const gchar *name);
+
+WockyXmppNode *wocky_stanza_get_top_node (WockyStanza *self);
 
 WockyStanza * wocky_stanza_build (WockyStanzaType type,
     WockyStanzaSubType sub_type, const gchar *from, const gchar *to,

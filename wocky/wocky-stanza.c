@@ -648,3 +648,15 @@ wocky_stanza_extract_stream_error (WockyStanza *stanza,
       wocky_xmpp_stream_error_from_node (stanza->node));
   return TRUE;
 }
+
+/**
+ * wocky_stanza_get_top_node:
+ * @self: a stanza
+ *
+ * Returns: A pointer to the topmost node of the stanza
+ */
+WockyXmppNode *
+wocky_stanza_get_top_node (WockyStanza *self)
+{
+  return self->node;
+}
