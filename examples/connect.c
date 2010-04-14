@@ -214,8 +214,7 @@ tcp_features_received_cb (GObject *source,
       g_main_loop_quit (mainloop);
     }
 
-  starttls = wocky_stanza_new ("starttls");
-  wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
+  starttls = wocky_stanza_new ("starttls", WOCKY_XMPP_NS_TLS);
 
   wocky_xmpp_connection_send_stanza_async (conn, starttls,
     NULL, tcp_start_tls_send_cb, NULL);

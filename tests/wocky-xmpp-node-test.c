@@ -100,7 +100,7 @@ test_append_content_n (void)
   guint i;
   size_t l;
 
-  a = wocky_stanza_new ("message");
+  a = wocky_stanza_new ("message", NULL);
 
   l = strlen (content);
   /* Append content byte by byte */

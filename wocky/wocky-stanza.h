@@ -112,7 +112,7 @@ typedef enum
   WOCKY_NODE_ASSIGN_TO = '*'
 } WockyBuildTag;
 
-WockyStanza * wocky_stanza_new (const gchar *name);
+WockyStanza * wocky_stanza_new (const gchar *name, const gchar *ns);
 
 WockyXmppNode *wocky_stanza_get_top_node (WockyStanza *self);
 

@@ -169,12 +169,12 @@ wocky_stanza_finalize (GObject *object)
 
 
 WockyStanza *
-wocky_stanza_new (const gchar *name)
+wocky_stanza_new (const gchar *name, const gchar *ns)
 {
   WockyStanza *result;
 
   result = WOCKY_STANZA (g_object_new (WOCKY_TYPE_STANZA, NULL));
-  result->node = wocky_xmpp_node_new (name);
+  result->node = wocky_xmpp_node_new (name, ns);
 
   return result;
 }
@@ -333,8 +333,7 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
   if (!check_sub_type (type, sub_type))
     return NULL;
 
-  stanza = wocky_stanza_new (get_type_name (type));
-  wocky_xmpp_node_set_ns (stanza->node, get_type_ns (type));
+  stanza = wocky_stanza_new (get_type_name (type), get_type_ns (type));
 
   sub_type_name = get_sub_type_name (sub_type);
   if (sub_type_name != NULL)

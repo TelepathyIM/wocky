@@ -454,9 +454,7 @@ sasl_auth_stanza_received (GObject *source,
           stanza->node->content, &response, &error))
         goto failure;
 
-      response_stanza = wocky_stanza_new ("response");
-      wocky_xmpp_node_set_ns (
-         response_stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
+      response_stanza = wocky_stanza_new ("response", WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (response_stanza->node, response);
 
        /* FIXME handle send error */
@@ -528,8 +526,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
   priv->handler = handler;
 
-  stanza = wocky_stanza_new ("auth");
-  wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_SASL_AUTH);
+  stanza = wocky_stanza_new ("auth", WOCKY_XMPP_NS_SASL_AUTH);
 
   /* google JID domain discovery - client sets a namespaced attribute */
   wocky_xmpp_node_set_attribute_ns (stanza->node,

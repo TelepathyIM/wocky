@@ -209,8 +209,7 @@ stream_open_sent (GObject *source,
     WOCKY_XMPP_CONNECTION (source), res, NULL));
 
   /* Send stream features */
-  stanza = wocky_stanza_new ("features");
-  wocky_xmpp_node_set_ns (stanza->node, WOCKY_XMPP_NS_STREAM);
+  stanza = wocky_stanza_new ("features", WOCKY_XMPP_NS_STREAM);
 
   test_sasl_auth_server_set_mechs (G_OBJECT (self), stanza);
 
@@ -323,8 +322,7 @@ post_auth_open_sent (GObject *source,
     }
   else
     {
-      WockyStanza *s = wocky_stanza_new ("features");
-      wocky_xmpp_node_set_ns (s->node, WOCKY_XMPP_NS_STREAM);
+      WockyStanza *s = wocky_stanza_new ("features", WOCKY_XMPP_NS_STREAM);
       wocky_xmpp_connection_send_stanza_async (WOCKY_XMPP_CONNECTION (source),
           s, NULL, post_auth_features_sent, user_data);
       g_object_unref (s);
@@ -369,8 +367,7 @@ auth_succeeded (TestSaslAuthServer *self, const gchar *challenge)
   g_assert (priv->state < AUTH_STATE_AUTHENTICATED);
   priv->state = AUTH_STATE_AUTHENTICATED;
 
-  s = wocky_stanza_new ("success");
-  wocky_xmpp_node_set_ns (s->node, WOCKY_XMPP_NS_SASL_AUTH);
+  s = wocky_stanza_new ("success", WOCKY_XMPP_NS_SASL_AUTH);
   wocky_xmpp_node_set_content (s->node, challenge);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
@@ -691,8 +688,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
           challenge64 = g_base64_encode ((guchar *) challenge, challenge_len);
         }
 
-      c = wocky_stanza_new ("challenge");
-      wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
+      c = wocky_stanza_new ("challenge", WOCKY_XMPP_NS_SASL_AUTH);
       wocky_xmpp_node_set_content (c->node, challenge64);
       wocky_xmpp_connection_send_stanza_async (priv->conn, c,
         NULL, NULL, NULL);
@@ -785,8 +781,7 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
         }
       else
         {
-          c = wocky_stanza_new ("challenge");
-          wocky_xmpp_node_set_ns (c->node, WOCKY_XMPP_NS_SASL_AUTH);
+          c = wocky_stanza_new ("challenge", WOCKY_XMPP_NS_SASL_AUTH);
           wocky_xmpp_node_set_content (c->node, challenge64);
           wocky_xmpp_connection_send_stanza_async (priv->conn, c,
             NULL, NULL, NULL);

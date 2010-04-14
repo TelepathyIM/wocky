@@ -252,10 +252,9 @@ static WockyStanza *
 error_stanza (const gchar *cond,
     const gchar *msg, gboolean extended)
 {
-  WockyStanza *error = wocky_stanza_new ("error");
+  WockyStanza *error = wocky_stanza_new ("error", WOCKY_XMPP_NS_STREAM);
   WockyXmppNode *node = error->node;
 
-  wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STREAM);
   wocky_xmpp_node_add_child_ns (node, cond, WOCKY_XMPP_NS_STREAMS);
 
   if ((msg != NULL) && (*msg != '\0'))
@@ -979,13 +978,11 @@ handle_starttls (TestConnectorServer *self,
         }
       else if (problem->xmpp & XMPP_PROBLEM_TLS_REFUSED)
         {
-          reply = wocky_stanza_new ("failure");
-          wocky_xmpp_node_set_ns (reply->node, WOCKY_XMPP_NS_TLS);
+          reply = wocky_stanza_new ("failure", WOCKY_XMPP_NS_TLS);
         }
       else
         {
-          reply = wocky_stanza_new ("proceed");
-          wocky_xmpp_node_set_ns (reply->node, WOCKY_XMPP_NS_TLS);
+          reply = wocky_stanza_new ("proceed", WOCKY_XMPP_NS_TLS);
           cb = starttls;
           /* set up the tls server session */
           /* gnutls_global_set_log_function ((gnutls_log_func)debug_gnutls);
@@ -1238,7 +1235,7 @@ after_auth (GObject *source,
   if (server_dec_outstanding (tcs))
     return;
 
-  feat = wocky_stanza_new ("stream:features");
+  feat = wocky_stanza_new ("stream:features", NULL);
   node = feat->node;
 
   if (!(priv->problem.connector->xmpp & XMPP_PROBLEM_NO_SESSION))
@@ -1272,11 +1269,10 @@ feature_stanza (TestConnectorServer *self)
     return error_stanza ("host-unknown", "some sort of DNS error", TRUE);
 
   name = (problem & XMPP_PROBLEM_FEATURES) ? "badger" : "features";
-  feat = wocky_stanza_new (name);
+  feat = wocky_stanza_new (name, WOCKY_XMPP_NS_STREAM);
   node = feat->node;
 
   DEBUG ("constructing <%s...>... stanza", name);
-  wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STREAM);
 
   if (priv->problem.sasl != SERVER_PROBLEM_NO_SASL)
     {

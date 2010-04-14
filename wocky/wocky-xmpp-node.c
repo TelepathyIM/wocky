@@ -71,11 +71,12 @@ static GHashTable *default_ns_prefixes = NULL;
  * Returns: a newly allocated #WockyXmppNode.
  */
 WockyXmppNode *
-wocky_xmpp_node_new (const char *name)
+wocky_xmpp_node_new (const char *name, const gchar *ns)
 {
   WockyXmppNode *result = g_slice_new0 (WockyXmppNode);
 
   result->name = g_strdup (name);
+  result->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
 
   return result;
 }
@@ -685,13 +686,12 @@ WockyXmppNode *
 wocky_xmpp_node_add_child_with_content_ns (WockyXmppNode *node,
     const gchar *name, const gchar *content, const gchar *ns)
 {
-  WockyXmppNode *result = wocky_xmpp_node_new (name);
+  WockyXmppNode *result = wocky_xmpp_node_new (name, ns);
+
+  if (result->ns == 0)
+    result->ns = node->ns;
 
   wocky_xmpp_node_set_content (result, content);
-  if (ns != NULL)
-    wocky_xmpp_node_set_ns (result, ns);
-  else
-    result->ns = node->ns;
 
   node->children = g_slist_append (node->children, result);
   return result;

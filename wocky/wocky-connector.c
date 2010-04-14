@@ -1428,8 +1428,7 @@ xmpp_features_cb (GObject *source,
 
   if (!priv->encrypted && can_encrypt)
     {
-      WockyStanza *starttls = wocky_stanza_new ("starttls");
-      wocky_xmpp_node_set_ns (starttls->node, WOCKY_XMPP_NS_TLS);
+      WockyStanza *starttls = wocky_stanza_new ("starttls", WOCKY_XMPP_NS_TLS);
       DEBUG ("sending TLS request");
       wocky_xmpp_connection_send_stanza_async (priv->conn, starttls,
           NULL, starttls_sent_cb, data);

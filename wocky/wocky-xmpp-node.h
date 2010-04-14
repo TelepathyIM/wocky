@@ -153,7 +153,7 @@ void wocky_xmpp_node_append_content_n (WockyXmppNode *node,
 gchar *wocky_xmpp_node_to_string (WockyXmppNode *node);
 
 /* Create a new standalone node, usually only used by the stanza object */
-WockyXmppNode *wocky_xmpp_node_new (const char *name);
+WockyXmppNode *wocky_xmpp_node_new (const char *name, const gchar *ns);
 
 /* Frees the node and all it's children! */
 void wocky_xmpp_node_free (WockyXmppNode *node);
