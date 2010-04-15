@@ -601,7 +601,7 @@ status_code_to_muc_flag (guint code)
 /* ************************************************************************ */
 /* check MUC exists/disco MUC info */
 static gboolean
-store_muc_disco_info_x (WockyXmppNode *field, gpointer data)
+store_muc_disco_info_x (WockyNode *field, gpointer data)
 {
   WockyMucPrivate *priv = data;
   const gchar *var = NULL;
@@ -609,26 +609,26 @@ store_muc_disco_info_x (WockyXmppNode *field, gpointer data)
   if (wocky_strdiff (field->name, "field"))
     return TRUE;
 
-  var = wocky_xmpp_node_get_attribute (field, "var");
+  var = wocky_node_get_attribute (field, "var");
 
   if (wocky_strdiff (var, "muc#roominfo_description"))
     return TRUE;
 
   priv->desc = g_strdup (
-      wocky_xmpp_node_get_content_from_child (field, "value"));
+      wocky_node_get_content_from_child (field, "value"));
 
   return TRUE;
 }
 
 static gboolean
-store_muc_disco_info (WockyXmppNode *feat, gpointer data)
+store_muc_disco_info (WockyNode *feat, gpointer data)
 {
   WockyMucPrivate *priv = data;
 
   if (!wocky_strdiff (feat->name, "feature"))
     {
       guint i;
-      const gchar *thing = wocky_xmpp_node_get_attribute (feat, "var");
+      const gchar *thing = wocky_node_get_attribute (feat, "var");
 
       if (thing == NULL)
         return TRUE;
@@ -643,7 +643,7 @@ store_muc_disco_info (WockyXmppNode *feat, gpointer data)
     }
 
   if (!wocky_strdiff (feat->name, "x"))
-    wocky_xmpp_node_each_child (feat, store_muc_disco_info_x, priv);
+    wocky_node_each_child (feat, store_muc_disco_info_x, priv);
 
   return TRUE;
 }
@@ -691,11 +691,11 @@ muc_disco_info (GObject *source,
 
   switch (sub)
     {
-      WockyXmppNode *query;
-      WockyXmppNode *node;
+      WockyNode *query;
+      WockyNode *node;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        query = wocky_xmpp_node_get_child_ns (
+        query = wocky_node_get_child_ns (
           wocky_stanza_get_top_node (iq), "query", NS_DISCO_INFO);
 
         if (!query)
@@ -706,7 +706,7 @@ muc_disco_info (GObject *source,
             goto out;
           }
 
-        node = wocky_xmpp_node_get_child (query, "identity");
+        node = wocky_node_get_child (query, "identity");
 
         if (!node)
           {
@@ -719,20 +719,20 @@ muc_disco_info (GObject *source,
           {
             const gchar *attr;
 
-            attr = wocky_xmpp_node_get_attribute (node, "category");
+            attr = wocky_node_get_attribute (node, "category");
             g_free (priv->id_category);
             priv->id_category = g_strdup (attr);
 
-            attr = wocky_xmpp_node_get_attribute (node, "name");
+            attr = wocky_node_get_attribute (node, "name");
             g_free (priv->id_name);
             priv->id_name = g_strdup (attr);
 
-            attr = wocky_xmpp_node_get_attribute (node, "type");
+            attr = wocky_node_get_attribute (node, "type");
             g_free (priv->id_type);
             priv->id_type = g_strdup (attr);
           }
 
-        wocky_xmpp_node_each_child (query, store_muc_disco_info, priv);
+        wocky_node_each_child (query, store_muc_disco_info, priv);
         if (priv->state < WOCKY_MUC_INITIATED)
           priv->state = WOCKY_MUC_INITIATED;
         break;
@@ -814,8 +814,8 @@ wocky_muc_create_presence (WockyMuc *muc,
         priv->user,
         priv->jid,
         NULL);
-  WockyXmppNode *presence = wocky_stanza_get_top_node (stanza);
-  WockyXmppNode *x = wocky_xmpp_node_add_child_ns (presence,
+  WockyNode *presence = wocky_stanza_get_top_node (stanza);
+  WockyNode *x = wocky_node_add_child_ns (presence,
       "x", WOCKY_NS_MUC);
 
 
@@ -826,7 +826,7 @@ wocky_muc_create_presence (WockyMuc *muc,
 
   if (status != NULL)
     {
-      wocky_xmpp_node_add_child_with_content (presence, "status", status);
+      wocky_node_add_child_with_content (presence, "status", status);
     }
   else
     {
@@ -834,7 +834,7 @@ wocky_muc_create_presence (WockyMuc *muc,
     }
 
   if (password != NULL)
-    wocky_xmpp_node_add_child_with_content (x, "password", password);
+    wocky_node_add_child_with_content (x, "password", password);
 
   return stanza;
 }
@@ -892,7 +892,7 @@ register_message_handler (WockyMuc *muc)
 /* ************************************************************************ */
 /* handle presence from MUC */
 static gboolean
-presence_code (WockyXmppNode *node, gpointer data)
+presence_code (WockyNode *node, gpointer data)
 {
   const gchar *code = NULL;
   GHashTable *status = data;
@@ -901,7 +901,7 @@ presence_code (WockyXmppNode *node, gpointer data)
   if (wocky_strdiff (node->name, "status"))
     return TRUE;
 
-  code = wocky_xmpp_node_get_attribute (node, "code");
+  code = wocky_node_get_attribute (node, "code");
 
   if (code == NULL)    return TRUE;
 
@@ -932,7 +932,7 @@ presence_code (WockyXmppNode *node, gpointer data)
 }
 
 static gboolean
-presence_status (WockyXmppNode *node, gpointer data)
+presence_status (WockyNode *node, gpointer data)
 {
   GString **status = data;
 
@@ -1126,11 +1126,11 @@ handle_presence_standard (WockyMuc *muc,
   gchar *serv = NULL;
   gchar *nick = NULL;
   gboolean ok = FALSE;
-  WockyXmppNode *node = wocky_stanza_get_top_node (stanza);
-  WockyXmppNode *x = wocky_xmpp_node_get_child_ns (node,
+  WockyNode *node = wocky_stanza_get_top_node (stanza);
+  WockyNode *x = wocky_node_get_child_ns (node,
       "x", WOCKY_NS_MUC_USR);
-  WockyXmppNode *item = NULL;
-  const gchar *from = wocky_xmpp_node_get_attribute (node, "from");
+  WockyNode *item = NULL;
+  const gchar *from = wocky_node_get_attribute (node, "from");
   const gchar *pjid = NULL;
   const gchar *pnic = NULL;
   const gchar *role = NULL;
@@ -1159,31 +1159,31 @@ handle_presence_standard (WockyMuc *muc,
       return FALSE;
     }
 
-  wocky_xmpp_node_each_child (node, presence_status, &status_msg);
+  wocky_node_each_child (node, presence_status, &status_msg);
   if (status_msg != NULL)
     msg = g_string_free (status_msg, FALSE);
 
   if (x != NULL)
     {
-      item = wocky_xmpp_node_get_child (x, "item");
+      item = wocky_node_get_child (x, "item");
 
       if (item != NULL)
         {
-          WockyXmppNode *actor = NULL;
-          WockyXmppNode *cause = NULL;
+          WockyNode *actor = NULL;
+          WockyNode *cause = NULL;
 
-          pjid = wocky_xmpp_node_get_attribute (item, "jid");
-          pnic = wocky_xmpp_node_get_attribute (item, "nick");
-          role = wocky_xmpp_node_get_attribute (item, "role");
-          aff = wocky_xmpp_node_get_attribute (item, "affiliation");
-          actor = wocky_xmpp_node_get_child (item, "actor");
-          cause = wocky_xmpp_node_get_child (item, "reason");
+          pjid = wocky_node_get_attribute (item, "jid");
+          pnic = wocky_node_get_attribute (item, "nick");
+          role = wocky_node_get_attribute (item, "role");
+          aff = wocky_node_get_attribute (item, "affiliation");
+          actor = wocky_node_get_child (item, "actor");
+          cause = wocky_node_get_child (item, "reason");
 
           r = string_to_role (role);
           a = string_to_aff (aff);
 
           if (actor != NULL)
-            ajid = wocky_xmpp_node_get_attribute (actor, "jid");
+            ajid = wocky_node_get_attribute (actor, "jid");
 
           if (cause != NULL)
             why = cause->content;
@@ -1194,7 +1194,7 @@ handle_presence_standard (WockyMuc *muc,
         pnic = nick;
 
       code = g_hash_table_new (g_direct_hash, NULL);
-      wocky_xmpp_node_each_child (x, presence_code, code);
+      wocky_node_each_child (x, presence_code, code);
       /* belt and braces: it is possible OWN_PRESENCE is not set, as it is   *
        * only a SHOULD in the RFC: check the 'from' stanza attribute and the *
        * jid item node attribute against the MUC jid and the users full jid  *
@@ -1294,7 +1294,7 @@ handle_presence_error (WockyMuc *muc,
   gchar *room = NULL;
   gchar *serv = NULL;
   gchar *nick = NULL;
-  const gchar *from = wocky_xmpp_node_get_attribute (
+  const gchar *from = wocky_node_get_attribute (
       wocky_stanza_get_top_node (stanza), "from");
   WockyMucPrivate *priv = muc->priv;
   GError *error = NULL;
@@ -1378,9 +1378,9 @@ handle_message (WockyPorter *porter,
   WockyMuc *muc = WOCKY_MUC (data);
   WockyMucPrivate *priv = muc->priv;
   WockyStanzaSubType stype;
-  WockyXmppNode *msg = wocky_stanza_get_top_node (stanza);
+  WockyNode *msg = wocky_stanza_get_top_node (stanza);
   const gchar *from = NULL;
-  WockyXmppNode *child = NULL;
+  WockyNode *child = NULL;
   gboolean from_self = FALSE;
   int x;
 
@@ -1398,14 +1398,14 @@ handle_message (WockyPorter *porter,
    * HACK: we interrupt this function for a HACK:                      *
    * google servers send offline messags w/o a type; kludge it:        */
   if (stype == WOCKY_STANZA_SUB_TYPE_NONE &&
-      wocky_xmpp_node_get_child_ns (msg, "time", "google:timestamp") != NULL &&
-      wocky_xmpp_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY) != NULL)
+      wocky_node_get_child_ns (msg, "time", "google:timestamp") != NULL &&
+      wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY) != NULL)
     stype = WOCKY_STANZA_SUB_TYPE_GROUPCHAT;
 
   /* ***************************************************************** *
    * we now return you to your regular logic                           */
-  id = wocky_xmpp_node_get_attribute (msg, "id");
-  from = wocky_xmpp_node_get_attribute (msg, "from");
+  id = wocky_node_get_attribute (msg, "id");
+  from = wocky_node_get_attribute (msg, "from");
 
   /* if the message purports to be from a MUC member, treat as such: */
   if (strchr (from, '/') != NULL)
@@ -1449,16 +1449,16 @@ handle_message (WockyPorter *porter,
         }
     }
 
-  body = wocky_xmpp_node_get_content_from_child (msg, "body");
-  subj = wocky_xmpp_node_get_content_from_child (msg, "subject");
+  body = wocky_node_get_content_from_child (msg, "body");
+  subj = wocky_node_get_content_from_child (msg, "subject");
 
   /* ********************************************************************** */
   /* parse timestap, if any */
-  child = wocky_xmpp_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
+  child = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
 
   if (child != NULL)
     {
-      const gchar *tm = wocky_xmpp_node_get_attribute (child, "stamp");
+      const gchar *tm = wocky_node_get_attribute (child, "stamp");
 
       /* These timestamps do not contain a timezone, but are understood to be
        * in GMT. They're in the format yyyymmddThhmmss, so if we append 'Z'
@@ -1514,7 +1514,7 @@ handle_message (WockyPorter *porter,
   for (x = 0; msg_state[x].name != NULL; x++)
     {
       const gchar *item = msg_state[x].name;
-      child = wocky_xmpp_node_get_child_ns (msg, item, WOCKY_NS_CHATSTATE);
+      child = wocky_node_get_child_ns (msg, item, WOCKY_NS_CHATSTATE);
       if (child != NULL)
         break;
     }

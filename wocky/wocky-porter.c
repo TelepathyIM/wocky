@@ -791,7 +791,7 @@ handle_iq_reply (WockyPorter *self,
   StanzaIqHandler *handler;
   gboolean ret = FALSE;
 
-  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (reply), "id");
+  id = wocky_node_get_attribute (wocky_stanza_get_top_node (reply), "id");
   if (id == NULL)
     {
       DEBUG ("Ignoring reply without IQ id");
@@ -806,7 +806,7 @@ handle_iq_reply (WockyPorter *self,
       return FALSE;
     }
 
-  from = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (reply),
+  from = wocky_node_get_attribute (wocky_stanza_get_top_node (reply),
       "from");
   /* FIXME: If handler->recipient is NULL, we should check if the 'from' is
    * either NULL, our bare jid or our full jid. */
@@ -861,7 +861,7 @@ handle_stanza (WockyPorter *self,
 
   /* The from attribute of the stanza need not always be present, for example
    * when receiving roster items, so don't enforce it. */
-  from = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
       "from");
 
   if (from != NULL)
@@ -899,7 +899,7 @@ handle_stanza (WockyPorter *self,
         }
 
       /* Check if the stanza matches the pattern */
-      if (!wocky_xmpp_node_is_superset (wocky_stanza_get_top_node (stanza),
+      if (!wocky_node_is_superset (wocky_stanza_get_top_node (stanza),
           wocky_stanza_get_top_node (handler->match)))
         continue;
 
@@ -1335,7 +1335,7 @@ compare_handler (StanzaHandler *a,
  * @user_data: Passed to @callback.
  * @Varargs: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
- *  passed to this function, as per wocky_xmpp_node_is_superset().
+ *  passed to this function, as per wocky_node_is_superset().
  *
  * Register a new stanza handler.
  * Stanza handlers are called when the Porter receives a new stanza matching
@@ -1520,7 +1520,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
 
       g_assert (stanza != NULL && wocky_stanza_get_top_node (stanza) != NULL);
 
-      node = wocky_xmpp_node_to_string (wocky_stanza_get_top_node (stanza));
+      node = wocky_node_to_string (wocky_stanza_get_top_node (stanza));
       g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
           user_data, WOCKY_PORTER_ERROR,
           WOCKY_PORTER_ERROR_CLOSING,
@@ -1539,7 +1539,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
       sub_type != WOCKY_STANZA_SUB_TYPE_SET)
     goto wrong_stanza;
 
-  recipient = wocky_xmpp_node_get_attribute (
+  recipient = wocky_node_get_attribute (
       wocky_stanza_get_top_node (stanza), "to");
 
   /* Set an unique ID */
@@ -1550,7 +1550,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
     }
   while (g_hash_table_lookup (priv->iq_reply_handlers, id) != NULL);
 
-  wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza), "id", id);
+  wocky_node_set_attribute (wocky_stanza_get_top_node (stanza), "id", id);
 
   result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_porter_send_iq_finish);

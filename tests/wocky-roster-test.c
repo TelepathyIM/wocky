@@ -47,7 +47,7 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  WockyXmppNode *node;
+  WockyNode *node;
   WockyStanza *reply;
   const char *id;
 
@@ -57,14 +57,14 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
 
-  node = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child (wocky_stanza_get_top_node (stanza),
       "query");
 
   g_assert (wocky_stanza_get_top_node (stanza) != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_ns (node),
+  g_assert (!wocky_strdiff (wocky_node_get_ns (node),
           "jabber:iq:roster"));
 
-  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+  id = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
       "id");
   g_assert (id != NULL);
 
@@ -220,9 +220,9 @@ fetch_roster_reply_cb (WockyPorter *porter,
    * is left up to the server to know which client is the user and then throw
    * in a correct to attribute. Here we're just adding a from attribute so the
    * IQ result builder doesn't complain. */
-  if (wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+  if (wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
         "from") == NULL)
-    wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza), "from",
+    wocky_node_set_attribute (wocky_stanza_get_top_node (stanza), "from",
         "juliet@example.com/balcony");
 
   reply = wocky_stanza_build_iq_result (stanza,
@@ -366,7 +366,7 @@ send_roster_update (test_data_t *test,
     const gchar **groups)
 {
   WockyStanza *iq;
-  WockyXmppNode *item;
+  WockyNode *item;
   guint i;
 
   iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -380,20 +380,20 @@ send_roster_update (test_data_t *test,
     NULL);
 
   if (jid != NULL)
-    wocky_xmpp_node_set_attribute (item, "jid", jid);
+    wocky_node_set_attribute (item, "jid", jid);
 
   if (name != NULL)
-    wocky_xmpp_node_set_attribute (item, "name", name);
+    wocky_node_set_attribute (item, "name", name);
 
   if (subscription != NULL)
-    wocky_xmpp_node_set_attribute (item, "subscription", subscription);
+    wocky_node_set_attribute (item, "subscription", subscription);
 
   for (i = 0; groups != NULL && groups[i] != NULL; i++)
     {
-      WockyXmppNode *node;
+      WockyNode *node;
 
-      node = wocky_xmpp_node_add_child (item, "group");
-      wocky_xmpp_node_set_content (node, groups[i]);
+      node = wocky_node_add_child (item, "group");
+      wocky_node_set_content (node, groups[i]);
     }
 
   wocky_porter_send_iq_async (test->sched_out, iq, NULL,
@@ -553,7 +553,7 @@ ack_iq (WockyPorter *porter,
   WockyStanza *reply;
   const gchar *id;
 
-  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+  id = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
       "id");
   g_assert (id != NULL);
 
@@ -577,7 +577,7 @@ check_edit_roster_stanza (WockyStanza *stanza,
 {
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  WockyXmppNode *node;
+  WockyNode *node;
   GSList *l;
   guint i;
   GHashTable *expected_groups;
@@ -587,25 +587,25 @@ check_edit_roster_stanza (WockyStanza *stanza,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
-  node = wocky_xmpp_node_get_child (node, "item");
+  node = wocky_node_get_child (node, "item");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"), jid));
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "jid"), jid));
 
   if (name != NULL)
-    g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+    g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "name"),
           name));
   else
-    g_assert (wocky_xmpp_node_get_attribute (node, "name") == NULL);
+    g_assert (wocky_node_get_attribute (node, "name") == NULL);
 
   if (subscription != NULL)
-    g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node,
+    g_assert (!wocky_strdiff (wocky_node_get_attribute (node,
             "subscription"), subscription));
   else
-    g_assert (wocky_xmpp_node_get_attribute (node, "subscription") == NULL);
+    g_assert (wocky_node_get_attribute (node, "subscription") == NULL);
 
   if (groups == NULL)
     {
@@ -623,7 +623,7 @@ check_edit_roster_stanza (WockyStanza *stanza,
 
   for (l = node->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *group = (WockyXmppNode *) l->data;
+      WockyNode *group = (WockyNode *) l->data;
 
       g_assert (!wocky_strdiff (group->name, "group"));
 
@@ -865,7 +865,7 @@ change_name_send_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  WockyXmppNode *node;
+  WockyNode *node;
   const gchar *group[] = { "Friends", NULL };
 
   /* Make sure stanza is as expected. */
@@ -874,21 +874,21 @@ change_name_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
-  node = wocky_xmpp_node_get_child (node, "item");
+  node = wocky_node_get_child (node, "item");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "jid"),
       "romeo@example.net"));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "name"),
         "Badger"));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node,
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node,
         "subscription"), "both"));
 
   g_assert_cmpuint (g_slist_length (node->children), ==, 1);
-  node = wocky_xmpp_node_get_child (node, "group");
+  node = wocky_node_get_child (node, "group");
   g_assert (node != NULL);
   g_assert (!wocky_strdiff (node->content, "Friends"));
 
@@ -1001,7 +1001,7 @@ add_group_send_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  WockyXmppNode *node;
+  WockyNode *node;
   const gchar *groups[] = { "Friends", "Badger", NULL };
   GSList *l;
   gboolean group_friend = FALSE, group_badger = FALSE;
@@ -1012,23 +1012,23 @@ add_group_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
-  node = wocky_xmpp_node_get_child (node, "item");
+  node = wocky_node_get_child (node, "item");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "jid"),
       "romeo@example.net"));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "name"),
         "Romeo"));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node,
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node,
         "subscription"), "both"));
 
   g_assert_cmpuint (g_slist_length (node->children), ==, 2);
   for (l = node->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *group = (WockyXmppNode *) l->data;
+      WockyNode *group = (WockyNode *) l->data;
 
       g_assert (!wocky_strdiff (group->name, "group"));
 
@@ -1150,7 +1150,7 @@ remove_group_send_iq_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  WockyXmppNode *node;
+  WockyNode *node;
   const gchar *groups[] = { NULL };
 
   /* Make sure stanza is as expected. */
@@ -1159,17 +1159,17 @@ remove_group_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
-  node = wocky_xmpp_node_get_child (node, "item");
+  node = wocky_node_get_child (node, "item");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "jid"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "jid"),
       "romeo@example.net"));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "name"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "name"),
         "Romeo"));
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node,
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node,
         "subscription"), "both"));
 
   g_assert_cmpuint (g_slist_length (node->children), ==, 0);

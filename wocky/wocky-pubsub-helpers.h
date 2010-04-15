@@ -30,28 +30,28 @@ WockyStanza *wocky_pubsub_make_stanza (
     WockyStanzaSubType sub_type,
     const gchar *pubsub_ns,
     const gchar *action_name,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **action_node);
+    WockyNode **pubsub_node,
+    WockyNode **action_node);
 
 WockyStanza *wocky_pubsub_make_publish_stanza (
     const gchar *service,
     const gchar *node,
-    WockyXmppNode **pubsub_out,
-    WockyXmppNode **publish_out,
-    WockyXmppNode **item_out);
+    WockyNode **pubsub_out,
+    WockyNode **publish_out,
+    WockyNode **item_out);
 
 gboolean wocky_pubsub_distill_iq_reply (GObject *source,
     GAsyncResult *res,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyXmppNode **child_out,
+    WockyNode **child_out,
     GError **error);
 
 gboolean wocky_pubsub_distill_ambivalent_iq_reply (GObject *source,
     GAsyncResult *res,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyXmppNode **child_out,
+    WockyNode **child_out,
     GError **error);
 
 gboolean wocky_pubsub_distill_void_iq_reply (GObject *source,

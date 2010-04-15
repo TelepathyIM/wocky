@@ -24,7 +24,7 @@
 #include <stdarg.h>
 
 #include <glib-object.h>
-#include "wocky-xmpp-node.h"
+#include "wocky-node.h"
 #include "wocky-xmpp-error.h"
 
 G_BEGIN_DECLS
@@ -39,7 +39,7 @@ struct _WockyNodeTreeClass {
 
 struct _WockyNodeTree {
     GObject parent;
-    WockyXmppNode *node;
+    WockyNode *node;
 
     WockyNodeTreePrivate *priv;
 };

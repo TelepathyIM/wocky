@@ -167,7 +167,7 @@ wocky_stanza_new (const gchar *name, const gchar *ns)
   WockyStanza *result;
 
   result = WOCKY_STANZA (g_object_new (WOCKY_TYPE_STANZA, NULL));
-  result->parent.node = wocky_xmpp_node_new (name, ns);
+  result->parent.node = wocky_node_new (name, ns);
 
   return result;
 }
@@ -235,7 +235,7 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
 
   sub_type_name = get_sub_type_name (sub_type);
   if (sub_type_name != NULL)
-    wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza),
+    wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
         "type", sub_type_name);
 
   return stanza;
@@ -334,14 +334,14 @@ wocky_stanza_build_va (WockyStanzaType type,
     return NULL;
 
   if (from != NULL)
-    wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza),
+    wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
         "from", from);
 
   if (to != NULL)
-    wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza),
+    wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
         "to", to);
 
-  wocky_xmpp_node_add_build_va (wocky_stanza_get_top_node (stanza), ap);
+  wocky_node_add_build_va (wocky_stanza_get_top_node (stanza), ap);
 
   return stanza;
 }
@@ -400,7 +400,7 @@ wocky_stanza_get_type_info (WockyStanza *stanza,
     *type = get_type_from_name (wocky_stanza_get_top_node (stanza)->name);
 
   if (sub_type != NULL)
-    *sub_type = get_sub_type_from_name (wocky_xmpp_node_get_attribute (
+    *sub_type = get_sub_type_from_name (wocky_node_get_attribute (
           wocky_stanza_get_top_node (stanza), "type"));
 }
 
@@ -411,7 +411,7 @@ create_iq_reply (WockyStanza *iq,
 {
   WockyStanza *reply;
   WockyStanzaType type;
-  WockyXmppNode *node;
+  WockyNode *node;
   WockyStanzaSubType sub_type;
   const gchar *from, *to, *id;
 
@@ -423,15 +423,15 @@ create_iq_reply (WockyStanza *iq,
       sub_type == WOCKY_STANZA_SUB_TYPE_SET, NULL);
 
   node = wocky_stanza_get_top_node (iq);
-  from = wocky_xmpp_node_get_attribute (node, "from");
-  to = wocky_xmpp_node_get_attribute (node, "to");
-  id = wocky_xmpp_node_get_attribute (node, "id");
+  from = wocky_node_get_attribute (node, "from");
+  to = wocky_node_get_attribute (node, "to");
+  id = wocky_node_get_attribute (node, "id");
   g_return_val_if_fail (id != NULL, NULL);
 
   reply = wocky_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
       sub_type_reply, to, from, ap);
 
-  wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (reply), "id", id);
+  wocky_node_set_attribute (wocky_stanza_get_top_node (reply), "id", id);
   return reply;
 }
 
@@ -490,17 +490,17 @@ wocky_stanza_extract_errors (WockyStanza *stanza,
     WockyXmppErrorType *type,
     GError **core,
     GError **specialized,
-    WockyXmppNode **specialized_node)
+    WockyNode **specialized_node)
 {
   WockyStanzaSubType sub_type;
-  WockyXmppNode *error;
+  WockyNode *error;
 
   wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
   if (sub_type != WOCKY_STANZA_SUB_TYPE_ERROR)
     return FALSE;
 
-  error = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (stanza),
+  error = wocky_node_get_child (wocky_stanza_get_top_node (stanza),
     "error");
 
   if (error == NULL)
@@ -555,7 +555,7 @@ wocky_stanza_extract_stream_error (WockyStanza *stanza,
  *
  * Returns: A pointer to the topmost node of the stanza
  */
-WockyXmppNode *
+WockyNode *
 wocky_stanza_get_top_node (WockyStanza *self)
 {
   return self->parent.node;

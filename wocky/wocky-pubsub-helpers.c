@@ -40,20 +40,20 @@ WockyStanza *
 wocky_pubsub_make_publish_stanza (
     const gchar *service,
     const gchar *node,
-    WockyXmppNode **pubsub_out,
-    WockyXmppNode **publish_out,
-    WockyXmppNode **item_out)
+    WockyNode **pubsub_out,
+    WockyNode **publish_out,
+    WockyNode **item_out)
 {
   WockyStanza *stanza;
-  WockyXmppNode *publish, *item;
+  WockyNode *publish, *item;
 
   g_return_val_if_fail (node != NULL, NULL);
 
   stanza = wocky_pubsub_make_stanza (service, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_XMPP_NS_PUBSUB, "publish", pubsub_out, &publish);
 
-  wocky_xmpp_node_set_attribute (publish, "node", node);
-  item = wocky_xmpp_node_add_child (publish, "item");
+  wocky_node_set_attribute (publish, "node", node);
+  item = wocky_node_add_child (publish, "item");
 
   if (publish_out != NULL)
     *publish_out = publish;
@@ -83,11 +83,11 @@ wocky_pubsub_make_stanza (
     WockyStanzaSubType sub_type,
     const gchar *pubsub_ns,
     const gchar *action_name,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **action_node)
+    WockyNode **pubsub_node,
+    WockyNode **action_node)
 {
   WockyStanza *stanza;
-  WockyXmppNode *pubsub, *action;
+  WockyNode *pubsub, *action;
 
   g_assert (pubsub_ns != NULL);
   g_assert (action_name != NULL);
@@ -117,14 +117,14 @@ static gboolean
 get_pubsub_child_node (WockyStanza *reply,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyXmppNode **child_out,
+    WockyNode **child_out,
     GError **error)
 {
-  WockyXmppNode *n;
+  WockyNode *n;
 
   g_return_val_if_fail (reply != NULL, FALSE);
 
-  n = wocky_xmpp_node_get_child_ns (
+  n = wocky_node_get_child_ns (
     wocky_stanza_get_top_node (reply), "pubsub", pubsub_ns);
 
   if (n == NULL)
@@ -135,7 +135,7 @@ get_pubsub_child_node (WockyStanza *reply,
       return FALSE;
     }
 
-  n = wocky_xmpp_node_get_child (n, child_name);
+  n = wocky_node_get_child (n, child_name);
 
   if (n == NULL)
     {
@@ -157,7 +157,7 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
     const gchar *pubsub_ns,
     const gchar *child_name,
     gboolean body_optional,
-    WockyXmppNode **child_out,
+    WockyNode **child_out,
     GError **error)
 {
   WockyStanza *reply;
@@ -230,7 +230,7 @@ wocky_pubsub_distill_iq_reply (GObject *source,
     GAsyncResult *res,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyXmppNode **child_out,
+    WockyNode **child_out,
     GError **error)
 {
   return wocky_pubsub_distill_iq_reply_internal (source, res, pubsub_ns,
@@ -290,7 +290,7 @@ wocky_pubsub_distill_ambivalent_iq_reply (GObject *source,
     GAsyncResult *res,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyXmppNode **child_out,
+    WockyNode **child_out,
     GError **error)
 {
   return wocky_pubsub_distill_iq_reply_internal (source, res, pubsub_ns,

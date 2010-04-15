@@ -368,7 +368,7 @@ auth_succeeded (TestSaslAuthServer *self, const gchar *challenge)
   priv->state = AUTH_STATE_AUTHENTICATED;
 
   s = wocky_stanza_new ("success", WOCKY_XMPP_NS_SASL_AUTH);
-  wocky_xmpp_node_set_content (wocky_stanza_get_top_node (s), challenge);
+  wocky_node_set_content (wocky_stanza_get_top_node (s), challenge);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
     success_sent, self);
@@ -586,11 +586,11 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
   unsigned challenge_len;
   gsize response_len = 0;
   int ret;
-  WockyXmppNode *auth = wocky_stanza_get_top_node (stanza);
+  WockyNode *auth = wocky_stanza_get_top_node (stanza);
   const gchar *gjdd = NULL;
 
   g_free (priv->selected_mech);
-  priv->selected_mech = g_strdup (wocky_xmpp_node_get_attribute (
+  priv->selected_mech = g_strdup (wocky_node_get_attribute (
     wocky_stanza_get_top_node (stanza), "mechanism"));
 
   if (wocky_stanza_get_top_node (stanza)->content != NULL)
@@ -600,7 +600,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
     }
 
   g_assert (priv->state == AUTH_STATE_STARTED);
-  gjdd = wocky_xmpp_node_get_attribute_ns (auth,
+  gjdd = wocky_node_get_attribute_ns (auth,
       "client-uses-full-bind-result", WOCKY_GOOGLE_NS_AUTH);
   switch (priv->problem)
     {
@@ -690,7 +690,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
         }
 
       c = wocky_stanza_new ("challenge", WOCKY_XMPP_NS_SASL_AUTH);
-      wocky_xmpp_node_set_content (wocky_stanza_get_top_node (c), challenge64);
+      wocky_node_set_content (wocky_stanza_get_top_node (c), challenge64);
       wocky_xmpp_connection_send_stanza_async (priv->conn, c,
         NULL, NULL, NULL);
       g_object_unref (c);
@@ -784,7 +784,7 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
       else
         {
           c = wocky_stanza_new ("challenge", WOCKY_XMPP_NS_SASL_AUTH);
-          wocky_xmpp_node_set_content (wocky_stanza_get_top_node (c),
+          wocky_node_set_content (wocky_stanza_get_top_node (c),
               challenge64);
           wocky_xmpp_connection_send_stanza_async (priv->conn, c,
             NULL, NULL, NULL);
@@ -839,7 +839,7 @@ received_stanza (GObject *source,
 
   g_assert (stanza != NULL);
 
-  if (wocky_strdiff (wocky_xmpp_node_get_ns (
+  if (wocky_strdiff (wocky_node_get_ns (
         wocky_stanza_get_top_node (stanza)), WOCKY_XMPP_NS_SASL_AUTH))
     {
       g_assert_not_reached ();
@@ -1016,11 +1016,11 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyStanza *feat)
   int ret = 0;
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = self->priv;
-  WockyXmppNode *mechnode = NULL;
+  WockyNode *mechnode = NULL;
 
   if (priv->problem != SERVER_PROBLEM_NO_SASL)
     {
-      mechnode = wocky_xmpp_node_add_child_ns (
+      mechnode = wocky_node_add_child_ns (
         wocky_stanza_get_top_node (feat),
           "mechanisms", WOCKY_XMPP_NS_SASL_AUTH);
       if (priv->problem == SERVER_PROBLEM_NO_MECHANISMS)
@@ -1029,7 +1029,7 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyStanza *feat)
         }
       else if (priv->mech != NULL)
         {
-          wocky_xmpp_node_add_child_with_content (mechnode, "mechanism",
+          wocky_node_add_child_with_content (mechnode, "mechanism",
               priv->mech);
         }
       else
@@ -1049,7 +1049,7 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyStanza *feat)
           mechlist = g_strsplit (mechs, "\n", -1);
           for (tmp = mechlist; *tmp != NULL; tmp++)
             {
-              wocky_xmpp_node_add_child_with_content (mechnode,
+              wocky_node_add_child_with_content (mechnode,
                 "mechanism", *tmp);
             }
           g_strfreev (mechlist);

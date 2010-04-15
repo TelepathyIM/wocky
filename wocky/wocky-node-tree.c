@@ -79,7 +79,7 @@ wocky_node_tree_finalize (GObject *object)
   WockyNodeTree *self = WOCKY_NODE_TREE (object);
 
   /* free any data held directly by the object here */
-  wocky_xmpp_node_free (self->node);
+  wocky_node_free (self->node);
 
   G_OBJECT_CLASS (wocky_node_tree_parent_class)->finalize (object);
 }

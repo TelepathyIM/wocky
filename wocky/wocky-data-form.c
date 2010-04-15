@@ -273,21 +273,21 @@ type_to_str (WockyDataFormFieldType type)
  *          <option/>s defined in the node
  */
 static GSList *
-extract_options_list (WockyXmppNode *node)
+extract_options_list (WockyNode *node)
 {
   GSList *result = NULL;
-  WockyXmppNodeIter iter;
-  WockyXmppNode *option_node;
+  WockyNodeIter iter;
+  WockyNode *option_node;
 
-  wocky_xmpp_node_iter_init (&iter, node, "option", NULL);
+  wocky_node_iter_init (&iter, node, "option", NULL);
 
-  while (wocky_xmpp_node_iter_next (&iter, &option_node))
+  while (wocky_node_iter_next (&iter, &option_node))
     {
       WockyDataFormFieldOption *option;
       const gchar *value, *label;
 
-      value = wocky_xmpp_node_get_content_from_child (option_node, "value");
-      label = wocky_xmpp_node_get_attribute (option_node, "label");
+      value = wocky_node_get_content_from_child (option_node, "value");
+      label = wocky_node_get_attribute (option_node, "label");
 
       if (value == NULL)
         continue;
@@ -310,15 +310,15 @@ extract_options_list (WockyXmppNode *node)
  *          the 'value' children nodes of the node
  */
 static GStrv
-extract_value_list (WockyXmppNode *node)
+extract_value_list (WockyNode *node)
 {
   GPtrArray *tmp = g_ptr_array_new ();
-  WockyXmppNodeIter iter;
-  WockyXmppNode *value;
+  WockyNodeIter iter;
+  WockyNode *value;
 
-  wocky_xmpp_node_iter_init (&iter, node, "value", NULL);
+  wocky_node_iter_init (&iter, node, "value", NULL);
 
-  while (wocky_xmpp_node_iter_next (&iter, &value))
+  while (wocky_node_iter_next (&iter, &value))
     {
       if (value->content != NULL)
         g_ptr_array_add (tmp, g_strdup (value->content));
@@ -333,9 +333,9 @@ extract_value_list (WockyXmppNode *node)
 static GValue *
 get_field_value (
     WockyDataFormFieldType type,
-    WockyXmppNode *field)
+    WockyNode *field)
 {
-  WockyXmppNode *node;
+  WockyNode *node;
   const gchar *value;
 
   if (type == WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
@@ -347,7 +347,7 @@ get_field_value (
       return NULL;
     }
 
-  node = wocky_xmpp_node_get_child (field, "value");
+  node = wocky_node_get_child (field, "value");
   if (node == NULL)
     /* no default value */
     return NULL;
@@ -387,7 +387,7 @@ get_field_value (
 }
 
 static WockyDataFormField *
-create_field (WockyXmppNode *field_node,
+create_field (WockyNode *field_node,
     const gchar *var,
     WockyDataFormFieldType type,
     const gchar *label,
@@ -420,7 +420,7 @@ create_field (WockyXmppNode *field_node,
 }
 
 static gboolean
-extract_var_type_label (WockyXmppNode *node,
+extract_var_type_label (WockyNode *node,
     const gchar **_var,
     WockyDataFormFieldType *_type,
     const gchar **_label)
@@ -435,7 +435,7 @@ extract_var_type_label (WockyXmppNode *node,
    * 'type' attribute that defines the data "type" of the field data (if no
    * 'type' is specified, the default is "text-single")
    */
-  tmp = wocky_xmpp_node_get_attribute (node, "type");
+  tmp = wocky_node_get_attribute (node, "type");
   if (tmp == NULL)
     {
       type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
@@ -447,14 +447,14 @@ extract_var_type_label (WockyXmppNode *node,
       return FALSE;
     }
 
-  var = wocky_xmpp_node_get_attribute (node, "var");
+  var = wocky_node_get_attribute (node, "var");
   if (var == NULL && type != WOCKY_DATA_FORM_FIELD_TYPE_FIXED)
     {
       DEBUG ("field node doesn't have a 'var' attribute; ignoring");
       return FALSE;
     }
 
-  label = wocky_xmpp_node_get_attribute (node, "label");
+  label = wocky_node_get_attribute (node, "label");
 
   if (_var != NULL)
     *_var = var;
@@ -467,7 +467,7 @@ extract_var_type_label (WockyXmppNode *node,
 }
 
 static WockyDataFormField *
-data_form_parse_form_field (WockyXmppNode *field_node)
+data_form_parse_form_field (WockyNode *field_node)
 {
   WockyDataFormField *field;
   const gchar *var, *label, *desc;
@@ -477,8 +477,8 @@ data_form_parse_form_field (WockyXmppNode *field_node)
   if (!extract_var_type_label (field_node, &var, &type, &label))
     return NULL;
 
-  desc = wocky_xmpp_node_get_content_from_child (field_node, "desc");
-  required = (wocky_xmpp_node_get_child (field_node, "required") != NULL);
+  desc = wocky_node_get_content_from_child (field_node, "desc");
+  required = (wocky_node_get_child (field_node, "required") != NULL);
   field = create_field (field_node, var, type, label, desc, required);
 
   if (field == NULL)
@@ -509,15 +509,15 @@ data_form_add_field (WockyDataForm *self,
 }
 
 WockyDataForm *
-wocky_data_form_new_from_form (WockyXmppNode *root,
+wocky_data_form_new_from_form (WockyNode *root,
     GError **error)
 {
-  WockyXmppNode *x, *node;
-  WockyXmppNodeIter iter;
+  WockyNode *x, *node;
+  WockyNodeIter iter;
   const gchar *type, *title, *instructions;
   WockyDataForm *form;
 
-  x = wocky_xmpp_node_get_child_ns (root, "x", WOCKY_XMPP_NS_DATA);
+  x = wocky_node_get_child_ns (root, "x", WOCKY_XMPP_NS_DATA);
   if (x == NULL)
     {
       DEBUG ("No 'x' node");
@@ -526,7 +526,7 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
       return NULL;
     }
 
-  type = wocky_xmpp_node_get_attribute (x, "type");
+  type = wocky_node_get_attribute (x, "type");
   if (wocky_strdiff (type, "form"))
     {
       DEBUG ("'type' attribute is not 'form': %s", type);
@@ -536,8 +536,8 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
       return NULL;
     }
 
-  title = wocky_xmpp_node_get_content_from_child (x, "title");
-  instructions = wocky_xmpp_node_get_content_from_child (x, "instructions");
+  title = wocky_node_get_content_from_child (x, "title");
+  instructions = wocky_node_get_content_from_child (x, "instructions");
 
   form = g_object_new (WOCKY_TYPE_DATA_FORM,
       "title", title,
@@ -545,9 +545,9 @@ wocky_data_form_new_from_form (WockyXmppNode *root,
       NULL);
 
   /* add fields */
-  wocky_xmpp_node_iter_init (&iter, x, "field", NULL);
+  wocky_node_iter_init (&iter, x, "field", NULL);
 
-  while (wocky_xmpp_node_iter_next (&iter, &node))
+  while (wocky_node_iter_next (&iter, &node))
     {
       WockyDataFormField *field = data_form_parse_form_field (node);
 
@@ -698,11 +698,11 @@ wocky_data_form_set_strv (WockyDataForm *self,
 
 static void
 add_field_to_node (WockyDataFormField *field,
-    WockyXmppNode *node)
+    WockyNode *node)
 {
   const GValue *value = field->value;
   GType t;
-  WockyXmppNode *field_node;
+  WockyNode *field_node;
 
   /* Skip anonymous fields, which are used for instructions to the user. */
   if (field->var == NULL)
@@ -718,23 +718,23 @@ add_field_to_node (WockyDataFormField *field,
   if (value == NULL)
     return;
 
-  field_node = wocky_xmpp_node_add_child (node, "field");
-  wocky_xmpp_node_set_attribute (field_node, "var", field->var);
+  field_node = wocky_node_add_child (node, "field");
+  wocky_node_set_attribute (field_node, "var", field->var);
 
   if (field->type != WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
-    wocky_xmpp_node_set_attribute (field_node, "type",
+    wocky_node_set_attribute (field_node, "type",
         type_to_str (field->type));
 
   t = G_VALUE_TYPE (value);
 
   if (t == G_TYPE_BOOLEAN)
     {
-      wocky_xmpp_node_add_child_with_content (field_node, "value",
+      wocky_node_add_child_with_content (field_node, "value",
           g_value_get_boolean (value) ? "1" : "0");
     }
   else if (t == G_TYPE_STRING)
     {
-      wocky_xmpp_node_add_child_with_content (field_node, "value",
+      wocky_node_add_child_with_content (field_node, "value",
           g_value_get_string (value));
     }
   else if (t == G_TYPE_STRV)
@@ -743,7 +743,7 @@ add_field_to_node (WockyDataFormField *field,
       GStrv s;
 
       for (s = tmp; *s != NULL; s++)
-        wocky_xmpp_node_add_child_with_content (field_node, "value", *s);
+        wocky_node_add_child_with_content (field_node, "value", *s);
     }
   else
     {
@@ -761,26 +761,26 @@ add_field_to_node (WockyDataFormField *field,
  */
 void
 wocky_data_form_submit (WockyDataForm *self,
-    WockyXmppNode *node)
+    WockyNode *node)
 {
-  WockyXmppNode *x;
+  WockyNode *x;
 
-  x = wocky_xmpp_node_add_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
-  wocky_xmpp_node_set_attribute (x, "type", "submit");
+  x = wocky_node_add_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
+  wocky_node_set_attribute (x, "type", "submit");
 
   g_slist_foreach (self->fields_list, (GFunc) add_field_to_node, x);
 }
 
 static void
 data_form_parse_reported (WockyDataForm *self,
-    WockyXmppNode *reported_node)
+    WockyNode *reported_node)
 {
   WockyDataFormPrivate *priv = self->priv;
   GSList *l;
 
   for (l = reported_node->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *node = l->data;
+      WockyNode *node = l->data;
       const gchar *var, *label;
       WockyDataFormField *field;
       WockyDataFormFieldType type;
@@ -798,21 +798,21 @@ data_form_parse_reported (WockyDataForm *self,
 
 static void
 data_form_parse_item (WockyDataForm *self,
-    WockyXmppNode *item_node)
+    WockyNode *item_node)
 {
   WockyDataFormPrivate *priv = self->priv;
-  WockyXmppNodeIter iter;
-  WockyXmppNode *field_node;
+  WockyNodeIter iter;
+  WockyNode *field_node;
   GSList *item = NULL;
 
-  wocky_xmpp_node_iter_init (&iter, item_node, "field", NULL);
-  while (wocky_xmpp_node_iter_next (&iter, &field_node))
+  wocky_node_iter_init (&iter, item_node, "field", NULL);
+  while (wocky_node_iter_next (&iter, &field_node))
     {
       const gchar *var;
       WockyDataFormField *field, *result;
       GValue *value;
 
-      var = wocky_xmpp_node_get_attribute (field_node, "var");
+      var = wocky_node_get_attribute (field_node, "var");
       if (var == NULL)
         continue;
 
@@ -839,13 +839,13 @@ data_form_parse_item (WockyDataForm *self,
 
 static void
 parse_unique_result (WockyDataForm *self,
-    WockyXmppNode *x)
+    WockyNode *x)
 {
   GSList *l, *item = NULL;
 
   for (l = x->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *node = l->data;
+      WockyNode *node = l->data;
       const gchar *var;
       WockyDataFormFieldType type;
       WockyDataFormField *result;
@@ -869,13 +869,13 @@ parse_unique_result (WockyDataForm *self,
 
 gboolean
 wocky_data_form_parse_result (WockyDataForm *self,
-    WockyXmppNode *node,
+    WockyNode *node,
     GError **error)
 {
-  WockyXmppNode *x, *reported;
+  WockyNode *x, *reported;
   const gchar *type;
 
-  x = wocky_xmpp_node_get_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
+  x = wocky_node_get_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
   if (x == NULL)
     {
       DEBUG ("No 'x' node");
@@ -884,7 +884,7 @@ wocky_data_form_parse_result (WockyDataForm *self,
       return FALSE;
     }
 
-  type = wocky_xmpp_node_get_attribute (x, "type");
+  type = wocky_node_get_attribute (x, "type");
   if (wocky_strdiff (type, "result"))
     {
       DEBUG ("'type' attribute is not 'result': %s", type);
@@ -894,20 +894,20 @@ wocky_data_form_parse_result (WockyDataForm *self,
       return FALSE;
     }
 
-  reported = wocky_xmpp_node_get_child (x, "reported");
+  reported = wocky_node_get_child (x, "reported");
 
   if (reported != NULL)
     {
-      WockyXmppNodeIter iter;
-      WockyXmppNode *item;
+      WockyNodeIter iter;
+      WockyNode *item;
 
       /* The field definitions are in a <reported/> header, and a series of
        * <item/> nodes contain sets of results.
        */
       data_form_parse_reported (self, reported);
 
-      wocky_xmpp_node_iter_init (&iter, x, "item", NULL);
-      while (wocky_xmpp_node_iter_next (&iter, &item))
+      wocky_node_iter_init (&iter, x, "item", NULL);
+      while (wocky_node_iter_next (&iter, &item))
         data_form_parse_item (self, item);
     }
   else

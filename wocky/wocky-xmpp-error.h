@@ -24,7 +24,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "wocky-xmpp-node.h"
+#include "wocky-node.h"
 
 /*< prefix=WOCKY_XMPP_ERROR_TYPE >*/
 typedef enum {
@@ -156,16 +156,16 @@ GQuark wocky_xmpp_stream_error_quark (void);
 const gchar *wocky_xmpp_error_string (WockyXmppError error);
 const gchar *wocky_xmpp_error_description (WockyXmppError error);
 
-GError *wocky_xmpp_stream_error_from_node (WockyXmppNode *node);
+GError *wocky_xmpp_stream_error_from_node (WockyNode *node);
 
-WockyXmppNode *wocky_stanza_error_to_node (const GError *error,
-    WockyXmppNode *parent_node);
+WockyNode *wocky_stanza_error_to_node (const GError *error,
+    WockyNode *parent_node);
 
-void wocky_xmpp_error_extract (WockyXmppNode *error,
+void wocky_xmpp_error_extract (WockyNode *error,
     WockyXmppErrorType *type,
     GError **core,
     GError **specialized,
-    WockyXmppNode **specialized_node);
+    WockyNode **specialized_node);
 
 void wocky_xmpp_error_init (void);
 void wocky_xmpp_error_deinit (void);

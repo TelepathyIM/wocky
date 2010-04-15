@@ -229,7 +229,7 @@ test_make_publish_stanza (void)
 {
   WockyPepService *pep;
   WockyStanza *stanza;
-  WockyXmppNode *item = NULL, *n;
+  WockyNode *item = NULL, *n;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
@@ -243,16 +243,16 @@ test_make_publish_stanza (void)
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  n = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  n = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (n != NULL);
 
-  n = wocky_xmpp_node_get_child (n, "publish");
+  n = wocky_node_get_child (n, "publish");
   g_assert (n != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (n, "node"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (n, "node"),
         TEST_NODE1));
 
-  n = wocky_xmpp_node_get_child (n, "item");
+  n = wocky_node_get_child (n, "item");
   g_assert (n != NULL);
   g_assert (n == item);
 

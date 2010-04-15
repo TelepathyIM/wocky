@@ -4,7 +4,7 @@
 
 void
 test_pubsub_add_subscription_nodes (
-    WockyXmppNode *subscriptions_node,
+    WockyNode *subscriptions_node,
     CannedSubscriptions *subs,
     gboolean include_node)
 {
@@ -12,17 +12,17 @@ test_pubsub_add_subscription_nodes (
 
   for (l = subs; l != NULL && l->node != NULL; l++)
     {
-      WockyXmppNode *sub = wocky_xmpp_node_add_child (subscriptions_node,
+      WockyNode *sub = wocky_node_add_child (subscriptions_node,
           "subscription");
 
       if (include_node)
-        wocky_xmpp_node_set_attribute (sub, "node", l->node);
+        wocky_node_set_attribute (sub, "node", l->node);
 
-      wocky_xmpp_node_set_attribute (sub, "jid", l->jid);
-      wocky_xmpp_node_set_attribute (sub, "subscription", l->subscription);
+      wocky_node_set_attribute (sub, "jid", l->jid);
+      wocky_node_set_attribute (sub, "subscription", l->subscription);
 
       if (l->subid != NULL)
-        wocky_xmpp_node_set_attribute (sub, "subid", l->subid);
+        wocky_node_set_attribute (sub, "subid", l->subid);
     }
 }
 

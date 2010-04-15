@@ -375,7 +375,7 @@ roster_update (WockyRoster *self,
 {
   WockyRosterPrivate *priv = self->priv;
   gboolean google_roster = FALSE;
-  WockyXmppNode *query_node;
+  WockyNode *query_node;
   GSList *j;
 
   /* Check for google roster support */
@@ -385,7 +385,7 @@ roster_update (WockyRoster *self,
 
       /* FIXME: this is wrong, we should use _get_attribute_ns instead of
        * assuming the prefix */
-      gr_ext = wocky_xmpp_node_get_attribute (
+      gr_ext = wocky_node_get_attribute (
           wocky_stanza_get_top_node (stanza), "gr:ext");
 
       if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
@@ -393,7 +393,7 @@ roster_update (WockyRoster *self,
     }
 
   /* Check stanza contains query node. */
-  query_node = wocky_xmpp_node_get_child_ns (
+  query_node = wocky_node_get_child_ns (
       wocky_stanza_get_top_node (stanza), "query", WOCKY_XMPP_NS_ROSTER);
 
   if (query_node == NULL)
@@ -409,7 +409,7 @@ roster_update (WockyRoster *self,
   for (j = query_node->children; j; j = j->next)
     {
       const gchar *jid;
-      WockyXmppNode *n = (WockyXmppNode *) j->data;
+      WockyNode *n = (WockyNode *) j->data;
       WockyBareContact *contact = NULL;
       const gchar *subscription;
       WockyRosterSubscriptionFlags subscription_type;
@@ -423,7 +423,7 @@ roster_update (WockyRoster *self,
           continue;
         }
 
-      jid = wocky_xmpp_node_get_attribute (n, "jid");
+      jid = wocky_node_get_attribute (n, "jid");
 
       if (jid == NULL)
         {
@@ -438,7 +438,7 @@ roster_update (WockyRoster *self,
         }
 
       /* Parse item. */
-      subscription = wocky_xmpp_node_get_attribute (n, "subscription");
+      subscription = wocky_node_get_attribute (n, "subscription");
 
       if (!wocky_strdiff (subscription, "to"))
         subscription_type = WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO;
@@ -464,7 +464,7 @@ roster_update (WockyRoster *self,
       /* Look for "group" nodes */
       for (l = n->children; l != NULL; l = g_slist_next (l))
         {
-          WockyXmppNode *node = (WockyXmppNode *) l->data;
+          WockyNode *node = (WockyNode *) l->data;
 
           if (wocky_strdiff (node->name, "group"))
             continue;
@@ -481,7 +481,7 @@ roster_update (WockyRoster *self,
         {
           /* Contact already exists; update. */
           wocky_bare_contact_set_name (contact,
-              wocky_xmpp_node_get_attribute (n, "name"));
+              wocky_node_get_attribute (n, "name"));
 
           wocky_bare_contact_set_subscription (contact, subscription_type);
 
@@ -494,7 +494,7 @@ roster_update (WockyRoster *self,
               priv->contact_factory, jid);
 
           g_object_set (contact,
-              "name", wocky_xmpp_node_get_attribute (n, "name"),
+              "name", wocky_node_get_attribute (n, "name"),
               "subscription", subscription_type,
               "groups", groups,
               NULL);
@@ -524,7 +524,7 @@ roster_iq_handler_set_cb (WockyPorter *porter,
   GError *error = NULL;
   WockyStanza *reply;
 
-  from = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
     "from");
 
   if (from != NULL)
@@ -778,10 +778,10 @@ wocky_roster_get_all_contacts (WockyRoster *self)
  * If not NULL, item_node will contain a pointer on the "item" node */
 static WockyStanza *
 build_iq_for_contact (WockyBareContact *contact,
-    WockyXmppNode **item_node)
+    WockyNode **item_node)
 {
   WockyStanza *iq;
-  WockyXmppNode *item = NULL;
+  WockyNode *item = NULL;
   const gchar *jid, *name;
   const gchar * const *groups;
   guint i;
@@ -806,23 +806,23 @@ build_iq_for_contact (WockyBareContact *contact,
   name = wocky_bare_contact_get_name (contact);
   if (name != NULL)
     {
-      wocky_xmpp_node_set_attribute (item, "name", name);
+      wocky_node_set_attribute (item, "name", name);
     }
 
   subscription = wocky_bare_contact_get_subscription (contact);
   if (subscription != WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE)
     {
-      wocky_xmpp_node_set_attribute (item, "subscription",
+      wocky_node_set_attribute (item, "subscription",
           wocky_roster_subscription_to_string (subscription));
     }
 
   groups = wocky_bare_contact_get_groups (contact);
   for (i = 0; groups != NULL && groups[i] != NULL; i++)
     {
-      WockyXmppNode *group;
+      WockyNode *group;
 
-      group = wocky_xmpp_node_add_child (item, "group");
-      wocky_xmpp_node_set_content (group, groups[i]);
+      group = wocky_node_add_child (item, "group");
+      wocky_node_set_content (group, groups[i]);
     }
 
   if (item_node != NULL)
@@ -1232,7 +1232,7 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
 {
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
-  WockyXmppNode *item;
+  WockyNode *item;
   GSimpleAsyncResult *result;
   PendingOperation *pending;
   const gchar *jid;
@@ -1275,7 +1275,7 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
   iq = build_iq_for_contact (contact, &item);
 
   /* set new name */
-  wocky_xmpp_node_set_attribute (item, "name", name);
+  wocky_node_set_attribute (item, "name", name);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, pending);
@@ -1309,7 +1309,7 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
 {
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
-  WockyXmppNode *item, *group_node;
+  WockyNode *item, *group_node;
   GSimpleAsyncResult *result;
   PendingOperation *pending;
   const gchar *jid;
@@ -1353,8 +1353,8 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
   iq = build_iq_for_contact (contact, &item);
 
   /* add new group */
-  group_node = wocky_xmpp_node_add_child (item, "group");
-  wocky_xmpp_node_set_content (group_node, group);
+  group_node = wocky_node_add_child (item, "group");
+  wocky_node_set_content (group_node, group);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, pending);
@@ -1388,7 +1388,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
 {
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
-  WockyXmppNode *item;
+  WockyNode *item;
   GSimpleAsyncResult *result;
   GSList *l;
   PendingOperation *pending;
@@ -1432,17 +1432,17 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
   iq = build_iq_for_contact (contact, &item);
 
   /* remove the group */
-  /* FIXME: should we add a wocky_xmpp_node_remove_child () ? */
+  /* FIXME: should we add a wocky_node_remove_child () ? */
   for (l = item->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *group_node = (WockyXmppNode *) l->data;
+      WockyNode *group_node = (WockyNode *) l->data;
 
       if (wocky_strdiff (group_node->name, "group"))
         continue;
 
       if (!wocky_strdiff (group_node->content, group))
         {
-          wocky_xmpp_node_free (group_node);
+          wocky_node_free (group_node);
           item->children = g_slist_delete_link (item->children, l);
           break;
         }

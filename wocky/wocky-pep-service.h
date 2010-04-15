@@ -77,7 +77,7 @@ WockyStanza * wocky_pep_service_get_finish (WockyPepService *pep,
     GError **error);
 
 WockyStanza * wocky_pep_service_make_publish_stanza (WockyPepService *pep,
-    WockyXmppNode **item);
+    WockyNode **item);
 
 G_END_DECLS
 

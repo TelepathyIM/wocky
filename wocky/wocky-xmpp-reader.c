@@ -109,7 +109,7 @@ struct _WockyXmppReaderPrivate
   xmlParserCtxtPtr parser;
   guint depth;
   WockyStanza *stanza;
-  WockyXmppNode *node;
+  WockyNode *node;
   GQueue *nodes;
   gchar *to;
   gchar *from;
@@ -486,7 +486,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
   else
     {
       g_queue_push_tail (priv->nodes, priv->node);
-      priv->node = wocky_xmpp_node_add_child_ns (priv->node,
+      priv->node = wocky_node_add_child_ns (priv->node,
         (gchar *) localname,
         (gchar *) uri);
     }
@@ -497,7 +497,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
       if (attributes[i+1] != NULL && !strcmp ((gchar *) attributes[i+1], "xml")
           && !strcmp ((gchar *) attributes[i], "lang"))
         {
-          wocky_xmpp_node_set_language_n (priv->node,
+          wocky_node_set_language_n (priv->node,
               (gchar *) attributes[i+3],
               (gsize) (attributes[i+4] - attributes[i+3]));
         }
@@ -509,10 +509,10 @@ _start_element_ns (void *user_data, const xmlChar *localname,
               const gchar *urn = (gchar *) attributes[i+2];
               const gchar *pre = (gchar *) attributes[i+1];
               GQuark ns = g_quark_from_string (urn);
-              wocky_xmpp_node_attribute_ns_set_prefix (ns, pre);
+              wocky_node_attribute_ns_set_prefix (ns, pre);
             }
 
-          wocky_xmpp_node_set_attribute_n_ns (priv->node,
+          wocky_node_set_attribute_n_ns (priv->node,
               (gchar *) attributes[i],                      /* key    */
               (gchar *) attributes[i+3],                    /* value  */
               (gsize)(attributes[i+4] - attributes[i+3]),   /* length */
@@ -530,7 +530,7 @@ _characters (void *user_data, const xmlChar *ch, int len)
 
   if (priv->node != NULL)
     {
-      wocky_xmpp_node_append_content_n (priv->node, (const gchar *)ch,
+      wocky_node_append_content_n (priv->node, (const gchar *)ch,
           (gsize)len);
     }
 }
@@ -551,7 +551,7 @@ _end_element_ns (void *user_data, const xmlChar *localname,
       for (c = priv->node->content; *c != '\0' && g_ascii_isspace (*c); c++)
         ;
       if (*c == '\0')
-        wocky_xmpp_node_set_content (priv->node, NULL);
+        wocky_node_set_content (priv->node, NULL);
     }
 
   if (priv->stream_mode && priv->depth == 0)
@@ -569,7 +569,7 @@ _end_element_ns (void *user_data, const xmlChar *localname,
     }
   else
     {
-      priv->node = (WockyXmppNode *) g_queue_pop_tail (priv->nodes);
+      priv->node = (WockyNode *) g_queue_pop_tail (priv->nodes);
     }
 }
 

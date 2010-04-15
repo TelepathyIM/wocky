@@ -304,7 +304,7 @@ xmpp_error_find_domain (GQuark domain)
  */
 static gboolean
 xmpp_error_from_node_for_ns (
-    WockyXmppNode *node,
+    WockyNode *node,
     GQuark ns,
     GType enum_type,
     gint *code)
@@ -313,9 +313,9 @@ xmpp_error_from_node_for_ns (
 
   for (l = node->children; l != NULL; l = l->next)
     {
-      WockyXmppNode *child = l->data;
+      WockyNode *child = l->data;
 
-      if (wocky_xmpp_node_has_ns_q (child, ns) &&
+      if (wocky_node_has_ns_q (child, ns) &&
           wocky_enum_from_nick (enum_type, child->name, code))
         return TRUE;
     }
@@ -326,10 +326,10 @@ xmpp_error_from_node_for_ns (
 /* Attempts to divine a WockyXmppError from a legacy numeric code='' attribute
  */
 static WockyXmppError
-xmpp_error_from_code (WockyXmppNode *error_node,
+xmpp_error_from_code (WockyNode *error_node,
     WockyXmppErrorType *type)
 {
-  const gchar *code = wocky_xmpp_node_get_attribute (error_node, "code");
+  const gchar *code = wocky_node_get_attribute (error_node, "code");
   gint error_code, i, j;
 
   if (code == NULL)
@@ -386,17 +386,17 @@ out:
  * valid as long as the latter is alive.
  */
 void
-wocky_xmpp_error_extract (WockyXmppNode *error,
+wocky_xmpp_error_extract (WockyNode *error,
     WockyXmppErrorType *type,
     GError **core,
     GError **specialized,
-    WockyXmppNode **specialized_node)
+    WockyNode **specialized_node)
 {
   gboolean found_core_error = FALSE;
   gint core_code = WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
   GQuark specialized_domain = 0;
   gint specialized_code;
-  WockyXmppNode *specialized_node_tmp = NULL;
+  WockyNode *specialized_node_tmp = NULL;
   const gchar *message = NULL;
   GSList *l;
 
@@ -409,7 +409,7 @@ wocky_xmpp_error_extract (WockyXmppNode *error,
    */
   if (type != NULL)
     {
-      const gchar *type_attr = wocky_xmpp_node_get_attribute (error, "type");
+      const gchar *type_attr = wocky_node_get_attribute (error, "type");
       gint type_i = WOCKY_XMPP_ERROR_TYPE_CANCEL;
 
       if (type_attr != NULL)
@@ -420,7 +420,7 @@ wocky_xmpp_error_extract (WockyXmppNode *error,
 
   for (l = error->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *child = l->data;
+      WockyNode *child = l->data;
 
       if (child->ns == WOCKY_XMPP_ERROR)
         {
@@ -492,11 +492,11 @@ wocky_xmpp_error_extract (WockyXmppNode *error,
  *
  * Returns: the newly-created <error/> node
  */
-WockyXmppNode *
+WockyNode *
 wocky_stanza_error_to_node (const GError *error,
-    WockyXmppNode *parent_node)
+    WockyNode *parent_node)
 {
-  WockyXmppNode *error_node, *node;
+  WockyNode *error_node, *node;
   WockyXmppErrorDomain *domain = NULL;
   WockyXmppError core_error;
   const XmppErrorSpec *spec;
@@ -505,7 +505,7 @@ wocky_stanza_error_to_node (const GError *error,
 
   g_return_val_if_fail (parent_node != NULL, NULL);
 
-  error_node = wocky_xmpp_node_add_child (parent_node, "error");
+  error_node = wocky_node_add_child (parent_node, "error");
 
   g_return_val_if_fail (error != NULL, error_node);
 
@@ -535,25 +535,25 @@ wocky_stanza_error_to_node (const GError *error,
     }
 
   sprintf (str, "%d", spec->legacy_errors[0]);
-  wocky_xmpp_node_set_attribute (error_node, "code", str);
+  wocky_node_set_attribute (error_node, "code", str);
 
-  wocky_xmpp_node_set_attribute (error_node, "type",
+  wocky_node_set_attribute (error_node, "type",
       wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
 
-  node = wocky_xmpp_node_add_child (error_node,
+  node = wocky_node_add_child (error_node,
       wocky_xmpp_error_string (core_error));
-  wocky_xmpp_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
+  wocky_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
 
   if (domain != NULL)
     {
       const gchar *name = wocky_enum_to_nick (domain->enum_type, error->code);
 
-      node = wocky_xmpp_node_add_child (error_node, name);
-      wocky_xmpp_node_set_ns_q (node, domain->domain);
+      node = wocky_node_add_child (error_node, name);
+      wocky_node_set_ns_q (node, domain->domain);
     }
 
   if (error->message != NULL && *error->message != '\0')
-    wocky_xmpp_node_add_child_with_content_ns (error_node, "text",
+    wocky_node_add_child_with_content_ns (error_node, "text",
         error->message, WOCKY_XMPP_NS_STANZAS);
 
   return error_node;
@@ -590,7 +590,7 @@ wocky_xmpp_stream_error_quark (void)
  * Returns: a GError in the #WOCKY_XMPP_STREAM_ERROR domain.
  */
 GError *
-wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
+wocky_xmpp_stream_error_from_node (WockyNode *error)
 {
   gint code = WOCKY_XMPP_STREAM_ERROR_UNKNOWN;
   const gchar *message = NULL;
@@ -599,7 +599,7 @@ wocky_xmpp_stream_error_from_node (WockyXmppNode *error)
   xmpp_error_from_node_for_ns (error, WOCKY_XMPP_STREAM_ERROR,
       WOCKY_TYPE_XMPP_STREAM_ERROR, &code);
 
-  message = wocky_xmpp_node_get_content_from_child_ns (error, "text",
+  message = wocky_node_get_content_from_child_ns (error, "text",
       WOCKY_XMPP_NS_STREAMS);
 
   if (message == NULL)

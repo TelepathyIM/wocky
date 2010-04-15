@@ -102,7 +102,7 @@ typedef enum
 
 WockyStanza * wocky_stanza_new (const gchar *name, const gchar *ns);
 
-WockyXmppNode *wocky_stanza_get_top_node (WockyStanza *self);
+WockyNode *wocky_stanza_get_top_node (WockyStanza *self);
 
 WockyStanza * wocky_stanza_build (WockyStanzaType type,
     WockyStanzaSubType sub_type, const gchar *from, const gchar *to,
@@ -127,7 +127,7 @@ gboolean wocky_stanza_extract_errors (WockyStanza *stanza,
     WockyXmppErrorType *type,
     GError **core,
     GError **specialized,
-    WockyXmppNode **specialized_node);
+    WockyNode **specialized_node);
 
 gboolean wocky_stanza_extract_stream_error (WockyStanza *stanza,
     GError **stream_error);

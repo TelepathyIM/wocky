@@ -168,7 +168,7 @@ static void xep77_cancel_recv (GObject *source,
     gpointer data);
 
 static void xep77_signup_send (WockyConnector *self,
-    WockyXmppNode *req);
+    WockyNode *req);
 static void xep77_signup_sent (GObject *source,
     GAsyncResult *result,
     gpointer data);
@@ -1002,7 +1002,7 @@ jabber_auth_fields (GObject *source,
 
   switch (sub)
     {
-      WockyXmppNode *node = NULL;
+      WockyNode *node = NULL;
       WockyConnectorError code;
       gboolean passwd;
       gboolean digest;
@@ -1025,14 +1025,14 @@ jabber_auth_fields (GObject *source,
         passwd = FALSE;
         digest = FALSE;
         node = wocky_stanza_get_top_node (fields);
-        node = wocky_xmpp_node_get_child_ns (node, "query",
+        node = wocky_node_get_child_ns (node, "query",
             WOCKY_JABBER_NS_AUTH);
         if ((node != NULL) &&
-            (wocky_xmpp_node_get_child (node, "resource") != NULL) &&
-            (wocky_xmpp_node_get_child (node, "username") != NULL))
+            (wocky_node_get_child (node, "resource") != NULL) &&
+            (wocky_node_get_child (node, "username") != NULL))
           {
-            passwd = wocky_xmpp_node_get_child (node, "password") != NULL;
-            digest = wocky_xmpp_node_get_child (node, "digest") != NULL;
+            passwd = wocky_node_get_child (node, "password") != NULL;
+            digest = wocky_node_get_child (node, "digest") != NULL;
           }
 
         if (digest)
@@ -1366,7 +1366,7 @@ xmpp_features_cb (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = self->priv;
   WockyStanza *stanza;
-  WockyXmppNode   *node;
+  WockyNode   *node;
   gboolean can_encrypt = FALSE;
   gboolean can_bind = FALSE;
 
@@ -1388,7 +1388,7 @@ xmpp_features_cb (GObject *source,
   node = wocky_stanza_get_top_node (stanza);
 
   if (wocky_strdiff (node->name, "features") ||
-      wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
+      wocky_strdiff (wocky_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
     {
       char *msg = state_message (priv, "Malformed or missing feature stanza");
       abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, msg);
@@ -1407,9 +1407,9 @@ xmpp_features_cb (GObject *source,
     }
 
   can_encrypt =
-    wocky_xmpp_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) != NULL;
+    wocky_node_get_child_ns (node, "starttls", WOCKY_XMPP_NS_TLS) != NULL;
   can_bind =
-    wocky_xmpp_node_get_child_ns (node, "bind", WOCKY_XMPP_NS_BIND) != NULL;
+    wocky_node_get_child_ns (node, "bind", WOCKY_XMPP_NS_BIND) != NULL;
 
   /* conditions:
    * not encrypted, not encryptable, require encryption → ABORT
@@ -1491,7 +1491,7 @@ starttls_recv_cb (GObject *source,
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = self->priv;
-  WockyXmppNode *node;
+  WockyNode *node;
 
   stanza =
     wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
@@ -1510,7 +1510,7 @@ starttls_recv_cb (GObject *source,
   node = wocky_stanza_get_top_node (stanza);
 
   if (wocky_strdiff (node->name, "proceed") ||
-      wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_TLS))
+      wocky_strdiff (wocky_node_get_ns (node), WOCKY_XMPP_NS_TLS))
     {
       abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
           "STARTTLS refused by server");
@@ -1698,7 +1698,7 @@ auth_done (GObject *source,
        * are allowed to attempt that instead                         */
       if ((error->domain == WOCKY_SASL_AUTH_ERROR) &&
           (error->code == WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED) &&
-          (wocky_xmpp_node_get_child_ns (
+          (wocky_node_get_child_ns (
               wocky_stanza_get_top_node (priv->features), "auth",
               WOCKY_JABBER_NS_AUTH_FEATURE) != NULL))
         jabber_auth_init (self);
@@ -1932,7 +1932,7 @@ xep77_begin_recv (GObject *source,
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = self->priv;
   WockyStanza *iq = NULL;
-  WockyXmppNode *query = NULL;
+  WockyNode *query = NULL;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
@@ -1974,7 +1974,7 @@ xep77_begin_recv (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         DEBUG ("WOCKY_STANZA_SUB_TYPE_RESULT");
-        query = wocky_xmpp_node_get_child_ns (
+        query = wocky_node_get_child_ns (
           wocky_stanza_get_top_node (iq), "query",
             WOCKY_XEP77_NS_REGISTER);
 
@@ -1987,7 +1987,7 @@ xep77_begin_recv (GObject *source,
           }
 
         /* already registered. woo hoo. proceed to auth stage */
-        if (wocky_xmpp_node_get_child (query, "registered") != NULL)
+        if (wocky_node_get_child (query, "registered") != NULL)
           {
             priv->reg_op = XEP77_NONE;
             request_auth (self, priv->features);
@@ -2022,11 +2022,11 @@ xep77_begin_recv (GObject *source,
 
 static void
 xep77_signup_send (WockyConnector *self,
-    WockyXmppNode *req)
+    WockyNode *req)
 {
   WockyConnectorPrivate *priv = self->priv;
   WockyStanza *riq = NULL;
-  WockyXmppNode *reg = NULL;
+  WockyNode *reg = NULL;
   GSList *arg = NULL;
   gchar *jid = g_strdup_printf ("%s@%s", priv->user, priv->domain);
   gchar *iid = wocky_xmpp_connection_new_id (priv->conn);
@@ -2038,13 +2038,13 @@ xep77_signup_send (WockyConnector *self,
       WOCKY_STANZA_SUB_TYPE_SET,
       jid, priv->domain,
       '@', "id", iid, NULL);
-  reg = wocky_xmpp_node_add_child_ns (wocky_stanza_get_top_node (riq),
+  reg = wocky_node_add_child_ns (wocky_stanza_get_top_node (riq),
       "query", WOCKY_XEP77_NS_REGISTER);
 
   for (arg = req->children; arg != NULL; arg = g_slist_next (arg))
     {
       gchar *value = NULL;
-      WockyXmppNode *a = (WockyXmppNode *) arg->data;
+      WockyNode *a = (WockyNode *) arg->data;
 
       if (!wocky_strdiff ("instructions", a->name))
         continue;
@@ -2070,7 +2070,7 @@ xep77_signup_send (WockyConnector *self,
           goto out;
         }
       DEBUG ("%s := %s", a->name, value);
-      wocky_xmpp_node_add_child_with_content (reg, a->name, value);
+      wocky_node_add_child_with_content (reg, a->name, value);
       args++;
     }
 
@@ -2204,9 +2204,9 @@ iq_bind_resource (WockyConnector *self)
    * server will make one up for us */
   if ((priv->resource != NULL) && (*priv->resource != '\0'))
     {
-      WockyXmppNode *bind = wocky_xmpp_node_get_child (
+      WockyNode *bind = wocky_node_get_child (
         wocky_stanza_get_top_node (iq), "bind");
-      wocky_xmpp_node_add_child_with_content (bind, "resource", priv->resource);
+      wocky_node_add_child_with_content (bind, "resource", priv->resource);
     }
 
   DEBUG ("sending bind iq set stanza");
@@ -2272,7 +2272,7 @@ iq_bind_resource_recv_cb (GObject *source,
 
   switch (sub)
     {
-      WockyXmppNode *node = NULL;
+      WockyNode *node = NULL;
       WockyConnectorError code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
@@ -2299,10 +2299,10 @@ iq_bind_resource_recv_cb (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        node = wocky_xmpp_node_get_child (
+        node = wocky_node_get_child (
           wocky_stanza_get_top_node (reply), "bind");
         if (node != NULL)
-          node = wocky_xmpp_node_get_child (node, "jid");
+          node = wocky_node_get_child (node, "jid");
 
         /* store the returned id (or the original if none came back)*/
         g_free (priv->identity);
@@ -2331,13 +2331,13 @@ void
 establish_session (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = self->priv;
-  WockyXmppNode *feat = (priv->features != NULL) ?
+  WockyNode *feat = (priv->features != NULL) ?
     wocky_stanza_get_top_node (priv->features) : NULL;
 
   /* _if_ session setup is advertised, a session _must_ be established to *
    * allow presence/messaging etc to work. If not, it is not important    */
   if ((feat != NULL) &&
-      wocky_xmpp_node_get_child_ns (feat, "session", WOCKY_XMPP_NS_SESSION))
+      wocky_node_get_child_ns (feat, "session", WOCKY_XMPP_NS_SESSION))
     {
       WockyXmppConnection *conn = priv->conn;
       gchar *id = wocky_xmpp_connection_new_id (conn);

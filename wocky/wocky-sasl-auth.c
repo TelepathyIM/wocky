@@ -294,12 +294,12 @@ static gboolean
 stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 {
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
-  WockyXmppNode *xmpp = NULL;
+  WockyNode *xmpp = NULL;
   GSList *item = NULL;
   const gchar *msg = NULL;
   const gchar *err = NULL;
-  WockyXmppNode *cond = NULL;
-  WockyXmppNode *text = NULL;
+  WockyNode *cond = NULL;
+  WockyNode *text = NULL;
 
   if (stanza == NULL)
     {
@@ -314,8 +314,8 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
       xmpp = wocky_stanza_get_top_node (stanza);
       for (item = xmpp->children; item != NULL; item = g_slist_next (item))
         {
-          WockyXmppNode *child = item->data;
-          const gchar *cns = wocky_xmpp_node_get_ns (child);
+          WockyNode *child = item->data;
+          const gchar *cns = wocky_node_get_ns (child);
 
           if (wocky_strdiff (cns, WOCKY_XMPP_NS_STREAMS))
             continue;
@@ -357,7 +357,7 @@ wocky_sasl_auth_new (const gchar *server,
 }
 
 static gboolean
-each_mechanism (WockyXmppNode *node, gpointer user_data)
+each_mechanism (WockyNode *node, gpointer user_data)
 {
   GSList **list = (GSList **)user_data;
   if (wocky_strdiff (node->name, "mechanism"))
@@ -369,14 +369,14 @@ each_mechanism (WockyXmppNode *node, gpointer user_data)
 }
 
 static GSList *
-wocky_sasl_auth_mechanisms_to_list (WockyXmppNode *mechanisms)
+wocky_sasl_auth_mechanisms_to_list (WockyNode *mechanisms)
 {
   GSList *result = NULL;
 
   if (mechanisms == NULL)
     return NULL;
 
-  wocky_xmpp_node_each_child (mechanisms, each_mechanism, &result);
+  wocky_node_each_child (mechanisms, each_mechanism, &result);
   return result;
 }
 
@@ -396,13 +396,13 @@ sasl_auth_got_failure (WockySaslAuth *sasl,
   WockyStanza *stanza,
   GError **error)
 {
-  WockyXmppNode *reason = NULL;
+  WockyNode *reason = NULL;
 
   if (wocky_stanza_get_top_node (stanza)->children != NULL)
     {
       /* TODO add a wocky xmpp node utility to either get the first child or
        * iterate the children list */
-      reason = (WockyXmppNode *)
+      reason = (WockyNode *)
           wocky_stanza_get_top_node (stanza)->children->data;
     }
     /* TODO Handle the different error cases in a different way. i.e.
@@ -432,7 +432,7 @@ sasl_auth_stanza_received (GObject *source,
     return;
 
   if (wocky_strdiff (
-      wocky_xmpp_node_get_ns (wocky_stanza_get_top_node (stanza)),
+      wocky_node_get_ns (wocky_stanza_get_top_node (stanza)),
           WOCKY_XMPP_NS_SASL_AUTH))
     {
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
@@ -458,7 +458,7 @@ sasl_auth_stanza_received (GObject *source,
         goto failure;
 
       response_stanza = wocky_stanza_new ("response", WOCKY_XMPP_NS_SASL_AUTH);
-      wocky_xmpp_node_set_content (wocky_stanza_get_top_node (response_stanza),
+      wocky_node_set_content (wocky_stanza_get_top_node (response_stanza),
         response);
 
        /* FIXME handle send error */
@@ -533,7 +533,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   stanza = wocky_stanza_new ("auth", WOCKY_XMPP_NS_SASL_AUTH);
 
   /* google JID domain discovery - client sets a namespaced attribute */
-  wocky_xmpp_node_set_attribute_ns (wocky_stanza_get_top_node (stanza),
+  wocky_node_set_attribute_ns (wocky_stanza_get_top_node (stanza),
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
   if (!wocky_sasl_handler_get_initial_response (priv->handler,
@@ -545,14 +545,14 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
   if (initial_response != NULL)
     {
-      wocky_xmpp_node_set_content (
+      wocky_node_set_content (
         wocky_stanza_get_top_node (stanza),
         initial_response);
       g_free (initial_response);
     }
 
   /* FIXME handle send error */
-  wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza),
+  wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
     "mechanism",
     wocky_sasl_handler_get_mechanism (priv->handler));
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
@@ -639,14 +639,14 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     gpointer user_data)
 {
   WockySaslAuthPrivate *priv = sasl->priv;
-  WockyXmppNode *mech_node;
+  WockyNode *mech_node;
   GSList *mechanisms, *t;
   WockySaslHandler *handler = NULL;
 
   g_assert (sasl != NULL);
   g_assert (features != NULL);
 
-  mech_node = wocky_xmpp_node_get_child_ns (
+  mech_node = wocky_node_get_child_ns (
     wocky_stanza_get_top_node (features),
     "mechanisms", WOCKY_XMPP_NS_SASL_AUTH);
 

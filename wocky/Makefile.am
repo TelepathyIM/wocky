@@ -48,8 +48,8 @@ HANDWRITTEN_SOURCES = \
   wocky-node-tree.h \
   wocky-utils.c \
   wocky-utils.h \
-  wocky-xmpp-node.c \
-  wocky-xmpp-node.h \
+  wocky-node.c \
+  wocky-node.h \
   wocky-xmpp-reader.c \
   wocky-xmpp-reader.h \
   wocky-xmpp-writer.c \

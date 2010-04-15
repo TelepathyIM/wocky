@@ -15,7 +15,7 @@ static void
 test_new_from_form (void)
 {
   WockyStanza *stanza;
-  WockyXmppNode *node;
+  WockyNode *node;
   WockyDataForm *form;
   GError *error = NULL;
 
@@ -32,7 +32,7 @@ test_new_from_form (void)
   g_clear_error (&error);
 
   /* add 'x' node */
-  node = wocky_xmpp_node_add_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_add_child_ns (wocky_stanza_get_top_node (stanza),
       "x", WOCKY_XMPP_NS_DATA);
 
   /* the x node doesn't have a 'type' attribute */
@@ -44,7 +44,7 @@ test_new_from_form (void)
   g_clear_error (&error);
 
   /* set wrong type */
-  wocky_xmpp_node_set_attribute (node, "type", "badger");
+  wocky_node_set_attribute (node, "type", "badger");
 
   form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
       &error);
@@ -54,7 +54,7 @@ test_new_from_form (void)
   g_clear_error (&error);
 
   /* set the right type */
-  wocky_xmpp_node_set_attribute (node, "type", "form");
+  wocky_node_set_attribute (node, "type", "form");
 
   form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
       &error);
@@ -359,7 +359,7 @@ test_submit (void)
 {
   WockyStanza *stanza;
   WockyDataForm *form;
-  WockyXmppNode *x;
+  WockyNode *x;
   GSList *l;
   const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
   const gchar *features[] = { "news", "search", NULL };
@@ -416,22 +416,22 @@ test_submit (void)
       NULL, NULL, NULL);
   wocky_data_form_submit (form, wocky_stanza_get_top_node (stanza));
 
-  x = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  x = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "x", WOCKY_XMPP_NS_DATA);
   g_assert (x != NULL);
-  g_assert_cmpstr (wocky_xmpp_node_get_attribute (x, "type"), ==, "submit");
+  g_assert_cmpstr (wocky_node_get_attribute (x, "type"), ==, "submit");
 
   for (l = x->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *v, *node = l->data;
+      WockyNode *v, *node = l->data;
       const gchar *var, *type, *value = NULL;
 
       g_assert_cmpstr (node->name, ==, "field");
-      var = wocky_xmpp_node_get_attribute (node, "var");
+      var = wocky_node_get_attribute (node, "var");
       g_assert (var != NULL);
-      type = wocky_xmpp_node_get_attribute (node, "type");
+      type = wocky_node_get_attribute (node, "type");
 
-      v = wocky_xmpp_node_get_child (node, "value");
+      v = wocky_node_get_child (node, "value");
       if (v != NULL)
         value = v->content;
 
@@ -453,7 +453,7 @@ test_submit (void)
           g_assert_cmpstr (type, ==, "text-multi");
           for (m = node->children; m != NULL; m = g_slist_next (m))
             {
-              WockyXmppNode *tmp = m->data;
+              WockyNode *tmp = m->data;
 
               g_assert_cmpstr (tmp->name, ==, "value");
               if (!wocky_strdiff (tmp->content, "Badger"))
@@ -485,7 +485,7 @@ test_submit (void)
           g_assert_cmpstr (type, ==, "list-multi");
           for (m = node->children; m != NULL; m = g_slist_next (m))
             {
-              WockyXmppNode *tmp = m->data;
+              WockyNode *tmp = m->data;
 
               g_assert_cmpstr (tmp->name, ==, "value");
               if (!wocky_strdiff (tmp->content, "news"))
@@ -510,7 +510,7 @@ test_submit (void)
           g_assert_cmpstr (type, ==, "jid-multi");
           for (m = node->children; m != NULL; m = g_slist_next (m))
             {
-              WockyXmppNode *tmp = m->data;
+              WockyNode *tmp = m->data;
 
               g_assert_cmpstr (tmp->name, ==, "value");
               if (!wocky_strdiff (tmp->content, "juliet@example.org"))

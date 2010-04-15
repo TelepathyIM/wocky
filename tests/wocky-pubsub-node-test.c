@@ -52,7 +52,7 @@ test_make_publish_stanza (void)
   WockySession *session;
   WockyPubsubNode *node;
   WockyStanza *stanza, *expected;
-  WockyXmppNode *pubsub_node, *publish, *item;
+  WockyNode *pubsub_node, *publish, *item;
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
@@ -69,11 +69,11 @@ test_make_publish_stanza (void)
 
   /* I've embraced and extended pubsub, and want to put stuff on the <pubsub>
    * and <publish> nodes... */
-  wocky_xmpp_node_set_attribute (pubsub_node, "gig", "tomorrow");
-  wocky_xmpp_node_set_attribute (publish, "kaki", "king");
+  wocky_node_set_attribute (pubsub_node, "gig", "tomorrow");
+  wocky_node_set_attribute (publish, "kaki", "king");
 
   /* Oh, and I should probably publish something. */
-  wocky_xmpp_node_add_child_with_content_ns (item, "castle", "bone chaos",
+  wocky_node_add_child_with_content_ns (item, "castle", "bone chaos",
       "urn:example:songs");
 
   expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -213,17 +213,17 @@ test_unsubscribe_iq_cb (WockyPorter *porter,
 {
   TestUnsubscribeCtx *ctx = user_data;
   test_data_t *test = ctx->test;
-  WockyXmppNode *unsubscribe;
+  WockyNode *unsubscribe;
   const gchar *subid;
   WockyStanza *reply;
 
-  unsubscribe = wocky_xmpp_node_get_child (
-      wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  unsubscribe = wocky_node_get_child (
+      wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
           "pubsub", WOCKY_XMPP_NS_PUBSUB),
       "unsubscribe");
   g_assert (unsubscribe != NULL);
 
-  subid = wocky_xmpp_node_get_attribute (unsubscribe, "subid");
+  subid = wocky_node_get_attribute (unsubscribe, "subid");
 
   if (ctx->expect_subid)
     g_assert_cmpstr (EXPECTED_SUBID, ==, subid);
@@ -411,7 +411,7 @@ test_list_subscribers_iq_cb (WockyPorter *porter,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *expected, *reply;
-  WockyXmppNode *subscriptions;
+  WockyNode *subscriptions;
 
   expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET, NULL, "pubsub.localhost",
@@ -636,12 +636,12 @@ static void
 service_event_received_cb (WockyPubsubService *service,
     WockyPubsubNode *node,
     WockyStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *items_node,
+    WockyNode *event_node,
+    WockyNode *items_node,
     GList *items,
     test_data_t *test)
 {
-  WockyXmppNode *item;
+  WockyNode *item;
 
   /* Check that we're not winding up with multiple nodes for the same thing. */
   if (expected_node != NULL)
@@ -653,11 +653,11 @@ service_event_received_cb (WockyPubsubService *service,
 
   item = g_list_nth_data (items, 0);
   g_assert_cmpstr ("item", ==, item->name);
-  g_assert_cmpstr ("1", ==, wocky_xmpp_node_get_attribute (item, "id"));
+  g_assert_cmpstr ("1", ==, wocky_node_get_attribute (item, "id"));
 
   item = g_list_nth_data (items, 1);
   g_assert_cmpstr ("item", ==, item->name);
-  g_assert_cmpstr ("snakes", ==, wocky_xmpp_node_get_attribute (item, "id"));
+  g_assert_cmpstr ("snakes", ==, wocky_node_get_attribute (item, "id"));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -667,12 +667,12 @@ service_event_received_cb (WockyPubsubService *service,
 static void
 node_event_received_cb (WockyPubsubNode *node,
     WockyStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *items_node,
+    WockyNode *event_node,
+    WockyNode *items_node,
     GList *items,
     test_data_t *test)
 {
-  WockyXmppNode *item;
+  WockyNode *item;
 
   g_assert_cmpstr ("event", ==, event_node->name);
   g_assert_cmpstr ("items", ==, items_node->name);
@@ -680,11 +680,11 @@ node_event_received_cb (WockyPubsubNode *node,
 
   item = g_list_nth_data (items, 0);
   g_assert_cmpstr ("item", ==, item->name);
-  g_assert_cmpstr ("1", ==, wocky_xmpp_node_get_attribute (item, "id"));
+  g_assert_cmpstr ("1", ==, wocky_node_get_attribute (item, "id"));
 
   item = g_list_nth_data (items, 1);
   g_assert_cmpstr ("item", ==, item->name);
-  g_assert_cmpstr ("snakes", ==, wocky_xmpp_node_get_attribute (item, "id"));
+  g_assert_cmpstr ("snakes", ==, wocky_node_get_attribute (item, "id"));
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -822,8 +822,8 @@ service_subscription_state_changed_cb (
     WockyPubsubService *service,
     WockyPubsubNode *node,
     WockyStanza *stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *subscription_node,
+    WockyNode *event_node,
+    WockyNode *subscription_node,
     WockyPubsubSubscription *subscription,
     TestSSCCtx *ctx)
 {
@@ -833,7 +833,7 @@ service_subscription_state_changed_cb (
       ctx->expecting_service_ssc_received_for);
 
   g_assert_cmpstr (event_node->name, ==, "event");
-  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+  g_assert_cmpstr (wocky_node_get_ns (event_node), ==,
       WOCKY_XMPP_NS_PUBSUB_EVENT);
 
   g_assert_cmpstr (subscription_node->name, ==, "subscription");
@@ -852,8 +852,8 @@ static void
 node_subscription_state_changed_cb (
     WockyPubsubNode *node,
     WockyStanza *stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *subscription_node,
+    WockyNode *event_node,
+    WockyNode *subscription_node,
     WockyPubsubSubscription *subscription,
     TestSSCCtx *ctx)
 {
@@ -863,7 +863,7 @@ node_subscription_state_changed_cb (
   g_assert_cmpstr (wocky_pubsub_node_get_name (node), ==, "dairy-farmer");
 
   g_assert_cmpstr (event_node->name, ==, "event");
-  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+  g_assert_cmpstr (wocky_node_get_ns (event_node), ==,
       WOCKY_XMPP_NS_PUBSUB_EVENT);
 
   g_assert_cmpstr (subscription_node->name, ==, "subscription");
@@ -960,8 +960,8 @@ service_node_deleted_cb (
     WockyPubsubService *service,
     WockyPubsubNode *node,
     WockyStanza *stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *delete_node,
+    WockyNode *event_node,
+    WockyNode *delete_node,
     TestDeletedCtx *ctx)
 {
   g_assert (ctx->expecting_service_node_deleted_for != NULL);
@@ -970,7 +970,7 @@ service_node_deleted_cb (
       ctx->expecting_service_node_deleted_for);
 
   g_assert_cmpstr (event_node->name, ==, "event");
-  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+  g_assert_cmpstr (wocky_node_get_ns (event_node), ==,
       WOCKY_XMPP_NS_PUBSUB_EVENT);
 
   g_assert_cmpstr (delete_node->name, ==, "delete");
@@ -984,8 +984,8 @@ static void
 node_deleted_cb (
     WockyPubsubNode *node,
     WockyStanza *stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *delete_node,
+    WockyNode *event_node,
+    WockyNode *delete_node,
     TestDeletedCtx *ctx)
 {
   g_assert (ctx->expecting_node_deleted);
@@ -994,7 +994,7 @@ node_deleted_cb (
   g_assert_cmpstr (wocky_pubsub_node_get_name (node), ==, "dairy-farmer");
 
   g_assert_cmpstr (event_node->name, ==, "event");
-  g_assert_cmpstr (wocky_xmpp_node_get_ns (event_node), ==,
+  g_assert_cmpstr (wocky_node_get_ns (event_node), ==,
       WOCKY_XMPP_NS_PUBSUB_EVENT);
 
   g_assert_cmpstr (delete_node->name, ==, "delete");

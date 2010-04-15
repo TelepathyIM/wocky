@@ -91,7 +91,7 @@ wocky_debug_stanza (DebugFlags flag,
       msg = g_strdup_vprintf (format, args);
       va_end (args);
 
-      node_str = wocky_xmpp_node_to_string (
+      node_str = wocky_node_to_string (
           wocky_stanza_get_top_node (stanza));
 
       g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "%s\n%s", msg, node_str);

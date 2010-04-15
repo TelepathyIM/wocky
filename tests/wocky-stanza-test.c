@@ -233,7 +233,7 @@ test_extract_errors (void)
   const gchar *description = "I am a sentence.";
   WockyXmppErrorType type;
   GError *core = NULL, *specialized = NULL;
-  WockyXmppNode *specialized_node = NULL;
+  WockyNode *specialized_node = NULL;
   gboolean ret;
 
   /* As a prelude, check that it does the right thing for non-errors. */

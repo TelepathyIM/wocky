@@ -20,8 +20,8 @@ static WockyStanza *
 create_stanza (void)
 {
   WockyStanza *stanza;
-  WockyXmppNode *html;
-  WockyXmppNode *head;
+  WockyNode *html;
+  WockyNode *head;
 
   stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
     WOCKY_STANZA_SUB_TYPE_CHAT, "juliet@example.com", "romeo@example.net",
@@ -32,9 +32,9 @@ create_stanza (void)
       ')',
     NULL);
 
-  html = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (stanza), "html");
-  head = wocky_xmpp_node_add_child (html, "head");
-  wocky_xmpp_node_set_attribute_ns (head, "rev", "0xbad1dea", DUMMY_NS);
+  html = wocky_node_get_child (wocky_stanza_get_top_node (stanza), "html");
+  head = wocky_node_add_child (html, "head");
+  wocky_node_set_attribute_ns (head, "rev", "0xbad1dea", DUMMY_NS);
 
   return stanza;
 }
@@ -84,8 +84,8 @@ test_readwrite (void)
 
   for (i = 0; i < 3 ; i++)
     {
-      WockyXmppNode *html;
-      WockyXmppNode *head;
+      WockyNode *html;
+      WockyNode *head;
       const gchar *attr_recv = NULL;
       const gchar *attr_send = NULL;
       const gchar *attr_none = NULL;
@@ -101,17 +101,17 @@ test_readwrite (void)
       g_assert (received != NULL);
       test_assert_stanzas_equal (sent, received);
 
-      html = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (received),
+      html = wocky_node_get_child (wocky_stanza_get_top_node (received),
           "html");
-      head = wocky_xmpp_node_get_child (html, "head");
-      attr_recv = wocky_xmpp_node_get_attribute_ns (head, "rev", DUMMY_NS);
-      attr_none = wocky_xmpp_node_get_attribute_ns (head, "rev",
+      head = wocky_node_get_child (html, "head");
+      attr_recv = wocky_node_get_attribute_ns (head, "rev", DUMMY_NS);
+      attr_none = wocky_node_get_attribute_ns (head, "rev",
         DUMMY_NS ":x");
 
-      html = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (sent),
+      html = wocky_node_get_child (wocky_stanza_get_top_node (sent),
           "html");
-      head = wocky_xmpp_node_get_child (html, "head");
-      attr_send = wocky_xmpp_node_get_attribute_ns (head, "rev", DUMMY_NS);
+      head = wocky_node_get_child (html, "head");
+      attr_send = wocky_node_get_attribute_ns (head, "rev", DUMMY_NS);
 
       g_assert (attr_none == NULL);
       g_assert (attr_recv != NULL);

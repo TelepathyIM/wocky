@@ -13,7 +13,7 @@ typedef struct {
 } CannedSubscriptions;
 
 void test_pubsub_add_subscription_nodes (
-    WockyXmppNode *subscriptions_node,
+    WockyNode *subscriptions_node,
     CannedSubscriptions *subs,
     gboolean include_node);
 

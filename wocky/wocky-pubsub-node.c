@@ -171,8 +171,8 @@ static void
 wocky_pubsub_node_emit_event_received (
     WockyPubsubNode *self,
     WockyStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *items_node,
+    WockyNode *event_node,
+    WockyNode *items_node,
     GList *items)
 {
   g_signal_emit (self, signals[SIG_EVENT_RECEIVED], 0, event_stanza,
@@ -183,8 +183,8 @@ static void
 wocky_pubsub_node_emit_subscription_state_changed (
     WockyPubsubNode *self,
     WockyStanza *stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *subscription_node,
+    WockyNode *event_node,
+    WockyNode *subscription_node,
     WockyPubsubSubscription *subscription)
 {
   g_signal_emit (self, signals[SIG_SUB_STATE_CHANGED], 0, stanza,
@@ -195,8 +195,8 @@ static void
 wocky_pubsub_node_emit_deleted (
     WockyPubsubNode *self,
     WockyStanza *stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *delete_node)
+    WockyNode *event_node,
+    WockyNode *delete_node)
 {
   g_signal_emit (self, signals[SIG_DELETED], 0, stanza,
       event_node, delete_node);
@@ -237,7 +237,7 @@ wocky_pubsub_node_class_init (
    * @event_stanza: the message/event stanza in its entirity
    * @event_node: the event node from the stanza
    * @items_node: the items node from the stanza
-   * @items: a list of WockyXmppNode *s for each item child of @items_node
+   * @items: a list of WockyNode *s for each item child of @items_node
    */
   signals[SIG_EVENT_RECEIVED] = g_signal_new ("event-received", ctype,
       0, 0, NULL, NULL,
@@ -280,16 +280,16 @@ wocky_pubsub_node_class_init (
 static void
 pubsub_node_handle_items_event (WockyPubsubNode *self,
     WockyStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *items_node)
+    WockyNode *event_node,
+    WockyNode *items_node)
 {
-  WockyXmppNode *item_node;
+  WockyNode *item_node;
   GQueue items = G_QUEUE_INIT;
-  WockyXmppNodeIter iter;
+  WockyNodeIter iter;
 
-  wocky_xmpp_node_iter_init (&iter, items_node, "item", NULL);
+  wocky_node_iter_init (&iter, items_node, "item", NULL);
 
-  while (wocky_xmpp_node_iter_next (&iter, &item_node))
+  while (wocky_node_iter_next (&iter, &item_node))
     g_queue_push_tail (&items, item_node);
 
   DEBUG_STANZA (event_stanza, "extracted %u items", items.length);
@@ -302,8 +302,8 @@ pubsub_node_handle_items_event (WockyPubsubNode *self,
 static void
 pubsub_node_handle_subscription_event (WockyPubsubNode *self,
     WockyStanza *event_stanza,
-    WockyXmppNode *event_node,
-    WockyXmppNode *subscription_node)
+    WockyNode *event_node,
+    WockyNode *subscription_node)
 {
   WockyPubsubNodePrivate *priv = self->priv;
   WockyPubsubSubscription *sub;
@@ -352,9 +352,9 @@ wocky_pubsub_node_get_name (WockyPubsubNode *self)
 
 WockyStanza *
 wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
-    WockyXmppNode **pubsub_out,
-    WockyXmppNode **publish_out,
-    WockyXmppNode **item_out)
+    WockyNode **pubsub_out,
+    WockyNode **publish_out,
+    WockyNode **item_out)
 {
   WockyPubsubNodePrivate *priv = self->priv;
 
@@ -368,22 +368,22 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
     const gchar *pubsub_ns,
     const gchar *action_name,
     const gchar *jid,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **action_node)
+    WockyNode **pubsub_node,
+    WockyNode **action_node)
 {
   WockyPubsubNodePrivate *priv = self->priv;
   WockyStanza *stanza;
-  WockyXmppNode *action;
+  WockyNode *action;
 
   g_assert (pubsub_ns != NULL);
   g_assert (action_name != NULL);
 
   stanza = wocky_pubsub_make_stanza (priv->service_jid, sub_type, pubsub_ns,
       action_name, pubsub_node, &action);
-  wocky_xmpp_node_set_attribute (action, "node", priv->name);
+  wocky_node_set_attribute (action, "node", priv->name);
 
   if (jid != NULL)
-    wocky_xmpp_node_set_attribute (action, "jid", jid);
+    wocky_node_set_attribute (action, "jid", jid);
 
   if (action_node != NULL)
     *action_node = action;
@@ -394,8 +394,8 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
 WockyStanza *
 wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **subscribe_node)
+    WockyNode **pubsub_node,
+    WockyNode **subscribe_node)
 {
   /* TODO: when the connection/porter/session/something knows our own JID, we
    * should provide an easy way to say “my bare JID” or “my full JID”. Could be
@@ -418,7 +418,7 @@ subscribe_cb (GObject *source,
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
   WockyPubsubNodePrivate *priv = self->priv;
-  WockyXmppNode *subscription_node;
+  WockyNode *subscription_node;
   WockyPubsubSubscription *sub = NULL;
   GError *error = NULL;
 
@@ -499,11 +499,11 @@ WockyStanza *
 wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
     const gchar *subid,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **unsubscribe_node)
+    WockyNode **pubsub_node,
+    WockyNode **unsubscribe_node)
 {
   WockyStanza *stanza;
-  WockyXmppNode *unsubscribe;
+  WockyNode *unsubscribe;
 
   /* TODO: when the connection/porter/session/something knows our own JID, we
    * should provide an easy way to say “my bare JID” or “my full JID”. Could be
@@ -517,7 +517,7 @@ wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
       pubsub_node, &unsubscribe);
 
   if (subid != NULL)
-    wocky_xmpp_node_set_attribute (unsubscribe, "subid", subid);
+    wocky_node_set_attribute (unsubscribe, "subid", subid);
 
   if (unsubscribe_node != NULL)
     *unsubscribe_node = unsubscribe;
@@ -619,8 +619,8 @@ delete_node_iq_cb (GObject *source,
 WockyStanza *
 wocky_pubsub_node_make_delete_stanza (
     WockyPubsubNode *self,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **delete_node)
+    WockyNode **pubsub_node,
+    WockyNode **delete_node)
 {
   return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_XMPP_NS_PUBSUB_OWNER, "delete", NULL, pubsub_node, delete_node);
@@ -662,8 +662,8 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
 WockyStanza *
 wocky_pubsub_node_make_list_subscribers_stanza (
     WockyPubsubNode *self,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **subscriptions_node)
+    WockyNode **pubsub_node,
+    WockyNode **subscriptions_node)
 {
   return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_XMPP_NS_PUBSUB_OWNER, "subscriptions", NULL,
@@ -679,7 +679,7 @@ list_subscribers_cb (GObject *source,
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
   WockyPubsubNodePrivate *priv = self->priv;
-  WockyXmppNode *subscriptions_node;
+  WockyNode *subscriptions_node;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB_OWNER,
@@ -764,8 +764,8 @@ wocky_pubsub_node_list_subscribers_finish (
 WockyStanza *
 wocky_pubsub_node_make_list_affiliates_stanza (
     WockyPubsubNode *self,
-    WockyXmppNode **pubsub_node,
-    WockyXmppNode **affiliations_node)
+    WockyNode **pubsub_node,
+    WockyNode **affiliations_node)
 {
   return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_XMPP_NS_PUBSUB_OWNER, "affiliations", NULL,
@@ -775,18 +775,18 @@ wocky_pubsub_node_make_list_affiliates_stanza (
 GList *
 wocky_pubsub_node_parse_affiliations (
     WockyPubsubNode *self,
-    WockyXmppNode *affiliations_node)
+    WockyNode *affiliations_node)
 {
   GQueue affs = G_QUEUE_INIT;
-  WockyXmppNodeIter i;
-  WockyXmppNode *n;
+  WockyNodeIter i;
+  WockyNode *n;
 
-  wocky_xmpp_node_iter_init (&i, affiliations_node, "affiliation", NULL);
+  wocky_node_iter_init (&i, affiliations_node, "affiliation", NULL);
 
-  while (wocky_xmpp_node_iter_next (&i, &n))
+  while (wocky_node_iter_next (&i, &n))
     {
-      const gchar *jid = wocky_xmpp_node_get_attribute (n, "jid");
-      const gchar *affiliation = wocky_xmpp_node_get_attribute (n,
+      const gchar *jid = wocky_node_get_attribute (n, "jid");
+      const gchar *affiliation = wocky_node_get_attribute (n,
           "affiliation");
       gint state;
 
@@ -824,7 +824,7 @@ list_affiliates_cb (GObject *source,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
-  WockyXmppNode *affiliations_node;
+  WockyNode *affiliations_node;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB_OWNER,

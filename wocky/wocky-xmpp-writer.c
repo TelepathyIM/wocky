@@ -326,7 +326,7 @@ wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
 }
 
 static void
-_xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node);
+_xml_write_node (WockyXmppWriter *writer, WockyNode *node);
 
 static gboolean
 _write_attr (const gchar *key, const gchar *value,
@@ -364,14 +364,14 @@ _write_attr (const gchar *key, const gchar *value,
 }
 
 static gboolean
-_write_child (WockyXmppNode *node, gpointer user_data)
+_write_child (WockyNode *node, gpointer user_data)
 {
   _xml_write_node (WOCKY_XMPP_WRITER (user_data), node);
   return TRUE;
 }
 
 static void
-_xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
+_xml_write_node (WockyXmppWriter *writer, WockyNode *node)
 {
   const gchar *l;
   GQuark oldns;
@@ -395,12 +395,12 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
       priv->current_ns = node->ns;
       xmlTextWriterStartElementNS (priv->xmlwriter,
           NULL, (const xmlChar *) node->name,
-          (const xmlChar *) wocky_xmpp_node_get_ns (node));
+          (const xmlChar *) wocky_node_get_ns (node));
     }
 
-  wocky_xmpp_node_each_attribute (node, _write_attr, writer);
+  wocky_node_each_attribute (node, _write_attr, writer);
 
-  l = wocky_xmpp_node_get_language (node);
+  l = wocky_node_get_language (node);
 
   if (l != NULL)
     {
@@ -409,7 +409,7 @@ _xml_write_node (WockyXmppWriter *writer, WockyXmppNode *node)
           (const xmlChar *)l);
     }
 
-  wocky_xmpp_node_each_child (node, _write_child, writer);
+  wocky_node_each_child (node, _write_child, writer);
 
   if (node->content)
     {

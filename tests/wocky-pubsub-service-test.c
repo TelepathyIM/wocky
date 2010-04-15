@@ -255,14 +255,14 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
-  WockyXmppNode *node;
+  WockyNode *node;
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (node != NULL);
-  node = wocky_xmpp_node_get_child (node, "create");
+  node = wocky_node_get_child (node, "create");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "node"),
         "node1"));
 
   reply = wocky_stanza_build_iq_result (stanza, NULL);
@@ -461,14 +461,14 @@ test_create_node_renamed_iq_cb (WockyPorter *porter,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
-  WockyXmppNode *node;
+  WockyNode *node;
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (node != NULL);
-  node = wocky_xmpp_node_get_child (node, "create");
+  node = wocky_node_get_child (node, "create");
   g_assert (node != NULL);
-  g_assert (!wocky_strdiff (wocky_xmpp_node_get_attribute (node, "node"),
+  g_assert (!wocky_strdiff (wocky_node_get_attribute (node, "node"),
         "node1"));
 
   reply = wocky_stanza_build_iq_result (stanza,
@@ -550,29 +550,29 @@ test_create_node_config_create_iq_cb (WockyPorter *porter,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
-  WockyXmppNode *node;
+  WockyNode *node;
   GSList *l;
   gboolean form_type = FALSE, title = FALSE, notif = FALSE;
 
-  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+  node = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
       "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (node != NULL);
-  node = wocky_xmpp_node_get_child (node, "configure");
+  node = wocky_node_get_child (node, "configure");
   g_assert (node != NULL);
-  node = wocky_xmpp_node_get_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
+  node = wocky_node_get_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
   g_assert (node != NULL);
 
   for (l = node->children; l != NULL; l = g_slist_next (l))
     {
-      WockyXmppNode *field = l->data;
+      WockyNode *field = l->data;
       const gchar *type, *var, *value = NULL;
-      WockyXmppNode *v;
+      WockyNode *v;
 
       g_assert (!wocky_strdiff (field->name, "field"));
-      var = wocky_xmpp_node_get_attribute (field, "var");
-      type = wocky_xmpp_node_get_attribute (field, "type");
+      var = wocky_node_get_attribute (field, "var");
+      type = wocky_node_get_attribute (field, "type");
 
-      v = wocky_xmpp_node_get_child (field, "value");
+      v = wocky_node_get_child (field, "value");
       g_assert (v != NULL);
       value = v->content;
 
@@ -699,7 +699,7 @@ make_subscriptions_response (WockyStanza *stanza,
     CannedSubscriptions *subs)
 {
   WockyStanza *reply;
-  WockyXmppNode *s;
+  WockyNode *s;
 
   reply = wocky_stanza_build_iq_result (stanza,
         '(', "pubsub",
@@ -711,7 +711,7 @@ make_subscriptions_response (WockyStanza *stanza,
       NULL);
 
   if (node != NULL)
-    wocky_xmpp_node_set_attribute (s, "node", node);
+    wocky_node_set_attribute (s, "node", node);
 
   test_pubsub_add_subscription_nodes (s, subs, (node == NULL));
   return reply;
@@ -726,7 +726,7 @@ test_retrieve_subscriptions_iq_cb (
   RetrieveSubscriptionsCtx *ctx = user_data;
   test_data_t *test = ctx->test;
   WockyStanza *reply, *expected;
-  WockyXmppNode *subscriptions;
+  WockyNode *subscriptions;
 
   expected = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
@@ -740,7 +740,7 @@ test_retrieve_subscriptions_iq_cb (
       NULL);
 
   if (ctx->mode == MODE_AT_NODE)
-    wocky_xmpp_node_set_attribute (subscriptions, "node", "bonghits");
+    wocky_node_set_attribute (subscriptions, "node", "bonghits");
 
   test_assert_stanzas_equal_no_id (stanza, expected);
   g_object_unref (expected);
