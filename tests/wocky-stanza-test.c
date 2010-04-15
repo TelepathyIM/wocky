@@ -485,7 +485,7 @@ test_stanza_error_to_node (void)
       "from", "to",
       NULL);
 
-  wocky_stanza_error_to_node (e, stanza->node);
+  wocky_stanza_error_to_node (e, wocky_stanza_get_top_node (stanza));
 
   expected = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
@@ -524,7 +524,7 @@ test_stanza_error_to_node (void)
       "from", "to",
       NULL);
 
-  wocky_stanza_error_to_node (e, stanza->node);
+  wocky_stanza_error_to_node (e, wocky_stanza_get_top_node (stanza));
 
   expected = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,

@@ -124,7 +124,8 @@ get_pubsub_child_node (WockyStanza *reply,
 
   g_return_val_if_fail (reply != NULL, FALSE);
 
-  n = wocky_xmpp_node_get_child_ns (reply->node, "pubsub", pubsub_ns);
+  n = wocky_xmpp_node_get_child_ns (
+    wocky_stanza_get_top_node (reply), "pubsub", pubsub_ns);
 
   if (n == NULL)
     {

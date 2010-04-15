@@ -1053,7 +1053,7 @@ wocky_xmpp_node_is_superset (WockyXmppNode *node,
  * WockyXmppNodeIter iter;
  * WockyXmppNode *child;
  *
- * wocky_xmpp_node_iter_init (&iter, stanza->node,
+ * wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza),
  *    "payload-type",
  *    WOCKY_XMPP_NS_JINGLE_RTP);
  * while (wocky_xmpp_node_iter_next (iter, &child))

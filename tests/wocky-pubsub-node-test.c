@@ -218,7 +218,7 @@ test_unsubscribe_iq_cb (WockyPorter *porter,
   WockyStanza *reply;
 
   unsubscribe = wocky_xmpp_node_get_child (
-      wocky_xmpp_node_get_child_ns (stanza->node,
+      wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
           "pubsub", WOCKY_XMPP_NS_PUBSUB),
       "unsubscribe");
   g_assert (unsubscribe != NULL);

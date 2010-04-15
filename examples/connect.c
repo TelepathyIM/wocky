@@ -67,13 +67,16 @@ ssl_features_received_cb (GObject *source,
   gpointer user_data)
 {
   WockyStanza *stanza;
+  WockyXmppNode *node;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
   g_assert (stanza != NULL);
 
-  if (strcmp (stanza->node->name, "features")
-      || strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM))
+  node = wocky_stanza_get_top_node (stanza);
+
+  if (strcmp (node->name, "features")
+      || strcmp (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
     {
       printf ("Didn't receive features stanza\n");
       g_main_loop_quit (mainloop);
@@ -144,14 +147,17 @@ tcp_start_tls_recv_cb (GObject *source,
   gpointer user_data)
 {
   WockyStanza *stanza;
+  WockyXmppNode *node;
   GError *error = NULL;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
   g_assert (stanza != NULL);
 
-  if (strcmp (stanza->node->name, "proceed")
-      || strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_TLS))
+  node = wocky_stanza_get_top_node (stanza);
+
+  if (strcmp (node->name, "proceed")
+      || strcmp (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_TLS))
     {
       printf ("Server doesn't want to start tls");
       g_main_loop_quit (mainloop);
@@ -190,22 +196,24 @@ tcp_features_received_cb (GObject *source,
   gpointer user_data)
 {
   WockyStanza *stanza;
-  WockyXmppNode *tls;
+  WockyXmppNode *tls, *node;
   WockyStanza *starttls;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
   g_assert (stanza != NULL);
 
-  if (strcmp (stanza->node->name, "features")
-      || strcmp (wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_STREAM))
+  node = wocky_stanza_get_top_node (stanza);
+
+  if (strcmp (node->name, "features")
+      || strcmp (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
     {
       printf ("Didn't receive features stanza\n");
       g_main_loop_quit (mainloop);
       return;
     }
 
-  tls = wocky_xmpp_node_get_child_ns (stanza->node, "starttls",
+  tls = wocky_xmpp_node_get_child_ns (node, "starttls",
       WOCKY_XMPP_NS_TLS);
 
   if (tls == NULL)

@@ -385,15 +385,16 @@ roster_update (WockyRoster *self,
 
       /* FIXME: this is wrong, we should use _get_attribute_ns instead of
        * assuming the prefix */
-      gr_ext = wocky_xmpp_node_get_attribute (stanza->node, "gr:ext");
+      gr_ext = wocky_xmpp_node_get_attribute (
+          wocky_stanza_get_top_node (stanza), "gr:ext");
 
       if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
         google_roster = TRUE;
     }
 
   /* Check stanza contains query node. */
-  query_node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
-      WOCKY_XMPP_NS_ROSTER);
+  query_node = wocky_xmpp_node_get_child_ns (
+      wocky_stanza_get_top_node (stanza), "query", WOCKY_XMPP_NS_ROSTER);
 
   if (query_node == NULL)
     {
@@ -523,7 +524,8 @@ roster_iq_handler_set_cb (WockyPorter *porter,
   GError *error = NULL;
   WockyStanza *reply;
 
-  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+  from = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+    "from");
 
   if (from != NULL)
     {

@@ -480,8 +480,9 @@ pubsub_service_propagate_event (WockyPorter *porter,
 
   g_assert (WOCKY_IS_PUBSUB_SERVICE (self));
 
-  event_node = wocky_xmpp_node_get_child_ns (event_stanza->node, "event",
-      WOCKY_XMPP_NS_PUBSUB_EVENT);
+  event_node = wocky_xmpp_node_get_child_ns (
+      wocky_stanza_get_top_node (event_stanza), "event",
+        WOCKY_XMPP_NS_PUBSUB_EVENT);
   g_return_val_if_fail (event_node != NULL, FALSE);
   action_node = wocky_xmpp_node_get_child (event_node,
       trampoline->mapping->action);

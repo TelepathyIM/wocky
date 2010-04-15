@@ -241,7 +241,8 @@ test_expected_stanza_received (test_data_t *test,
 
   expected = g_queue_pop_head (test->expected_stanzas);
   g_assert (expected != NULL);
-  test_assert_nodes_equal (stanza->node, expected->node);
+  test_assert_nodes_equal (wocky_stanza_get_top_node (stanza),
+    wocky_stanza_get_top_node (expected));
   g_object_unref (expected);
 
   test->outstanding--;

@@ -106,9 +106,10 @@ test_append_content_n (void)
   /* Append content byte by byte */
   for (i = 0; i < l; i++)
     {
-      wocky_xmpp_node_append_content_n (a->node, content + i, 1);
+      wocky_xmpp_node_append_content_n (wocky_stanza_get_top_node (a),
+          content + i, 1);
     }
-  g_assert (!wocky_strdiff (a->node->content, content));
+  g_assert (!wocky_strdiff (wocky_stanza_get_top_node (a)->content, content));
 
   g_object_unref (a);
 }
@@ -134,8 +135,8 @@ test_set_attribute_ns (void)
       "juliet@example.com", "romeo@example.org", NULL);
   sb = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       "juliet@example.com", "romeo@example.org", NULL);
-  na = sa->node;
-  nb = sb->node;
+  na = wocky_stanza_get_top_node (sa);
+  nb = wocky_stanza_get_top_node (sb);
 
   test_assert_nodes_equal (na, nb);
 
@@ -305,38 +306,42 @@ test_node_iteration (void)
     NULL);
 
   /* All children */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL, NULL);
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza),
+      NULL, NULL);
   do_test_iteration (&iter, all);
 
   /* Only the payloads */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, "payload-type", NULL);
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza),
+      "payload-type", NULL);
   do_test_iteration (&iter, payloads);
 
   /* Only phone payloads */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, "payload-type",
-    WOCKY_NS_GOOGLE_SESSION_PHONE);
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza),
+      "payload-type", WOCKY_NS_GOOGLE_SESSION_PHONE);
   do_test_iteration (&iter, audio);
 
   /* Only nodes with the phone namespace */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL,
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza), NULL,
     WOCKY_NS_GOOGLE_SESSION_PHONE);
   do_test_iteration (&iter, audio);
 
   /* only video payloads */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, "payload-type",
-    WOCKY_NS_GOOGLE_SESSION_VIDEO);
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza),
+      "payload-type", WOCKY_NS_GOOGLE_SESSION_VIDEO);
   do_test_iteration (&iter, video);
 
   /* only nodes with the video namespace */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL,
-    WOCKY_NS_GOOGLE_SESSION_VIDEO);
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza), NULL,
+      WOCKY_NS_GOOGLE_SESSION_VIDEO);
   do_test_iteration (&iter, video_ns);
 
   /* nothing */
-  wocky_xmpp_node_iter_init (&iter, stanza->node, "badgers", NULL);
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza),
+      "badgers", NULL);
   do_test_iteration (&iter, nothing);
 
-  wocky_xmpp_node_iter_init (&iter, stanza->node, NULL, "snakes");
+  wocky_xmpp_node_iter_init (&iter, wocky_stanza_get_top_node (stanza), NULL,
+      "snakes");
   do_test_iteration (&iter, nothing);
 
   g_object_unref (stanza);

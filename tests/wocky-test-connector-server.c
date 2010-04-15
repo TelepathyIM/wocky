@@ -253,7 +253,7 @@ error_stanza (const gchar *cond,
     const gchar *msg, gboolean extended)
 {
   WockyStanza *error = wocky_stanza_new ("error", WOCKY_XMPP_NS_STREAM);
-  WockyXmppNode *node = error->node;
+  WockyXmppNode *node = wocky_stanza_get_top_node (error);
 
   wocky_xmpp_node_add_child_ns (node, cond, WOCKY_XMPP_NS_STREAMS);
 
@@ -276,7 +276,7 @@ iq_set_query_XEP77_REGISTER (TestConnectorServer *self,
   TestConnectorServerPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   WockyStanza *iq = NULL;
-  WockyXmppNode *env = xml->node;
+  WockyXmppNode *env = wocky_stanza_get_top_node (xml);
   WockyXmppNode *query = wocky_xmpp_node_get_child (env, "query");
   const gchar *id = wocky_xmpp_node_get_attribute (env, "id");
   gpointer cb = iq_sent;
@@ -412,7 +412,7 @@ iq_get_query_XEP77_REGISTER (TestConnectorServer *self,
   TestConnectorServerPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   WockyStanza *iq = NULL;
-  WockyXmppNode *env = xml->node;
+  WockyXmppNode *env = wocky_stanza_get_top_node (xml);
   WockyXmppNode *query = NULL;
   const gchar *id = wocky_xmpp_node_get_attribute (env, "id");
 
@@ -463,7 +463,8 @@ iq_get_query_XEP77_REGISTER (TestConnectorServer *self,
           ')',
           NULL);
 
-      query = wocky_xmpp_node_get_child (iq->node, "query");
+      query = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (iq),
+          "query");
 
       if (!(priv->problem.connector->xep77 & XEP77_PROBLEM_NO_ARGS))
         {
@@ -490,7 +491,7 @@ iq_get_query_JABBER_AUTH (TestConnectorServer *self,
   TestConnectorServerPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   WockyStanza *iq = NULL;
-  WockyXmppNode *env = xml->node;
+  WockyXmppNode *env = wocky_stanza_get_top_node (xml);
   const gchar *id = wocky_xmpp_node_get_attribute (env, "id");
   WockyXmppNode *query = wocky_xmpp_node_get_child (env, "query");
   WockyXmppNode *user  = (query != NULL) ?
@@ -568,7 +569,7 @@ iq_set_query_JABBER_AUTH (TestConnectorServer *self,
   TestConnectorServerPrivate *priv = self->priv;
   WockyXmppConnection *conn = priv->conn;
   WockyStanza *iq = NULL;
-  WockyXmppNode *env = xml->node;
+  WockyXmppNode *env = wocky_stanza_get_top_node (xml);
   WockyXmppNode *qry = wocky_xmpp_node_get_child (env, "query");
   JabberProblem problems = priv->problem.connector->jabber;
   JabberProblem jp = JABBER_PROBLEM_NONE;
@@ -760,7 +761,7 @@ iq_set_bind_XMPP_BIND (TestConnectorServer *self,
     }
   else
     {
-      WockyXmppNode *ciq = xml->node;
+      WockyXmppNode *ciq = wocky_stanza_get_top_node (xml);
       WockyXmppNode *bind =
         wocky_xmpp_node_get_child_ns (ciq, "bind", WOCKY_XMPP_NS_BIND);
       WockyXmppNode *res = wocky_xmpp_node_get_child (bind, "resource");
@@ -1154,8 +1155,8 @@ xmpp_handler (GObject *source,
   if (server_dec_outstanding (self))
     return;
 
-  ns   = wocky_xmpp_node_get_ns (xml->node);
-  name = xml->node->name;
+  ns   = wocky_xmpp_node_get_ns (wocky_stanza_get_top_node (xml));
+  name = wocky_stanza_get_top_node (xml)->name;
   wocky_stanza_get_type_info (xml, &type, &subtype);
 
   /* if we find a handler, the handler is responsible for listening for the
@@ -1165,7 +1166,8 @@ xmpp_handler (GObject *source,
       {
         iq_handler *iq = &iq_handlers[i];
         WockyXmppNode *payload =
-          wocky_xmpp_node_get_child_ns (xml->node, iq->payload, iq->ns);
+          wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (xml),
+              iq->payload, iq->ns);
         /* namespace, stanza subtype and payload tag name must match: */
         if ((payload == NULL) || (subtype != iq->subtype))
           continue;
@@ -1236,7 +1238,7 @@ after_auth (GObject *source,
     return;
 
   feat = wocky_stanza_new ("stream:features", NULL);
-  node = feat->node;
+  node = wocky_stanza_get_top_node (feat);
 
   if (!(priv->problem.connector->xmpp & XMPP_PROBLEM_NO_SESSION))
     wocky_xmpp_node_add_child_ns (node, "session", WOCKY_XMPP_NS_SESSION);
@@ -1270,7 +1272,7 @@ feature_stanza (TestConnectorServer *self)
 
   name = (problem & XMPP_PROBLEM_FEATURES) ? "badger" : "features";
   feat = wocky_stanza_new (name, WOCKY_XMPP_NS_STREAM);
-  node = feat->node;
+  node = wocky_stanza_get_top_node (feat);
 
   DEBUG ("constructing <%s...>... stanza", name);
 

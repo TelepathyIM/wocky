@@ -448,7 +448,7 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
       xmlTextWriterStartDocument (priv->xmlwriter, "1.0", "utf-8", NULL);
     }
 
-  _xml_write_node (writer, stanza->node);
+  _xml_write_node (writer, wocky_stanza_get_top_node (stanza));
 
   if (!priv->stream_mode)
     {

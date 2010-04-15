@@ -243,8 +243,8 @@ test_make_publish_stanza (void)
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  n = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
-      WOCKY_XMPP_NS_PUBSUB);
+  n = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (n != NULL);
 
   n = wocky_xmpp_node_get_child (n, "publish");

@@ -1037,9 +1037,9 @@ test_handler_stanza_jingle_cb (WockyPorter *porter,
   const gchar *id;
 
   test_expected_stanza_received (test, stanza);
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
-  g_assert (!wocky_strdiff (id, "3") ||
-      !wocky_strdiff (id, "4"));
+  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "id");
+  g_assert (!wocky_strdiff (id, "3") || !wocky_strdiff (id, "4"));
   return TRUE;
 }
 
@@ -1052,7 +1052,8 @@ test_handler_stanza_terminate_cb (WockyPorter *porter,
   const gchar *id;
 
   test_expected_stanza_received (test, stanza);
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "id");
   g_assert (!wocky_strdiff (id, "5"));
   return TRUE;
 }
@@ -1288,7 +1289,8 @@ test_send_iq_cb (WockyPorter *porter,
 
   test_expected_stanza_received (test, stanza);
 
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "id");
 
   wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
@@ -1342,7 +1344,8 @@ test_send_iq_abnormal_cb (WockyPorter *porter,
 
   test_expected_stanza_received (test, stanza);
 
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "id");
 
   wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
@@ -1622,7 +1625,8 @@ test_handler_filter_from_juliet_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   const gchar *from;
 
-  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+  from = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "from");
   g_assert (!wocky_strdiff (from, "juliet@example.com"));
 
   test_expected_stanza_received (test, stanza);
@@ -1749,20 +1753,22 @@ test_send_iq_server_received_cb (WockyPorter *porter,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
+  WockyXmppNode *node;
   const gchar *id;
   const gchar *from;
 
   test_expected_stanza_received (test, iq);
 
-  id = wocky_xmpp_node_get_attribute (iq->node, "id");
+  node = wocky_stanza_get_top_node (iq);
+  id = wocky_xmpp_node_get_attribute (node, "id");
 
-  if (wocky_xmpp_node_get_child (iq->node, "first") != NULL)
+  if (wocky_xmpp_node_get_child (node, "first") != NULL)
     /* No from attribute */
     from = NULL;
-  else if (wocky_xmpp_node_get_child (iq->node, "second") != NULL)
+  else if (wocky_xmpp_node_get_child (node, "second") != NULL)
     /* bare JID */
     from = "juliet@example.com";
-  else if (wocky_xmpp_node_get_child (iq->node, "third") != NULL)
+  else if (wocky_xmpp_node_get_child (node, "third") != NULL)
     /* full JID */
     from = "juliet@example.com/Balcony";
   else

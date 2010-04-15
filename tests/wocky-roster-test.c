@@ -57,13 +57,15 @@ fetch_roster_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
 
-  node = wocky_xmpp_node_get_child (stanza->node, "query");
+  node = wocky_xmpp_node_get_child (wocky_stanza_get_top_node (stanza),
+      "query");
 
-  g_assert (stanza->node != NULL);
+  g_assert (wocky_stanza_get_top_node (stanza) != NULL);
   g_assert (!wocky_strdiff (wocky_xmpp_node_get_ns (node),
           "jabber:iq:roster"));
 
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "id");
   g_assert (id != NULL);
 
   reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -218,8 +220,9 @@ fetch_roster_reply_cb (WockyPorter *porter,
    * is left up to the server to know which client is the user and then throw
    * in a correct to attribute. Here we're just adding a from attribute so the
    * IQ result builder doesn't complain. */
-  if (wocky_xmpp_node_get_attribute (stanza->node, "from") == NULL)
-    wocky_xmpp_node_set_attribute (stanza->node, "from",
+  if (wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+        "from") == NULL)
+    wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza), "from",
         "juliet@example.com/balcony");
 
   reply = wocky_stanza_build_iq_result (stanza,
@@ -550,7 +553,8 @@ ack_iq (WockyPorter *porter,
   WockyStanza *reply;
   const gchar *id;
 
-  id = wocky_xmpp_node_get_attribute (stanza->node, "id");
+  id = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "id");
   g_assert (id != NULL);
 
   reply = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -583,8 +587,8 @@ check_edit_roster_stanza (WockyStanza *stanza,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
-      WOCKY_XMPP_NS_ROSTER);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
   node = wocky_xmpp_node_get_child (node, "item");
@@ -870,8 +874,8 @@ change_name_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
-      WOCKY_XMPP_NS_ROSTER);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
   node = wocky_xmpp_node_get_child (node, "item");
@@ -1008,8 +1012,8 @@ add_group_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
-      WOCKY_XMPP_NS_ROSTER);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
   node = wocky_xmpp_node_get_child (node, "item");
@@ -1155,8 +1159,8 @@ remove_group_send_iq_cb (WockyPorter *porter,
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_SET);
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "query",
-      WOCKY_XMPP_NS_ROSTER);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "query", WOCKY_XMPP_NS_ROSTER);
   g_assert (node != NULL);
 
   node = wocky_xmpp_node_get_child (node, "item");

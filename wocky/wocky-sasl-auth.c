@@ -311,7 +311,7 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
-      xmpp = stanza->node;
+      xmpp = wocky_stanza_get_top_node (stanza);
       for (item = xmpp->children; item != NULL; item = g_slist_next (item))
         {
           WockyXmppNode *child = item->data;
@@ -398,11 +398,12 @@ sasl_auth_got_failure (WockySaslAuth *sasl,
 {
   WockyXmppNode *reason = NULL;
 
-  if (stanza->node->children != NULL)
+  if (wocky_stanza_get_top_node (stanza)->children != NULL)
     {
       /* TODO add a wocky xmpp node utility to either get the first child or
        * iterate the children list */
-      reason = (WockyXmppNode *) stanza->node->children->data;
+      reason = (WockyXmppNode *)
+          wocky_stanza_get_top_node (stanza)->children->data;
     }
     /* TODO Handle the different error cases in a different way. i.e.
      * make it clear for the user if it's credentials were wrong, if the server
@@ -431,7 +432,8 @@ sasl_auth_stanza_received (GObject *source,
     return;
 
   if (wocky_strdiff (
-      wocky_xmpp_node_get_ns (stanza->node), WOCKY_XMPP_NS_SASL_AUTH))
+      wocky_xmpp_node_get_ns (wocky_stanza_get_top_node (stanza)),
+          WOCKY_XMPP_NS_SASL_AUTH))
     {
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server sent a reply not in the %s namespace",
@@ -442,20 +444,22 @@ sasl_auth_stanza_received (GObject *source,
   /* If the SASL async result is _complete()d in the handler, the SASL object *
    * will be unref'd, which means the ref count could fall to zero while we   *
    * are still using it. grab  aref to it and drop it after we are sure that  *
-   * we don't need it anymore:                                                */
+   * we don't need it anymore:
+   */
   g_object_ref (sasl);
 
-  if (!wocky_strdiff (stanza->node->name, "challenge"))
+  if (!wocky_strdiff (wocky_stanza_get_top_node (stanza)->name, "challenge"))
     {
       WockyStanza *response_stanza;
       gchar *response = NULL;
 
       if (!wocky_sasl_handler_handle_auth_data (priv->handler,
-          stanza->node->content, &response, &error))
+          wocky_stanza_get_top_node (stanza)->content, &response, &error))
         goto failure;
 
       response_stanza = wocky_stanza_new ("response", WOCKY_XMPP_NS_SASL_AUTH);
-      wocky_xmpp_node_set_content (response_stanza->node, response);
+      wocky_xmpp_node_set_content (wocky_stanza_get_top_node (response_stanza),
+        response);
 
        /* FIXME handle send error */
       wocky_xmpp_connection_send_stanza_async (
@@ -466,14 +470,14 @@ sasl_auth_stanza_received (GObject *source,
       wocky_xmpp_connection_recv_stanza_async (priv->connection,
           NULL, sasl_auth_stanza_received, sasl);
     }
-  else if (!wocky_strdiff (stanza->node->name, "success"))
+  else if (!wocky_strdiff (wocky_stanza_get_top_node (stanza)->name, "success"))
     {
-      if (stanza->node->content != NULL)
+      if (wocky_stanza_get_top_node (stanza)->content != NULL)
         {
           gchar *response = NULL;
 
           if (!wocky_sasl_handler_handle_auth_data (priv->handler,
-            stanza->node->content, &response, &error))
+            wocky_stanza_get_top_node (stanza)->content, &response, &error))
             goto failure;
 
           if (response != NULL)
@@ -490,7 +494,7 @@ sasl_auth_stanza_received (GObject *source,
       else
         auth_succeeded (sasl);
     }
-  else if (!wocky_strdiff (stanza->node->name, "failure"))
+  else if (!wocky_strdiff (wocky_stanza_get_top_node (stanza)->name, "failure"))
     {
       sasl_auth_got_failure (sasl, stanza, &error);
       goto failure;
@@ -499,7 +503,7 @@ sasl_auth_stanza_received (GObject *source,
     {
       auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (%s)",
-          stanza->node->name);
+          wocky_stanza_get_top_node (stanza)->name);
     }
 
 out:
@@ -529,7 +533,7 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
   stanza = wocky_stanza_new ("auth", WOCKY_XMPP_NS_SASL_AUTH);
 
   /* google JID domain discovery - client sets a namespaced attribute */
-  wocky_xmpp_node_set_attribute_ns (stanza->node,
+  wocky_xmpp_node_set_attribute_ns (wocky_stanza_get_top_node (stanza),
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
   if (!wocky_sasl_handler_get_initial_response (priv->handler,
@@ -541,12 +545,15 @@ wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
 
   if (initial_response != NULL)
     {
-      wocky_xmpp_node_set_content (stanza->node, initial_response);
+      wocky_xmpp_node_set_content (
+        wocky_stanza_get_top_node (stanza),
+        initial_response);
       g_free (initial_response);
     }
 
   /* FIXME handle send error */
-  wocky_xmpp_node_set_attribute (stanza->node, "mechanism",
+  wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza),
+    "mechanism",
     wocky_sasl_handler_get_mechanism (priv->handler));
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
     NULL, NULL, NULL);
@@ -639,8 +646,9 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
   g_assert (sasl != NULL);
   g_assert (features != NULL);
 
-  mech_node = wocky_xmpp_node_get_child_ns (features->node, "mechanisms",
-      WOCKY_XMPP_NS_SASL_AUTH);
+  mech_node = wocky_xmpp_node_get_child_ns (
+    wocky_stanza_get_top_node (features),
+    "mechanisms", WOCKY_XMPP_NS_SASL_AUTH);
 
   mechanisms = wocky_sasl_auth_mechanisms_to_list (mech_node);
 

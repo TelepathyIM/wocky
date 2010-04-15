@@ -76,13 +76,15 @@ void test_close_both_porters (test_data_t *test);
  */
 #define test_assert_stanzas_equal_no_id(s1, s2) \
   G_STMT_START { \
-    const gchar *_id1 = wocky_xmpp_node_get_attribute ((s1)->node, "id"); \
-    const gchar *_id2 = wocky_xmpp_node_get_attribute ((s2)->node, "id"); \
+    WockyXmppNode *n1 = wocky_stanza_get_top_node (s1); \
+    WockyXmppNode *n2 = wocky_stanza_get_top_node (s2); \
+    const gchar *_id1 = wocky_xmpp_node_get_attribute (n1, "id"); \
+    const gchar *_id2 = wocky_xmpp_node_get_attribute (n2, "id"); \
     if (_id1 == NULL && _id2 != NULL) \
-      wocky_xmpp_node_set_attribute ((s1)->node, "id", _id2); \
+      wocky_xmpp_node_set_attribute (n1, "id", _id2); \
     else if (_id1 != NULL && _id2 == NULL) \
-      wocky_xmpp_node_set_attribute ((s2)->node, "id", _id1); \
-    test_assert_nodes_equal ((s1)->node, (s2)->node); \
+      wocky_xmpp_node_set_attribute (n2, "id", _id1); \
+    test_assert_stanzas_equal (s1, s2); \
   } G_STMT_END
 
 void test_init (int argc,

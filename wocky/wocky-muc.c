@@ -695,7 +695,8 @@ muc_disco_info (GObject *source,
       WockyXmppNode *node;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        query = wocky_xmpp_node_get_child_ns (iq->node, "query", NS_DISCO_INFO);
+        query = wocky_xmpp_node_get_child_ns (
+          wocky_stanza_get_top_node (iq), "query", NS_DISCO_INFO);
 
         if (!query)
           {
@@ -813,8 +814,9 @@ wocky_muc_create_presence (WockyMuc *muc,
         priv->user,
         priv->jid,
         NULL);
-  WockyXmppNode *presence = stanza->node;
-  WockyXmppNode *x = wocky_xmpp_node_add_child_ns (presence, "x", WOCKY_NS_MUC);
+  WockyXmppNode *presence = wocky_stanza_get_top_node (stanza);
+  WockyXmppNode *x = wocky_xmpp_node_add_child_ns (presence,
+      "x", WOCKY_NS_MUC);
 
 
   /* There should be separate API to leave a room, but atm there isn't... so
@@ -1124,8 +1126,9 @@ handle_presence_standard (WockyMuc *muc,
   gchar *serv = NULL;
   gchar *nick = NULL;
   gboolean ok = FALSE;
-  WockyXmppNode *node = stanza->node;
-  WockyXmppNode *x = wocky_xmpp_node_get_child_ns (node, "x", WOCKY_NS_MUC_USR);
+  WockyXmppNode *node = wocky_stanza_get_top_node (stanza);
+  WockyXmppNode *x = wocky_xmpp_node_get_child_ns (node,
+      "x", WOCKY_NS_MUC_USR);
   WockyXmppNode *item = NULL;
   const gchar *from = wocky_xmpp_node_get_attribute (node, "from");
   const gchar *pjid = NULL;
@@ -1291,7 +1294,8 @@ handle_presence_error (WockyMuc *muc,
   gchar *room = NULL;
   gchar *serv = NULL;
   gchar *nick = NULL;
-  const gchar *from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+  const gchar *from = wocky_xmpp_node_get_attribute (
+      wocky_stanza_get_top_node (stanza), "from");
   WockyMucPrivate *priv = muc->priv;
   GError *error = NULL;
 
@@ -1342,7 +1346,8 @@ handle_presence (WockyPorter *porter,
 
   if (type != WOCKY_STANZA_TYPE_PRESENCE)
     {
-      g_warning ("presence handler received '%s' stanza", stanza->node->name);
+      g_warning ("presence handler received '%s' stanza",
+          wocky_stanza_get_top_node (stanza)->name);
       return FALSE;
     }
 
@@ -1373,7 +1378,7 @@ handle_message (WockyPorter *porter,
   WockyMuc *muc = WOCKY_MUC (data);
   WockyMucPrivate *priv = muc->priv;
   WockyStanzaSubType stype;
-  WockyXmppNode *msg = stanza->node;
+  WockyXmppNode *msg = wocky_stanza_get_top_node (stanza);
   const gchar *from = NULL;
   WockyXmppNode *child = NULL;
   gboolean from_self = FALSE;

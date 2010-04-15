@@ -214,7 +214,8 @@ msg_event_cb (WockyPorter *porter,
   const gchar *from;
   WockyBareContact *contact;
 
-  from = wocky_xmpp_node_get_attribute (stanza->node, "from");
+  from = wocky_xmpp_node_get_attribute (wocky_stanza_get_top_node (stanza),
+      "from");
   if (from == NULL)
     {
       DEBUG ("No 'from' attribute; ignoring event");

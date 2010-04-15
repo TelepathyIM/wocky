@@ -257,8 +257,8 @@ test_create_node_no_config_iq_cb (WockyPorter *porter,
   WockyStanza *reply;
   WockyXmppNode *node;
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
-      WOCKY_XMPP_NS_PUBSUB);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (node != NULL);
   node = wocky_xmpp_node_get_child (node, "create");
   g_assert (node != NULL);
@@ -463,8 +463,8 @@ test_create_node_renamed_iq_cb (WockyPorter *porter,
   WockyStanza *reply;
   WockyXmppNode *node;
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
-      WOCKY_XMPP_NS_PUBSUB);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (node != NULL);
   node = wocky_xmpp_node_get_child (node, "create");
   g_assert (node != NULL);
@@ -554,8 +554,8 @@ test_create_node_config_create_iq_cb (WockyPorter *porter,
   GSList *l;
   gboolean form_type = FALSE, title = FALSE, notif = FALSE;
 
-  node = wocky_xmpp_node_get_child_ns (stanza->node, "pubsub",
-      WOCKY_XMPP_NS_PUBSUB);
+  node = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "pubsub", WOCKY_XMPP_NS_PUBSUB);
   g_assert (node != NULL);
   node = wocky_xmpp_node_get_child (node, "configure");
   g_assert (node != NULL);
@@ -755,12 +755,13 @@ test_retrieve_subscriptions_iq_cb (
       break;
     case MODE_BZZT:
       {
-	GError e = { WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
-	    "FIXME: <unsupported feature='retrieve-subscriptions'/>" };
+        GError e = { WOCKY_XMPP_ERROR,
+            WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED,
+            "FIXME: <unsupported feature='retrieve-subscriptions'/>" };
 
-	reply = wocky_stanza_build_iq_error (stanza, NULL);
-	wocky_stanza_error_to_node (&e, reply->node);
-	break;
+        reply = wocky_stanza_build_iq_error (stanza, NULL);
+        wocky_stanza_error_to_node (&e, wocky_stanza_get_top_node (reply));
+        break;
       }
     case MODE_AT_NODE:
       reply = make_subscriptions_response (stanza, "bonghits", bonghit_subs);

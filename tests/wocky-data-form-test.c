@@ -24,17 +24,20 @@ test_new_from_form (void)
       NULL, NULL, NULL);
 
   /* node doesn't contain a form */
-  form = wocky_data_form_new_from_form (stanza->node, &error);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      &error);
   g_assert (form == NULL);
   g_assert_error (error, WOCKY_DATA_FORM_ERROR,
       WOCKY_DATA_FORM_ERROR_NOT_FORM);
   g_clear_error (&error);
 
   /* add 'x' node */
-  node = wocky_xmpp_node_add_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
+  node = wocky_xmpp_node_add_child_ns (wocky_stanza_get_top_node (stanza),
+      "x", WOCKY_XMPP_NS_DATA);
 
   /* the x node doesn't have a 'type' attribute */
-  form = wocky_data_form_new_from_form (stanza->node, &error);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      &error);
   g_assert (form == NULL);
   g_assert_error (error, WOCKY_DATA_FORM_ERROR,
       WOCKY_DATA_FORM_ERROR_WRONG_TYPE);
@@ -43,7 +46,8 @@ test_new_from_form (void)
   /* set wrong type */
   wocky_xmpp_node_set_attribute (node, "type", "badger");
 
-  form = wocky_data_form_new_from_form (stanza->node, &error);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      &error);
   g_assert (form == NULL);
   g_assert_error (error, WOCKY_DATA_FORM_ERROR,
       WOCKY_DATA_FORM_ERROR_WRONG_TYPE);
@@ -52,7 +56,8 @@ test_new_from_form (void)
   /* set the right type */
   wocky_xmpp_node_set_attribute (node, "type", "form");
 
-  form = wocky_data_form_new_from_form (stanza->node, &error);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      &error);
   g_assert (form != NULL);
   g_assert_no_error (error);
 
@@ -241,7 +246,8 @@ test_parse_form (void)
   };
 
   stanza = create_bot_creation_form_stanza ();
-  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      NULL);
   g_assert (form != NULL);
   g_object_unref (stanza);
 
@@ -357,11 +363,13 @@ test_submit (void)
   GSList *l;
   const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
   const gchar *features[] = { "news", "search", NULL };
-  const gchar *invitees[] = { "juliet@example.org", "romeo@example.org", NULL };
+  const gchar *invitees[] = { "juliet@example.org",
+      "romeo@example.org", NULL };
   gboolean set_succeeded;
 
   stanza = create_bot_creation_form_stanza ();
-  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      NULL);
   g_assert (form != NULL);
   g_object_unref (stanza);
 
@@ -406,9 +414,10 @@ test_submit (void)
   stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       NULL, NULL, NULL);
-  wocky_data_form_submit (form, stanza->node);
+  wocky_data_form_submit (form, wocky_stanza_get_top_node (stanza));
 
-  x = wocky_xmpp_node_get_child_ns (stanza->node, "x", WOCKY_XMPP_NS_DATA);
+  x = wocky_xmpp_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "x", WOCKY_XMPP_NS_DATA);
   g_assert (x != NULL);
   g_assert_cmpstr (wocky_xmpp_node_get_attribute (x, "type"), ==, "submit");
 
@@ -577,7 +586,7 @@ test_submit_blindly (void)
   stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
       NULL);
-  wocky_data_form_submit (form, stanza->node);
+  wocky_data_form_submit (form, wocky_stanza_get_top_node (stanza));
 
   expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
@@ -653,7 +662,8 @@ test_parse_multi_result (void)
   gboolean item1 = FALSE, item2 = FALSE;
 
   stanza = create_search_form_stanza ();
-  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      NULL);
   g_assert (form != NULL);
   g_object_unref (stanza);
 
@@ -700,7 +710,8 @@ test_parse_multi_result (void)
       ')',
       NULL);
 
-  g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));
+  g_assert (wocky_data_form_parse_result (form,
+      wocky_stanza_get_top_node (stanza), NULL));
   g_object_unref (stanza);
 
   g_assert_cmpuint (g_slist_length (form->results), ==, 2);
@@ -756,7 +767,8 @@ test_parse_single_result (void)
   gboolean form_type = FALSE, botname = FALSE;
 
   stanza = create_bot_creation_form_stanza ();
-  form = wocky_data_form_new_from_form (stanza->node, NULL);
+  form = wocky_data_form_new_from_form (wocky_stanza_get_top_node (stanza),
+      NULL);
   g_assert (form != NULL);
   g_object_unref (stanza);
 
@@ -782,7 +794,8 @@ test_parse_single_result (void)
       ')',
       NULL);
 
-  g_assert (wocky_data_form_parse_result (form, stanza->node, NULL));
+  g_assert (wocky_data_form_parse_result (form,
+      wocky_stanza_get_top_node (stanza), NULL));
   g_object_unref (stanza);
 
   g_assert_cmpuint (g_slist_length (form->results), ==, 1);

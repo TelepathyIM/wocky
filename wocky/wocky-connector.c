@@ -1024,7 +1024,7 @@ jabber_auth_fields (GObject *source,
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         passwd = FALSE;
         digest = FALSE;
-        node = fields->node;
+        node = wocky_stanza_get_top_node (fields);
         node = wocky_xmpp_node_get_child_ns (node, "query",
             WOCKY_JABBER_NS_AUTH);
         if ((node != NULL) &&
@@ -1385,7 +1385,7 @@ xmpp_features_cb (GObject *source,
     goto out;
 
   DEBUG ("received feature stanza from server");
-  node = stanza->node;
+  node = wocky_stanza_get_top_node (stanza);
 
   if (wocky_strdiff (node->name, "features") ||
       wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
@@ -1507,7 +1507,7 @@ starttls_recv_cb (GObject *source,
     goto out;
 
   DEBUG ("received TLS response");
-  node = stanza->node;
+  node = wocky_stanza_get_top_node (stanza);
 
   if (wocky_strdiff (node->name, "proceed") ||
       wocky_strdiff (wocky_xmpp_node_get_ns (node), WOCKY_XMPP_NS_TLS))
@@ -1698,7 +1698,8 @@ auth_done (GObject *source,
        * are allowed to attempt that instead                         */
       if ((error->domain == WOCKY_SASL_AUTH_ERROR) &&
           (error->code == WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED) &&
-          (wocky_xmpp_node_get_child_ns (priv->features->node, "auth",
+          (wocky_xmpp_node_get_child_ns (
+              wocky_stanza_get_top_node (priv->features), "auth",
               WOCKY_JABBER_NS_AUTH_FEATURE) != NULL))
         jabber_auth_init (self);
       else
@@ -1973,7 +1974,8 @@ xep77_begin_recv (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         DEBUG ("WOCKY_STANZA_SUB_TYPE_RESULT");
-        query = wocky_xmpp_node_get_child_ns (iq->node, "query",
+        query = wocky_xmpp_node_get_child_ns (
+          wocky_stanza_get_top_node (iq), "query",
             WOCKY_XEP77_NS_REGISTER);
 
         if (query == NULL)
@@ -2036,8 +2038,8 @@ xep77_signup_send (WockyConnector *self,
       WOCKY_STANZA_SUB_TYPE_SET,
       jid, priv->domain,
       '@', "id", iid, NULL);
-  reg = wocky_xmpp_node_add_child_ns (riq->node, "query",
-      WOCKY_XEP77_NS_REGISTER);
+  reg = wocky_xmpp_node_add_child_ns (wocky_stanza_get_top_node (riq),
+      "query", WOCKY_XEP77_NS_REGISTER);
 
   for (arg = req->children; arg != NULL; arg = g_slist_next (arg))
     {
@@ -2202,7 +2204,8 @@ iq_bind_resource (WockyConnector *self)
    * server will make one up for us */
   if ((priv->resource != NULL) && (*priv->resource != '\0'))
     {
-      WockyXmppNode *bind = wocky_xmpp_node_get_child (iq->node, "bind");
+      WockyXmppNode *bind = wocky_xmpp_node_get_child (
+        wocky_stanza_get_top_node (iq), "bind");
       wocky_xmpp_node_add_child_with_content (bind, "resource", priv->resource);
     }
 
@@ -2296,7 +2299,8 @@ iq_bind_resource_recv_cb (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        node = wocky_xmpp_node_get_child (reply->node, "bind");
+        node = wocky_xmpp_node_get_child (
+          wocky_stanza_get_top_node (reply), "bind");
         if (node != NULL)
           node = wocky_xmpp_node_get_child (node, "jid");
 
@@ -2327,7 +2331,8 @@ void
 establish_session (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = self->priv;
-  WockyXmppNode *feat = (priv->features != NULL) ? priv->features->node : NULL;
+  WockyXmppNode *feat = (priv->features != NULL) ?
+    wocky_stanza_get_top_node (priv->features) : NULL;
 
   /* _if_ session setup is advertised, a session _must_ be established to *
    * allow presence/messaging etc to work. If not, it is not important    */
