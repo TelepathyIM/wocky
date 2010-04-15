@@ -42,9 +42,10 @@
     <xi:include href="xml/wocky-xmpp-connection.xml"/>
     <xi:include href="xml/wocky-xmpp-error.xml"/>
     <xi:include href="xml/wocky-xmpp-error-enumtypes.xml"/>
-    <xi:include href="xml/wocky-xmpp-node.xml"/>
+    <xi:include href="xml/wocky-node.xml"/>
     <xi:include href="xml/wocky-xmpp-reader.xml"/>
     <xi:include href="xml/wocky-xmpp-reader-enumtypes.xml"/>
+    <xi:include href="xml/wocky-node-tree.xml"/>
     <xi:include href="xml/wocky-stanza.xml"/>
     <xi:include href="xml/wocky-xmpp-writer.xml"/>
 
