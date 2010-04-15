@@ -30,7 +30,7 @@ bare_contact_added (WockyContactFactory *factory,
 }
 
 static void
-test_ensure_bare_contact(void)
+test_ensure_bare_contact (void)
 {
   WockyContactFactory *factory;
   WockyBareContact *juliet, *a, *b;
@@ -90,7 +90,7 @@ resource_contact_added (WockyContactFactory *factory,
 }
 
 static void
-test_ensure_resource_contact(void)
+test_ensure_resource_contact (void)
 {
   WockyContactFactory *factory;
   WockyBareContact *juliet, *bare;

@@ -211,7 +211,7 @@ setup_ssl_test (ssl_test_t *ssl_test, test_data_t *test)
 
   /* the tests currently rely on all the chunks being the same size */
   /* note that we include the terminating \0 in the payload         */
-  for(x = 0; test_data[x] != NULL; x++)
+  for (x = 0; test_data[x] != NULL; x++)
     g_assert (strlen (test_data[x]) == (TEST_SSL_DATA_LEN - 1));
 
   ssl_test->test = test;
@@ -234,7 +234,7 @@ static void
 test_openssl_handshake_rw (void)
 {
   ssl_test_t ssl_test = { NULL, } ;
-  test_data_t *test = setup_test();
+  test_data_t *test = setup_test ();
   WockyTLSSession *client = wocky_tls_session_new (test->stream->stream0);
   WockyTLSSession *server = wocky_tls_session_server_new (
     test->stream->stream1, 1024, TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE);

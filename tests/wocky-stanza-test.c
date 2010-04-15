@@ -464,8 +464,8 @@ test_extract_errors (void)
 
 #define assert_cmperr(e1, e2) \
   G_STMT_START { \
-    g_assert_error(e1, e2->domain, e2->code); \
-    g_assert_cmpstr(e1->message, ==, e2->message); \
+    g_assert_error (e1, e2->domain, e2->code); \
+    g_assert_cmpstr (e1->message, ==, e2->message); \
   } G_STMT_END
 
 static void
