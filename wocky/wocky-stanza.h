@@ -24,7 +24,7 @@
 #include <stdarg.h>
 
 #include <glib-object.h>
-#include "wocky-xmpp-node.h"
+#include "wocky-node-tree.h"
 #include "wocky-xmpp-error.h"
 
 G_BEGIN_DECLS
@@ -34,13 +34,11 @@ typedef struct _WockyStanza WockyStanza;
 typedef struct _WockyStanzaClass WockyStanzaClass;
 
 struct _WockyStanzaClass {
-    GObjectClass parent_class;
+    WockyNodeTreeClass parent_class;
 };
 
 struct _WockyStanza {
-    GObject parent;
-
-    WockyXmppNode *node;
+    WockyNodeTree parent;
 
     WockyStanzaPrivate *priv;
 };
@@ -101,16 +99,6 @@ typedef enum
   WOCKY_STANZA_SUB_TYPE_UNKNOWN,
   NUM_WOCKY_STANZA_SUB_TYPE
 } WockyStanzaSubType;
-
-typedef enum
-{
-  WOCKY_NODE = '(',
-  WOCKY_NODE_TEXT = '$',
-  WOCKY_NODE_END = ')',
-  WOCKY_NODE_ATTRIBUTE = '@',
-  WOCKY_NODE_XMLNS = ':',
-  WOCKY_NODE_ASSIGN_TO = '*'
-} WockyBuildTag;
 
 WockyStanza * wocky_stanza_new (const gchar *name, const gchar *ns);
 

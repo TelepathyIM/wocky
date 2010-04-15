@@ -1109,6 +1109,111 @@ wocky_xmpp_node_iter_next (WockyXmppNodeIter *iter,
   return FALSE;
 }
 
+void
+wocky_xmpp_node_add_build (WockyXmppNode *node,
+    WockyNodeBuildTag first_tag,
+    ...)
+{
+  va_list ap;
+
+  va_start (ap, first_tag);
+  wocky_xmpp_node_add_build_va (node, ap);
+  va_end (ap);
+}
+
+void
+wocky_xmpp_node_add_build_va (WockyXmppNode *node, va_list ap)
+{
+  GSList *stack = NULL;
+  WockyNodeBuildTag arg;
+
+  stack = g_slist_prepend (stack, node);
+
+  while ((arg = va_arg (ap, WockyNodeBuildTag)) != 0)
+    {
+      switch (arg)
+        {
+        case WOCKY_NODE_ATTRIBUTE:
+          {
+            gchar *key = va_arg (ap, gchar *);
+            gchar *value = va_arg (ap, gchar *);
+
+            g_assert (key != NULL);
+            g_assert (value != NULL);
+            wocky_xmpp_node_set_attribute (stack->data, key, value);
+          }
+          break;
+
+        case WOCKY_NODE:
+          {
+            gchar *name = va_arg (ap, gchar *);
+            WockyXmppNode *child;
+
+            g_assert (name != NULL);
+            child = wocky_xmpp_node_add_child (stack->data, name);
+            stack = g_slist_prepend (stack, child);
+          }
+          break;
+
+        case WOCKY_NODE_TEXT:
+          {
+            gchar *txt = va_arg (ap, gchar *);
+
+            g_assert (txt != NULL);
+            wocky_xmpp_node_set_content (stack->data, txt);
+          }
+          break;
+
+        case WOCKY_NODE_XMLNS:
+          {
+            gchar *ns = va_arg (ap, gchar *);
+
+            g_assert (ns != NULL);
+            wocky_xmpp_node_set_ns (stack->data, ns);
+          }
+          break;
+
+        case WOCKY_NODE_END:
+          {
+            /* delete the top of the stack */
+            stack = g_slist_delete_link (stack, stack);
+            g_warn_if_fail (stack != NULL);
+          }
+          break;
+
+        case WOCKY_NODE_ASSIGN_TO:
+          {
+            WockyXmppNode **dest = va_arg (ap, WockyXmppNode **);
+
+            g_assert (dest != NULL);
+            *dest = stack->data;
+          }
+          break;
+
+        default:
+          g_assert_not_reached ();
+        }
+    }
+
+  if (G_UNLIKELY (stack != NULL && stack->data != node))
+    {
+      GString *still_open = g_string_new ("");
+
+      while (stack != NULL && stack->data != node)
+        {
+          WockyXmppNode *unclosed = stack->data;
+
+          g_string_append_printf (still_open, "</%s> ", unclosed->name);
+          stack = stack->next;
+        }
+
+      g_warning ("improperly nested build spec! unclosed: %s", still_open->str);
+      g_string_free (still_open, TRUE);
+    }
+
+  g_slist_free (stack);
+}
+
 /**
  * wocky_xmpp_node_init:
  *

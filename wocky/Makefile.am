@@ -44,6 +44,8 @@ HANDWRITTEN_SOURCES = \
   wocky-debug.c \
   wocky-debug.h \
   wocky-namespaces.h \
+  wocky-node-tree.c \
+  wocky-node-tree.h \
   wocky-utils.c \
   wocky-utils.h \
   wocky-xmpp-node.c \

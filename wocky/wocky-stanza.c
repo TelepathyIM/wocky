@@ -28,7 +28,7 @@
 #include "wocky-namespaces.h"
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE(WockyStanza, wocky_stanza, G_TYPE_OBJECT)
+G_DEFINE_TYPE(WockyStanza, wocky_stanza, WOCKY_TYPE_NODE_TREE)
 
 /* private structure */
 struct _WockyStanzaPrivate
@@ -151,7 +151,6 @@ wocky_stanza_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-
   if (G_OBJECT_CLASS (wocky_stanza_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_stanza_parent_class)->dispose (object);
 }
@@ -159,14 +158,8 @@ wocky_stanza_dispose (GObject *object)
 void
 wocky_stanza_finalize (GObject *object)
 {
-  WockyStanza *self = WOCKY_STANZA (object);
-
-  /* free any data held directly by the object here */
-  wocky_xmpp_node_free (self->node);
-
   G_OBJECT_CLASS (wocky_stanza_parent_class)->finalize (object);
 }
-
 
 WockyStanza *
 wocky_stanza_new (const gchar *name, const gchar *ns)
@@ -174,104 +167,9 @@ wocky_stanza_new (const gchar *name, const gchar *ns)
   WockyStanza *result;
 
   result = WOCKY_STANZA (g_object_new (WOCKY_TYPE_STANZA, NULL));
-  result->node = wocky_xmpp_node_new (name, ns);
+  result->parent.node = wocky_xmpp_node_new (name, ns);
 
   return result;
-}
-
-static gboolean
-wocky_stanza_add_build_va (WockyXmppNode *node,
-                                va_list ap)
-{
-  GSList *stack = NULL;
-  WockyBuildTag arg;
-
-  stack = g_slist_prepend (stack, node);
-
-  while ((arg = va_arg (ap, WockyBuildTag)) != 0)
-    {
-      switch (arg)
-        {
-        case WOCKY_NODE_ATTRIBUTE:
-          {
-            gchar *key = va_arg (ap, gchar *);
-            gchar *value = va_arg (ap, gchar *);
-
-            g_assert (key != NULL);
-            g_assert (value != NULL);
-            wocky_xmpp_node_set_attribute (stack->data, key, value);
-          }
-          break;
-
-        case WOCKY_NODE:
-          {
-            gchar *name = va_arg (ap, gchar *);
-            WockyXmppNode *child;
-
-            g_assert (name != NULL);
-            child = wocky_xmpp_node_add_child (stack->data, name);
-            stack = g_slist_prepend (stack, child);
-          }
-          break;
-
-        case WOCKY_NODE_TEXT:
-          {
-            gchar *txt = va_arg (ap, gchar *);
-
-            g_assert (txt != NULL);
-            wocky_xmpp_node_set_content (stack->data, txt);
-          }
-          break;
-
-        case WOCKY_NODE_XMLNS:
-          {
-            gchar *ns = va_arg (ap, gchar *);
-
-            g_assert (ns != NULL);
-            wocky_xmpp_node_set_ns (stack->data, ns);
-          }
-          break;
-
-        case WOCKY_NODE_END:
-          {
-            /* delete the top of the stack */
-            stack = g_slist_delete_link (stack, stack);
-            g_warn_if_fail (stack != NULL);
-          }
-          break;
-
-        case WOCKY_NODE_ASSIGN_TO:
-          {
-            WockyXmppNode **dest = va_arg (ap, WockyXmppNode **);
-
-            g_assert (dest != NULL);
-            *dest = stack->data;
-          }
-          break;
-
-        default:
-          g_assert_not_reached ();
-        }
-    }
-
-  if (G_UNLIKELY (stack != NULL && stack->data != node))
-    {
-      GString *still_open = g_string_new ("");
-
-      while (stack != NULL && stack->data != node)
-        {
-          WockyXmppNode *unclosed = stack->data;
-
-          g_string_append_printf (still_open, "</%s> ", unclosed->name);
-          stack = stack->next;
-        }
-
-      g_warning ("improperly nested build spec! unclosed: %s", still_open->str);
-      g_string_free (still_open, TRUE);
-    }
-
-  g_slist_free (stack);
-  return TRUE;
 }
 
 static const gchar *
@@ -443,11 +341,7 @@ wocky_stanza_build_va (WockyStanzaType type,
     wocky_xmpp_node_set_attribute (wocky_stanza_get_top_node (stanza),
         "to", to);
 
-  if (!wocky_stanza_add_build_va (stanza->node, ap))
-    {
-      g_object_unref (stanza);
-      stanza = NULL;
-    }
+  wocky_xmpp_node_add_build_va (wocky_stanza_get_top_node (stanza), ap);
 
   return stanza;
 }
@@ -664,5 +558,5 @@ wocky_stanza_extract_stream_error (WockyStanza *stanza,
 WockyXmppNode *
 wocky_stanza_get_top_node (WockyStanza *self)
 {
-  return self->node;
+  return self->parent.node;
 }

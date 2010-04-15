@@ -25,6 +25,16 @@
 
 G_BEGIN_DECLS
 
+typedef enum
+{
+  WOCKY_NODE = '(',
+  WOCKY_NODE_TEXT = '$',
+  WOCKY_NODE_END = ')',
+  WOCKY_NODE_ATTRIBUTE = '@',
+  WOCKY_NODE_XMLNS = ':',
+  WOCKY_NODE_ASSIGN_TO = '*'
+} WockyNodeBuildTag;
+
 typedef struct _WockyXmppNode WockyXmppNode;
 
 struct _WockyXmppNode {
@@ -179,6 +189,14 @@ void wocky_xmpp_node_iter_init (WockyXmppNodeIter *iter,
 
 gboolean wocky_xmpp_node_iter_next (WockyXmppNodeIter *iter,
     WockyXmppNode **next);
+
+
+void wocky_xmpp_node_add_build (WockyXmppNode *node,
+    WockyNodeBuildTag first_tag,
+    ...);
+
+void wocky_xmpp_node_add_build_va (WockyXmppNode *node,
+    va_list va);
 
 void wocky_xmpp_node_init (void);
 void wocky_xmpp_node_deinit (void);
