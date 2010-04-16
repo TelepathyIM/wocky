@@ -1109,6 +1109,31 @@ wocky_node_iter_next (WockyNodeIter *iter,
   return FALSE;
 }
 
+/**
+ * wocky_node_add_build:
+ * @node: The node under which to add a new subtree
+ * @first_tag: The build tag for the first node
+ * @Varargs: the description of the stanza to build,
+ *  terminated with %NULL
+ *
+ * Add a node subtree to an existing parent node
+ * Example:
+ * <example><programlisting>
+ * wocky_node_add_build (node,
+ *    '(', "body",
+ *        '$', "Telepathy rocks!",
+ *    ')',
+ *   NULL);
+ * </programlisting></example>
+ *
+ * <!-- -->* adds the following under the given node
+ * &lt;body&gt;
+ *    Telepathy rocks!
+ * &lt;/body&gt;
+ * *<!-- -->/
+ * </programlisting></example>
+ *
+ */
 void
 wocky_node_add_build (WockyNode *node,
     WockyNodeBuildTag first_tag,
