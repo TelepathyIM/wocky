@@ -166,8 +166,9 @@ wocky_stanza_new (const gchar *name, const gchar *ns)
 {
   WockyStanza *result;
 
-  result = WOCKY_STANZA (g_object_new (WOCKY_TYPE_STANZA, NULL));
-  result->parent.node = wocky_node_new (name, ns);
+  result = WOCKY_STANZA (g_object_new (WOCKY_TYPE_STANZA,
+    "top-node", wocky_node_new (name, ns),
+    NULL));
 
   return result;
 }
