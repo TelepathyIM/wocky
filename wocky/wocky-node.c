@@ -76,7 +76,7 @@ wocky_node_new (const char *name, const gchar *ns)
   WockyNode *result = g_slice_new0 (WockyNode);
 
   result->name = g_strdup (name);
-  result->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
+  result->ns = g_quark_from_string (ns);
 
   return result;
 }
