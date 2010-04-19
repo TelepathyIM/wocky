@@ -1116,8 +1116,7 @@ wocky_node_iter_next (WockyNodeIter *iter,
  * @Varargs: the description of the stanza to build,
  *  terminated with %NULL
  *
- * Add a node subtree to an existing parent node
- * Example:
+ * Add a node subtree to an existing parent node.
  * <example><programlisting>
  * wocky_node_add_build (node,
  *    '(', "body",
@@ -1126,12 +1125,12 @@ wocky_node_iter_next (WockyNodeIter *iter,
  *   NULL);
  * </programlisting></example>
  *
- * <!-- -->* adds the following under the given node
+ * The above examples adds the following subtree under the given node:
+ * <programlisting language="xml">
  * &lt;body&gt;
  *    Telepathy rocks!
  * &lt;/body&gt;
- * *<!-- -->/
- * </programlisting></example>
+ * </programlisting>
  *
  */
 void
