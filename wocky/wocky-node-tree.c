@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "wocky-node-tree.h"
+#include "wocky-node-private.h"
 
 G_DEFINE_TYPE(WockyNodeTree, wocky_node_tree, G_TYPE_OBJECT)
 
@@ -137,6 +138,7 @@ wocky_node_tree_finalize (GObject *object)
 
   G_OBJECT_CLASS (wocky_node_tree_parent_class)->finalize (object);
 }
+
 /**
  * wocky_node_tree_new:
  * @name: The name of the toplevel node
@@ -185,6 +187,22 @@ wocky_node_tree_new_va (const gchar *name,
 
   top = wocky_node_new (name, ns);
   wocky_node_add_build_va (top, va);
+
+  return g_object_new (WOCKY_TYPE_NODE_TREE, "top-node", top, NULL);
+}
+
+/**
+ * wocky_node_tree_new_from_node:
+ * @node: The node to copy
+ *
+ * Build a new WockyNodeTree that contains a copy of the given node.
+ *
+ * Returns: a new node-tree object
+ */
+WockyNodeTree *
+wocky_node_tree_new_from_node (WockyNode *node)
+{
+  WockyNode *top = _wocky_node_copy (node);
 
   return g_object_new (WOCKY_TYPE_NODE_TREE, "top-node", top, NULL);
 }

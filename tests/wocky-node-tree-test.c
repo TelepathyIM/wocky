@@ -38,6 +38,27 @@ test_build_simple_tree (void)
   g_object_unref (tree);
 }
 
+static void
+test_tree_from_node (void)
+{
+  WockyNodeTree *a, *b;
+
+  a = wocky_node_tree_new ("noms", "foodstocks",
+    '(', "item", '@', "origin", "Italy",
+      '$', "Plum cake",
+    ')',
+    NULL);
+
+  b = wocky_node_tree_new_from_node (wocky_node_tree_get_top_node (a));
+
+  test_assert_nodes_equal (wocky_node_tree_get_top_node (a),
+    wocky_node_tree_get_top_node (b));
+
+  g_object_unref (a);
+  g_object_unref (b);
+
+}
+
 int
 main (int argc, char **argv)
 {
@@ -47,6 +68,8 @@ main (int argc, char **argv)
 
   g_test_add_func ("/xmpp-node-tree/simple-tree",
     test_build_simple_tree);
+  g_test_add_func ("/xmpp-node-tree/tree-from-node",
+    test_tree_from_node);
 
   result =  g_test_run ();
   test_deinit ();

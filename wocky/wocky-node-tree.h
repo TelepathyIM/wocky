@@ -70,6 +70,8 @@ WockyNodeTree *wocky_node_tree_new_va (const gchar *name,
     const char *ns,
     va_list va);
 
+WockyNodeTree *wocky_node_tree_new_from_node (WockyNode *node);
+
 WockyNode *wocky_node_tree_get_top_node (WockyNodeTree *self);
 
 G_END_DECLS
