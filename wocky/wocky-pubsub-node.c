@@ -584,14 +584,7 @@ wocky_pubsub_node_unsubscribe_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (self), wocky_pubsub_node_unsubscribe_async), FALSE);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  return !g_simple_async_result_propagate_error (simple, error);
+  wocky_implement_finish_void (self, wocky_pubsub_node_unsubscribe_async)
 }
 
 WockyStanza *
@@ -627,14 +620,7 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (self), wocky_pubsub_node_delete_async), FALSE);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  return !g_simple_async_result_propagate_error (simple, error);
+  wocky_implement_finish_void (self, wocky_pubsub_node_delete_async)
 }
 
 WockyStanza *
