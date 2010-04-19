@@ -168,6 +168,17 @@ gboolean wocky_pubsub_node_modify_affiliates_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_pubsub_node_get_configuration_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+WockyDataForm *wocky_pubsub_node_get_configuration_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */

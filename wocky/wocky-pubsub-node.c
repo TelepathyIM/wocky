@@ -991,6 +991,102 @@ wocky_pubsub_node_modify_affiliates_finish (
   wocky_implement_finish_void (self, wocky_pubsub_node_modify_affiliates_async)
 }
 
+/**
+ * wocky_pubsub_node_make_get_configuration_stanza:
+ * @self: a pubsub node
+ * @pubsub_node: location at which to store a pointer to the &lt;pubsub/&gt;
+ *               node, or %NULL
+ * @configure_node: location at which to store a pointer to the
+ *                  &lt;configure/&gt; node, or %NULL
+ *
+ * Returns: an IQ stanza to retrieve the configuration of @self
+ */
+WockyStanza *
+wocky_pubsub_node_make_get_configuration_stanza (
+    WockyPubsubNode *self,
+    WockyNode **pubsub_node,
+    WockyNode **configure_node)
+{
+  return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "configure", NULL,
+      pubsub_node, configure_node);
+}
+
+static void
+get_configuration_iq_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple = user_data;
+  WockyNode *configure_node;
+  WockyDataForm *form;
+  GError *error = NULL;
+
+  if (wocky_pubsub_distill_iq_reply (source, result, WOCKY_XMPP_NS_PUBSUB_OWNER,
+          "configure", &configure_node, &error) &&
+      (form = wocky_data_form_new_from_form (configure_node, &error)) != NULL)
+    {
+      g_simple_async_result_set_op_res_gpointer (simple, form, g_object_unref);
+    }
+  else
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
+
+  g_simple_async_result_complete (simple);
+  g_object_unref (simple);
+}
+
+/**
+ * wocky_pubsub_node_get_configuration_async:
+ * @self: a node
+ * @cancellable: optional GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Retrieves the current configuration for a node owned by the user.
+ */
+void
+wocky_pubsub_node_get_configuration_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = self->priv;
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_get_configuration_async);
+  WockyStanza *stanza;
+
+  stanza = wocky_pubsub_node_make_get_configuration_stanza (
+      self, NULL, NULL);
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      get_configuration_iq_cb, simple);
+  g_object_unref (stanza);
+}
+
+/**
+ * wocky_pubsub_node_get_configuration_finish:
+ * @self: a node
+ * @result: the result
+ * @error: location at which to store an error, if one occurred.
+ *
+ * Complete a call to wocky_pubsub_node_get_configuration_async().
+ *
+ * Returns: a form representing the node configuration on success; %NULL and
+ *          sets @error otherwise
+ */
+WockyDataForm *
+wocky_pubsub_node_get_configuration_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  wocky_implement_finish_return_copy_pointer (self,
+      wocky_pubsub_node_get_configuration_async, g_object_ref)
+}
+
 WockyPorter *
 wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 {

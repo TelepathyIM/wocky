@@ -739,6 +739,134 @@ test_modify_affiliates (void)
   teardown_test (test);
 }
 
+/* Tests retrieving a node's current configuration.
+ *
+ * Since data forms are reasonably exhaustively tested elsewhere, this test
+ * uses a very simple configuration form.
+ */
+static gboolean
+test_get_configuration_iq_cb (WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyStanza *expected, *reply;
+
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, NULL, "pubsub.localhost",
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "configure",
+          '@', "node", "princely_musings",
+        ')',
+      ')', NULL);
+
+  test_assert_stanzas_equal_no_id (stanza, expected);
+
+  g_object_unref (expected);
+
+  reply = wocky_stanza_build_iq_result (stanza,
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "configure",
+          '(', "x",
+            ':', WOCKY_XMPP_NS_DATA,
+            '@', "type", "form",
+            '(', "field",
+              '@', "type", "hidden",
+              '@', "var", "FORM_TYPE",
+              '(', "value",
+                '$', WOCKY_XMPP_NS_PUBSUB_NODE_CONFIG,
+              ')',
+            ')',
+            '(', "field",
+              '@', "var", "pubsub#title",
+              '@', "type", "text-single",
+              '(', "value", '$', "Hello thar", ')',
+            ')',
+            '(', "field",
+              '@', "var", "pubsub#deliver_notifications",
+              '@', "type", "boolean",
+              '@', "label", "Deliver event notifications",
+              '(', "value", '$', "1", ')',
+            ')',
+          ')',
+        ')',
+      ')', NULL);
+
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_get_configuration_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyDataForm *form;
+  GError *error = NULL;
+
+  form = wocky_pubsub_node_get_configuration_finish (
+      WOCKY_PUBSUB_NODE (source), res, &error);
+
+  g_assert_no_error (error);
+  g_assert (form != NULL);
+
+  /* Don't bother testing too much, it's tested elsewhere. */
+  g_assert_cmpuint (3, ==, g_hash_table_size (form->fields));
+
+  g_object_unref (form);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_get_configuration (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_get_configuration_iq_cb, test,
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "configure",
+          '@', "node", "princely_musings",
+        ')',
+      ')', NULL);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
+  g_assert (node != NULL);
+
+  wocky_pubsub_node_get_configuration_async (node, NULL,
+      test_get_configuration_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 /* Test that the 'event-received' signals are fired when we expect them to be.
  */
 
@@ -1181,6 +1309,7 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/list-subscribers", test_list_subscribers);
   g_test_add_func ("/pubsub-node/list-affiliates", test_list_affiliates);
   g_test_add_func ("/pubsub-node/modify-affiliates", test_modify_affiliates);
+  g_test_add_func ("/pubsub-node/get-configuration", test_get_configuration);
 
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
   g_test_add_func ("/pubsub-node/subscription-state-changed",
