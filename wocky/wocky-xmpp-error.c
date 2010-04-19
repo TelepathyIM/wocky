@@ -540,16 +540,15 @@ wocky_stanza_error_to_node (const GError *error,
   wocky_node_set_attribute (error_node, "type",
       wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
 
-  node = wocky_node_add_child (error_node,
-      wocky_xmpp_error_string (core_error));
-  wocky_node_set_ns (node, WOCKY_XMPP_NS_STANZAS);
+  node = wocky_node_add_child_ns (error_node,
+      wocky_xmpp_error_string (core_error),
+      WOCKY_XMPP_NS_STANZAS);
 
   if (domain != NULL)
     {
       const gchar *name = wocky_enum_to_nick (domain->enum_type, error->code);
 
-      node = wocky_node_add_child (error_node, name);
-      wocky_node_set_ns_q (node, domain->domain);
+      node = wocky_node_add_child_ns_q (error_node, name, domain->domain);
     }
 
   if (error->message != NULL && *error->message != '\0')
