@@ -526,7 +526,7 @@ wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
 }
 
 static void
-unsubscribe_cb (GObject *source,
+pubsub_node_void_iq_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
@@ -574,7 +574,7 @@ wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
       NULL);
 
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      unsubscribe_cb, simple);
+      pubsub_node_void_iq_cb, simple);
 
   g_object_unref (stanza);
 }
@@ -592,28 +592,6 @@ wocky_pubsub_node_unsubscribe_finish (WockyPubsubNode *self,
   simple = (GSimpleAsyncResult *) result;
 
   return !g_simple_async_result_propagate_error (simple, error);
-}
-
-static void
-delete_node_iq_cb (GObject *source,
-    GAsyncResult *res,
-    gpointer user_data)
-{
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
-  GError *error = NULL;
-
-  if (!wocky_pubsub_distill_void_iq_reply (source, res, &error))
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_clear_error (&error);
-    }
-  else
-    {
-      DEBUG ("node deleted");
-    }
-
-  g_simple_async_result_complete (result);
-  g_object_unref (result);
 }
 
 WockyStanza *
@@ -639,8 +617,8 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
   stanza = wocky_pubsub_node_make_delete_stanza (self, NULL, NULL);
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
     wocky_pubsub_node_delete_async);
-  wocky_porter_send_iq_async (priv->porter, stanza, NULL, delete_node_iq_cb,
-      result);
+  wocky_porter_send_iq_async (priv->porter, stanza, NULL,
+      pubsub_node_void_iq_cb, result);
   g_object_unref (stanza);
 }
 
