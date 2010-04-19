@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include "wocky-stanza.h"
+#include "wocky-node-tree.h"
 
 G_BEGIN_DECLS
 
@@ -79,6 +80,11 @@ void wocky_xmpp_writer_stream_close (WockyXmppWriter *writer,
 
 void wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
     WockyStanza *stanza,
+    const guint8 **data,
+    gsize *length);
+
+void wocky_xmpp_writer_write_node_tree (WockyXmppWriter *writer,
+    WockyNodeTree *tree,
     const guint8 **data,
     gsize *length);
 

@@ -421,19 +421,9 @@ _xml_write_node (WockyXmppWriter *writer, WockyNode *node)
   priv->current_ns = oldns;
 }
 
-/**
- * wocky_xmpp_writer_write_stanza:
- * @writer: a WockyXmppWriter
- * @stanza: the target of the stream opening (usually the xmpp server name)
- * @data: location to store a pointer to the data buffer
- * @length: length of the data buffer
- *
- * Serialize the @stanza to XML. The result is available in the
- * @data buffer. The buffer is only valid until the next call to a function
- */
-void
-wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
-    WockyStanza *stanza,
+static void
+_write_node_tree (WockyXmppWriter *writer,
+    WockyNodeTree *tree,
     const guint8 **data,
     gsize *length)
 {
@@ -441,14 +431,14 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
 
   xmlBufferEmpty (priv->buffer);
 
-  DEBUG_STANZA (stanza, "Serializing stanza:");
+  DEBUG_NODE_TREE (tree, "Serializing tree:");
 
   if (!priv->stream_mode)
     {
       xmlTextWriterStartDocument (priv->xmlwriter, "1.0", "utf-8", NULL);
     }
 
-  _xml_write_node (writer, wocky_stanza_get_top_node (stanza));
+  _xml_write_node (writer, wocky_node_tree_get_top_node (tree));
 
   if (!priv->stream_mode)
     {
@@ -462,6 +452,50 @@ wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
 #ifdef ENABLE_DEBUG
   wocky_debug (DEBUG_NET, "Writing xml: %.*s.", (int)*length, *data);
 #endif
+}
+
+/**
+ * wocky_xmpp_writer_write_stanza:
+ * @writer: a WockyXmppWriter
+ * @stanza: the stanza to serialize
+ * @data: location to store a pointer to the data buffer
+ * @length: length of the data buffer
+ *
+ * Serialize the @stanza to XML. The result is available in the
+ * @data buffer. The buffer is only valid until the next call to a function
+ */
+void
+wocky_xmpp_writer_write_stanza (WockyXmppWriter *writer,
+    WockyStanza *stanza,
+    const guint8 **data,
+    gsize *length)
+{
+  _write_node_tree (writer, WOCKY_NODE_TREE (stanza), data, length);
+}
+
+/**
+ * wocky_xmpp_writer_write_node_tree:
+ * @writer: a WockyXmppWriter
+ * @tree: the node tree to serialize
+ * @data: location to store a pointer to the data buffer
+ * @length: length of the data buffer
+ *
+ * Serialize the @tree to XML. The result is available in the
+ * @data buffer. The buffer is only valid until the next call to a function.
+ * This function may only be called in non-streaming mode.
+ */
+void
+wocky_xmpp_writer_write_node_tree (WockyXmppWriter *writer,
+    WockyNodeTree *tree,
+    const guint8 **data,
+    gsize *length)
+{
+  *data = NULL;
+  *length = 0;
+
+  g_return_if_fail (!writer->priv->stream_mode);
+
+  _write_node_tree (writer, tree, data, length);
 }
 
 /**
