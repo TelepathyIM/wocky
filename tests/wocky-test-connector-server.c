@@ -1237,7 +1237,9 @@ after_auth (GObject *source,
   if (server_dec_outstanding (tcs))
     return;
 
-  feat = wocky_stanza_new ("stream:features", NULL);
+  feat = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_FEATURES,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL, NULL);
+
   node = wocky_stanza_get_top_node (feat);
 
   if (!(priv->problem.connector->xmpp & XMPP_PROBLEM_NO_SESSION))

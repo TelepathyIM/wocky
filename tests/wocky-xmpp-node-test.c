@@ -126,7 +126,7 @@ test_append_content_n (void)
   guint i;
   size_t l;
 
-  a = wocky_stanza_new ("message", NULL);
+  a = wocky_stanza_new ("message", WOCKY_XMPP_NS_JABBER_CLIENT);
 
   l = strlen (content);
   /* Append content byte by byte */

@@ -480,7 +480,16 @@ _start_element_ns (void *user_data, const xmlChar *localname,
 
   if (priv->stanza == NULL)
     {
-      priv->stanza = wocky_stanza_new ((gchar *) localname, (gchar *) uri);
+      if (uri != NULL)
+        {
+          priv->stanza = wocky_stanza_new ((gchar *) localname, (gchar *) uri);
+        }
+      else
+        {
+          DEBUG ("Stanza without a namespace !?, using dummy namespace");
+          priv->stanza = wocky_stanza_new ((gchar *) localname, (gchar *) "");
+        }
+
       priv->node = wocky_stanza_get_top_node (priv->stanza);
     }
   else
