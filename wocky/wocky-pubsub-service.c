@@ -756,28 +756,40 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
       wocky_pubsub_subscription_list_copy, subscriptions)
 }
 
+/**
+ * wocky_pubsub_service_handle_create_node_reply:
+ * @self: a pubsub service
+ * @create_node: the &lt;create/&gt; element from the reply to an attempt to
+ *               create a node, or %NULL if none was present in the reply.
+ * @requested_name: the name we asked the server to use for the node, or %NULL
+ *                  if we requested an instant node
+ * @error: location at which to store an error
+ *
+ * Handles the body of a reply to a create node request. This is
+ * ever-so-slightly involved, because the server is allowed to omit the body of
+ * the reply if you specified a node name and it created a node with that name,
+ * but it may also tell you "hey, you asked for 'ringo', but I gave you
+ * 'george'". Good times.
+ *
+ * Returns: a pubsub node if the reply made sense, or %NULL with @error set if
+ *          not.
+ */
 WockyPubsubNode *
 wocky_pubsub_service_handle_create_node_reply (
     WockyPubsubService *self,
-    GObject *source,
-    GAsyncResult *res,
+    WockyNode *create_node,
     const gchar *requested_name,
     GError **error)
 {
   WockyPubsubNode *node = NULL;
   const gchar *name = NULL;
-  WockyNode *n;
 
-  if (!wocky_pubsub_distill_ambivalent_iq_reply (source, res,
-          WOCKY_XMPP_NS_PUBSUB, "create", &n, error))
-    return NULL;
-
-  if (n != NULL)
+  if (create_node != NULL)
     {
       /* If the reply contained <pubsub><create>, it'd better contain the
        * nodeID.
        */
-      name = wocky_node_get_attribute (n, "node");
+      name = wocky_node_get_attribute (create_node, "node");
 
       if (name == NULL)
         g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
@@ -812,14 +824,18 @@ create_node_iq_cb (GObject *source,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubService *self;
-  WockyPubsubNode *node;
+  WockyPubsubNode *node = NULL;
+  const gchar *requested_name;
+  WockyNode *create_node;
   GError *error = NULL;
 
   self = WOCKY_PUBSUB_SERVICE (g_async_result_get_source_object (user_data));
+  requested_name = g_object_get_data ((GObject *) result, "requested-name");
 
-  node = wocky_pubsub_service_handle_create_node_reply (self, source, res,
-      g_object_get_data ((GObject *) result, "requested-name"),
-      &error);
+  if (wocky_pubsub_distill_ambivalent_iq_reply (source, res,
+        WOCKY_XMPP_NS_PUBSUB, "create", &create_node, &error))
+    node = wocky_pubsub_service_handle_create_node_reply (self, create_node,
+        requested_name, &error);
 
   if (node != NULL)
     {

@@ -48,8 +48,7 @@ WockyStanza *wocky_pubsub_service_create_create_node_stanza (
 
 WockyPubsubNode *wocky_pubsub_service_handle_create_node_reply (
     WockyPubsubService *self,
-    GObject *source,
-    GAsyncResult *res,
+    WockyNode *create_node,
     const gchar *requested_name,
     GError **error);
 
