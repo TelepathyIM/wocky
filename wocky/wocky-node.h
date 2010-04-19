@@ -129,6 +129,9 @@ WockyNode *wocky_node_add_child (WockyNode *node,
 WockyNode *wocky_node_add_child_ns (WockyNode *node,
     const gchar *name, const gchar *ns);
 
+WockyNode *wocky_node_add_child_ns_q (WockyNode *node,
+    const gchar *name, GQuark ns);
+
 WockyNode *wocky_node_add_child_with_content (WockyNode *node,
     const gchar *name, const char *content);
 
@@ -136,9 +139,11 @@ WockyNode *wocky_node_add_child_with_content_ns (
     WockyNode *node, const gchar *name, const gchar *content,
     const gchar *ns);
 
-/* Setting/Getting namespaces */
-void wocky_node_set_ns (WockyNode *node, const gchar *ns);
-void wocky_node_set_ns_q (WockyNode *node, GQuark ns);
+WockyNode *wocky_node_add_child_with_content_ns_q (
+    WockyNode *node, const gchar *name, const gchar *content,
+    GQuark ns);
+
+/* Getting namespaces */
 const gchar *wocky_node_get_ns (WockyNode *node);
 gboolean wocky_node_has_ns (WockyNode *node, const gchar *ns);
 gboolean wocky_node_has_ns_q (WockyNode *node, GQuark ns);

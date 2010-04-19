@@ -62,19 +62,17 @@ static GHashTable *user_ns_prefixes = NULL;
 static GHashTable *default_ns_prefixes = NULL;
 
 static WockyNode *
-wocky_node_new_fallback_ns (const char *name,
-    const gchar *ns,
-    GQuark parent_ns)
+new_node (const char *name, GQuark ns)
 {
   WockyNode *result;
 
   g_return_val_if_fail (name != NULL, NULL);
-  g_return_val_if_fail (ns != NULL || parent_ns != 0, NULL);
+  g_return_val_if_fail (ns != 0, NULL);
 
   result = g_slice_new0 (WockyNode);
 
   result->name = g_strdup (name);
-  result->ns = (ns != NULL) ? g_quark_from_string (ns) : parent_ns;
+  result->ns = ns;
 
   return result;
 }
@@ -94,7 +92,7 @@ wocky_node_new (const char *name, const gchar *ns)
 {
   g_return_val_if_fail (ns != NULL, NULL);
 
-  return wocky_node_new_fallback_ns (name, ns, 0);
+  return new_node (name, g_quark_from_string (ns));
 }
 
 static void
@@ -643,7 +641,7 @@ const gchar *wocky_node_get_content_from_child_ns (WockyNode *node,
 WockyNode *
 wocky_node_add_child (WockyNode *node, const gchar *name)
 {
-  return wocky_node_add_child_with_content_ns (node, name, NULL, NULL);
+  return wocky_node_add_child_with_content_ns_q (node, name, NULL, 0);
 }
 
 /**
@@ -664,6 +662,25 @@ wocky_node_add_child_ns (WockyNode *node, const gchar *name,
 {
   return wocky_node_add_child_with_content_ns (node, name, NULL, ns);
 }
+/**
+ * wocky_node_add_child_ns_q:
+ * @node: a #WockyNode
+ * @name: the name of the child to add
+ * @ns: a namespace
+ *
+ * Adds a #WockyNode with the specified name to an already existing node,
+ * under the specified namespace. If the namespace is 0, this is equivalent
+ * to wocky_node_add_child().
+ *
+ * Returns: the newly added #WockyNode.
+ */
+WockyNode *
+wocky_node_add_child_ns_q (WockyNode *node,
+    const gchar *name,
+    GQuark ns)
+{
+  return wocky_node_add_child_with_content_ns_q (node, name, NULL, ns);
+}
 
 /**
  * wocky_node_add_child_with_content:
@@ -680,8 +697,8 @@ WockyNode *
 wocky_node_add_child_with_content (WockyNode *node,
      const gchar *name, const char *content)
 {
-  return wocky_node_add_child_with_content_ns (node, name,
-      content, NULL);
+  return wocky_node_add_child_with_content_ns_q (node, name,
+      content, 0);
 }
 
 /**
@@ -702,31 +719,34 @@ WockyNode *
 wocky_node_add_child_with_content_ns (WockyNode *node,
     const gchar *name, const gchar *content, const gchar *ns)
 {
-  WockyNode *result = wocky_node_new_fallback_ns (name, ns, node->ns);
+  return wocky_node_add_child_with_content_ns_q (node, name, content,
+    ns != NULL ? g_quark_from_string (ns) : 0);
+}
+
+/**
+ * wocky_node_add_child_with_content_ns_q:
+ * @node: a #WockyNode
+ * @name: the name of the child to add
+ * @content: the content of the child to add
+ * @ns: a namespace
+ *
+ * Adds a #WockyNode with the specified name and the specified content
+ * to an already existing node, under the specified namespace.
+ * If the namespace is 0, this is equivalent to
+ * wocky_node_add_child_with_content().
+ *
+ * Returns: the newly added #WockyNode.
+ */
+WockyNode *
+wocky_node_add_child_with_content_ns_q (WockyNode *node,
+    const gchar *name, const gchar *content, GQuark ns)
+{
+  WockyNode *result = new_node (name, ns != 0 ? ns : node->ns);
 
   wocky_node_set_content (result, content);
 
   node->children = g_slist_append (node->children, result);
   return result;
-}
-
-/**
- * wocky_node_set_ns:
- * @node: a #WockyNode
- * @ns: a namespace
- *
- * Sets the namespace of a #WockyNode.
- */
-void
-wocky_node_set_ns (WockyNode *node, const gchar *ns)
-{
-  wocky_node_set_ns_q (node, g_quark_from_string (ns));
-}
-
-void
-wocky_node_set_ns_q (WockyNode *node, GQuark ns)
-{
-  node->ns = ns;
 }
 
 /**
@@ -1204,7 +1224,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
             gchar *ns = va_arg (ap, gchar *);
 
             g_assert (ns != NULL);
-            wocky_node_set_ns (stack->data, ns);
+            ((WockyNode *) stack->data)->ns = g_quark_from_string (ns);
           }
           break;
 
