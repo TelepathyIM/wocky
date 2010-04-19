@@ -74,31 +74,54 @@ void wocky_debug (DebugFlags flag,
     }
 }
 
-void
-wocky_debug_stanza (DebugFlags flag,
-    WockyStanza *stanza,
+static void
+wocky_debug_node_tree_va (DebugFlags flag,
+    WockyNodeTree *tree,
     const gchar *format,
-    ...)
+    va_list args)
 {
   if (G_UNLIKELY(!initialized))
     wocky_debug_set_flags_from_env ();
   if (flag & flags)
     {
-      va_list args;
       gchar *msg, *node_str;
 
-      va_start (args, format);
       msg = g_strdup_vprintf (format, args);
-      va_end (args);
 
       node_str = wocky_node_to_string (
-          wocky_stanza_get_top_node (stanza));
+          wocky_node_tree_get_top_node (tree));
 
       g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "%s\n%s", msg, node_str);
 
       g_free (msg);
       g_free (node_str);
   }
+}
+
+void
+wocky_debug_node_tree (DebugFlags flag,
+    WockyNodeTree *tree,
+    const gchar *format,
+    ...)
+{
+  va_list args;
+
+  va_start (args, format);
+  wocky_debug_node_tree_va (flags, tree, format, args);
+  va_end (args);
+}
+
+void
+wocky_debug_stanza (DebugFlags flag,
+    WockyStanza *stanza,
+    const gchar *format,
+    ...)
+{
+  va_list args;
+
+  va_start (args, format);
+  wocky_debug_node_tree_va (flags, (WockyNodeTree *) stanza, format, args);
+  va_end (args);
 }
 
 #endif
