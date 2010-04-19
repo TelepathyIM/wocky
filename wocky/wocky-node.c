@@ -61,9 +61,28 @@ static NSPrefix default_attr_ns_prefixes[] =
 static GHashTable *user_ns_prefixes = NULL;
 static GHashTable *default_ns_prefixes = NULL;
 
+static WockyNode *
+wocky_node_new_fallback_ns (const char *name,
+    const gchar *ns,
+    GQuark parent_ns)
+{
+  WockyNode *result;
+
+  g_return_val_if_fail (name != NULL, NULL);
+  g_return_val_if_fail (ns != NULL || parent_ns != 0, NULL);
+
+  result = g_slice_new0 (WockyNode);
+
+  result->name = g_strdup (name);
+  result->ns = (ns != NULL) ? g_quark_from_string (ns) : parent_ns;
+
+  return result;
+}
+
 /**
  * wocky_node_new:
- * @name: the node's name
+ * @name: the node's name (may not be NULL)
+ * @ns: the nodes namespace (may not be NULL)
  *
  * Convenience function which creates a #WockyNode and sets its
  * name to @name.
@@ -73,12 +92,9 @@ static GHashTable *default_ns_prefixes = NULL;
 WockyNode *
 wocky_node_new (const char *name, const gchar *ns)
 {
-  WockyNode *result = g_slice_new0 (WockyNode);
+  g_return_val_if_fail (ns != NULL, NULL);
 
-  result->name = g_strdup (name);
-  result->ns = g_quark_from_string (ns);
-
-  return result;
+  return wocky_node_new_fallback_ns (name, ns, 0);
 }
 
 static void
@@ -686,10 +702,7 @@ WockyNode *
 wocky_node_add_child_with_content_ns (WockyNode *node,
     const gchar *name, const gchar *content, const gchar *ns)
 {
-  WockyNode *result = wocky_node_new (name, ns);
-
-  if (result->ns == 0)
-    result->ns = node->ns;
+  WockyNode *result = wocky_node_new_fallback_ns (name, ns, node->ns);
 
   wocky_node_set_content (result, content);
 
