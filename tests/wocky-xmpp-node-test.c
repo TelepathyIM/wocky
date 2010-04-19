@@ -39,6 +39,32 @@ test_node_equal (void)
 }
 
 static void
+test_node_add_build (void)
+{
+  WockyNode *n, *child;
+
+  n = wocky_node_new ("testtree", DUMMY_NS_A);
+  wocky_node_add_build (n,
+      '(', "testnode", '@', "test", "attribute",
+        '$', "testcontent",
+      ')',
+    NULL);
+
+  g_assert_cmpint (g_slist_length (n->children), ==, 1);
+
+  child = wocky_node_get_first_child (n);
+  g_assert_cmpstr (child->name, ==, "testnode");
+  g_assert_cmpstr (wocky_node_get_ns (child), ==, DUMMY_NS_A);
+  g_assert_cmpstr (child->content, ==, "testcontent");
+
+  g_assert_cmpint (g_slist_length (child->attributes), ==, 1);
+  g_assert_cmpstr (wocky_node_get_attribute (child, "test"),
+      ==, "attribute");
+
+  wocky_node_free (n);
+}
+
+static void
 test_set_attribute (void)
 {
   WockyStanza *a, *b, *c;
@@ -355,6 +381,7 @@ main (int argc, char **argv)
   test_init (argc, argv);
 
   g_test_add_func ("/xmpp-node/node-equal", test_node_equal);
+  g_test_add_func ("/xmpp-node/add-build", test_node_add_build);
   g_test_add_func ("/xmpp-node/set-attribute", test_set_attribute);
   g_test_add_func ("/xmpp-node/append-content-n", test_append_content_n);
   g_test_add_func ("/xmpp-node/set-attribute-ns", test_set_attribute_ns);
