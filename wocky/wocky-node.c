@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "wocky-node.h"
+#include "wocky-node-private.h"
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
 
@@ -1268,6 +1269,36 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
 
   g_slist_free (stack);
 }
+
+WockyNode *
+_wocky_node_copy (WockyNode *node)
+{
+  WockyNode *result = new_node (node->name, node->ns);
+  GSList *l;
+
+  result->content = g_strdup (node->content);
+  result->language = g_strdup (node->language);
+
+  for (l = node->attributes ; l != NULL; l = g_slist_next (l))
+    {
+      Attribute *a = l->data;
+      Attribute *b = g_slice_new0 (Attribute);
+
+      b->key = g_strdup (a->key);
+      b->value = g_strdup (a->value);
+      b->prefix = g_strdup (a->prefix);
+      b->ns = a->ns;
+
+      result->attributes = g_slist_append (result->attributes, b);
+    }
+
+  for (l = node->children ; l != NULL; l = g_slist_next (l))
+    result->children = g_slist_append (result->children,
+      _wocky_node_copy ((WockyNode *)l->data));
+
+  return result;
+}
+
 
 /**
  * wocky_node_init:
