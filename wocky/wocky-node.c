@@ -1112,7 +1112,6 @@ wocky_node_iter_next (WockyNodeIter *iter,
 /**
  * wocky_node_add_build:
  * @node: The node under which to add a new subtree
- * @first_tag: The build tag for the first node
  * @Varargs: the description of the stanza to build,
  *  terminated with %NULL
  *
@@ -1135,12 +1134,11 @@ wocky_node_iter_next (WockyNodeIter *iter,
  */
 void
 wocky_node_add_build (WockyNode *node,
-    WockyNodeBuildTag first_tag,
     ...)
 {
   va_list ap;
 
-  va_start (ap, first_tag);
+  va_start (ap, node);
   wocky_node_add_build_va (node, ap);
   va_end (ap);
 }

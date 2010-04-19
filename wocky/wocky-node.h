@@ -192,8 +192,7 @@ gboolean wocky_node_iter_next (WockyNodeIter *iter,
 
 
 void wocky_node_add_build (WockyNode *node,
-    WockyNodeBuildTag first_tag,
-    ...);
+    ...) G_GNUC_NULL_TERMINATED;
 
 void wocky_node_add_build_va (WockyNode *node,
     va_list va);
