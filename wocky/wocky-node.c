@@ -1,6 +1,6 @@
 /*
  * wocky-node.c - Code for Wocky xmpp nodes
- * Copyright (C) 2006 Collabora Ltd.
+ * Copyright (C) 2006-2010 Collabora Ltd.
  * @author Sjoerd Simons <sjoerd@luon.net>
  *
  * This library is free software; you can redistribute it and/or
