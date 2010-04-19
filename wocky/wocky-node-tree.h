@@ -39,7 +39,6 @@ struct _WockyNodeTreeClass {
 
 struct _WockyNodeTree {
     GObject parent;
-    WockyNode *node;
 
     WockyNodeTreePrivate *priv;
 };
@@ -70,6 +69,8 @@ WockyNodeTree *wocky_node_tree_new (const gchar *name,
 WockyNodeTree *wocky_node_tree_new_va (const gchar *name,
     const char *ns,
     va_list va);
+
+WockyNode *wocky_node_tree_get_top_node (WockyNodeTree *self);
 
 G_END_DECLS
 

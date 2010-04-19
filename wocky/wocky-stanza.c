@@ -557,5 +557,5 @@ wocky_stanza_extract_stream_error (WockyStanza *stanza,
 WockyNode *
 wocky_stanza_get_top_node (WockyStanza *self)
 {
-  return self->parent.node;
+  return wocky_node_tree_get_top_node (WOCKY_NODE_TREE (self));
 }

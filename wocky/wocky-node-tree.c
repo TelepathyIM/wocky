@@ -35,6 +35,7 @@ enum {
 struct _WockyNodeTreePrivate
 {
   gboolean dispose_has_run;
+  WockyNode *node;
 };
 
 static void
@@ -42,8 +43,6 @@ wocky_node_tree_init (WockyNodeTree *self)
 {
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_NODE_TREE,
       WockyNodeTreePrivate);
-  /* allocate any data required by the object here */
-  self->node = NULL;
 }
 
 static void wocky_node_tree_dispose (GObject *object);
@@ -60,8 +59,8 @@ wocky_node_tree_set_property (GObject *object,
   switch (property_id)
     {
       case PROP_TOP_NODE:
-        self->node = g_value_get_pointer (value);
-        g_warn_if_fail (self->node != NULL);
+        self->priv->node = g_value_get_pointer (value);
+        g_warn_if_fail (self->priv->node != NULL);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -80,7 +79,7 @@ wocky_node_tree_get_property (GObject *object,
   switch (property_id)
     {
       case PROP_TOP_NODE:
-        g_value_set_pointer (value, self->node);
+        g_value_set_pointer (value, self->priv->node);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -134,11 +133,10 @@ wocky_node_tree_finalize (GObject *object)
   WockyNodeTree *self = WOCKY_NODE_TREE (object);
 
   /* free any data held directly by the object here */
-  wocky_node_free (self->node);
+  wocky_node_free (self->priv->node);
 
   G_OBJECT_CLASS (wocky_node_tree_parent_class)->finalize (object);
 }
-
 /**
  * wocky_node_tree_new:
  * @name: The name of the toplevel node
@@ -189,4 +187,10 @@ wocky_node_tree_new_va (const gchar *name,
   wocky_node_add_build_va (top, va);
 
   return g_object_new (WOCKY_TYPE_NODE_TREE, "top-node", top, NULL);
+}
+
+WockyNode *
+wocky_node_tree_get_top_node (WockyNodeTree *self)
+{
+  return self->priv->node;
 }
