@@ -138,3 +138,55 @@ wocky_node_tree_finalize (GObject *object)
 
   G_OBJECT_CLASS (wocky_node_tree_parent_class)->finalize (object);
 }
+
+/**
+ * wocky_node_tree_new:
+ * @name: The name of the toplevel node
+ * @ns: The namespace of the toplevel node
+ * @Varargs: the description of the node tree to build,
+ *  terminated with %NULL
+ *
+ * Build a node-tree from a list of arguments.
+ * Example:
+ *
+ * <example><programlisting>
+ * wocky_node_tree_new ("html", "http://www.w3.org/1999/xhtml",
+ *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
+ *    '(', "html", ':', "http://www.w3.org/1999/xhtml",
+ *      '(', "body", '@', "textcolor", "red",
+ *         '$', "Wocky wooo",
+ *      ')'
+ *   NULL);
+ * </programlisting></example>
+ *
+ * Returns: a new node-tree object
+ */
+WockyNodeTree *
+wocky_node_tree_new (const gchar *name,
+  const gchar *ns,
+  ...)
+{
+  WockyNodeTree *tree;
+  va_list va;
+
+  va_start (va, ns);
+  tree = wocky_node_tree_new_va (name, ns, va);
+  va_end (va);
+
+  return tree;
+}
+
+WockyNodeTree *
+wocky_node_tree_new_va (const gchar *name,
+    const char *ns, va_list va)
+{
+  WockyNode *top;
+
+  g_return_val_if_fail (name != NULL, NULL);
+  g_return_val_if_fail (ns != NULL, NULL);
+
+  top = wocky_node_new (name, ns);
+  wocky_node_add_build_va (top, va);
+
+  return g_object_new (WOCKY_TYPE_NODE_TREE, "top-node", top, NULL);
+}

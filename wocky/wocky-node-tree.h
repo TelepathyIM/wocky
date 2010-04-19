@@ -63,6 +63,14 @@ GType wocky_node_tree_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_NODE_TREE, \
     WockyNodeTreeClass))
 
+WockyNodeTree *wocky_node_tree_new (const gchar *name,
+  const gchar *ns,
+  ...) G_GNUC_NULL_TERMINATED;
+
+WockyNodeTree *wocky_node_tree_new_va (const gchar *name,
+    const char *ns,
+    va_list va);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_NODE_TREE_H__*/
