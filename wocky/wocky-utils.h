@@ -93,6 +93,16 @@ GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
           g_simple_async_result_get_op_res_gpointer (_simple)); \
     return TRUE;
 
+#define wocky_implement_finish_return_copy_pointer(source, tag, copy_func) \
+    GSimpleAsyncResult *_simple; \
+    g_return_val_if_fail (g_simple_async_result_is_valid (result, \
+            G_OBJECT (source), tag), \
+        FALSE); \
+    _simple = (GSimpleAsyncResult *) result; \
+    if (g_simple_async_result_propagate_error (_simple, error)) \
+      return NULL; \
+    return copy_func (g_simple_async_result_get_op_res_gpointer (_simple));
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_UTIL_H__ */
