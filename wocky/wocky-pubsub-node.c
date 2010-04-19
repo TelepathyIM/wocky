@@ -869,6 +869,128 @@ wocky_pubsub_node_list_affiliates_finish (
       wocky_pubsub_affiliation_list_copy, affiliates)
 }
 
+/**
+ * wocky_pubsub_node_make_modify_affiliates_stanza:
+ * @self: a pubsub node
+ * @affiliates: a list of #WockyPubsubAffiliation structures, describing only
+ *              the affiliations which should be changed.
+ * @pubsub_node: location at which to store a pointer to the &lt;pubsub/&gt;
+ *               node, or %NULL
+ * @affiliations_node: location at which to store a pointer to the
+ *                     &lt;affiliations/&gt; node, or %NULL
+ *
+ * Returns: an IQ stanza to modify the entities affiliated to a node that you
+ *          own.
+ */
+WockyStanza *
+wocky_pubsub_node_make_modify_affiliates_stanza (
+    WockyPubsubNode *self,
+    const GList *affiliates,
+    WockyNode **pubsub_node,
+    WockyNode **affiliations_node)
+{
+  WockyStanza *stanza;
+  WockyNode *affiliations;
+  const GList *l;
+
+  stanza = pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "affiliations", NULL,
+      pubsub_node, &affiliations);
+
+  for (l = affiliates; l != NULL; l = l->next)
+    {
+      const WockyPubsubAffiliation *aff = l->data;
+      WockyNode *affiliation = wocky_node_add_child (affiliations,
+          "affiliation");
+      const gchar *state = wocky_enum_to_nick (
+          WOCKY_TYPE_PUBSUB_AFFILIATION_STATE, aff->state);
+
+      if (aff->jid == NULL)
+        {
+          g_warning ("Affiliate JID may not be NULL");
+          continue;
+        }
+
+      if (state == NULL)
+        {
+          g_warning ("Invalid WockyPubsubAffiliationState %u", aff->state);
+          continue;
+        }
+
+      /* Let's allow the API user to leave node as NULL in each element in the
+       * list of updates, given that we know which node they want to update.
+       * But if they *do* specify it, it'd better be this node.
+       */
+      if (aff->node != NULL && aff->node != self)
+        {
+          g_warning ("Tried to update affiliates for %s, passing a "
+              "WockyPubsubAffiliation for %s",
+              wocky_pubsub_node_get_name (self),
+              wocky_pubsub_node_get_name (aff->node));
+          continue;
+        }
+
+      wocky_node_set_attribute (affiliation, "jid", aff->jid);
+      wocky_node_set_attribute (affiliation, "affiliation", state);
+    }
+
+  if (affiliations_node != NULL)
+    *affiliations_node = affiliations;
+
+  return stanza;
+}
+
+/**
+ * wocky_pubsub_node_modify_affiliates_async:
+ * @self: a pubsub node
+ * @affiliates: a list of #WockyPubsubAffiliation structures, describing only
+ *              the affiliations which should be changed.
+ * @cancellable: optional GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Modifies the entities affiliated to a node that you own.
+ */
+void
+wocky_pubsub_node_modify_affiliates_async (
+    WockyPubsubNode *self,
+    const GList *affiliates,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = self->priv;
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_modify_affiliates_async);
+  WockyStanza *stanza;
+
+  stanza = wocky_pubsub_node_make_modify_affiliates_stanza (
+      self, affiliates, NULL, NULL);
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      pubsub_node_void_iq_cb, simple);
+  g_object_unref (stanza);
+}
+
+/**
+ * wocky_pubsub_node_modify_affiliates_finish:
+ * @self: a node
+ * @result: the result
+ * @error: location at which to store an error, if one occurred.
+ *
+ * Complete a call to wocky_pubsub_node_modify_affiliates_async().
+ *
+ * Returns: %TRUE if the affiliates were successfully modified; %FALSE and sets
+ *          @error otherwise.
+ */
+gboolean
+wocky_pubsub_node_modify_affiliates_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  wocky_implement_finish_void (self, wocky_pubsub_node_modify_affiliates_async)
+}
+
 WockyPorter *
 wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 {

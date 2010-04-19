@@ -625,6 +625,120 @@ test_list_affiliates (void)
   teardown_test (test);
 }
 
+/* Test modifying the entities affiliated to a node that you own. See §8.9.2
+ * Modify Affiliation. */
+
+static gboolean
+test_modify_affiliates_iq_cb (WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+  WockyStanza *expected, *reply;
+
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_SET, NULL, "pubsub.localhost",
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "affiliations",
+          '@', "node", "princely_musings",
+          '(', "affiliation",
+            '@', "jid", "hamlet@denmark.lit",
+            '@', "affiliation", "none",
+          ')',
+          '(', "affiliation",
+            '@', "jid", "polonius@denmark.lit",
+            '@', "affiliation", "none",
+          ')',
+          '(', "affiliation",
+            '@', "jid", "bard@shakespeare.lit",
+            '@', "affiliation", "publisher",
+          ')',
+        ')',
+      ')', NULL);
+
+  test_assert_stanzas_equal_no_id (stanza, expected);
+
+  g_object_unref (expected);
+
+  reply = wocky_stanza_build_iq_result (stanza, NULL);
+  wocky_porter_send (porter, reply);
+  g_object_unref (reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_modify_affiliates_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_pubsub_node_modify_affiliates_finish (
+      WOCKY_PUBSUB_NODE (source), res, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_modify_affiliates (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+  GList *snakes = NULL;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_modify_affiliates_iq_cb, test,
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "affiliations",
+          '@', "node", "princely_musings",
+        ')',
+      ')', NULL);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
+  g_assert (node != NULL);
+
+  snakes = g_list_append (snakes,
+      wocky_pubsub_affiliation_new (node, "hamlet@denmark.lit",
+          WOCKY_PUBSUB_AFFILIATION_NONE));
+  snakes = g_list_append (snakes,
+      wocky_pubsub_affiliation_new (node, "polonius@denmark.lit",
+          WOCKY_PUBSUB_AFFILIATION_NONE));
+  snakes = g_list_append (snakes,
+      wocky_pubsub_affiliation_new (node, "bard@shakespeare.lit",
+          WOCKY_PUBSUB_AFFILIATION_PUBLISHER));
+
+  wocky_pubsub_node_modify_affiliates_async (node, snakes,
+      NULL, test_modify_affiliates_cb, test);
+
+  wocky_pubsub_affiliation_list_free (snakes);
+  snakes = NULL;
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 /* Test that the 'event-received' signals are fired when we expect them to be.
  */
 
@@ -1066,6 +1180,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/pubsub-node/list-subscribers", test_list_subscribers);
   g_test_add_func ("/pubsub-node/list-affiliates", test_list_affiliates);
+  g_test_add_func ("/pubsub-node/modify-affiliates", test_modify_affiliates);
 
   g_test_add_func ("/pubsub-node/receive-event", test_receive_event);
   g_test_add_func ("/pubsub-node/subscription-state-changed",

@@ -74,4 +74,10 @@ GList *wocky_pubsub_node_parse_affiliations (
     WockyPubsubNode *self,
     WockyNode *affiliations_node);
 
+WockyStanza *wocky_pubsub_node_make_modify_affiliates_stanza (
+    WockyPubsubNode *self,
+    const GList *affiliates,
+    WockyNode **pubsub_node,
+    WockyNode **affiliations_node);
+
 #endif /* WOCKY_PUBSUB_NODE_PROTECTED_H */

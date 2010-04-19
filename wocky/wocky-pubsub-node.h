@@ -156,6 +156,18 @@ gboolean wocky_pubsub_node_list_affiliates_finish (
     GList **affiliates,
     GError **error);
 
+void wocky_pubsub_node_modify_affiliates_async (
+    WockyPubsubNode *self,
+    const GList *affiliates,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_pubsub_node_modify_affiliates_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __WOCKY_PUBSUB_NODE_H__ */
