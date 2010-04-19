@@ -935,7 +935,10 @@ wocky_pubsub_affiliation_new (
     const gchar *jid,
     WockyPubsubAffiliationState state)
 {
-  WockyPubsubAffiliation aff = { g_object_ref (node), g_strdup (jid), state };
+  WockyPubsubAffiliation aff = { NULL, g_strdup (jid), state };
+
+  g_return_val_if_fail (node != NULL, NULL);
+  aff.node = g_object_ref (node);
 
   return g_slice_dup (WockyPubsubAffiliation, &aff);
 }
