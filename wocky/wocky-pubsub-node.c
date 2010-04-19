@@ -880,6 +880,31 @@ wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 
 /* WockyPubsubAffiliation boilerplate */
 
+/**
+ * WockyPubsubAffiliation:
+ * @node: the node to which this affiliation relates
+ * @jid: the bare JID affiliated to @node
+ * @state: the state of @jid's affiliation to @node
+ *
+ * Represents an affiliation to a node, as returned by
+ * wocky_pubsub_node_list_affiliates_finish().
+ */
+
+/**
+ * WockyPubsubAffiliationState:
+ * @WOCKY_PUBSUB_AFFILIATION_OWNER: Owner
+ * @WOCKY_PUBSUB_AFFILIATION_PUBLISHER: Publisher
+ * @WOCKY_PUBSUB_AFFILIATION_PUBLISH_ONLY: Publish-Only
+ * @WOCKY_PUBSUB_AFFILIATION_MEMBER: Member
+ * @WOCKY_PUBSUB_AFFILIATION_NONE: None
+ * @WOCKY_PUBSUB_AFFILIATION_OUTCAST: Outcast
+ *
+ * Possible affiliations to a PubSub node, which determine privileges an entity
+ * has. See <ulink
+ *   url="http://xmpp.org/extensions/xep-0060.html#affiliations">XEP-0060
+ * §4.1</ulink> for the details.
+ */
+
 GType
 wocky_pubsub_affiliation_get_type (void)
 {
@@ -893,6 +918,17 @@ wocky_pubsub_affiliation_get_type (void)
   return t;
 }
 
+/**
+ * wocky_pubsub_affiliation_new:
+ * @node: a node
+ * @jid: the JID affiliated to @node
+ * @state: the state of @jid's affiliation to @node
+ *
+ * <!-- -->
+ *
+ * Returns: a new structure representing an affiliation, which should
+ *          ultimately be freed with wocky_pubsub_affiliation_free()
+ */
 WockyPubsubAffiliation *
 wocky_pubsub_affiliation_new (
     WockyPubsubNode *node,
@@ -904,6 +940,15 @@ wocky_pubsub_affiliation_new (
   return g_slice_dup (WockyPubsubAffiliation, &aff);
 }
 
+/**
+ * wocky_pubsub_affiliation_copy:
+ * @aff: an existing affiliation structure
+ *
+ * <!-- -->
+ *
+ * Returns: a duplicate of @aff; the duplicate should ultimately be freed
+ *          with wocky_pubsub_affiliation_free()
+ */
 WockyPubsubAffiliation *
 wocky_pubsub_affiliation_copy (
     WockyPubsubAffiliation *aff)
@@ -913,6 +958,13 @@ wocky_pubsub_affiliation_copy (
   return wocky_pubsub_affiliation_new (aff->node, aff->jid, aff->state);
 }
 
+/**
+ * wocky_pubsub_affiliation_free:
+ * @aff: an affiliation
+ *
+ * Frees an affiliation, previously allocated with
+ * wocky_pubsub_affiliation_new() or wocky_pubsub_affiliation_copy()
+ */
 void
 wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff)
 {
@@ -923,6 +975,16 @@ wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff)
   g_slice_free (WockyPubsubAffiliation, aff);
 }
 
+/**
+ * wocky_pubsub_affiliation_list_copy:
+ * @affs: a list of #WockyPubsubAffiliation
+ *
+ * Shorthand for manually copying @affs, duplicating each element with
+ * wocky_pubsub_affiliation_copy().
+ *
+ * Returns: a deep copy of @affs, which should ultimately be freed with
+ *          wocky_pubsub_affiliation_list_free().
+ */
 GList *
 wocky_pubsub_affiliation_list_copy (GList *affs)
 {
@@ -930,6 +992,13 @@ wocky_pubsub_affiliation_list_copy (GList *affs)
       (GBoxedCopyFunc) wocky_pubsub_affiliation_copy, affs);
 }
 
+/**
+ * wocky_pubsub_affiliation_list_free:
+ * @affs: a list of #WockyPubsubAffiliation
+ *
+ * Frees a list of WockyPubsubAffiliation structures, as shorthand for calling
+ * wocky_pubsub_affiliation_free() for each element, followed by g_list_free().
+ */
 void
 wocky_pubsub_affiliation_list_free (GList *affs)
 {
