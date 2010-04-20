@@ -486,7 +486,9 @@ _start_element_ns (void *user_data, const xmlChar *localname,
         }
       else
         {
-          DEBUG ("Stanza without a namespace !?, using dummy namespace");
+          /* This can only happy in non-streaming mode when the top node
+           * of the document doesn't have a namespace. */
+          DEBUG ("Stanza without a namespace, using dummy namespace..");
           priv->stanza = wocky_stanza_new ((gchar *) localname, (gchar *) "");
         }
 
