@@ -1039,7 +1039,7 @@ wocky_node_equal (WockyNode *node0,
 /**
  * wocky_node_is_superset:
  * @node: the #WockyNode to test
- * @pattern: the supposed subset
+ * @subset: the supposed subset
  *
  * Returns: %TRUE if @node is a superset of @subset.
  */
