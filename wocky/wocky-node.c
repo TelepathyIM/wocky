@@ -23,6 +23,7 @@
 
 #include "wocky-node.h"
 #include "wocky-node-private.h"
+#include "wocky-node-tree.h"
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
 
@@ -1299,6 +1300,25 @@ _wocky_node_copy (WockyNode *node)
   return result;
 }
 
+/**
+ * wocky_node_add_node_tree:
+ * @node: A node
+ * @tree: The node tree to add
+ *
+ * Copies the nodes from @tree adds them as a child of @node.
+ *
+ */
+void
+wocky_node_add_node_tree (WockyNode *node, WockyNodeTree *tree)
+{
+  WockyNode *copy;
+
+  g_return_if_fail (node != NULL);
+  g_return_if_fail (tree != NULL);
+
+  copy = _wocky_node_copy (wocky_node_tree_get_top_node (tree));
+  node->children = g_slist_append (node->children, copy);
+}
 
 /**
  * wocky_node_init:

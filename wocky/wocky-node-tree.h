@@ -25,12 +25,12 @@
 
 #include <glib-object.h>
 #include "wocky-node.h"
+#include "wocky-types.h"
 #include "wocky-xmpp-error.h"
 
 G_BEGIN_DECLS
 
 typedef struct _WockyNodeTreePrivate WockyNodeTreePrivate;
-typedef struct _WockyNodeTree WockyNodeTree;
 typedef struct _WockyNodeTreeClass WockyNodeTreeClass;
 
 struct _WockyNodeTreeClass {
