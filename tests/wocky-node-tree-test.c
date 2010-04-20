@@ -56,8 +56,39 @@ test_tree_from_node (void)
 
   g_object_unref (a);
   g_object_unref (b);
-
 }
+
+static void
+test_node_add_tree (void)
+{
+  WockyNodeTree *origin, *ashes, *destination;
+  WockyNode *ash, *top;
+
+  origin = wocky_node_tree_new ("Eyjafjallajökull", "urn:wocky:lol:ísland",
+    '(', "æsc",
+      '*', &ash,
+      '@', "type", "vulcanic",
+      '(', "description", '$', "Black and smokey", ')',
+    ')',
+    NULL);
+
+  ashes = wocky_node_tree_new_from_node (ash);
+
+  destination = wocky_node_tree_new ("mainlain europe",
+      "urn:wocky:lol:noplanesforyou",
+      '*', &top, NULL);
+
+  wocky_node_add_node_tree (top, ashes);
+
+  test_assert_nodes_equal (
+    wocky_node_get_first_child (wocky_node_tree_get_top_node (destination)),
+    wocky_node_get_first_child (wocky_node_tree_get_top_node (origin)));
+
+  g_object_unref (origin);
+  g_object_unref (ashes);
+  g_object_unref (destination);
+}
+
 
 int
 main (int argc, char **argv)
@@ -70,6 +101,8 @@ main (int argc, char **argv)
     test_build_simple_tree);
   g_test_add_func ("/xmpp-node-tree/tree-from-node",
     test_tree_from_node);
+  g_test_add_func ("/xmpp-node-tree/node-add-tree",
+    test_node_add_tree);
 
   result =  g_test_run ();
   test_deinit ();
