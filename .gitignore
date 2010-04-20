@@ -76,7 +76,16 @@ wocky/wocky-uninstalled.pc
 
 tests/sasl-test.db
 tests/test-report.xml
+tests/wocky-bare-contact-test
+tests/wocky-contact-factory-test
+tests/wocky-data-form-test
+tests/wocky-node-tree-test
+tests/wocky-roster-test
+tests/wocky-resource-contact-test
+tests/wocky-stanza-test
+tests/wocky-session-test
 tests/wocky-test-sasl-auth
+tests/wocky-tls-test
 tests/wocky-xmpp-connection-test
 tests/wocky-xmpp-reader-test
 tests/wocky-xmpp-readwrite-test
@@ -115,13 +124,6 @@ tests/certtool
 tests/tardis
 # tests/certs/cas/*
 # tests/certs/crl/*
-tests/wocky-roster-test
-tests/wocky-bare-contact-test
-tests/wocky-resource-contact-test
-tests/wocky-contact-factory-test
-tests/wocky-session-test
-tests/wocky-tls-test
-tests/wocky-data-form-test
 
 examples/wocky-connect
 examples/wocky-register
