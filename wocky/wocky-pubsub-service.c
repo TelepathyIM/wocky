@@ -1026,3 +1026,25 @@ wocky_pubsub_subscription_get_type (void)
  * wocky_pubsub_service_retrieve_subscriptions_async() or subscribing to a node
  * with wocky_pubsub_node_subscribe_async().
  */
+
+/**
+ * WockyPubsubSubscriptionState:
+ * @WOCKY_PUBSUB_SUBSCRIPTION_NONE: The node MUST NOT send event notifications
+ *  or payloads to the Entity.
+ * @WOCKY_PUBSUB_SUBSCRIPTION_PENDING: An entity has requested to subscribe to
+ *  a node and the request has not yet been approved by a node owner. The node
+ *  MUST NOT send event notifications or payloads to the entity while it is in
+ *  this state.
+ * @WOCKY_PUBSUB_SUBSCRIPTION_SUBSCRIBED: An entity has subscribed but its
+ *  subscription options have not yet been configured. The node MAY send event
+ *  notifications or payloads to the entity while it is in this state. The
+ *  service MAY timeout unconfigured subscriptions.
+ * @WOCKY_PUBSUB_SUBSCRIPTION_UNCONFIGURED: An entity is subscribed to a node.
+ *  The node MUST send all event notifications (and, if configured, payloads)
+ *  to the entity while it is in this state (subject to subscriber
+ *  configuration and content filtering).
+ *
+ * Describes the state of a subscription to a node. Definitions are taken from
+ * <ulink url="xmpp.org/extensions/xep-0060.html#substates">XEP-0060
+ * §4.2</ulink>.
+ */
