@@ -74,8 +74,7 @@ test_node_add_tree (void)
 
   ashes = wocky_node_tree_new_from_node (ash);
 
-  destination = wocky_node_tree_new ("mainlain europe",
-      "urn:wocky:lol:noplanesforyou",
+  destination = wocky_node_tree_new ("europe", "urn:wocky:lol:noplanesforyou",
       '*', &top, NULL);
 
   wocky_node_add_node_tree (top, ashes);
