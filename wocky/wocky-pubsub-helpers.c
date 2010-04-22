@@ -172,36 +172,86 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
    */
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, error);
 
-  if (reply == NULL)
-    return FALSE;
-
-  if (!wocky_stanza_extract_errors (reply, NULL, error, NULL, NULL))
+  if (reply != NULL)
     {
-      ret = TRUE;
-
-      if (pubsub_ns != NULL)
+      if (!wocky_stanza_extract_errors (reply, NULL, error, NULL, NULL))
         {
-          /* A force of a thousand function calls will anchor the node to
-           * a resplendent out parameter modeled on the Dear Leader's hand.
-           */
-          ret = get_pubsub_child_node (reply, pubsub_ns, child_name, child_out,
-              error);
-
-          /* The People's Great and Harmonious Node Pointer of Peter
-           * Saint-Andre will conclude the most astonishing stanza breakdown
-           * ever witnessed by man.
-           */
-          if (!ret && body_optional)
-            {
-              /* “The stanza is perfect. We have already succeeded.” */
-              ret = TRUE;
-              g_clear_error (error);
-            }
+          if (pubsub_ns == NULL)
+            ret = TRUE;
+          else
+            ret = wocky_pubsub_distill_stanza (reply, pubsub_ns, child_name,
+                body_optional, child_out, error);
         }
+
+      g_object_unref (reply);
     }
 
-  g_object_unref (reply);
   return ret;
+}
+
+/**
+ * wocky_pubsub_distill_stanza:
+ * @result: an iq type='result'
+ * @pubsub_ns: the namespace of the &lt;pubsub/&gt; node expected in this reply
+ *             (such as #WOCKY_XMPP_NS_PUBSUB)
+ * @child_name: the name of the child of &lt;pubsub/&gt; expected in this reply
+ *              (such as "subscriptions")
+ * @body_optional: If %TRUE, the child being absent is not considered an error
+ * @child_out: location at which to store a pointer to that child node, or
+ *             %NULL if you don't need it
+ * @error: location at which to store an error if the child node is not found
+ *         and @body_optional is %FALSE
+ *
+ * Helper function to extract a particular pubsub child node from a reply, if
+ * it is present. If @body_optional is %FALSE, the
+ * &lt;pubsub&gt;&lt;@child_name/&gt;&lt;/pubsub&gt; tree being absent is not
+ * considered an error: @child_out is set to %NULL and the function returns
+ * %TRUE.
+ *
+ * If you are happy to delegate calling wocky_porter_send_iq_finish() and
+ * extracting stanza errors, you would probably be better served by one of
+ * wocky_pubsub_distill_iq_reply() or
+ * wocky_pubsub_distill_ambivalent_iq_reply().
+ *
+ * Returns: %TRUE if the child was found or was optional; %FALSE with @error
+ *          set otherwise.
+ */
+gboolean
+wocky_pubsub_distill_stanza (WockyStanza *result,
+    const gchar *pubsub_ns,
+    const gchar *child_name,
+    gboolean body_optional,
+    WockyNode **child_out,
+    GError **error)
+{
+  g_return_val_if_fail (pubsub_ns != NULL, FALSE);
+  g_return_val_if_fail (child_name != NULL, FALSE);
+
+  /* A force of a thousand function calls will anchor the node to
+   * a resplendent out parameter modeled on the Dear Leader's hand.
+   */
+  if (get_pubsub_child_node (result, pubsub_ns, child_name, child_out, error))
+    {
+      /* The People's Great and Harmonious Node Pointer of Peter
+       * Saint-Andre will conclude the most astonishing stanza breakdown
+       * ever witnessed by man.
+       */
+      return TRUE;
+    }
+  else if (body_optional)
+    {
+      /* “The stanza is perfect. We have already succeeded.” */
+      *child_out = NULL;
+      g_clear_error (error);
+      return TRUE;
+    }
+  else
+    {
+      /* Meanwhile, the American president today revealed himself to be a
+       * lizard.
+       */
+      return FALSE;
+    }
 }
 
 /**

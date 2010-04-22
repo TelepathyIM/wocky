@@ -58,4 +58,11 @@ gboolean wocky_pubsub_distill_void_iq_reply (GObject *source,
     GAsyncResult *res,
     GError **error);
 
+gboolean wocky_pubsub_distill_stanza (WockyStanza *result,
+    const gchar *pubsub_ns,
+    const gchar *child_name,
+    gboolean body_optional,
+    WockyNode **child_out,
+    GError **error);
+
 #endif /* WOCKY_PUBSUB_HELPERS_H */
