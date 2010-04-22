@@ -1295,7 +1295,7 @@ _wocky_node_copy (WockyNode *node)
 
   for (l = node->children ; l != NULL; l = g_slist_next (l))
     result->children = g_slist_append (result->children,
-      _wocky_node_copy ((WockyNode *)l->data));
+      _wocky_node_copy ((WockyNode *) l->data));
 
   return result;
 }
