@@ -526,7 +526,7 @@ wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
 }
 
 static void
-unsubscribe_cb (GObject *source,
+pubsub_node_void_iq_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
@@ -574,7 +574,7 @@ wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
       NULL);
 
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      unsubscribe_cb, simple);
+      pubsub_node_void_iq_cb, simple);
 
   g_object_unref (stanza);
 }
@@ -584,36 +584,7 @@ wocky_pubsub_node_unsubscribe_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (self), wocky_pubsub_node_unsubscribe_async), FALSE);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  return !g_simple_async_result_propagate_error (simple, error);
-}
-
-static void
-delete_node_iq_cb (GObject *source,
-    GAsyncResult *res,
-    gpointer user_data)
-{
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
-  GError *error = NULL;
-
-  if (!wocky_pubsub_distill_void_iq_reply (source, res, &error))
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_clear_error (&error);
-    }
-  else
-    {
-      DEBUG ("node deleted");
-    }
-
-  g_simple_async_result_complete (result);
-  g_object_unref (result);
+  wocky_implement_finish_void (self, wocky_pubsub_node_unsubscribe_async)
 }
 
 WockyStanza *
@@ -639,8 +610,8 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
   stanza = wocky_pubsub_node_make_delete_stanza (self, NULL, NULL);
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
     wocky_pubsub_node_delete_async);
-  wocky_porter_send_iq_async (priv->porter, stanza, NULL, delete_node_iq_cb,
-      result);
+  wocky_porter_send_iq_async (priv->porter, stanza, NULL,
+      pubsub_node_void_iq_cb, result);
   g_object_unref (stanza);
 }
 
@@ -649,14 +620,7 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (self), wocky_pubsub_node_delete_async), FALSE);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  return !g_simple_async_result_propagate_error (simple, error);
+  wocky_implement_finish_void (self, wocky_pubsub_node_delete_async)
 }
 
 WockyStanza *
@@ -905,6 +869,224 @@ wocky_pubsub_node_list_affiliates_finish (
       wocky_pubsub_affiliation_list_copy, affiliates)
 }
 
+/**
+ * wocky_pubsub_node_make_modify_affiliates_stanza:
+ * @self: a pubsub node
+ * @affiliates: a list of #WockyPubsubAffiliation structures, describing only
+ *              the affiliations which should be changed.
+ * @pubsub_node: location at which to store a pointer to the &lt;pubsub/&gt;
+ *               node, or %NULL
+ * @affiliations_node: location at which to store a pointer to the
+ *                     &lt;affiliations/&gt; node, or %NULL
+ *
+ * Returns: an IQ stanza to modify the entities affiliated to a node that you
+ *          own.
+ */
+WockyStanza *
+wocky_pubsub_node_make_modify_affiliates_stanza (
+    WockyPubsubNode *self,
+    const GList *affiliates,
+    WockyNode **pubsub_node,
+    WockyNode **affiliations_node)
+{
+  WockyStanza *stanza;
+  WockyNode *affiliations;
+  const GList *l;
+
+  stanza = pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "affiliations", NULL,
+      pubsub_node, &affiliations);
+
+  for (l = affiliates; l != NULL; l = l->next)
+    {
+      const WockyPubsubAffiliation *aff = l->data;
+      WockyNode *affiliation = wocky_node_add_child (affiliations,
+          "affiliation");
+      const gchar *state = wocky_enum_to_nick (
+          WOCKY_TYPE_PUBSUB_AFFILIATION_STATE, aff->state);
+
+      if (aff->jid == NULL)
+        {
+          g_warning ("Affiliate JID may not be NULL");
+          continue;
+        }
+
+      if (state == NULL)
+        {
+          g_warning ("Invalid WockyPubsubAffiliationState %u", aff->state);
+          continue;
+        }
+
+      /* Let's allow the API user to leave node as NULL in each element in the
+       * list of updates, given that we know which node they want to update.
+       * But if they *do* specify it, it'd better be this node.
+       */
+      if (aff->node != NULL && aff->node != self)
+        {
+          g_warning ("Tried to update affiliates for %s, passing a "
+              "WockyPubsubAffiliation for %s",
+              wocky_pubsub_node_get_name (self),
+              wocky_pubsub_node_get_name (aff->node));
+          continue;
+        }
+
+      wocky_node_set_attribute (affiliation, "jid", aff->jid);
+      wocky_node_set_attribute (affiliation, "affiliation", state);
+    }
+
+  if (affiliations_node != NULL)
+    *affiliations_node = affiliations;
+
+  return stanza;
+}
+
+/**
+ * wocky_pubsub_node_modify_affiliates_async:
+ * @self: a pubsub node
+ * @affiliates: a list of #WockyPubsubAffiliation structures, describing only
+ *              the affiliations which should be changed.
+ * @cancellable: optional GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Modifies the entities affiliated to a node that you own.
+ */
+void
+wocky_pubsub_node_modify_affiliates_async (
+    WockyPubsubNode *self,
+    const GList *affiliates,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = self->priv;
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_modify_affiliates_async);
+  WockyStanza *stanza;
+
+  stanza = wocky_pubsub_node_make_modify_affiliates_stanza (
+      self, affiliates, NULL, NULL);
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      pubsub_node_void_iq_cb, simple);
+  g_object_unref (stanza);
+}
+
+/**
+ * wocky_pubsub_node_modify_affiliates_finish:
+ * @self: a node
+ * @result: the result
+ * @error: location at which to store an error, if one occurred.
+ *
+ * Complete a call to wocky_pubsub_node_modify_affiliates_async().
+ *
+ * Returns: %TRUE if the affiliates were successfully modified; %FALSE and sets
+ *          @error otherwise.
+ */
+gboolean
+wocky_pubsub_node_modify_affiliates_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  wocky_implement_finish_void (self, wocky_pubsub_node_modify_affiliates_async)
+}
+
+/**
+ * wocky_pubsub_node_make_get_configuration_stanza:
+ * @self: a pubsub node
+ * @pubsub_node: location at which to store a pointer to the &lt;pubsub/&gt;
+ *               node, or %NULL
+ * @configure_node: location at which to store a pointer to the
+ *                  &lt;configure/&gt; node, or %NULL
+ *
+ * Returns: an IQ stanza to retrieve the configuration of @self
+ */
+WockyStanza *
+wocky_pubsub_node_make_get_configuration_stanza (
+    WockyPubsubNode *self,
+    WockyNode **pubsub_node,
+    WockyNode **configure_node)
+{
+  return pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_XMPP_NS_PUBSUB_OWNER, "configure", NULL,
+      pubsub_node, configure_node);
+}
+
+static void
+get_configuration_iq_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  GSimpleAsyncResult *simple = user_data;
+  WockyNode *configure_node;
+  WockyDataForm *form;
+  GError *error = NULL;
+
+  if (wocky_pubsub_distill_iq_reply (source, result, WOCKY_XMPP_NS_PUBSUB_OWNER,
+          "configure", &configure_node, &error) &&
+      (form = wocky_data_form_new_from_form (configure_node, &error)) != NULL)
+    {
+      g_simple_async_result_set_op_res_gpointer (simple, form, g_object_unref);
+    }
+  else
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
+
+  g_simple_async_result_complete (simple);
+  g_object_unref (simple);
+}
+
+/**
+ * wocky_pubsub_node_get_configuration_async:
+ * @self: a node
+ * @cancellable: optional GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Retrieves the current configuration for a node owned by the user.
+ */
+void
+wocky_pubsub_node_get_configuration_async (
+    WockyPubsubNode *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyPubsubNodePrivate *priv = self->priv;
+  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_pubsub_node_get_configuration_async);
+  WockyStanza *stanza;
+
+  stanza = wocky_pubsub_node_make_get_configuration_stanza (
+      self, NULL, NULL);
+  wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
+      get_configuration_iq_cb, simple);
+  g_object_unref (stanza);
+}
+
+/**
+ * wocky_pubsub_node_get_configuration_finish:
+ * @self: a node
+ * @result: the result
+ * @error: location at which to store an error, if one occurred.
+ *
+ * Complete a call to wocky_pubsub_node_get_configuration_async().
+ *
+ * Returns: a form representing the node configuration on success; %NULL and
+ *          sets @error otherwise
+ */
+WockyDataForm *
+wocky_pubsub_node_get_configuration_finish (
+    WockyPubsubNode *self,
+    GAsyncResult *result,
+    GError **error)
+{
+  wocky_implement_finish_return_copy_pointer (self,
+      wocky_pubsub_node_get_configuration_async, g_object_ref)
+}
+
 WockyPorter *
 wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 {
@@ -915,6 +1097,31 @@ wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 
 
 /* WockyPubsubAffiliation boilerplate */
+
+/**
+ * WockyPubsubAffiliation:
+ * @node: the node to which this affiliation relates
+ * @jid: the bare JID affiliated to @node
+ * @state: the state of @jid's affiliation to @node
+ *
+ * Represents an affiliation to a node, as returned by
+ * wocky_pubsub_node_list_affiliates_finish().
+ */
+
+/**
+ * WockyPubsubAffiliationState:
+ * @WOCKY_PUBSUB_AFFILIATION_OWNER: Owner
+ * @WOCKY_PUBSUB_AFFILIATION_PUBLISHER: Publisher
+ * @WOCKY_PUBSUB_AFFILIATION_PUBLISH_ONLY: Publish-Only
+ * @WOCKY_PUBSUB_AFFILIATION_MEMBER: Member
+ * @WOCKY_PUBSUB_AFFILIATION_NONE: None
+ * @WOCKY_PUBSUB_AFFILIATION_OUTCAST: Outcast
+ *
+ * Possible affiliations to a PubSub node, which determine privileges an entity
+ * has. See <ulink
+ *   url="http://xmpp.org/extensions/xep-0060.html#affiliations">XEP-0060
+ * §4.1</ulink> for the details.
+ */
 
 GType
 wocky_pubsub_affiliation_get_type (void)
@@ -929,17 +1136,40 @@ wocky_pubsub_affiliation_get_type (void)
   return t;
 }
 
+/**
+ * wocky_pubsub_affiliation_new:
+ * @node: a node
+ * @jid: the JID affiliated to @node
+ * @state: the state of @jid's affiliation to @node
+ *
+ * <!-- -->
+ *
+ * Returns: a new structure representing an affiliation, which should
+ *          ultimately be freed with wocky_pubsub_affiliation_free()
+ */
 WockyPubsubAffiliation *
 wocky_pubsub_affiliation_new (
     WockyPubsubNode *node,
     const gchar *jid,
     WockyPubsubAffiliationState state)
 {
-  WockyPubsubAffiliation aff = { g_object_ref (node), g_strdup (jid), state };
+  WockyPubsubAffiliation aff = { NULL, g_strdup (jid), state };
+
+  g_return_val_if_fail (node != NULL, NULL);
+  aff.node = g_object_ref (node);
 
   return g_slice_dup (WockyPubsubAffiliation, &aff);
 }
 
+/**
+ * wocky_pubsub_affiliation_copy:
+ * @aff: an existing affiliation structure
+ *
+ * <!-- -->
+ *
+ * Returns: a duplicate of @aff; the duplicate should ultimately be freed
+ *          with wocky_pubsub_affiliation_free()
+ */
 WockyPubsubAffiliation *
 wocky_pubsub_affiliation_copy (
     WockyPubsubAffiliation *aff)
@@ -949,6 +1179,13 @@ wocky_pubsub_affiliation_copy (
   return wocky_pubsub_affiliation_new (aff->node, aff->jid, aff->state);
 }
 
+/**
+ * wocky_pubsub_affiliation_free:
+ * @aff: an affiliation
+ *
+ * Frees an affiliation, previously allocated with
+ * wocky_pubsub_affiliation_new() or wocky_pubsub_affiliation_copy()
+ */
 void
 wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff)
 {
@@ -959,6 +1196,16 @@ wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff)
   g_slice_free (WockyPubsubAffiliation, aff);
 }
 
+/**
+ * wocky_pubsub_affiliation_list_copy:
+ * @affs: a list of #WockyPubsubAffiliation
+ *
+ * Shorthand for manually copying @affs, duplicating each element with
+ * wocky_pubsub_affiliation_copy().
+ *
+ * Returns: a deep copy of @affs, which should ultimately be freed with
+ *          wocky_pubsub_affiliation_list_free().
+ */
 GList *
 wocky_pubsub_affiliation_list_copy (GList *affs)
 {
@@ -966,6 +1213,13 @@ wocky_pubsub_affiliation_list_copy (GList *affs)
       (GBoxedCopyFunc) wocky_pubsub_affiliation_copy, affs);
 }
 
+/**
+ * wocky_pubsub_affiliation_list_free:
+ * @affs: a list of #WockyPubsubAffiliation
+ *
+ * Frees a list of WockyPubsubAffiliation structures, as shorthand for calling
+ * wocky_pubsub_affiliation_free() for each element, followed by g_list_free().
+ */
 void
 wocky_pubsub_affiliation_list_free (GList *affs)
 {

@@ -71,6 +71,14 @@ GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
  *
  * They should really be in GLib, but let's experiment here first.
  */
+#define wocky_implement_finish_void(source, tag) \
+    GSimpleAsyncResult *_simple; \
+    g_return_val_if_fail (g_simple_async_result_is_valid (result, \
+            G_OBJECT (source), tag), \
+        FALSE); \
+    _simple = (GSimpleAsyncResult *) result; \
+    return !g_simple_async_result_propagate_error (_simple, error);
+
 #define wocky_implement_finish_copy_pointer(source, tag, copy_func, \
     out_param) \
     GSimpleAsyncResult *_simple; \
@@ -84,6 +92,16 @@ GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
       *out_param = copy_func ( \
           g_simple_async_result_get_op_res_gpointer (_simple)); \
     return TRUE;
+
+#define wocky_implement_finish_return_copy_pointer(source, tag, copy_func) \
+    GSimpleAsyncResult *_simple; \
+    g_return_val_if_fail (g_simple_async_result_is_valid (result, \
+            G_OBJECT (source), tag), \
+        FALSE); \
+    _simple = (GSimpleAsyncResult *) result; \
+    if (g_simple_async_result_propagate_error (_simple, error)) \
+      return NULL; \
+    return copy_func (g_simple_async_result_get_op_res_gpointer (_simple));
 
 G_END_DECLS
 
