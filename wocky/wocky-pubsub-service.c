@@ -511,20 +511,21 @@ default_configuration_iq_cb (GObject *source,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
   GError *error = NULL;
-  WockyNode *node;
+  WockyNodeTree *default_tree;
   WockyDataForm *form;
 
-  if (!wocky_pubsub_distill_iq_reply (source, res,
-        WOCKY_XMPP_NS_PUBSUB_OWNER, "default", &node, &error))
-    goto out;
+  if (wocky_pubsub_distill_iq_reply (source, res,
+        WOCKY_XMPP_NS_PUBSUB_OWNER, "default", &default_tree, &error))
+    {
+      form = wocky_data_form_new_from_form (
+          wocky_node_tree_get_top_node (default_tree), &error);
 
-  form = wocky_data_form_new_from_form (node, &error);
-  if (form == NULL)
-    goto out;
+      if (form != NULL)
+        g_simple_async_result_set_op_res_gpointer (result, form, NULL);
 
-  g_simple_async_result_set_op_res_gpointer (result, form, NULL);
+      g_object_unref (default_tree);
+    }
 
-out:
   if (error != NULL)
     {
       g_simple_async_result_set_from_error (result, error);
@@ -677,16 +678,18 @@ receive_subscriptions_cb (GObject *source,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubService *self = WOCKY_PUBSUB_SERVICE (
       g_async_result_get_source_object (user_data));
-  WockyNode *subscriptions_node;
+  WockyNodeTree *subs_tree;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB,
-          "subscriptions", &subscriptions_node, &error))
+          "subscriptions", &subs_tree, &error))
     {
-      g_simple_async_result_set_op_res_gpointer (simple,
-          wocky_pubsub_service_parse_subscriptions (self, subscriptions_node,
-              NULL),
+      GList *subs = wocky_pubsub_service_parse_subscriptions (self,
+          wocky_node_tree_get_top_node (subs_tree), NULL);
+
+      g_simple_async_result_set_op_res_gpointer (simple, subs,
           (GDestroyNotify) wocky_pubsub_subscription_list_free);
+      g_object_unref (subs_tree);
     }
   else
     {
@@ -759,7 +762,7 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
 /**
  * wocky_pubsub_service_handle_create_node_reply:
  * @self: a pubsub service
- * @create_node: the &lt;create/&gt; element from the reply to an attempt to
+ * @create_node: the &lt;create/&gt; tree from the reply to an attempt to
  *               create a node, or %NULL if none was present in the reply.
  * @requested_name: the name we asked the server to use for the node, or %NULL
  *                  if we requested an instant node
@@ -777,19 +780,20 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
 WockyPubsubNode *
 wocky_pubsub_service_handle_create_node_reply (
     WockyPubsubService *self,
-    WockyNode *create_node,
+    WockyNodeTree *create_tree,
     const gchar *requested_name,
     GError **error)
 {
   WockyPubsubNode *node = NULL;
   const gchar *name = NULL;
 
-  if (create_node != NULL)
+  if (create_tree != NULL)
     {
       /* If the reply contained <pubsub><create>, it'd better contain the
        * nodeID.
        */
-      name = wocky_node_get_attribute (create_node, "node");
+      name = wocky_node_get_attribute (
+          wocky_node_tree_get_top_node (create_tree), "node");
 
       if (name == NULL)
         g_set_error (error, WOCKY_PUBSUB_SERVICE_ERROR,
@@ -826,16 +830,21 @@ create_node_iq_cb (GObject *source,
   WockyPubsubService *self;
   WockyPubsubNode *node = NULL;
   const gchar *requested_name;
-  WockyNode *create_node;
+  WockyNodeTree *create_tree;
   GError *error = NULL;
 
   self = WOCKY_PUBSUB_SERVICE (g_async_result_get_source_object (user_data));
   requested_name = g_object_get_data ((GObject *) result, "requested-name");
 
   if (wocky_pubsub_distill_ambivalent_iq_reply (source, res,
-        WOCKY_XMPP_NS_PUBSUB, "create", &create_node, &error))
-    node = wocky_pubsub_service_handle_create_node_reply (self, create_node,
-        requested_name, &error);
+        WOCKY_XMPP_NS_PUBSUB, "create", &create_tree, &error))
+    {
+      node = wocky_pubsub_service_handle_create_node_reply (self,
+          create_tree, requested_name, &error);
+
+      if (create_tree != NULL)
+        g_object_unref (create_tree);
+    }
 
   if (node != NULL)
     {

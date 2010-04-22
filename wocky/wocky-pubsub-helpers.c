@@ -117,7 +117,7 @@ static gboolean
 get_pubsub_child_node (WockyStanza *reply,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyNode **child_out,
+    WockyNodeTree **child_out,
     GError **error)
 {
   WockyNode *n;
@@ -146,7 +146,7 @@ get_pubsub_child_node (WockyStanza *reply,
     }
 
   if (child_out != NULL)
-    *child_out = n;
+    *child_out = wocky_node_tree_new_from_node (n);
 
   return TRUE;
 }
@@ -157,7 +157,7 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
     const gchar *pubsub_ns,
     const gchar *child_name,
     gboolean body_optional,
-    WockyNode **child_out,
+    WockyNodeTree **child_out,
     GError **error)
 {
   WockyStanza *reply;
@@ -197,8 +197,8 @@ wocky_pubsub_distill_iq_reply_internal (GObject *source,
  * @child_name: the name of the child of &lt;pubsub/&gt; expected in this reply
  *              (such as "subscriptions")
  * @body_optional: If %TRUE, the child being absent is not considered an error
- * @child_out: location at which to store a pointer to that child node, or
- *             %NULL if you don't need it
+ * @child_out: location at which to store a reference to the node tree at
+ *             @child_name, if it is found, or to be set to %NULL if it is not.
  * @error: location at which to store an error if the child node is not found
  *         and @body_optional is %FALSE
  *
@@ -221,11 +221,14 @@ wocky_pubsub_distill_stanza (WockyStanza *result,
     const gchar *pubsub_ns,
     const gchar *child_name,
     gboolean body_optional,
-    WockyNode **child_out,
+    WockyNodeTree **child_out,
     GError **error)
 {
   g_return_val_if_fail (pubsub_ns != NULL, FALSE);
   g_return_val_if_fail (child_name != NULL, FALSE);
+
+  if (child_out != NULL)
+    *child_out = NULL;
 
   /* A force of a thousand function calls will anchor the node to
    * a resplendent out parameter modeled on the Dear Leader's hand.
@@ -241,7 +244,6 @@ wocky_pubsub_distill_stanza (WockyStanza *result,
   else if (body_optional)
     {
       /* “The stanza is perfect. We have already succeeded.” */
-      *child_out = NULL;
       g_clear_error (error);
       return TRUE;
     }
@@ -262,8 +264,8 @@ wocky_pubsub_distill_stanza (WockyStanza *result,
  *             (such as #WOCKY_XMPP_NS_PUBSUB), or %NULL if one is not expected
  * @child_name: the name of the child of &lt;pubsub/&gt; expected in this reply
  *              (such as "subscriptions"); ignored if @pubsub_ns is %NULL
- * @child_out: location at which to store a pointer to that child node, or
- *             %NULL if you don't need it
+ * @child_out: location at which to store a reference to the node tree at
+ *             @child_name, or %NULL if you don't need it.
  * @error: location at which to store an error if the call to
  *         wocky_porter_send_iq_async() returned an error, or if the reply was
  *         an error
@@ -280,7 +282,7 @@ wocky_pubsub_distill_iq_reply (GObject *source,
     GAsyncResult *res,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyNode **child_out,
+    WockyNodeTree **child_out,
     GError **error)
 {
   return wocky_pubsub_distill_iq_reply_internal (source, res, pubsub_ns,
@@ -319,8 +321,8 @@ wocky_pubsub_distill_void_iq_reply (GObject *source,
  *             (such as #WOCKY_XMPP_NS_PUBSUB)
  * @child_name: the name of the child of &lt;pubsub/&gt; accepted in this reply
  *              (such as "subscriptions")
- * @child_out: location at which to store a pointer to the node named
- *             @child_name, if is found, or to be set to %NULL if it is not
+ * @child_out: location at which to store a reference to the node tree at
+ *             @child_name, if it is found, or to be set to %NULL if it is not
  *             found
  * @error: location at which to store an error if the call to
  *         wocky_porter_send_iq_async() returned an error, or if the reply was
@@ -340,7 +342,7 @@ wocky_pubsub_distill_ambivalent_iq_reply (GObject *source,
     GAsyncResult *res,
     const gchar *pubsub_ns,
     const gchar *child_name,
-    WockyNode **child_out,
+    WockyNodeTree **child_out,
     GError **error)
 {
   return wocky_pubsub_distill_iq_reply_internal (source, res, pubsub_ns,

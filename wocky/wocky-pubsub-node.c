@@ -418,14 +418,19 @@ subscribe_cb (GObject *source,
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
   WockyPubsubNodePrivate *priv = self->priv;
-  WockyNode *subscription_node;
+  WockyNodeTree *sub_tree;
   WockyPubsubSubscription *sub = NULL;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB,
-          "subscription", &subscription_node, &error))
-    sub = wocky_pubsub_service_parse_subscription (priv->service,
-        subscription_node, NULL, &error);
+          "subscription", &sub_tree, &error))
+    {
+      WockyNode *subscription_node = wocky_node_tree_get_top_node (sub_tree);
+
+      sub = wocky_pubsub_service_parse_subscription (priv->service,
+          subscription_node, NULL, &error);
+      g_object_unref (sub_tree);
+    }
 
   if (sub != NULL)
     {
@@ -643,16 +648,18 @@ list_subscribers_cb (GObject *source,
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
   WockyPubsubNodePrivate *priv = self->priv;
-  WockyNode *subscriptions_node;
+  WockyNodeTree *subs_tree;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB_OWNER,
-          "subscriptions", &subscriptions_node, &error))
+          "subscriptions", &subs_tree, &error))
     {
-      g_simple_async_result_set_op_res_gpointer (simple,
-          wocky_pubsub_service_parse_subscriptions (priv->service,
-              subscriptions_node, NULL),
+      GList *subs = wocky_pubsub_service_parse_subscriptions (priv->service,
+          wocky_node_tree_get_top_node (subs_tree), NULL);
+
+      g_simple_async_result_set_op_res_gpointer (simple, subs,
           (GDestroyNotify) wocky_pubsub_subscription_list_free);
+      g_object_unref (subs_tree);
     }
   else
     {
@@ -788,15 +795,18 @@ list_affiliates_cb (GObject *source,
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
   WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
       g_async_result_get_source_object (user_data));
-  WockyNode *affiliations_node;
+  WockyNodeTree *affs_tree;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, res, WOCKY_XMPP_NS_PUBSUB_OWNER,
-          "affiliations", &affiliations_node, &error))
+          "affiliations", &affs_tree, &error))
     {
+      WockyNode *affiliations_node = wocky_node_tree_get_top_node (affs_tree);
+
       g_simple_async_result_set_op_res_gpointer (simple,
           wocky_pubsub_node_parse_affiliations (self, affiliations_node),
           (GDestroyNotify) wocky_pubsub_affiliation_list_free);
+      g_object_unref (affs_tree);
     }
   else
     {
@@ -1018,13 +1028,19 @@ get_configuration_iq_cb (GObject *source,
     gpointer user_data)
 {
   GSimpleAsyncResult *simple = user_data;
-  WockyNode *configure_node;
-  WockyDataForm *form;
+  WockyNodeTree *conf_tree;
+  WockyDataForm *form = NULL;
   GError *error = NULL;
 
   if (wocky_pubsub_distill_iq_reply (source, result, WOCKY_XMPP_NS_PUBSUB_OWNER,
-          "configure", &configure_node, &error) &&
-      (form = wocky_data_form_new_from_form (configure_node, &error)) != NULL)
+          "configure", &conf_tree, &error))
+    {
+      form = wocky_data_form_new_from_form (
+          wocky_node_tree_get_top_node (conf_tree), &error);
+      g_object_unref (conf_tree);
+    }
+
+  if (form != NULL)
     {
       g_simple_async_result_set_op_res_gpointer (simple, form, g_object_unref);
     }

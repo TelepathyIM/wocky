@@ -48,7 +48,7 @@ WockyStanza *wocky_pubsub_service_create_create_node_stanza (
 
 WockyPubsubNode *wocky_pubsub_service_handle_create_node_reply (
     WockyPubsubService *self,
-    WockyNode *create_node,
+    WockyNodeTree *create_tree,
     const gchar *requested_name,
     GError **error);
 
