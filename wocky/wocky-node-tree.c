@@ -151,7 +151,6 @@ wocky_node_tree_finalize (GObject *object)
  *
  * <example><programlisting>
  * wocky_node_tree_new ("html", "http://www.w3.org/1999/xhtml",
- *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
  *    '(', "html", ':', "http://www.w3.org/1999/xhtml",
  *      '(', "body", '@', "textcolor", "red",
  *         '$', "Wocky wooo",
