@@ -849,6 +849,7 @@ wocky_muc_send_presence (WockyMuc *muc,
       priv->pass);
 
   wocky_porter_send (priv->porter, pres);
+  g_object_unref (pres);
 }
 
 /* ************************************************************************ */
@@ -1153,10 +1154,8 @@ handle_presence_standard (WockyMuc *muc,
 
   if (!wocky_decode_jid (from, &room, &serv, &nick))
     {
-      g_free (room);
-      g_free (serv);
-      g_free (nick);
-      return FALSE;
+      ok = FALSE;
+      goto out;
     }
 
   wocky_node_each_child (node, presence_status, &status_msg);
@@ -1279,6 +1278,10 @@ handle_presence_standard (WockyMuc *muc,
     }
 
  out:
+  g_free (room);
+  g_free (serv);
+  g_free (nick);
+
   g_free (msg);
   if (code != NULL)
     g_hash_table_unref (code);
