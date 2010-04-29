@@ -1,7 +1,7 @@
 
 #include "wocky-sasl-digest-md5.h"
 
-#include "wocky-sasl-auth.h"
+#include "wocky-auth-registry.h"
 
 #include <string.h>
 
@@ -136,7 +136,7 @@ wocky_sasl_digest_md5_class_init (
 
 static gboolean
 digest_md5_handle_auth_data (WockySaslHandler *handler,
-    const gchar *data, gchar **response, GError **error);
+    const GString *data, GString **response, GError **error);
 
 static gboolean
 digest_md5_handle_success (WockySaslHandler *handler,
@@ -191,12 +191,12 @@ strndup_unescaped (const gchar *str, gsize len)
 }
 
 static GHashTable *
-digest_md5_challenge_to_hash (const gchar * challenge)
+digest_md5_challenge_to_hash (const GString * challenge)
 {
   GHashTable *result = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, g_free);
   const gchar *keystart, *keyend, *valstart;
-  const gchar *c = challenge;
+  const gchar *c = challenge->str;
   gchar *key, *val;
 
   do {
@@ -263,7 +263,7 @@ digest_md5_challenge_to_hash (const gchar * challenge)
   return result;
 
 error:
-  DEBUG ("Failed to parse challenge: %s", challenge);
+  DEBUG ("Failed to parse challenge: %s", challenge->str);
   g_hash_table_destroy (result);
   return NULL;
 }
@@ -311,7 +311,7 @@ digest_md5_generate_cnonce (void)
   return g_base64_encode ((guchar *) n, sizeof (n));
 }
 
-static gchar *
+static GString *
 md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
     GError **error)
 {
@@ -325,8 +325,8 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
 
   if (priv->username == NULL || priv->password == NULL)
     {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+          WOCKY_AUTH_ERROR_NO_CREDENTIALS,
           "No username or password provided");
       goto error;
     }
@@ -336,8 +336,8 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
   nonce = g_hash_table_lookup (challenge, "nonce");
   if (nonce == NULL || nonce == '\0')
     {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+          WOCKY_AUTH_ERROR_INVALID_REPLY,
           "Server didn't provide a nonce in the challenge");
       goto error;
     }
@@ -401,7 +401,7 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
 out:
   g_free (cnonce);
 
-  return response != NULL ? g_string_free (response, FALSE) : NULL;
+  return response;
 
 error:
   g_string_free (response, TRUE);
@@ -414,20 +414,17 @@ static gboolean
 digest_md5_make_initial_response (
     WockySaslDigestMd5Private *priv,
     GHashTable *challenge,
-    gchar **response,
+    GString **response,
     GError **error)
 {
-  gchar *raw_response;
 
-  raw_response = md5_prepare_response (priv, challenge, error);
-  if (raw_response == NULL)
+  *response = md5_prepare_response (priv, challenge, error);
+
+  if (response == NULL)
     return FALSE;
 
-  DEBUG ("Prepared response: %s", raw_response);
+  DEBUG ("Prepared response: %s", (*response)->str);
 
-  *response = g_base64_encode ((guchar *) raw_response, strlen (raw_response));
-
-  g_free (raw_response);
   priv->state = WOCKY_SASL_DIGEST_MD5_STATE_SENT_AUTH_RESPONSE;
 
   return TRUE;
@@ -444,16 +441,16 @@ digest_md5_check_server_response (
   rspauth = g_hash_table_lookup (challenge, "rspauth");
   if (rspauth == NULL)
     {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+          WOCKY_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (no rspauth)");
       return FALSE;
     }
 
   if (strcmp (priv->digest_md5_rspauth, rspauth))
     {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+          WOCKY_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (rspauth not matching)");
       return FALSE;
     }
@@ -463,20 +460,16 @@ digest_md5_check_server_response (
 }
 
 static GHashTable *
-auth_data_to_hash (const gchar *data, GError **error)
+auth_data_to_hash (const GString *challenge, GError **error)
 {
   GHashTable *h = NULL;
-  gchar *challenge = NULL;
-  gsize len;
 
-  challenge = (gchar *) g_base64_decode (data, &len);
-  DEBUG("Got digest-md5 challenge: %s", challenge);
+  DEBUG ("Got digest-md5 challenge: %s", challenge->str);
   h = digest_md5_challenge_to_hash (challenge);
-  g_free (challenge);
 
   if (h == NULL)
-    g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-      WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+    g_set_error (error, WOCKY_AUTH_ERROR,
+      WOCKY_AUTH_ERROR_INVALID_REPLY,
       "Server sent invalid auth data");
 
   return h;
@@ -484,8 +477,8 @@ auth_data_to_hash (const gchar *data, GError **error)
 
 static gboolean
 digest_md5_handle_auth_data (WockySaslHandler *handler,
-    const gchar *data,
-    gchar **response,
+    const GString *data,
+    GString **response,
     GError **error)
 {
   WockySaslDigestMd5 *self = WOCKY_SASL_DIGEST_MD5 (handler);
@@ -496,8 +489,8 @@ digest_md5_handle_auth_data (WockySaslHandler *handler,
   if (data == NULL)
     {
       DEBUG ("Expected auth data but didn't get any!");
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-        WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+        WOCKY_AUTH_ERROR_INVALID_REPLY,
         "Expected auth data from the server, but didn't get any");
       return FALSE;
     }
@@ -515,8 +508,8 @@ digest_md5_handle_auth_data (WockySaslHandler *handler,
       ret = digest_md5_check_server_response (priv, h, error);
       break;
     default:
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+          WOCKY_AUTH_ERROR_INVALID_REPLY,
           "Server sent unexpected auth data");
   }
   g_hash_table_destroy (h);
@@ -534,8 +527,8 @@ digest_md5_handle_success (WockySaslHandler *handler,
   if (priv->state == WOCKY_SASL_DIGEST_MD5_STATE_SENT_FINAL_RESPONSE)
     return TRUE;
 
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-    WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+  g_set_error (error, WOCKY_AUTH_ERROR,
+    WOCKY_AUTH_ERROR_INVALID_REPLY,
     "Server sent success before finishing authentication");
   return FALSE;
 }

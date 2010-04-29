@@ -22,7 +22,7 @@ wocky_test_sasl_handler_init (WockyTestSaslHandler *self)
 
 static gboolean
 test_initial_response (WockySaslHandler *handler,
-    gchar **initial_data,
+    GString **initial_data,
     GError **error);
 
 static void
@@ -43,9 +43,9 @@ wocky_test_sasl_handler_new (void)
 
 static gboolean
 test_initial_response (WockySaslHandler *handler,
-    gchar **initial_data,
+    GString **initial_data,
     GError **error)
 {
-  *initial_data = g_base64_encode ((guchar *) "open sesame", 11);
+  *initial_data = g_string_new ("open sesame");
   return TRUE;
 }

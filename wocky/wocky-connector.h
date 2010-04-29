@@ -183,6 +183,9 @@ gboolean wocky_connector_add_crl (WockyConnector *self,
 gboolean wocky_connector_add_ca (WockyConnector *self,
     const gchar *path);
 
+void wocky_connector_set_auth_registry (WockyConnector *self,
+    WockyAuthRegistry *registry);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONNECTOR_H__*/

@@ -243,6 +243,7 @@ enum
   PROP_LEGACY_SSL,
   PROP_SESSION_ID,
   PROP_EMAIL,
+  PROP_AUTH_REGISTRY,
 };
 
 /* this tracks which XEP 0077 operation (register account, cancel account)  *
@@ -314,6 +315,8 @@ struct _WockyConnectorPrivate
   WockyTLSSession *tls_sess;
   WockyTLSConnection *tls;
   WockyXmppConnection *conn;
+
+  WockyAuthRegistry *auth_registry;
 };
 
 /* choose an appropriate chunk of text describing our state for debug/error */
@@ -503,6 +506,9 @@ wocky_connector_set_property (GObject *object,
         g_free (priv->session_id);
         priv->session_id = g_value_dup_string (value);
         break;
+      case PROP_AUTH_REGISTRY:
+        g_object_unref (priv->auth_registry);
+        priv->auth_registry = g_value_dup_object (value);
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -564,6 +570,9 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_SESSION_ID:
         g_value_set_string (value, priv->session_id);
+        break;
+      case PROP_AUTH_REGISTRY:
+        g_value_set_object (value, priv->auth_registry);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -751,6 +760,18 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "XMPP Session ID", NULL,
       (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_SESSION_ID, spec);
+
+  /**
+   * WockyConnector:auth-registry
+   *
+   * An authentication registry that holds handlers for different
+   * authentication mechanisms, arbitrates mechanism selection and relays
+   * challenges and responses between the handlers and the connection.
+   */
+  spec = g_param_spec_object ("auth-registry", "Authentication Registry",
+      "Authentication Registry", WOCKY_TYPE_AUTH_REGISTRY,
+      (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_AUTH_REGISTRY, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
@@ -1667,9 +1688,14 @@ request_auth (WockyConnector *object,
 {
   WockyConnector *self = WOCKY_CONNECTOR (object);
   WockyConnectorPrivate *priv = self->priv;
-  WockySaslAuth *s =
-    wocky_sasl_auth_new (priv->domain, priv->user, priv->pass, priv->conn);
+  WockySaslAuth *s;
   gboolean clear = FALSE;
+
+  if (priv->auth_registry == NULL)
+    priv->auth_registry = wocky_auth_registry_new ();
+
+  s = wocky_sasl_auth_new (priv->domain, priv->user, priv->pass, priv->conn,
+      priv->auth_registry);
 
   if (priv->auth_insecure_ok ||
       (priv->encrypted && priv->encrypted_plain_auth_ok))
@@ -1696,8 +1722,8 @@ auth_done (GObject *source,
 
       /* except: if there's no SASL and Jabber auth is available, we *
        * are allowed to attempt that instead                         */
-      if ((error->domain == WOCKY_SASL_AUTH_ERROR) &&
-          (error->code == WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED) &&
+      if ((error->domain == WOCKY_AUTH_ERROR) &&
+          (error->code == WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED) &&
           (wocky_node_get_child_ns (
               wocky_stanza_get_top_node (priv->features), "auth",
               WOCKY_JABBER_NS_AUTH_FEATURE) != NULL))
@@ -2802,3 +2828,8 @@ wocky_connector_new (const gchar *jid,
       NULL);
 }
 
+void wocky_connector_set_auth_registry (WockyConnector *self,
+    WockyAuthRegistry *registry)
+{
+  g_object_set (self, "auth-registry", registry, NULL);
+}

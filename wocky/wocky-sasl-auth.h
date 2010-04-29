@@ -23,37 +23,11 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include "wocky-sasl-handler.h"
 #include "wocky-stanza.h"
 #include "wocky-xmpp-connection.h"
+#include "wocky-auth-registry.h"
 
 G_BEGIN_DECLS
-
-GQuark wocky_sasl_auth_error_quark (void);
-#define WOCKY_SASL_AUTH_ERROR \
-  wocky_sasl_auth_error_quark ()
-
-typedef enum
-{
-  /* Failed to initialize our sasl support */
-  WOCKY_SASL_AUTH_ERROR_INIT_FAILED,
-  /* Server doesn't support sasl (no mechanisms) */
-  WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
-  /* Server doesn't support any mechanisms that we support */
-  WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-  /* Couldn't send our stanzas to the server */
-  WOCKY_SASL_AUTH_ERROR_NETWORK,
-  /* Server sent an invalid reply */
-  WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-  /* Failure to provide user credentials */
-  WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
-  /* Server sent a failure */
-  WOCKY_SASL_AUTH_ERROR_FAILURE,
-  /* disconnected */
-  WOCKY_SASL_AUTH_ERROR_CONNRESET,
-  /* XMPP stream error while authing */
-  WOCKY_SASL_AUTH_ERROR_STREAM,
-} WockySaslAuthError;
 
 typedef struct _WockySaslAuth WockySaslAuth;
 typedef struct _WockySaslAuthClass WockySaslAuthClass;
@@ -89,7 +63,8 @@ GType wocky_sasl_auth_get_type (void);
 WockySaslAuth *wocky_sasl_auth_new (const gchar *server,
     const gchar *username,
     const gchar *password,
-    WockyXmppConnection *connection);
+    WockyXmppConnection *connection,
+    WockyAuthRegistry *auth_registry);
 
 void wocky_sasl_auth_add_handler (WockySaslAuth *sasl,
     WockySaslHandler *handler);

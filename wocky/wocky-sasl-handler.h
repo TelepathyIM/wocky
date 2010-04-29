@@ -30,7 +30,7 @@ typedef struct _WockySaslHandler WockySaslHandler;
  * to send. On error it should return FALSE and set the error
  **/
 typedef gboolean (*WockySaslInitialResponseFunc) (WockySaslHandler *handler,
-    gchar **initial_data,
+    GString **initial_data,
     GError **error);
 
 /**
@@ -46,8 +46,8 @@ typedef gboolean (*WockySaslInitialResponseFunc) (WockySaslHandler *handler,
  **/
 typedef gboolean (*WockySaslAuthDataFunc) (
     WockySaslHandler *handler,
-    const gchar *data,
-    gchar **response,
+    const GString *data,
+    GString **response,
     GError **error);
 
 /**
@@ -76,14 +76,14 @@ wocky_sasl_handler_is_plain (WockySaslHandler *handler);
 
 gboolean
 wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
-    gchar **initial_data,
+    GString **initial_data,
     GError **error);
 
 gboolean
 wocky_sasl_handler_handle_auth_data (
     WockySaslHandler *handler,
-    const gchar *data,
-    gchar **response,
+    const GString *data,
+    GString **response,
     GError **error);
 
 gboolean

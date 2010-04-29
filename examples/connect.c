@@ -68,6 +68,7 @@ ssl_features_received_cb (GObject *source,
 {
   WockyStanza *stanza;
   WockyNode *node;
+  WockyAuthRegistry *auth_registry;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
 
@@ -83,7 +84,10 @@ ssl_features_received_cb (GObject *source,
       return;
     }
 
-  sasl = wocky_sasl_auth_new (server, username, password, conn);
+  auth_registry = wocky_auth_registry_new ();
+  sasl = wocky_sasl_auth_new (server, username, password, conn, auth_registry);
+
+  g_object_unref (auth_registry);
 
   wocky_sasl_auth_authenticate_async (sasl, stanza, TRUE,
     NULL, auth_done_cb, NULL);

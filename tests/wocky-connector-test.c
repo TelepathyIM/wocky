@@ -62,7 +62,7 @@
 
 #define DOMAIN_NONE NULL
 #define DOMAIN_ANY  "*any*"
-#define DOMAIN_SASL "wocky_sasl_auth_error"
+#define DOMAIN_SASL "wocky_auth_error"
 #define DOMAIN_CONN "wocky-connector-error"
 #define DOMAIN_XCON "wocky-xmpp-connection-error"
 #define DOMAIN_GIO  "g-io-error-quark"
@@ -484,7 +484,7 @@ test_t tests[] =
      * now onto the post-tcp-connect stages:                               */
     { "/connector/auth/secure/no-tlsplain/notls/nodigest",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -585,7 +585,7 @@ test_t tests[] =
      * we allow plain auth or not                                       */
     { "/connector/auth/secure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_OK },
         { "moose", "something" },
@@ -633,7 +633,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/secure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -780,7 +780,7 @@ test_t tests[] =
      * SASL problems                                                     */
     { "/connector/problem/sasl/bad-pass",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_PASSWORD, CONNECTOR_OK },
         { "foo", "bar" },
@@ -792,7 +792,7 @@ test_t tests[] =
 
     { "/connector/problem/sasl/bad-user",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_USERNAME, CONNECTOR_OK },
         { "moose", "something" },
@@ -804,7 +804,7 @@ test_t tests[] =
 
     { "/connector/problem/sasl/no-sasl",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL, CONNECTOR_OK },
         { "moose", "something" },
@@ -816,7 +816,7 @@ test_t tests[] =
 
     { "/connector/problem/sas/no-mechanisms",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_MECHANISMS, CONNECTOR_OK },
         { "moose", "something" },
@@ -828,7 +828,7 @@ test_t tests[] =
 
     { "/connector/problem/sasl/bad-mechanism",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "omg-poniez" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -1243,7 +1243,7 @@ test_t tests[] =
 
     { "/connector/google/domain-discovery/dislike",
       QUIET,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_DISLIKE_GOOGLE_JDD, CONNECTOR_OK },
         { "moose", "something" },
@@ -1894,7 +1894,7 @@ test_t tests[] =
     /* duplicate earlier blocks of tests, but with old SSL                 */
     { "/connector+ssl/auth/secure/no-tlsplain/notls/nodigest",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { NOTLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1945,7 +1945,7 @@ test_t tests[] =
      * we allow plain auth or not                                       */
     { "/connector+ssl/auth/secure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_INVALID_PASSWORD, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -1993,7 +1993,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/secure/no-tlsplain/tls/plain",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "PLAIN" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2141,7 +2141,7 @@ test_t tests[] =
      * SASL problems                                                     */
     { "/connector+ssl/problem/sasl/bad-pass",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_PASSWORD,
           { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -2154,7 +2154,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/sasl/bad-user",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_FAILURE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_INVALID_USERNAME,
           { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -2167,7 +2167,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/sasl/no-sasl",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2179,7 +2179,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/sas/no-mechanisms",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_MECHANISMS,
           { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -2192,7 +2192,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/sasl/bad-mechanism",
       NOISY,
-      { DOMAIN_SASL, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "omg-poniez" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
