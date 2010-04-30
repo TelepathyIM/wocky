@@ -17,8 +17,8 @@ typedef enum
 {
   /* Failed to initialize our sasl support */
   WOCKY_AUTH_ERROR_INIT_FAILED,
-  /* Server doesn't support sasl (no mechanisms) */
-  WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED,
+  /* Server doesn't support this authentication method */
+  WOCKY_AUTH_ERROR_NOT_SUPPORTED,
   /* Server doesn't support any mechanisms that we support */
   WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
   /* Couldn't send our stanzas to the server */
@@ -33,6 +33,10 @@ typedef enum
   WOCKY_AUTH_ERROR_CONNRESET,
   /* XMPP stream error while authing */
   WOCKY_AUTH_ERROR_STREAM,
+  /* Resource conflict (relevant in in jabber auth) */
+  WOCKY_AUTH_ERROR_RESOURCE_CONFLICT,
+  /* Provided credentials are not valid */
+  WOCKY_AUTH_ERROR_NOT_AUTHORIZED,
 } WockyAuthError;
 
 #define WOCKY_TYPE_AUTH_REGISTRY wocky_auth_registry_get_type()
@@ -84,6 +88,7 @@ void wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     const gchar *username,
     const gchar *password,
     const gchar *server,
+    const gchar *session_id,
     GAsyncReadyCallback callback,
     gpointer user_data);
 

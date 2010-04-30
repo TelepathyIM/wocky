@@ -804,7 +804,7 @@ test_t tests[] =
 
     { "/connector/problem/sasl/no-sasl",
       NOISY,
-      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL, CONNECTOR_OK },
         { "moose", "something" },
@@ -816,7 +816,7 @@ test_t tests[] =
 
     { "/connector/problem/sas/no-mechanisms",
       NOISY,
-      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_MECHANISMS, CONNECTOR_OK },
         { "moose", "something" },
@@ -1526,7 +1526,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/reject",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_AUTHORIZED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK } },
@@ -1539,7 +1539,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/unavailable",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, JABBER_PROBLEM_AUTH_NIH } },
@@ -1552,7 +1552,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/bind-error",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_CONFLICT },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_RESOURCE_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, JABBER_PROBLEM_AUTH_BIND } },
@@ -1565,7 +1565,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/incomplete",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_CREDENTIALS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK,
@@ -1579,7 +1579,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/failure",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, JABBER_PROBLEM_AUTH_FAILED } },
@@ -1592,7 +1592,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/bizarre",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_INVALID_REPLY },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK,
@@ -1606,7 +1606,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/nonsense",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_INVALID_REPLY },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK,
@@ -1620,7 +1620,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/no-mechs",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "none" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, OK } },
@@ -1646,7 +1646,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/plain/rejected",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_AUTHORIZED },
       { { TLS, "password" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, JABBER_PROBLEM_AUTH_REJECT } },
@@ -1659,7 +1659,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/digest/rejected",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_AUTHORIZED },
       { { TLS, "digest" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER, OK, OK, OK, JABBER_PROBLEM_AUTH_REJECT } },
@@ -1713,7 +1713,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/reject",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_AUTHORIZED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -1726,7 +1726,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/unavailable",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1740,7 +1740,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/bind-error",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_BIND_CONFLICT },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_RESOURCE_CONFLICT },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1754,7 +1754,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/incomplete",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_CREDENTIALS },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1768,7 +1768,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/failure",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_FAILURE },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1782,7 +1782,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/bizarre",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_INVALID_REPLY },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1796,7 +1796,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/nonsense",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_INVALID_REPLY },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1810,7 +1810,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/no-mechs",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS },
       { { TLS, "none" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -1836,7 +1836,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/plain/rejected",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_AUTHORIZED },
       { { TLS, "password" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -1850,7 +1850,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/digest/rejected",
       NOISY,
-      { DOMAIN_CONN, WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_AUTHORIZED },
       { { TLS, "digest" },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SERVER|XMPP_PROBLEM_OLD_SSL, OK, OK, OK,
@@ -2167,7 +2167,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/sasl/no-sasl",
       NOISY,
-      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_SASL, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2179,7 +2179,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/sas/no-mechanisms",
       NOISY,
-      { DOMAIN_SASL, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED },
+      { DOMAIN_SASL, WOCKY_AUTH_ERROR_NOT_SUPPORTED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_MECHANISMS,
           { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },

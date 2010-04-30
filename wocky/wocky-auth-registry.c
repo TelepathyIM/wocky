@@ -1,9 +1,11 @@
 /* wocky-auth-registry.c */
 
 #include "wocky-auth-registry.h"
-#include "wocky-sasl-digest-md5.h"
 #include "wocky-sasl-handler.h"
+#include "wocky-sasl-digest-md5.h"
 #include "wocky-sasl-plain.h"
+#include "wocky-jabber-auth-password.h"
+#include "wocky-jabber-auth-digest.h"
 #include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_SASL
@@ -177,6 +179,7 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     const gchar *username,
     const gchar *password,
     const gchar *server,
+    const gchar *session_id,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
@@ -196,17 +199,28 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
       if (wocky_auth_registry_has_mechanism (mechanisms, "DIGEST-MD5"))
         {
           /* XXX: check for username and password here? */
-          DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
           priv->handler = WOCKY_SASL_HANDLER (wocky_sasl_digest_md5_new (
                   server, username, password));
         }
-      else if (allow_plain &&
-          wocky_auth_registry_has_mechanism (mechanisms, "PLAIN"))
+      else if (wocky_auth_registry_has_mechanism (mechanisms,
+              "X-WOCKY-JABBER-DIGEST"))
+        {
+          priv->handler = WOCKY_SASL_HANDLER (wocky_jabber_auth_digest_new (
+                  session_id, password));
+        }
+      else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
+              "PLAIN"))
         {
           /* XXX: check for username and password here? */
           DEBUG ("Choosing PLAIN as auth mechanism");
           priv->handler = WOCKY_SASL_HANDLER (wocky_sasl_plain_new (
                   username, password));
+        }
+      else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
+              "X-WOCKY-JABBER-PASSWORD"))
+        {
+          priv->handler = WOCKY_SASL_HANDLER (wocky_jabber_auth_password_new (
+                  password));
         }
     }
 

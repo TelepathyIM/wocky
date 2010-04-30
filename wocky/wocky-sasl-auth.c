@@ -684,7 +684,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     {
       g_simple_async_report_error_in_idle (G_OBJECT (sasl),
           callback, user_data,
-          WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED,
+          WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_SUPPORTED,
           "Server doesn't have any sasl mechanisms");
       goto out;
     }
@@ -693,7 +693,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     callback, user_data, wocky_sasl_auth_authenticate_finish);
 
   wocky_auth_registry_start_auth_async (priv->auth_registry, mechanisms,
-      allow_plain, TRUE, priv->username, priv->password, priv->server,
+      allow_plain, TRUE, priv->username, priv->password, priv->server, NULL,
       wocky_sasl_auth_start_cb, sasl);
 
 out:
