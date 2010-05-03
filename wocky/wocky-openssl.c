@@ -1587,7 +1587,10 @@ wocky_tls_session_constructed (GObject *object)
     }
 
   session->ctx = SSL_CTX_new (session->method);
-  SSL_CTX_set_default_verify_paths (session->ctx);
+
+  if (!SSL_CTX_set_default_verify_paths (session->ctx))
+    g_warning ("SSL_CTX_set_default_verify_paths() failed");
+
   /* verification will be done manually after the handshake: */
   SSL_CTX_set_verify (session->ctx, SSL_VERIFY_NONE, NULL);
   SSL_CTX_set_options (session->ctx,
