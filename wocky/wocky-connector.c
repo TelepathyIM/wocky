@@ -1786,7 +1786,6 @@ xep77_cancel_recv (GObject *source,
 
   DEBUG ("");
   iq = wocky_xmpp_connection_recv_stanza_finish (priv->conn, res, &error);
-  g_simple_async_result_set_op_res_gboolean (priv->result, FALSE);
 
   if (iq == NULL)
     {
@@ -1801,9 +1800,7 @@ xep77_cancel_recv (GObject *source,
 
   if (wocky_stanza_extract_stream_error (iq, &error))
     {
-      if (error->code == WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED)
-        g_simple_async_result_set_op_res_gboolean (priv->result, TRUE);
-      else
+      if (error->code != WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED)
         g_simple_async_result_set_from_error (priv->result, error);
 
       g_error_free (error);
@@ -1842,7 +1839,7 @@ xep77_cancel_recv (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        g_simple_async_result_set_op_res_gboolean (priv->result, TRUE);
+        /* Do nothing, we have already succeeded. */
         break;
 
       default:
@@ -2475,6 +2472,26 @@ establish_session_recv_cb (GObject *source,
   g_object_unref (reply);
 }
 
+static void
+connector_propagate_jid_and_sid (WockyConnector *self,
+    gchar **jid,
+    gchar **sid)
+{
+  if (jid != NULL)
+    {
+      if (*jid != NULL)
+        g_warning ("overwriting non-NULL gchar * pointer arg (JID)");
+      *jid = g_strdup (self->priv->identity);
+    }
+
+  if (sid != NULL)
+    {
+      if (*sid != NULL)
+        g_warning ("overwriting non-NULL gchar * pointer arg (Session ID)");
+      *sid = g_strdup (self->priv->session_id);
+    }
+}
+
 /* *************************************************************************
  * exposed methods
  * ************************************************************************* */
@@ -2498,33 +2515,16 @@ wocky_connector_connect_finish (WockyConnector *self,
     gchar **jid,
     gchar **sid)
 {
-  WockyConnectorPrivate *priv = self->priv;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-  GObject *obj = G_OBJECT (self);
-  gboolean ok = FALSE;
 
   if (g_simple_async_result_propagate_error (result, error))
     return NULL;
 
-  ok =
-    g_simple_async_result_is_valid (res, obj, wocky_connector_connect_finish);
-  g_return_val_if_fail (ok, NULL);
+  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
+      wocky_connector_connect_async), NULL);
 
-  if (jid != NULL)
-    {
-      if (*jid != NULL)
-        g_warning ("overwriting non-NULL gchar * pointer arg (JID)");
-      *jid = g_strdup (priv->identity);
-    }
-
-  if (sid != NULL)
-    {
-      if (*sid != NULL)
-        g_warning ("overwriting non-NULL gchar * pointer arg (Session ID)");
-      *sid = g_strdup (priv->session_id);
-    }
-
-  return priv->conn;
+  connector_propagate_jid_and_sid (self, jid, sid);
+  return self->priv->conn;
 }
 
 /**
@@ -2546,7 +2546,16 @@ wocky_connector_register_finish (WockyConnector *self,
     gchar **jid,
     gchar **sid)
 {
-  return wocky_connector_connect_finish (self, res, error, jid, sid);
+  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
+
+  if (g_simple_async_result_propagate_error (result, error))
+    return NULL;
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
+      wocky_connector_register_async), NULL);
+
+  connector_propagate_jid_and_sid (self, jid, sid);
+  return self->priv->conn;
 }
 
 /**
@@ -2566,28 +2575,19 @@ wocky_connector_unregister_finish (WockyConnector *self,
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
   GObject *obj = G_OBJECT (self);
-  gboolean ok = FALSE;
-  gpointer tag = wocky_connector_unregister_finish;
 
-  g_simple_async_result_propagate_error (result, error);
+  if (g_simple_async_result_propagate_error (result, error))
+    return FALSE;
 
-  if (g_simple_async_result_is_valid (res, obj, tag))
-    ok = g_simple_async_result_get_op_res_gboolean (result);
+  g_return_val_if_fail (g_simple_async_result_is_valid (res, obj,
+      wocky_connector_unregister_async), FALSE);
 
-  return ok;
+  return TRUE;
 }
 
-/**
- * wocky_connector_connect_async:
- * @self: a #WockyConnector instance.
- * @cb: a #GAsyncReadyCallback to call when the operation completes.
- * @user_data: a #gpointer to pass to the callback.
- *
- * Connect to the account/server specified by the @self.
- * @cb should invoke wocky_connector_connect_finish().
- */
-void
-wocky_connector_connect_async (WockyConnector *self,
+static void
+connector_connect_async (WockyConnector *self,
+    gpointer source_tag,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
@@ -2603,7 +2603,6 @@ wocky_connector_connect_async (WockyConnector *self,
   gchar *node = NULL;  /* username   */ /* @ */
   gchar *host = NULL;  /* domain.tld */ /* / */
   gchar *uniq = NULL;  /* uniquifier */
-  gpointer rc = wocky_connector_connect_finish;
 
   if (priv->result != NULL)
     {
@@ -2613,19 +2612,8 @@ wocky_connector_connect_async (WockyConnector *self,
       return;
     }
 
-  /* *********************************************************************** *
-   * setting up the async result with callback held in rc:                   *
-   * wocky_connector_register_finish is a thin wrapper around                *
-   * wocky_connector_connect_finish, so we don't actually want               *
-   * to change rc for XEP77_SIGNUP, only for XEP77_CANCEL                    */
-  if (priv->reg_op == XEP77_CANCEL)
-    rc = wocky_connector_unregister_finish;
-
-  priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data, rc);
-  /* *********************************************************************** */
-
-  if (priv->reg_op == XEP77_CANCEL)
-    g_simple_async_result_set_op_res_gboolean (priv->result, FALSE);
+  priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data,
+      source_tag);
 
   wocky_decode_jid (priv->jid, &node, &host, &uniq);
 
@@ -2681,6 +2669,24 @@ wocky_connector_connect_async (WockyConnector *self,
 }
 
 /**
+ * wocky_connector_connect_async:
+ * @self: a #WockyConnector instance.
+ * @cb: a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: a #gpointer to pass to the callback.
+ *
+ * Connect to the account/server specified by the @self.
+ * @cb should invoke wocky_connector_connect_finish().
+ */
+void
+wocky_connector_connect_async (WockyConnector *self,
+    GAsyncReadyCallback cb,
+    gpointer user_data)
+{
+  connector_connect_async (self, wocky_connector_connect_async, cb, user_data);
+}
+
+
+/**
  * wocky_connector_unregister_async:
  * @self: a #WockyConnector instance.
  * @cb: a #GAsyncReadyCallback to call when the operation completes.
@@ -2698,7 +2704,8 @@ wocky_connector_unregister_async (WockyConnector *self,
   WockyConnectorPrivate *priv = self->priv;
 
   priv->reg_op = XEP77_CANCEL;
-  wocky_connector_connect_async (self, cb, user_data);
+  connector_connect_async (self, wocky_connector_unregister_async, cb,
+      user_data);
 }
 
 /**
@@ -2719,7 +2726,7 @@ wocky_connector_register_async (WockyConnector *self,
   WockyConnectorPrivate *priv = self->priv;
 
   priv->reg_op = XEP77_SIGNUP;
-  wocky_connector_connect_async (self, cb, user_data);
+  connector_connect_async (self, wocky_connector_register_async, cb, user_data);
 }
 
 /**
