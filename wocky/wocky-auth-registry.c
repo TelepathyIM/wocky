@@ -339,11 +339,6 @@ wocky_auth_registry_success_finish (WockyAuthRegistry *self,
   wocky_implement_finish_void (self, wocky_auth_registry_success_finish);
 }
 
-void wocky_auth_registry_failure_notify (WockyAuthRegistry *self,
-    GError *error)
-{
-}
-
 void
 wocky_auth_registry_add_handler (WockyAuthRegistry *self,
     WockySaslHandler *handler)

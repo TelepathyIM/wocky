@@ -111,9 +111,6 @@ gboolean wocky_auth_registry_success_finish (WockyAuthRegistry *self,
     GAsyncResult *res,
     GError **error);
 
-void wocky_auth_registry_failure_notify (WockyAuthRegistry *self,
-    GError *error);
-
 void wocky_auth_registry_add_handler (WockyAuthRegistry *self,
     WockySaslHandler *handler);
 
