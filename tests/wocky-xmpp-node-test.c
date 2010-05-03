@@ -373,6 +373,40 @@ test_node_iteration (void)
   g_object_unref (stanza);
 }
 
+static void
+test_get_first_child (void)
+{
+  WockyNodeTree *tree = wocky_node_tree_new ("my-elixir", "my:poison",
+      '(', "th5", ')',
+      '(', "holomovement", ':', "chinese:lantern", ')',
+      '(', "th5", ':', "chinese:lantern", ')',
+      NULL);
+  WockyNode *top = wocky_node_tree_get_top_node (tree);
+  WockyNode *n;
+
+  n = wocky_node_get_first_child (top);
+  g_assert (n != NULL);
+  g_assert_cmpstr ("th5", ==, n->name);
+  g_assert_cmpstr ("my:poison", ==, wocky_node_get_ns (n));
+
+  n = wocky_node_get_child (top, "th5");
+  g_assert (n != NULL);
+  g_assert_cmpstr ("th5", ==, n->name);
+  g_assert_cmpstr ("my:poison", ==, wocky_node_get_ns (n));
+
+  n = wocky_node_get_child_ns (top, "th5", "chinese:lantern");
+  g_assert (n != NULL);
+  g_assert_cmpstr ("th5", ==, n->name);
+  g_assert_cmpstr ("chinese:lantern", ==, wocky_node_get_ns (n));
+
+  n = wocky_node_get_first_child_ns (top, "chinese:lantern");
+  g_assert (n != NULL);
+  g_assert_cmpstr ("holomovement", ==, n->name);
+  g_assert_cmpstr ("chinese:lantern", ==, wocky_node_get_ns (n));
+
+  g_object_unref (tree);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -386,6 +420,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-node/append-content-n", test_append_content_n);
   g_test_add_func ("/xmpp-node/set-attribute-ns", test_set_attribute_ns);
   g_test_add_func ("/xmpp-node/node-iterator", test_node_iteration);
+  g_test_add_func ("/xmpp-node/get-first-child", test_get_first_child);
 
   result = g_test_run ();
   test_deinit ();
