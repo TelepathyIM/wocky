@@ -37,7 +37,6 @@ static struct { const gchar *name; WockyMucMsgState state; } msg_state[] =
    { "composing", WOCKY_MUC_MSG_STATE_TYPING   },
    { "inactive",  WOCKY_MUC_MSG_STATE_INACTIVE },
    { "paused",    WOCKY_MUC_MSG_STATE_PAUSED   },
-   { "gone",      WOCKY_MUC_MSG_STATE_GONE     },
    { NULL,        WOCKY_MUC_MSG_STATE_NONE     } };
 
 typedef enum {
