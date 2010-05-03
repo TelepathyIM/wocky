@@ -383,9 +383,14 @@ handle_stream_error (WockyPorter *self,
     gpointer user_data)
 {
   GError *error = NULL;
+  gboolean ret = wocky_stanza_extract_stream_error (stanza, &error);
 
-  DEBUG ("Received stream error; consider the remote connection as closed");
-  wocky_stanza_extract_stream_error (stanza, &error);
+  /* If wocky_stanza_extract_stream_error() failed, @stanza wasn't a stream
+   * error, in which case we are broken.
+   */
+  g_return_val_if_fail (ret, FALSE);
+
+  DEBUG ("Received stream error; consider the remote connection to be closed");
   remote_connection_closed (self, error);
   g_error_free (error);
   return TRUE;
