@@ -3304,7 +3304,7 @@ run_test (gpointer data)
           int i;
           gchar *identity = NULL;
           WockyConnector *tmp =
-            wocky_connector_new ("foo@bar.org","abc","xyz");
+            wocky_connector_new ("foo@bar.org", "abc", "xyz", NULL);
           WockyStanza *feat = NULL;
           gboolean jabber;
           gboolean oldssl;

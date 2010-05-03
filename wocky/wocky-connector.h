@@ -163,7 +163,8 @@ void wocky_connector_connect_async (WockyConnector *self,
 
 WockyConnector *wocky_connector_new (const gchar *jid,
     const gchar *pass,
-    const gchar *resource);
+    const gchar *resource,
+    WockyAuthRegistry *auth_registry);
 
 void wocky_connector_register_async (WockyConnector *self,
     GAsyncReadyCallback cb,

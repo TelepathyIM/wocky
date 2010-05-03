@@ -507,8 +507,8 @@ wocky_connector_set_property (GObject *object,
         priv->session_id = g_value_dup_string (value);
         break;
       case PROP_AUTH_REGISTRY:
-        g_object_unref (priv->auth_registry);
         priv->auth_registry = g_value_dup_object (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -770,7 +770,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
    */
   spec = g_param_spec_object ("auth-registry", "Authentication Registry",
       "Authentication Registry", WOCKY_TYPE_AUTH_REGISTRY,
-      (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_AUTH_REGISTRY, spec);
 }
 
@@ -1690,9 +1690,6 @@ request_auth (WockyConnector *object,
   WockyConnectorPrivate *priv = self->priv;
   WockySaslAuth *s;
   gboolean clear = FALSE;
-
-  if (priv->auth_registry == NULL)
-    priv->auth_registry = wocky_auth_registry_new ();
 
   s = wocky_sasl_auth_new (priv->domain, priv->user, priv->pass, priv->conn,
       priv->auth_registry);
@@ -2819,17 +2816,13 @@ wocky_connector_add_crl (WockyConnector *self,
 WockyConnector *
 wocky_connector_new (const gchar *jid,
     const gchar *pass,
-    const gchar *resource)
+    const gchar *resource,
+    WockyAuthRegistry *auth_registry)
 {
   return g_object_new (WOCKY_TYPE_CONNECTOR,
       "jid", jid,
       "password", pass,
       "resource", resource,
+      "auth-registry", auth_registry,
       NULL);
-}
-
-void wocky_connector_set_auth_registry (WockyConnector *self,
-    WockyAuthRegistry *registry)
-{
-  g_object_set (self, "auth-registry", registry, NULL);
 }

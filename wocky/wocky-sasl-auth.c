@@ -96,7 +96,10 @@ wocky_sasl_auth_set_property (GObject *object,
         priv->connection = g_value_dup_object (value);
         break;
       case PROP_AUTH_REGISTRY:
-        priv->auth_registry = g_value_dup_object (value);
+        if (g_value_get_object (value) == NULL)
+          priv->auth_registry = wocky_auth_registry_new ();
+        else
+          priv->auth_registry = g_value_dup_object (value);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

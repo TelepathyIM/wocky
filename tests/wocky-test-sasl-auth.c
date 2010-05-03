@@ -148,13 +148,13 @@ feature_stanza_received (GObject *source,
 
   g_assert (sasl == NULL);
 
-  auth_registry = wocky_auth_registry_new ();
-
   sasl = wocky_sasl_auth_new (test->servername,
       test->wrong_username ? "wrong" : test->username,
       test->wrong_password ? "wrong" : test->password,
       WOCKY_XMPP_CONNECTION (source),
-      auth_registry);
+      NULL);
+
+  g_object_get (sasl, "auth-registry", &auth_registry, NULL);
 
   test_handler = WOCKY_SASL_HANDLER (wocky_test_sasl_handler_new ());
   wocky_auth_registry_add_handler (auth_registry, test_handler);

@@ -66,7 +66,7 @@ main (int argc,
   mainloop = g_main_loop_new (NULL, FALSE);
 
   if ((host != NULL) && (*host != '\0'))
-    wcon = wocky_connector_new (jid, pass, NULL);
+    wcon = wocky_connector_new (jid, pass, NULL, NULL);
   else
     wcon = g_object_new (WOCKY_TYPE_CONNECTOR,
         "jid"        , jid ,
