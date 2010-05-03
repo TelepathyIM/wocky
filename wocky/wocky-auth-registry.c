@@ -4,6 +4,7 @@
 #include "wocky-sasl-digest-md5.h"
 #include "wocky-sasl-handler.h"
 #include "wocky-sasl-plain.h"
+#include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_SASL
 #include "wocky-debug.h"
@@ -134,6 +135,15 @@ wocky_auth_registry_free_response (GString *response)
     g_string_free (response, TRUE);
 }
 
+static GString *
+wocky_auth_registry_copy_response (GString *response)
+{
+  if (response == NULL)
+    return NULL;
+
+  return g_string_new_len (response->str, response->len);
+}
+
 static WockySaslHandler *
 wocky_auth_registry_select_handler (WockyAuthRegistry *self,
     gboolean allow_plain, const GSList *mechanisms)
@@ -237,26 +247,22 @@ wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
 {
   WockyAuthRegistryPrivate *priv = self->priv;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-  GString *response_data;
-  g_assert (initial_data != NULL);
-  g_assert (mechanism != NULL);
+
+  g_assert (priv->handler != NULL);
 
   g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
           wocky_auth_registry_start_auth_finish), FALSE);
 
-  if (g_simple_async_result_propagate_error (
-          G_SIMPLE_ASYNC_RESULT (result), error))
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+          error))
     return FALSE;
 
-  g_assert (priv->handler != NULL);
+  if (mechanism != NULL)
+    *mechanism = g_strdup (wocky_sasl_handler_get_mechanism (priv->handler));
 
-  *mechanism = g_strdup (wocky_sasl_handler_get_mechanism (priv->handler));
-
-  response_data = g_simple_async_result_get_op_res_gpointer (result);
-
-  if (response_data != NULL)
-      *initial_data = g_string_new_len (response_data->str,
-          response_data->len);
+  if (initial_data != NULL)
+    *initial_data = wocky_auth_registry_copy_response (
+        g_simple_async_result_get_op_res_gpointer (result));
 
   return TRUE;
 }
@@ -293,30 +299,14 @@ wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
 
 gboolean
 wocky_auth_registry_challenge_finish (WockyAuthRegistry *self,
-    GAsyncResult *res,
+    GAsyncResult *result,
     GString **response,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-  GString *response_data;
-
-  g_assert (response != NULL);
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
-          wocky_auth_registry_challenge_finish), FALSE);
-
-  if (g_simple_async_result_propagate_error (
-          G_SIMPLE_ASYNC_RESULT (result), error))
-    return FALSE;
-
-  response_data = g_simple_async_result_get_op_res_gpointer (result);
-
-  if (response_data != NULL)
-    *response = g_string_new_len (response_data->str, response_data->len);
-  else
-    *response = NULL;
-
-  return TRUE;
+  wocky_implement_finish_copy_pointer (self,
+      wocky_auth_registry_challenge_finish,
+      wocky_auth_registry_copy_response,
+      response);
 }
 
 void
@@ -343,19 +333,10 @@ wocky_auth_registry_success_async (WockyAuthRegistry *self,
 
 gboolean
 wocky_auth_registry_success_finish (WockyAuthRegistry *self,
-    GAsyncResult *res,
+    GAsyncResult *result,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
-          wocky_auth_registry_success_finish), FALSE);
-
-  if (g_simple_async_result_propagate_error (
-          G_SIMPLE_ASYNC_RESULT (result), error))
-    return FALSE;
-
-  return TRUE;
+  wocky_implement_finish_void (self, wocky_auth_registry_success_finish);
 }
 
 void wocky_auth_registry_failure_notify (WockyAuthRegistry *self,
