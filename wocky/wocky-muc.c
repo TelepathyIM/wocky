@@ -486,9 +486,11 @@ wocky_muc_set_property (GObject *object,
                   priv->service,
                   priv->nick);
           }
+        break;
       case PROP_RNICK:
         g_free (priv->rnick);
         priv->rnick = g_value_dup_string (value);
+        break;
       case PROP_PASS:
         g_free (priv->pass);
         priv->pass = g_value_dup_string (value);
