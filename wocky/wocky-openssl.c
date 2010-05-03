@@ -1482,8 +1482,13 @@ wocky_tls_session_init (WockyTLSSession *session)
 
   if G_UNLIKELY (g_once_init_enter (&initialised))
     {
+      gint malloc_init_succeeded;
+
       DEBUG ("initialising SSL library and error strings");
-      CRYPTO_malloc_init ();
+
+      malloc_init_succeeded = CRYPTO_malloc_init ();
+      g_warn_if_fail (malloc_init_succeeded);
+
       SSL_library_init ();
       SSL_load_error_strings ();
       OpenSSL_add_all_algorithms();
