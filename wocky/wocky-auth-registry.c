@@ -209,7 +209,7 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
   else
     {
       GString *initial_data;
-      GError *error;
+      GError *error = NULL;
 
       if (!wocky_sasl_handler_get_initial_response (priv->handler,
              &initial_data, &error))
@@ -271,7 +271,7 @@ wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
   GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_auth_registry_challenge_finish);
   GString *response = NULL;
-  GError *error;
+  GError *error = NULL;
 
   g_assert (priv->handler != NULL);
 
@@ -327,7 +327,7 @@ wocky_auth_registry_success_async (WockyAuthRegistry *self,
   WockyAuthRegistryPrivate *priv = self->priv;
   GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_auth_registry_success_finish);
-  GError *error;
+  GError *error = NULL;
 
   g_assert (priv->handler != NULL);
 
