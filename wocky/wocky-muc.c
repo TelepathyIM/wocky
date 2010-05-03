@@ -32,13 +32,6 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-xmpp-error.h"
 
-static struct { const gchar *name; WockyMucMsgState state; } msg_state[] =
- { { "active",    WOCKY_MUC_MSG_STATE_ACTIVE   },
-   { "composing", WOCKY_MUC_MSG_STATE_TYPING   },
-   { "inactive",  WOCKY_MUC_MSG_STATE_INACTIVE },
-   { "paused",    WOCKY_MUC_MSG_STATE_PAUSED   },
-   { NULL,        WOCKY_MUC_MSG_STATE_NONE     } };
-
 typedef enum {
   SIG_NICK_CHANGE,
   SIG_PERM_CHANGE,
@@ -1393,7 +1386,6 @@ handle_message (WockyPorter *porter,
   const gchar *from = NULL;
   WockyNode *child = NULL;
   gboolean from_self = FALSE;
-  int x;
 
   time_t stamp = 0;
   const gchar *id = NULL;
@@ -1522,14 +1514,11 @@ handle_message (WockyPorter *porter,
       goto out;
     }
 
-  for (x = 0; msg_state[x].name != NULL; x++)
-    {
-      const gchar *item = msg_state[x].name;
-      child = wocky_node_get_child_ns (msg, item, WOCKY_NS_CHATSTATE);
-      if (child != NULL)
-        break;
-    }
-  mstate = msg_state[x].state;
+  child = wocky_node_get_first_child_ns (msg, WOCKY_NS_CHATSTATE);
+
+  if (child == NULL ||
+      !wocky_enum_from_nick (WOCKY_TYPE_MUC_MSG_STATE, child->name, &mstate))
+    mstate = WOCKY_MUC_MSG_NONE;
 
   g_signal_emit (muc, signals[SIG_MSG], 0,
       stanza, mtype, id, stamp, who, body, subj, mstate);
