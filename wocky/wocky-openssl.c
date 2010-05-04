@@ -1640,10 +1640,10 @@ wocky_tls_session_constructed (GObject *object)
   session->wbio = BIO_new (BIO_s_mem ());
 
   if (session->rbio == NULL)
-    DEBUG ("Could not allocate memory BIO for SSL reads");
+    g_error ("Could not allocate memory BIO for SSL reads");
 
   if (session->wbio == NULL)
-    DEBUG ("Could not allocate memory BIO for SSL writes");
+    g_error ("Could not allocate memory BIO for SSL writes");
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     {
