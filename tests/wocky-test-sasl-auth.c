@@ -7,6 +7,7 @@
 
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-sasl-auth.h>
+#include <wocky/wocky-auth-registry.h>
 
 typedef struct {
   gchar *description;
@@ -137,6 +138,7 @@ feature_stanza_received (GObject *source,
 {
   WockyStanza *stanza;
   WockySaslHandler *test_handler;
+  WockyAuthRegistry *auth_registry;
   test_t *test = (test_t *) user_data;
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
@@ -145,14 +147,20 @@ feature_stanza_received (GObject *source,
   g_assert (stanza != NULL);
 
   g_assert (sasl == NULL);
+
   sasl = wocky_sasl_auth_new (test->servername,
-    test->wrong_username ? "wrong" : test->username,
-    test->wrong_password ? "wrong" : test->password,
-    WOCKY_XMPP_CONNECTION (source));
+      test->wrong_username ? "wrong" : test->username,
+      test->wrong_password ? "wrong" : test->password,
+      WOCKY_XMPP_CONNECTION (source),
+      NULL);
+
+  g_object_get (sasl, "auth-registry", &auth_registry, NULL);
 
   test_handler = WOCKY_SASL_HANDLER (wocky_test_sasl_handler_new ());
-  wocky_sasl_auth_add_handler (sasl, test_handler);
+  wocky_auth_registry_add_handler (auth_registry, test_handler);
+
   g_object_unref (test_handler);
+  g_object_unref (auth_registry);
 
   wocky_sasl_auth_authenticate_async (sasl,
       stanza,
@@ -268,27 +276,27 @@ main (int argc,
        "test", "test123", NULL },
 
     FAIL("/xmpp-sasl/no-supported-mechs", "NONSENSE", TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
        SERVER_PROBLEM_NO_PROBLEM),
     FAIL("/xmpp-sasl/refuse-plain-only", "PLAIN", FALSE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
        SERVER_PROBLEM_NO_PROBLEM),
     FAIL("/xmpp-sasl/no-sasl-support", NULL, TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED,
        SERVER_PROBLEM_NO_SASL),
 
     { "/xmpp-sasl/wrong-username-plain", "PLAIN", TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE, "test", "test123" },
     { "/xmpp-sasl/wrong-username-md5", "DIGEST-MD5", TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE, "test", "test123" },
 
     { "/xmpp-sasl/wrong-password-plain", "PLAIN", TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE, "test", "test123" },
     { "/xmpp-sasl/wrong-password-md5", "DIGEST-MD5", TRUE,
-       WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+       WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE, "test", "test123" },
 
     /* Redo the MD5-DIGEST test with a username, password and realm that
@@ -310,7 +318,7 @@ main (int argc,
       "moose", "something", "cass-x200s" },
 
     { "/xmpp-sasl/external-handler-fail", "X-TEST", FALSE,
-      WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+      WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
       SERVER_PROBLEM_INVALID_PASSWORD, FALSE, FALSE,
       "dave", "daisy daisy", "hal" },
 

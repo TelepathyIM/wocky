@@ -83,7 +83,7 @@ ssl_features_received_cb (GObject *source,
       return;
     }
 
-  sasl = wocky_sasl_auth_new (server, username, password, conn);
+  sasl = wocky_sasl_auth_new (server, username, password, conn, NULL);
 
   wocky_sasl_auth_authenticate_async (sasl, stanza, TRUE,
     NULL, auth_done_cb, NULL);
@@ -399,7 +399,7 @@ main (int argc,
     {
       WockyConnector *wcon = NULL;
       wocky_init ();
-      wcon = wocky_connector_new (argv[1], argv[2], NULL);
+      wcon = wocky_connector_new (argv[1], argv[2], NULL, NULL);
 
       wocky_connector_connect_async (wcon, connector_callback, NULL);
       g_main_loop_run (mainloop);

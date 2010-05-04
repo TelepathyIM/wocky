@@ -25,9 +25,6 @@
 #include <string.h>
 
 #include "wocky-sasl-auth.h"
-#include "wocky-sasl-digest-md5.h"
-#include "wocky-sasl-handler.h"
-#include "wocky-sasl-plain.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
@@ -43,6 +40,7 @@ enum
     PROP_USERNAME,
     PROP_PASSWORD,
     PROP_CONNECTION,
+    PROP_AUTH_REGISTRY,
 };
 
 /* private structure */
@@ -53,21 +51,13 @@ struct _WockySaslAuthPrivate
   gchar *username;
   gchar *password;
   gchar *server;
-  WockySaslHandler *handler;
   GCancellable *cancel;
   GSimpleAsyncResult *result;
-  GSList *handlers;
+  WockyAuthRegistry *auth_registry;
 };
 
-GQuark
-wocky_sasl_auth_error_quark (void) {
-  static GQuark quark = 0;
-
-  if (!quark)
-    quark = g_quark_from_static_string ("wocky_sasl_auth_error");
-
-  return quark;
-}
+static void sasl_auth_stanza_received (GObject *source, GAsyncResult *res,
+    gpointer user_data);
 
 static void
 wocky_sasl_auth_init (WockySaslAuth *self)
@@ -105,6 +95,12 @@ wocky_sasl_auth_set_property (GObject *object,
       case PROP_CONNECTION:
         priv->connection = g_value_dup_object (value);
         break;
+      case PROP_AUTH_REGISTRY:
+        if (g_value_get_object (value) == NULL)
+          priv->auth_registry = wocky_auth_registry_new ();
+        else
+          priv->auth_registry = g_value_dup_object (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -127,6 +123,9 @@ wocky_sasl_auth_get_property (GObject *object,
         break;
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
+        break;
+      case PROP_AUTH_REGISTRY:
+        g_value_set_object (value, priv->auth_registry);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -174,6 +173,13 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
     G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
 
+  spec = g_param_spec_object ("auth-registry",
+    "Authentication Registry",
+    "Authentication Registry",
+    WOCKY_TYPE_AUTH_REGISTRY,
+    G_PARAM_READWRITE|G_PARAM_CONSTRUCT_ONLY);
+  g_object_class_install_property (object_class, PROP_AUTH_REGISTRY, spec);
+
   object_class->dispose = wocky_sasl_auth_dispose;
   object_class->finalize = wocky_sasl_auth_finalize;
 
@@ -184,23 +190,6 @@ wocky_sasl_auth_dispose (GObject *object)
 {
   WockySaslAuth *self = WOCKY_SASL_AUTH (object);
   WockySaslAuthPrivate *priv = self->priv;
-
-  if (priv->dispose_has_run)
-    return;
-
-  priv->dispose_has_run = TRUE;
-
-  /* release any references held by the object here */
-  if (priv->handler != NULL)
-    {
-      g_object_unref (priv->handler);
-    }
-
-  if (priv->handlers != NULL)
-    {
-      g_slist_foreach (priv->handlers, (GFunc) g_object_unref, NULL);
-      g_slist_free (priv->handlers);
-    }
 
   if (priv->connection != NULL)
     {
@@ -232,12 +221,6 @@ auth_reset (WockySaslAuth *sasl)
 
   g_free (priv->server);
   priv->server = NULL;
-
-  if (priv->handler != NULL)
-    {
-      g_object_unref (priv->handler);
-      priv->handler = NULL;
-    }
 
   if (priv->connection != NULL)
     {
@@ -282,7 +265,7 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   priv->result = NULL;
 
   g_simple_async_result_set_error (r,
-    WOCKY_SASL_AUTH_ERROR, error, "%s", message);
+    WOCKY_AUTH_ERROR, error, "%s", message);
 
   g_simple_async_result_complete (r);
   g_object_unref (r);
@@ -303,7 +286,7 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
   if (stanza == NULL)
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_CONNRESET, "Disconnected");
+      auth_failed (sasl, WOCKY_AUTH_ERROR_CONNRESET, "Disconnected");
       return TRUE;
     }
 
@@ -335,7 +318,7 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
       err = (cond != NULL) ? cond->name : "unknown-error";
 
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_STREAM, "%s: %s", err, msg);
+      auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s", err, msg);
       return TRUE;
     }
 
@@ -346,13 +329,15 @@ WockySaslAuth *
 wocky_sasl_auth_new (const gchar *server,
     const gchar *username,
     const gchar *password,
-    WockyXmppConnection *connection)
+    WockyXmppConnection *connection,
+    WockyAuthRegistry *auth_registry)
 {
   return g_object_new (WOCKY_TYPE_SASL_AUTH,
       "server", server,
       "username", username,
       "password", password,
       "connection", connection,
+      "auth-registry", auth_registry,
       NULL);
 }
 
@@ -380,17 +365,6 @@ wocky_sasl_auth_mechanisms_to_list (WockyNode *mechanisms)
   return result;
 }
 
-static gboolean
-wocky_sasl_auth_has_mechanism (GSList *list, const gchar *mech) {
-  GSList *t;
-  for (t = list ; t != NULL ; t = g_slist_next (t)) {
-    if (!wocky_strdiff ((gchar *) t->data, mech)) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
 static void
 sasl_auth_got_failure (WockySaslAuth *sasl,
   WockyStanza *stanza,
@@ -410,9 +384,128 @@ sasl_auth_got_failure (WockySaslAuth *sasl,
      * just has a temporary error or if the authentication procedure itself was
      * at fault (too weak, invalid mech etc) */
 
-  g_set_error (error, WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_FAILURE,
+  g_set_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
       "Authentication failed: %s",
       reason == NULL ? "Unknown reason" : reason->name);
+}
+
+static GString *
+wocky_sasl_auth_decode_challenge (const gchar *challenge)
+{
+  gchar *challenge_str;
+  GString *challenge_data;
+  gsize len;
+
+  g_return_val_if_fail (challenge != NULL, NULL);
+
+  challenge_str = (gchar *) g_base64_decode (challenge, &len);
+
+  challenge_data = g_string_new_len (challenge_str, len);
+
+  g_free (challenge_str);
+
+  return challenge_data;
+}
+
+static gchar *
+wocky_sasl_auth_encode_response (const GString *response_data)
+{
+  if (response_data != NULL)
+    return g_base64_encode ((guchar *) response_data->str,
+        response_data->len);
+
+  return NULL;
+}
+
+static void
+wocky_sasl_auth_success_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockySaslAuth *self = (WockySaslAuth *) user_data;
+  WockySaslAuthPrivate *priv = self->priv;
+  GError *error = NULL;
+
+  if (!wocky_auth_registry_success_finish (priv->auth_registry, res, &error))
+    {
+      auth_failed (self, error->code, error->message);
+      g_error_free (error);
+    }
+  else
+    {
+      auth_succeeded (self);
+    }
+}
+
+static void
+wocky_sasl_auth_response_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockySaslAuth *self = (WockySaslAuth *) user_data;
+  WockySaslAuthPrivate *priv = self->priv;
+  WockyStanza *response_stanza;
+  GString *response_data = NULL;
+  gchar *response;
+  GError *error = NULL;
+
+  if (!wocky_auth_registry_challenge_finish (priv->auth_registry, res,
+          &response_data, &error))
+    {
+      auth_failed (self, error->code, error->message);
+      g_error_free (error);
+      return;
+    }
+
+  response = wocky_sasl_auth_encode_response (response_data);
+
+  response_stanza = wocky_stanza_new ("response", WOCKY_XMPP_NS_SASL_AUTH);
+  wocky_node_set_content (wocky_stanza_get_top_node (response_stanza),
+      response);
+
+  /* FIXME handle send error */
+  wocky_xmpp_connection_send_stanza_async (
+      priv->connection, response_stanza, NULL, NULL, NULL);
+
+  wocky_xmpp_connection_recv_stanza_async (priv->connection,
+      NULL, sasl_auth_stanza_received, self);
+
+  if (response_data != NULL)
+    g_string_free (response_data, TRUE);
+  g_free (response);
+  g_object_unref (response_stanza);
+}
+
+static void
+wocky_sasl_auth_success_response_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockySaslAuth *self = (WockySaslAuth *) user_data;
+  WockySaslAuthPrivate *priv = self->priv;
+  GError *error = NULL;
+  GString *response_data;
+
+  if (!wocky_auth_registry_challenge_finish (priv->auth_registry, res,
+          &response_data, &error))
+    {
+      auth_failed (self, error->code, error->message);
+      g_error_free (error);
+      return;
+    }
+
+  if (response_data != NULL)
+    {
+      auth_failed (self, WOCKY_AUTH_ERROR_INVALID_REPLY,
+          "Got success from the server while we still had more data to "
+          "send");
+
+      g_string_free (response_data, TRUE);
+      return;
+    }
+
+  wocky_auth_registry_success_async (priv->auth_registry,
+      wocky_sasl_auth_success_cb, self);
 }
 
 static void
@@ -435,7 +528,7 @@ sasl_auth_stanza_received (GObject *source,
       wocky_node_get_ns (wocky_stanza_get_top_node (stanza)),
           WOCKY_XMPP_NS_SASL_AUTH))
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      auth_failed (sasl, WOCKY_AUTH_ERROR_INVALID_REPLY,
           "Server sent a reply not in the %s namespace",
           WOCKY_XMPP_NS_SASL_AUTH);
       return;
@@ -450,120 +543,53 @@ sasl_auth_stanza_received (GObject *source,
 
   if (!wocky_strdiff (wocky_stanza_get_top_node (stanza)->name, "challenge"))
     {
-      WockyStanza *response_stanza;
-      gchar *response = NULL;
+      GString *challenge;
 
-      if (!wocky_sasl_handler_handle_auth_data (priv->handler,
-          wocky_stanza_get_top_node (stanza)->content, &response, &error))
-        goto failure;
+      challenge = wocky_sasl_auth_decode_challenge (
+          wocky_stanza_get_top_node (stanza)->content);
 
-      response_stanza = wocky_stanza_new ("response", WOCKY_XMPP_NS_SASL_AUTH);
-      wocky_node_set_content (wocky_stanza_get_top_node (response_stanza),
-        response);
+      wocky_auth_registry_challenge_async (priv->auth_registry, challenge,
+          wocky_sasl_auth_response_cb, sasl);
 
-       /* FIXME handle send error */
-      wocky_xmpp_connection_send_stanza_async (
-          priv->connection, response_stanza, NULL, NULL, NULL);
-          g_object_unref (response_stanza);
-          g_free (response);
-
-      wocky_xmpp_connection_recv_stanza_async (priv->connection,
-          NULL, sasl_auth_stanza_received, sasl);
+      g_string_free (challenge, TRUE);
     }
   else if (!wocky_strdiff (wocky_stanza_get_top_node (stanza)->name, "success"))
     {
       if (wocky_stanza_get_top_node (stanza)->content != NULL)
         {
-          gchar *response = NULL;
+          GString *challenge;
 
-          if (!wocky_sasl_handler_handle_auth_data (priv->handler,
-            wocky_stanza_get_top_node (stanza)->content, &response, &error))
-            goto failure;
+          challenge = wocky_sasl_auth_decode_challenge (
+              wocky_stanza_get_top_node (stanza)->content);
 
-          if (response != NULL)
-            {
-              auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
-                "Got success from the server while we still had more data to "
-                "send");
-              goto out;
-            }
+          wocky_auth_registry_challenge_async (priv->auth_registry, challenge,
+              wocky_sasl_auth_success_response_cb, sasl);
+
+          g_string_free (challenge, TRUE);
         }
-
-      if (!wocky_sasl_handler_handle_success (priv->handler, &error))
-        goto failure;
       else
-        auth_succeeded (sasl);
+        {
+          wocky_auth_registry_success_async (priv->auth_registry,
+              wocky_sasl_auth_success_cb, sasl);
+        }
     }
   else if (!wocky_strdiff (wocky_stanza_get_top_node (stanza)->name, "failure"))
     {
       sasl_auth_got_failure (sasl, stanza, &error);
-      goto failure;
+      g_assert (error != NULL);
+      auth_failed (sasl, error->code, error->message);
+      g_error_free (error);
     }
   else
     {
-      auth_failed (sasl, WOCKY_SASL_AUTH_ERROR_INVALID_REPLY,
+      auth_failed (sasl, WOCKY_AUTH_ERROR_INVALID_REPLY,
           "Server sent an invalid reply (%s)",
           wocky_stanza_get_top_node (stanza)->name);
     }
 
-out:
   g_object_unref (sasl);
   g_object_unref (stanza);
   return;
-
-failure:
-  g_assert (error != NULL);
-  auth_failed (sasl, error->code, error->message);
-  g_error_free (error);
-  goto out;
-}
-
-static gboolean
-wocky_sasl_auth_start_mechanism (WockySaslAuth *sasl,
-    WockySaslHandler *handler)
-{
-  WockyStanza *stanza;
-  WockySaslAuthPrivate *priv = sasl->priv;
-  gboolean ret = TRUE;
-  gchar *initial_response = NULL;
-  GError *error = NULL;
-
-  priv->handler = handler;
-
-  stanza = wocky_stanza_new ("auth", WOCKY_XMPP_NS_SASL_AUTH);
-
-  /* google JID domain discovery - client sets a namespaced attribute */
-  wocky_node_set_attribute_ns (wocky_stanza_get_top_node (stanza),
-      "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
-
-  if (!wocky_sasl_handler_get_initial_response (priv->handler,
-      &initial_response, &error))
-    {
-      auth_failed (sasl, error->domain, error->message);
-      goto out;
-    }
-
-  if (initial_response != NULL)
-    {
-      wocky_node_set_content (
-        wocky_stanza_get_top_node (stanza),
-        initial_response);
-      g_free (initial_response);
-    }
-
-  /* FIXME handle send error */
-  wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
-    "mechanism",
-    wocky_sasl_handler_get_mechanism (priv->handler));
-  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
-    NULL, NULL, NULL);
-  wocky_xmpp_connection_recv_stanza_async (priv->connection,
-    NULL, sasl_auth_stanza_received, sasl);
-
-out:
-  g_object_unref (stanza);
-
-  return ret;
 }
 
 gboolean
@@ -581,52 +607,54 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   return TRUE;
 }
 
-static WockySaslHandler *
-wocky_sasl_auth_select_handler (
-    WockySaslAuth *sasl, gboolean allow_plain, GSList *mechanisms)
+static void
+wocky_sasl_auth_start_cb (GObject *source_object,
+    GAsyncResult *res,
+    gpointer user_data)
 {
-  WockySaslAuthPrivate *priv = sasl->priv;
-  GSList *i, *k;
+  WockySaslAuth *self = (WockySaslAuth *) user_data;
+  WockySaslAuthPrivate *priv = self->priv;
+  WockyStanza *stanza;
+  GError *error = NULL;
+  GString *initial_response = NULL;
+  gchar *mechanism = NULL;
 
-  for (k = priv->handlers; k != NULL; k = k->next)
+  if (!wocky_auth_registry_start_auth_finish (priv->auth_registry, res,
+          &mechanism, &initial_response, &error))
     {
-      WockySaslHandler *handler = k->data;
-      const gchar *handler_mech = wocky_sasl_handler_get_mechanism (handler);
-
-      if (wocky_sasl_handler_is_plain (handler) && !allow_plain)
-        continue;
-
-      for (i = mechanisms; i != NULL; i = i->next)
-        {
-          const gchar *mechanism = i->data;
-
-          if (!wocky_strdiff (handler_mech, mechanism))
-            {
-              g_object_ref (handler);
-              return handler;
-            }
-        }
+      auth_failed (self, error->code, error->message);
+      g_error_free (error);
+      return;
     }
 
-  if (wocky_sasl_auth_has_mechanism (mechanisms, "DIGEST-MD5"))
+  stanza = wocky_stanza_new ("auth", WOCKY_XMPP_NS_SASL_AUTH);
+
+  /* google JID domain discovery - client sets a namespaced attribute */
+  wocky_node_set_attribute_ns (wocky_stanza_get_top_node (stanza),
+      "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
+
+  if (initial_response != NULL)
     {
-      /* XXX: check for username and password here? */
-      DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
-      return WOCKY_SASL_HANDLER (wocky_sasl_digest_md5_new (
-          priv->server, priv->username, priv->password));
+      gchar *initial_response_str = wocky_sasl_auth_encode_response (
+          initial_response);
+
+      wocky_node_set_content (
+        wocky_stanza_get_top_node (stanza),
+        initial_response_str);
+
+      g_free (initial_response_str);
+      g_string_free (initial_response, TRUE);
     }
-  else if (allow_plain &&
-      wocky_sasl_auth_has_mechanism (mechanisms, "PLAIN"))
-    {
-      /* XXX: check for username and password here? */
-      DEBUG ("Choosing PLAIN as auth mechanism");
-      return WOCKY_SASL_HANDLER (wocky_sasl_plain_new (
-          priv->username, priv->password));
-    }
-  else
-    {
-      return NULL;
-    }
+
+  /* FIXME handle send error */
+  wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
+    "mechanism", mechanism);
+  wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
+    NULL, NULL, NULL);
+  wocky_xmpp_connection_recv_stanza_async (priv->connection,
+    NULL, sasl_auth_stanza_received, self);
+
+  g_free (mechanism);
 }
 
 /* Initiate sasl auth. features should contain the stream features stanza as
@@ -641,7 +669,6 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
   WockySaslAuthPrivate *priv = sasl->priv;
   WockyNode *mech_node;
   GSList *mechanisms, *t;
-  WockySaslHandler *handler = NULL;
 
   g_assert (sasl != NULL);
   g_assert (features != NULL);
@@ -656,32 +683,17 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     {
       g_simple_async_report_error_in_idle (G_OBJECT (sasl),
           callback, user_data,
-          WOCKY_SASL_AUTH_ERROR, WOCKY_SASL_AUTH_ERROR_SASL_NOT_SUPPORTED,
+          WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED,
           "Server doesn't have any sasl mechanisms");
       goto out;
     }
 
   priv->result = g_simple_async_result_new (G_OBJECT (sasl),
     callback, user_data, wocky_sasl_auth_authenticate_finish);
-  handler = wocky_sasl_auth_select_handler (sasl, allow_plain, mechanisms);
 
-  if (handler == NULL)
-    {
-      DEBUG ("No supported mechanisms found");
-
-      g_object_unref (priv->result);
-      priv->result = NULL;
-
-      g_simple_async_report_error_in_idle (G_OBJECT (sasl),
-          callback, user_data,
-          WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
-          "No supported mechanisms found");
-
-      goto out;
-    }
-
-  wocky_sasl_auth_start_mechanism (sasl, handler);
+  wocky_auth_registry_start_auth_async (priv->auth_registry, mechanisms,
+      allow_plain, TRUE, priv->username, priv->password, priv->server,
+      wocky_sasl_auth_start_cb, sasl);
 
 out:
   for (t = mechanisms ; t != NULL; t = g_slist_next (t))
@@ -690,20 +702,4 @@ out:
     }
 
   g_slist_free (mechanisms);
-}
-
-/**
- * wocky_sasl_auth_add_handler:
- *
- * Provide an external SASL handler to be used during authentication. Handlers
- * (and therefore SASL mechanisms) are prioritised in the order they are
- * added (handlers added earlier take precedence over those added later).
- **/
-void
-wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler)
-{
-  WockySaslAuthPrivate *priv = auth->priv;
-
-  g_object_ref (handler);
-  priv->handlers = g_slist_append (priv->handlers, handler);
 }

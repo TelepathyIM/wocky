@@ -1,7 +1,7 @@
 
 #include "wocky-sasl-plain.h"
 
-#include "wocky-sasl-auth.h"
+#include "wocky-auth-registry.h"
 
 #define DEBUG_FLAG DEBUG_SASL
 #include "wocky-debug.h"
@@ -105,7 +105,7 @@ wocky_sasl_plain_class_init (WockySaslPlainClass *klass)
 
 static gboolean
 plain_initial_response (WockySaslHandler *handler,
-    gchar **initial_data,
+    GString **initial_data,
     GError **error);
 
 static void
@@ -134,24 +134,21 @@ wocky_sasl_plain_new (const gchar *username, const gchar *password)
       NULL);
 }
 
-static gchar *
+static GString *
 plain_generate_initial_response (const gchar *username, const gchar *password)
 {
   GString *str = g_string_new ("");
-  gchar *cstr;
 
   g_string_append_c (str, '\0');
   g_string_append (str, username);
   g_string_append_c (str, '\0');
   g_string_append (str, password);
-  cstr = g_base64_encode ((guchar *) str->str, str->len);
-  g_string_free (str, TRUE);
-  return cstr;
+  return str;
 }
 
 static gboolean
 plain_initial_response (WockySaslHandler *handler,
-    gchar **initial_data,
+    GString **initial_data,
     GError **error)
 {
   WockySaslPlain *self = WOCKY_SASL_PLAIN (handler);
@@ -159,8 +156,8 @@ plain_initial_response (WockySaslHandler *handler,
 
   if (priv->username == NULL || priv->password == NULL)
     {
-      g_set_error (error, WOCKY_SASL_AUTH_ERROR,
-          WOCKY_SASL_AUTH_ERROR_NO_CREDENTIALS,
+      g_set_error (error, WOCKY_AUTH_ERROR,
+          WOCKY_AUTH_ERROR_NO_CREDENTIALS,
           "No username or password provided");
       return FALSE;
     }
