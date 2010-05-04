@@ -844,24 +844,27 @@ tcp_srv_connected (GObject *source,
       gchar *host = NULL;      /* domain.tld */ /* / */
       guint port = (priv->xmpp_port == 0) ? 5222 : priv->xmpp_port;
 
+      /* g_socket_client_connect_to_service_finish() should have set error if
+       * it returned %NULL.
+       */
+      g_return_if_fail (error != NULL);
+
       DEBUG ("SRV connect failed: %s", error->message);
 
-      if (error != NULL)
+      /* An IO error implies there IS a SRV record but we could not
+       * connect: we do not fall through in this case: */
+      if (error->domain == G_IO_ERROR)
         {
-          /* io-error-quark => there IS a SRV record but we could not
-             connect: we do not fall through in this case: */
-          if (error->domain == g_io_error_quark ())
-            {
-              abort_connect_error (self, &error, "Bad SRV record");
-              g_error_free (error);
-              return;
-            }
-          else
-            {
-              DEBUG ("SRV error is: %s:%d", g_quark_to_string (error->domain),
-                error->code);
-            }
+          abort_connect_error (self, &error, "Bad SRV record");
+          g_error_free (error);
+          return;
         }
+      else
+        {
+          DEBUG ("SRV error is: %s:%d", g_quark_to_string (error->domain),
+              error->code);
+        }
+
       DEBUG ("Falling back to HOST connection");
 
       g_error_free (error);
