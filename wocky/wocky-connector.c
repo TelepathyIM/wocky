@@ -1616,7 +1616,11 @@ starttls_handshake_cb (GObject *source,
             msg = "SSL Certificate for %s expired";
             break;
           case WOCKY_TLS_CERT_INVALID:
+            msg = "SSL Certificate for %s invalid";
             ok_when_lenient = TRUE;
+            break;
+          /* Handle UNKNOWN_ERROR and any other unexpected values equivalently
+           */
           case WOCKY_TLS_CERT_UNKNOWN_ERROR:
           default:
             msg = "SSL Certificate Verification Error for %s";
