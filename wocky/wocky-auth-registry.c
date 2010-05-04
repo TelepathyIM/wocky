@@ -248,14 +248,14 @@ wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
   WockyAuthRegistryPrivate *priv = self->priv;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
 
-  g_assert (priv->handler != NULL);
-
   g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
           wocky_auth_registry_start_auth_finish), FALSE);
 
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
           error))
     return FALSE;
+
+  g_assert (priv->handler != NULL);
 
   if (mechanism != NULL)
     *mechanism = g_strdup (wocky_sasl_handler_get_mechanism (priv->handler));
