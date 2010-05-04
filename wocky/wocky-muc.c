@@ -1453,7 +1453,7 @@ handle_message (WockyPorter *porter,
   WockyNode *msg = wocky_stanza_get_top_node (stanza);
   const gchar *from = NULL;
   WockyNode *child = NULL;
-  gboolean from_self = FALSE;
+  gboolean member_is_temporary = FALSE;
 
   time_t stamp = 0;
   const gchar *id = NULL;
@@ -1472,23 +1472,36 @@ handle_message (WockyPorter *porter,
   if (strchr (from, '/') != NULL)
     {
       who = g_hash_table_lookup (priv->members, from);
+
       if (who == NULL)
         {
-          /* not another member, is it from 'ourselves'? */
-          gchar *from_jid = wocky_normalise_jid (from);
+          /* Okay, it's from someone not currently in the MUC. We'll have to
+           * fake up a structure. */
+          member_is_temporary = TRUE;
 
-          /* is it from us? fake up a member struct */
-          if (g_str_equal (from_jid, priv->jid))
+          who = alloc_member ();
+          who->from = wocky_normalise_jid (from);
+
+          if (!wocky_strdiff (who->from, priv->jid))
             {
-              from_self = TRUE;
-              g_free (from_jid);
+              /* It's from us! */
+              who->jid  = g_strdup (priv->user);
+              who->nick = g_strdup (priv->nick);
+              who->role = priv->role;
+              who->affiliation = priv->affiliation;
             }
-          else
-            {
-              DEBUG ("Message received from unknown MUC member %s.", from_jid);
-              g_free (from_jid);
-              return FALSE;
-            }
+          /* else, we don't know anything more about the sender.
+           *
+           * FIXME: actually, if the server uses XEP-0203 Delayed Delivery
+           * rather than XEP-0091 Legacy Delayed Delivery, the from=''
+           * attribute of the <delay/> element says who the original JID
+           * actually was. Unfortunately, XEP-0091 said that from='' should be
+           * the bare JID of the MUC, so it's completely useless.
+           *
+           * FIXME: also: we assume here that a delayed message from resource
+           * /blah was sent by the user currently called /blah, but that ain't
+           * necessarily so.
+           */
         }
 
       /* type must be groupchat, or it is simply a non-MUC message relayed *
@@ -1497,16 +1510,6 @@ handle_message (WockyPorter *porter,
         {
           DEBUG ("Non groupchat message from MUC member %s: ignored.", from);
           return FALSE;
-        }
-
-      if (from_self)
-        {
-          who = alloc_member ();
-          who->from = g_strdup (priv->jid);
-          who->jid  = g_strdup (priv->user);
-          who->nick = g_strdup (priv->nick);
-          who->role = priv->role;
-          who->affiliation = priv->affiliation;
         }
     }
 
@@ -1538,8 +1541,9 @@ handle_message (WockyPorter *porter,
       stanza, mtype, id, stamp, who, body, subj, mstate);
 
  out:
-  if (from_self)
+  if (member_is_temporary)
     free_member (who);
+
   return TRUE;
 }
 
