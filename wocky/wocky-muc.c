@@ -1374,6 +1374,41 @@ handle_presence (WockyPorter *porter,
 
 /* ************************************************************************ */
 /* handle message from MUC */
+
+/*
+ * Parse timestamp of delayed messages. For non-delayed, it's 0.
+ */
+static time_t
+extract_timestamp (WockyNode *msg)
+{
+  WockyNode *x = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
+  time_t stamp = 0;
+
+  if (x != NULL)
+    {
+      const gchar *tm = wocky_node_get_attribute (x, "stamp");
+
+      /* These timestamps do not contain a timezone, but are understood to be
+       * in GMT. They're in the format yyyymmddThhmmss, so if we append 'Z'
+       * we'll get (one of the many valid syntaxes for) an ISO-8601 timestamp.
+       */
+      if (tm != NULL)
+        {
+          GTimeVal timeval = { 0, 0 };
+          gchar *tm_dup = g_strdup_printf ("%sZ", tm);
+
+          if (!g_time_val_from_iso8601 (tm_dup, &timeval))
+            DEBUG ("Malformed date string '%s' for " WOCKY_XMPP_NS_DELAY, tm);
+          else
+            stamp = timeval.tv_sec;
+
+          g_free (tm_dup);
+        }
+    }
+
+  return stamp;
+}
+
 static gboolean
 handle_message (WockyPorter *porter,
     WockyStanza *stanza,
@@ -1445,31 +1480,7 @@ handle_message (WockyPorter *porter,
   body = wocky_node_get_content_from_child (msg, "body");
   subj = wocky_node_get_content_from_child (msg, "subject");
 
-  /* ********************************************************************** */
-  /* parse timestap, if any */
-  child = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
-
-  if (child != NULL)
-    {
-      const gchar *tm = wocky_node_get_attribute (child, "stamp");
-
-      /* These timestamps do not contain a timezone, but are understood to be
-       * in GMT. They're in the format yyyymmddThhmmss, so if we append 'Z'
-       * we'll get (one of the many valid syntaxes for) an ISO-8601 timestamp.
-       */
-      if (tm != NULL)
-        {
-          GTimeVal timeval = { 0, 0 };
-          gchar *tm_dup = g_strdup_printf ("%sZ", tm);
-
-          if (!g_time_val_from_iso8601 (tm_dup, &timeval))
-            DEBUG ("Malformed date string '%s' for " WOCKY_XMPP_NS_DELAY, tm);
-          else
-            stamp = timeval.tv_sec;
-
-          g_free (tm_dup);
-        }
-    }
+  stamp = extract_timestamp (msg);
 
   /* ********************************************************************** */
   /* work out the message type: */
