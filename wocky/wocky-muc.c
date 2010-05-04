@@ -1511,23 +1511,18 @@ handle_message (WockyPorter *porter,
     gpointer data)
 {
   WockyMuc *muc = WOCKY_MUC (data);
-  WockyStanzaSubType stype;
   WockyNode *msg = wocky_stanza_get_top_node (stanza);
-  const gchar *from = NULL;
+  const gchar *id = wocky_node_get_attribute (msg, "id");
+  const gchar *from = wocky_node_get_attribute (msg, "from");
+  const gchar *body = wocky_node_get_content_from_child (msg, "body");
+  const gchar *subj = wocky_node_get_content_from_child (msg, "subject");
+  time_t stamp = extract_timestamp (msg);
+  WockyStanzaSubType sub_type;
+  WockyMucMsgType mtype;
+  WockyMucMember *who = NULL;
   gboolean member_is_temporary = FALSE;
 
-  time_t stamp = 0;
-  const gchar *id = NULL;
-  const gchar *body = NULL;
-  const gchar *subj = NULL;
-  WockyMucMember *who = NULL;
-  WockyMucMsgType mtype = WOCKY_MUC_MSG_NOTICE;
-  WockyMucMsgState mstate = WOCKY_MUC_MSG_STATE_NONE;
-
-  wocky_stanza_get_type_info (stanza, NULL, &stype);
-
-  id = wocky_node_get_attribute (msg, "id");
-  from = wocky_node_get_attribute (msg, "from");
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
 
   /* if the message purports to be from a MUC member, treat as such: */
   if (strchr (from, '/') != NULL)
@@ -1538,20 +1533,16 @@ handle_message (WockyPorter *porter,
        * it's not type='groupchat', then it's a non-MUC message relayed by the
        * MUC and therefore not our responsibility.
        */
-      if (stype != WOCKY_STANZA_SUB_TYPE_GROUPCHAT)
+      if (sub_type != WOCKY_STANZA_SUB_TYPE_GROUPCHAT)
         {
           DEBUG ("Non groupchat message from MUC member %s: ignored.", from);
           return FALSE;
         }
     }
 
-  body = wocky_node_get_content_from_child (msg, "body");
-  subj = wocky_node_get_content_from_child (msg, "subject");
+  mtype = determine_message_type (&body, sub_type);
 
-  stamp = extract_timestamp (msg);
-  mtype = determine_message_type (&body, stype);
-
-  if (stype == WOCKY_STANZA_SUB_TYPE_ERROR)
+  if (sub_type == WOCKY_STANZA_SUB_TYPE_ERROR)
     {
       WockyXmppErrorType etype;
       GError *error = NULL;
@@ -1560,15 +1551,15 @@ handle_message (WockyPorter *porter,
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
           stanza, mtype, id, stamp, who, body, error->code, etype);
       g_clear_error (&error);
-      goto out;
+    }
+  else
+    {
+      WockyMucMsgState mstate = extract_chat_state (msg);
+
+      g_signal_emit (muc, signals[SIG_MSG], 0,
+          stanza, mtype, id, stamp, who, body, subj, mstate);
     }
 
-  mstate = extract_chat_state (msg);
-
-  g_signal_emit (muc, signals[SIG_MSG], 0,
-      stanza, mtype, id, stamp, who, body, subj, mstate);
-
- out:
   if (member_is_temporary)
     free_member (who);
 
