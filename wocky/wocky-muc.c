@@ -1397,16 +1397,6 @@ handle_message (WockyPorter *porter,
 
   wocky_stanza_get_type_info (stanza, NULL, &stype);
 
-  /* ***************************************************************** *
-   * HACK: we interrupt this function for a HACK:                      *
-   * google servers send offline messags w/o a type; kludge it:        */
-  if (stype == WOCKY_STANZA_SUB_TYPE_NONE &&
-      wocky_node_get_child_ns (msg, "time", "google:timestamp") != NULL &&
-      wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY) != NULL)
-    stype = WOCKY_STANZA_SUB_TYPE_GROUPCHAT;
-
-  /* ***************************************************************** *
-   * we now return you to your regular logic                           */
   id = wocky_node_get_attribute (msg, "id");
   from = wocky_node_get_attribute (msg, "from");
 
