@@ -1375,6 +1375,56 @@ handle_presence (WockyPorter *porter,
 /* ************************************************************************ */
 /* handle message from MUC */
 
+/* Looks up the sender of a message. If they're not currently a MUC member,
+ * then a temporary structure is created, and @member_is_temporary is set to
+ * %TRUE; the caller needs to free the returned value when they're done with
+ * it.
+ */
+static WockyMucMember *
+get_message_sender (WockyMuc *muc,
+    const gchar *from,
+    gboolean *member_is_temporary)
+{
+  WockyMucPrivate *priv = muc->priv;
+  WockyMucMember *who = g_hash_table_lookup (priv->members, from);
+
+  if (who != NULL)
+    {
+      *member_is_temporary = FALSE;
+      return who;
+    }
+
+  /* Okay, it's from someone not currently in the MUC. We'll have to
+   * fake up a structure. */
+  *member_is_temporary = TRUE;
+
+  who = alloc_member ();
+  who->from = wocky_normalise_jid (from);
+
+  if (!wocky_strdiff (who->from, priv->jid))
+  {
+    /* It's from us! */
+    who->jid  = g_strdup (priv->user);
+    who->nick = g_strdup (priv->nick);
+    who->role = priv->role;
+    who->affiliation = priv->affiliation;
+  }
+  /* else, we don't know anything more about the sender.
+   *
+   * FIXME: actually, if the server uses XEP-0203 Delayed Delivery
+   * rather than XEP-0091 Legacy Delayed Delivery, the from=''
+   * attribute of the <delay/> element says who the original JID
+   * actually was. Unfortunately, XEP-0091 said that from='' should be
+   * the bare JID of the MUC, so it's completely useless.
+   *
+   * FIXME: also: we assume here that a delayed message from resource
+   * /blah was sent by the user currently called /blah, but that ain't
+   * necessarily so.
+   */
+
+  return who;
+}
+
 /*
  * Parse timestamp of delayed messages. For non-delayed, it's 0.
  */
@@ -1448,7 +1498,6 @@ handle_message (WockyPorter *porter,
     gpointer data)
 {
   WockyMuc *muc = WOCKY_MUC (data);
-  WockyMucPrivate *priv = muc->priv;
   WockyStanzaSubType stype;
   WockyNode *msg = wocky_stanza_get_top_node (stanza);
   const gchar *from = NULL;
@@ -1471,41 +1520,12 @@ handle_message (WockyPorter *porter,
   /* if the message purports to be from a MUC member, treat as such: */
   if (strchr (from, '/') != NULL)
     {
-      who = g_hash_table_lookup (priv->members, from);
+      who = get_message_sender (muc, from, &member_is_temporary);
 
-      if (who == NULL)
-        {
-          /* Okay, it's from someone not currently in the MUC. We'll have to
-           * fake up a structure. */
-          member_is_temporary = TRUE;
-
-          who = alloc_member ();
-          who->from = wocky_normalise_jid (from);
-
-          if (!wocky_strdiff (who->from, priv->jid))
-            {
-              /* It's from us! */
-              who->jid  = g_strdup (priv->user);
-              who->nick = g_strdup (priv->nick);
-              who->role = priv->role;
-              who->affiliation = priv->affiliation;
-            }
-          /* else, we don't know anything more about the sender.
-           *
-           * FIXME: actually, if the server uses XEP-0203 Delayed Delivery
-           * rather than XEP-0091 Legacy Delayed Delivery, the from=''
-           * attribute of the <delay/> element says who the original JID
-           * actually was. Unfortunately, XEP-0091 said that from='' should be
-           * the bare JID of the MUC, so it's completely useless.
-           *
-           * FIXME: also: we assume here that a delayed message from resource
-           * /blah was sent by the user currently called /blah, but that ain't
-           * necessarily so.
-           */
-        }
-
-      /* type must be groupchat, or it is simply a non-MUC message relayed *
-       * by the MUC, and therefore not our responsibility:                 */
+      /* If it's a message from a member (as opposed to the MUC itself), and
+       * it's not type='groupchat', then it's a non-MUC message relayed by the
+       * MUC and therefore not our responsibility.
+       */
       if (stype != WOCKY_STANZA_SUB_TYPE_GROUPCHAT)
         {
           DEBUG ("Non groupchat message from MUC member %s: ignored.", from);
