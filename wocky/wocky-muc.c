@@ -1409,6 +1409,39 @@ extract_timestamp (WockyNode *msg)
   return stamp;
 }
 
+/* Messages starting with /me are ACTION messages, and the /me should be
+ * removed. type="chat" messages are NORMAL.  Everything else is
+ * something that doesn't necessarily expect a reply or ongoing
+ * conversation ("normal") or has been auto-sent, so we make it NOTICE in
+ * all other cases. */
+static WockyMucMsgType
+determine_message_type (const gchar **body,
+    WockyStanzaSubType sub_type)
+{
+  WockyMucMsgType mtype = WOCKY_MUC_MSG_NOTICE;
+
+  if (*body != NULL)
+    {
+      if (g_str_has_prefix (*body, "/me "))
+        {
+          mtype = WOCKY_MUC_MSG_ACTION;
+          *body += 4;
+        }
+      else if (g_str_equal (body, "/me"))
+        {
+          mtype = WOCKY_MUC_MSG_ACTION;
+          *body = "";
+        }
+      else if ((sub_type == WOCKY_STANZA_SUB_TYPE_GROUPCHAT) ||
+               (sub_type == WOCKY_STANZA_SUB_TYPE_CHAT))
+        {
+          mtype = WOCKY_MUC_MSG_NORMAL;
+        }
+    }
+
+  return mtype;
+}
+
 static gboolean
 handle_message (WockyPorter *porter,
     WockyStanza *stanza,
@@ -1481,27 +1514,7 @@ handle_message (WockyPorter *porter,
   subj = wocky_node_get_content_from_child (msg, "subject");
 
   stamp = extract_timestamp (msg);
-
-  /* ********************************************************************** */
-  /* work out the message type: */
-  if (body != NULL)
-    {
-      if (g_str_has_prefix (body, "/me "))
-        {
-          mtype = WOCKY_MUC_MSG_ACTION;
-          body += 4;
-        }
-      else if (g_str_equal (body, "/me"))
-        {
-          mtype = WOCKY_MUC_MSG_ACTION;
-          body = "";
-        }
-      else if ((stype == WOCKY_STANZA_SUB_TYPE_GROUPCHAT) ||
-          (stype == WOCKY_STANZA_SUB_TYPE_CHAT))
-        {
-          mtype = WOCKY_MUC_MSG_NORMAL;
-        }
-    }
+  mtype = determine_message_type (&body, stype);
 
   if (stype == WOCKY_STANZA_SUB_TYPE_ERROR)
     {
