@@ -1011,9 +1011,14 @@ handle_self_presence (WockyMuc *muc,
 
   DEBUG ("Received our own presence");
 
+  if (wocky_strdiff (priv->nick, nick))
+    {
+      nick_update = TRUE;
+      g_free (priv->nick);
+      priv->nick = g_strdup (nick);
+    }
+
   /* we already know if we changed our own status, so no signal for that */
-  nick_update = wocky_strdiff (priv->nick, nick);
-  REPLACE_STR (priv->nick, nick);
   REPLACE_STR (priv->status, status);
 
   permission_update = ((priv->role != role) || (priv->affiliation != aff));
@@ -1026,7 +1031,9 @@ handle_self_presence (WockyMuc *muc,
     {
       gchar *new_jid = g_strdup_printf ("%s@%s/%s",
           priv->room, priv->service, priv->nick);
-      REPLACE_STR (priv->jid, new_jid);
+
+      g_free (priv->jid);
+      priv->jid = new_jid;
       g_signal_emit (muc, signals[SIG_NICK_CHANGE], 0, stanza, code);
     }
 
