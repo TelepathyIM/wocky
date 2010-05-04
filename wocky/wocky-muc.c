@@ -1492,6 +1492,19 @@ determine_message_type (const gchar **body,
   return mtype;
 }
 
+static WockyMucMsgState
+extract_chat_state (WockyNode *msg)
+{
+  WockyNode *child = wocky_node_get_first_child_ns (msg, WOCKY_NS_CHATSTATE);
+  WockyMucMsgState mstate;
+
+  if (child == NULL ||
+      !wocky_enum_from_nick (WOCKY_TYPE_MUC_MSG_STATE, child->name, &mstate))
+    mstate = WOCKY_MUC_MSG_NONE;
+
+  return mstate;
+}
+
 static gboolean
 handle_message (WockyPorter *porter,
     WockyStanza *stanza,
@@ -1501,7 +1514,6 @@ handle_message (WockyPorter *porter,
   WockyStanzaSubType stype;
   WockyNode *msg = wocky_stanza_get_top_node (stanza);
   const gchar *from = NULL;
-  WockyNode *child = NULL;
   gboolean member_is_temporary = FALSE;
 
   time_t stamp = 0;
@@ -1551,11 +1563,7 @@ handle_message (WockyPorter *porter,
       goto out;
     }
 
-  child = wocky_node_get_first_child_ns (msg, WOCKY_NS_CHATSTATE);
-
-  if (child == NULL ||
-      !wocky_enum_from_nick (WOCKY_TYPE_MUC_MSG_STATE, child->name, &mstate))
-    mstate = WOCKY_MUC_MSG_NONE;
+  mstate = extract_chat_state (msg);
 
   g_signal_emit (muc, signals[SIG_MSG], 0,
       stanza, mtype, id, stamp, who, body, subj, mstate);
