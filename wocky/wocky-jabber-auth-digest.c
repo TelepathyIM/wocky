@@ -113,7 +113,7 @@ auth_handler_iface_init (gpointer g_iface)
   WockyAuthHandlerIface *iface = g_iface;
 
   iface->mechanism = "X-WOCKY-JABBER-DIGEST";
-  iface->plain = TRUE;
+  iface->plain = FALSE;
   iface->initial_response_func = digest_initial_response;
 }
 
