@@ -196,20 +196,20 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
 
   if (priv->handler == NULL)
     {
-      if (wocky_auth_registry_has_mechanism (mechanisms, "DIGEST-MD5"))
+      if (wocky_auth_registry_has_mechanism (mechanisms, MECH_SASL_DIGEST_MD5))
         {
           /* XXX: check for username and password here? */
           priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_digest_md5_new (
                   server, username, password));
         }
       else if (wocky_auth_registry_has_mechanism (mechanisms,
-              "X-WOCKY-JABBER-DIGEST"))
+              MECH_JABBER_DIGEST))
         {
           priv->handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_digest_new (
                   session_id, password));
         }
       else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
-              "PLAIN"))
+              MECH_SASL_PLAIN))
         {
           /* XXX: check for username and password here? */
           DEBUG ("Choosing PLAIN as auth mechanism");
@@ -217,7 +217,7 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
                   username, password));
         }
       else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
-              "X-WOCKY-JABBER-PASSWORD"))
+              MECH_JABBER_PASSWORD))
         {
           priv->handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_password_new (
                   password));
