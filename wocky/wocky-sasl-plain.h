@@ -3,7 +3,7 @@
 
 #include <glib-object.h>
 
-#include "wocky-sasl-handler.h"
+#include "wocky-auth-handler.h"
 
 G_BEGIN_DECLS
 

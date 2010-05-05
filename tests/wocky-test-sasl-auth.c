@@ -137,7 +137,7 @@ feature_stanza_received (GObject *source,
     gpointer user_data)
 {
   WockyStanza *stanza;
-  WockySaslHandler *test_handler;
+  WockyAuthHandler *test_handler;
   WockyAuthRegistry *auth_registry;
   test_t *test = (test_t *) user_data;
 
@@ -156,7 +156,7 @@ feature_stanza_received (GObject *source,
 
   g_object_get (sasl, "auth-registry", &auth_registry, NULL);
 
-  test_handler = WOCKY_SASL_HANDLER (wocky_test_sasl_handler_new ());
+  test_handler = WOCKY_AUTH_HANDLER (wocky_test_sasl_handler_new ());
   wocky_auth_registry_add_handler (auth_registry, test_handler);
 
   g_object_unref (test_handler);

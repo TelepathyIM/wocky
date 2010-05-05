@@ -67,7 +67,7 @@ WockyJabberAuth *wocky_jabber_auth_new (const gchar *server,
     WockyAuthRegistry *auth_registry);
 
 void wocky_jabber_auth_add_handler (WockyJabberAuth *self,
-    WockySaslHandler *handler);
+    WockyAuthHandler *handler);
 
 void wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
     gboolean allow_plain,
@@ -81,7 +81,7 @@ gboolean wocky_jabber_auth_authenticate_finish (WockyJabberAuth *self,
 
 void
 wocky_jabber_auth_add_handler (WockyJabberAuth *auth,
-    WockySaslHandler *handler);
+    WockyAuthHandler *handler);
 
 G_END_DECLS
 

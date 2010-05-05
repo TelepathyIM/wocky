@@ -61,8 +61,8 @@ HANDWRITTEN_SOURCES = \
   wocky-sasl-auth.h \
   wocky-sasl-digest-md5.h \
   wocky-sasl-digest-md5.c \
-  wocky-sasl-handler.c \
-  wocky-sasl-handler.h \
+  wocky-auth-handler.c \
+  wocky-auth-handler.h \
   wocky-sasl-plain.c \
   wocky-sasl-plain.h \
   wocky-stanza.c \

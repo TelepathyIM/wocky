@@ -6,10 +6,10 @@
 #include "wocky-debug.h"
 
 static void
-sasl_handler_iface_init (gpointer g_iface);
+auth_handler_iface_init (gpointer g_iface);
 
 G_DEFINE_TYPE_WITH_CODE (WockyJabberAuthDigest, wocky_jabber_auth_digest, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_SASL_HANDLER, sasl_handler_iface_init))
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 enum
 {
@@ -103,14 +103,14 @@ wocky_jabber_auth_digest_class_init (WockyJabberAuthDigestClass *klass)
 }
 
 static gboolean
-digest_initial_response (WockySaslHandler *handler,
+digest_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error);
 
 static void
-sasl_handler_iface_init (gpointer g_iface)
+auth_handler_iface_init (gpointer g_iface)
 {
-  WockySaslHandlerIface *iface = g_iface;
+  WockyAuthHandlerIface *iface = g_iface;
 
   iface->mechanism = "X-WOCKY-JABBER-DIGEST";
   iface->plain = TRUE;
@@ -147,7 +147,7 @@ digest_generate_initial_response (const gchar *session_id, const gchar *password
 }
 
 static gboolean
-digest_initial_response (WockySaslHandler *handler,
+digest_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error)
 {
