@@ -278,12 +278,6 @@ static gboolean
 stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 {
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
-  WockyNode *xmpp = NULL;
-  GSList *item = NULL;
-  const gchar *msg = NULL;
-  const gchar *err = NULL;
-  WockyNode *cond = NULL;
-  WockyNode *text = NULL;
 
   if (stanza == NULL)
     {
@@ -295,29 +289,27 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
-      xmpp = wocky_stanza_get_top_node (stanza);
-      for (item = xmpp->children; item != NULL; item = g_slist_next (item))
+      const gchar *msg = NULL;
+      const gchar *err = NULL;
+      WockyNode *child = NULL;
+      WockyNodeIter iter;
+
+      wocky_node_iter_init (&iter, wocky_stanza_get_top_node (stanza), NULL,
+          WOCKY_XMPP_NS_STREAMS);
+
+      while (wocky_node_iter_next (&iter, &child))
         {
-          WockyNode *child = item->data;
-          const gchar *cns = wocky_node_get_ns (child);
-
-          if (wocky_strdiff (cns, WOCKY_XMPP_NS_STREAMS))
-            continue;
-
           if (!wocky_strdiff (child->name, "text"))
-            text = child;
+            msg = child->content;
           else
-            cond = child;
+            err = child->name;
         }
 
-      if (text != NULL)
-        msg = text->content;
-      else if (cond != NULL)
-        msg = cond->name;
-      else
-        msg = "-";
+      if (msg == NULL)
+        msg = (err != NULL) ? err : "-";
 
-      err = (cond != NULL) ? cond->name : "unknown-error";
+      if (err == NULL)
+        err = "unknown-error";
 
       auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s", err, msg);
       return TRUE;
