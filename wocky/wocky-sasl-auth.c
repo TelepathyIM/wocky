@@ -192,9 +192,10 @@ wocky_sasl_auth_dispose (GObject *object)
   WockySaslAuthPrivate *priv = self->priv;
 
   if (priv->connection != NULL)
-    {
-      g_object_unref (priv->connection);
-    }
+    g_object_unref (priv->connection);
+
+  if (priv->auth_registry != NULL)
+    g_object_unref (priv->auth_registry);
 
   if (G_OBJECT_CLASS (wocky_sasl_auth_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_sasl_auth_parent_class)->dispose (object);
