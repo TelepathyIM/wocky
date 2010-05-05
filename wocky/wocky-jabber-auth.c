@@ -28,7 +28,7 @@
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 G_DEFINE_TYPE(WockyJabberAuth, wocky_jabber_auth, G_TYPE_OBJECT)

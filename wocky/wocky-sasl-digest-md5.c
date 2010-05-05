@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 typedef enum {

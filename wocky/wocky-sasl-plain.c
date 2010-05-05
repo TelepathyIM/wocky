@@ -3,7 +3,7 @@
 
 #include "wocky-auth-registry.h"
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 static void

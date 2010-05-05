@@ -8,7 +8,7 @@
 #include "wocky-jabber-auth-digest.h"
 #include "wocky-utils.h"
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 G_DEFINE_TYPE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT)

@@ -18,7 +18,7 @@ typedef enum
   DEBUG_NET               = 1 << 1,
   DEBUG_XMPP_READER       = 1 << 2,
   DEBUG_XMPP_WRITER       = 1 << 3,
-  DEBUG_SASL              = 1 << 4,
+  DEBUG_AUTH              = 1 << 4,
   DEBUG_SSL               = 1 << 5,
   DEBUG_RMULTICAST        = 1 << 6,
   DEBUG_RMULTICAST_SENDER = 1 << 7,
