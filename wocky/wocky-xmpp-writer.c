@@ -450,7 +450,7 @@ _write_node_tree (WockyXmppWriter *writer,
   *length  = priv->buffer->use;
 
 #ifdef ENABLE_DEBUG
-  wocky_debug (DEBUG_NET, "Writing xml: %.*s.", (int)*length, *data);
+  wocky_debug (DEBUG_NET, "Writing xml: %.*s", (int)*length, *data);
 #endif
 }
 
