@@ -17,9 +17,27 @@ G_DEFINE_TYPE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT)
 struct _WockyAuthRegistryPrivate
 {
   gboolean dispose_has_run;
+
   WockyAuthHandler *handler;
   GSList *handlers;
 };
+
+static void wocky_auth_registry_start_auth_func (WockyAuthRegistry *self,
+    const GSList *mechanisms,
+    gboolean allow_plain,
+    gboolean is_secure_channel,
+    const gchar *username,
+    const gchar *password,
+    const gchar *server,
+    const gchar *session_id,
+    GSimpleAsyncResult *result);
+
+static void wocky_auth_registry_challenge_func (WockyAuthRegistry *self,
+    const GString *challenge_data,
+    GSimpleAsyncResult *result);
+
+static void wocky_auth_registry_success_func (WockyAuthRegistry *self,
+    GSimpleAsyncResult *result);
 
 GQuark
 wocky_auth_error_quark (void) {
@@ -106,6 +124,10 @@ wocky_auth_registry_class_init (WockyAuthRegistryClass *klass)
   object_class->set_property = wocky_auth_registry_set_property;
   object_class->dispose = wocky_auth_registry_dispose;
   object_class->finalize = wocky_auth_registry_finalize;
+
+  klass->start_auth_func = wocky_auth_registry_start_auth_func;
+  klass->challenge_func = wocky_auth_registry_challenge_func;
+  klass->success_func = wocky_auth_registry_success_func;
 }
 
 static void
@@ -171,8 +193,8 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
   return NULL;
 }
 
-void
-wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
+static void
+wocky_auth_registry_start_auth_func (WockyAuthRegistry *self,
     const GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
@@ -180,16 +202,11 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     const gchar *password,
     const gchar *server,
     const gchar *session_id,
-    GAsyncReadyCallback callback,
-    gpointer user_data)
+    GSimpleAsyncResult *result)
 {
   WockyAuthRegistryPrivate *priv = self->priv;
-  GSimpleAsyncResult *result;
 
   g_assert (priv->handler == NULL);
-
-  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      wocky_auth_registry_start_auth_finish);
 
   priv->handler = wocky_auth_registry_select_handler (self, allow_plain,
       mechanisms);
@@ -249,6 +266,29 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     }
 
   g_simple_async_result_complete_in_idle (result);
+}
+
+void
+wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
+    const GSList *mechanisms,
+    gboolean allow_plain,
+    gboolean is_secure_channel,
+    const gchar *username,
+    const gchar *password,
+    const gchar *server,
+    const gchar *session_id,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyAuthRegistryClass *cls = WOCKY_AUTH_REGISTRY_GET_CLASS (self);
+  GSimpleAsyncResult *result;
+
+  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
+      wocky_auth_registry_start_auth_finish);
+
+  cls->start_auth_func (self, mechanisms, allow_plain, is_secure_channel,
+      username, password, server, session_id, result);
+
   g_object_unref (result);
 }
 
@@ -259,7 +299,6 @@ wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
     GString **initial_data,
     GError **error)
 {
-  WockyAuthRegistryPrivate *priv = self->priv;
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
 
   g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
@@ -269,10 +308,10 @@ wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
           error))
     return FALSE;
 
-  g_assert (priv->handler != NULL);
+  g_assert (self->handler != NULL);
 
   if (mechanism != NULL)
-    *mechanism = g_strdup (wocky_auth_handler_get_mechanism (priv->handler));
+    *mechanism = g_strdup (wocky_auth_handler_get_mechanism (self->handler));
 
   if (initial_data != NULL)
     *initial_data = wocky_auth_registry_copy_response (
@@ -281,15 +320,12 @@ wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
   return TRUE;
 }
 
-void
-wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
+static void
+wocky_auth_registry_challenge_func (WockyAuthRegistry *self,
     const GString *challenge_data,
-    GAsyncReadyCallback callback,
-    gpointer user_data)
+    GSimpleAsyncResult *result)
 {
   WockyAuthRegistryPrivate *priv = self->priv;
-  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_auth_registry_challenge_finish);
   GString *response = NULL;
   GError *error = NULL;
 
@@ -308,6 +344,20 @@ wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
     }
 
   g_simple_async_result_complete_in_idle (result);
+}
+
+void
+wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
+    const GString *challenge_data,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyAuthRegistryClass *cls = WOCKY_AUTH_REGISTRY_GET_CLASS (self);
+  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_auth_registry_challenge_finish);
+
+  cls->challenge_func (self, challenge_data, result);
+
   g_object_unref (result);
 }
 
@@ -323,14 +373,11 @@ wocky_auth_registry_challenge_finish (WockyAuthRegistry *self,
       response);
 }
 
-void
-wocky_auth_registry_success_async (WockyAuthRegistry *self,
-    GAsyncReadyCallback callback,
-    gpointer user_data)
+static void
+wocky_auth_registry_success_func (WockyAuthRegistry *self,
+    GSimpleAsyncResult *result)
 {
   WockyAuthRegistryPrivate *priv = self->priv;
-  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_auth_registry_success_finish);
   GError *error = NULL;
 
   g_assert (priv->handler != NULL);
@@ -342,6 +389,20 @@ wocky_auth_registry_success_async (WockyAuthRegistry *self,
     }
 
   g_simple_async_result_complete_in_idle (result);
+}
+
+
+void
+wocky_auth_registry_success_async (WockyAuthRegistry *self,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyAuthRegistryClass *cls = WOCKY_AUTH_REGISTRY_GET_CLASS (self);
+  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
+      callback, user_data, wocky_auth_registry_success_finish);
+
+  cls->success_func (self, result);
+
   g_object_unref (result);
 }
 

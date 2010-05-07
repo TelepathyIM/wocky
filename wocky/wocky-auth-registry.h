@@ -70,6 +70,23 @@ typedef struct _WockyAuthRegistry WockyAuthRegistry;
 typedef struct _WockyAuthRegistryClass WockyAuthRegistryClass;
 typedef struct _WockyAuthRegistryPrivate WockyAuthRegistryPrivate;
 
+typedef void (*WockyAuthRegistryStartAuthFunc) (WockyAuthRegistry *self,
+    const GSList *mechanisms,
+    gboolean allow_plain,
+    gboolean is_secure_channel,
+    const gchar *username,
+    const gchar *password,
+    const gchar *server,
+    const gchar *session_id,
+    GSimpleAsyncResult *result);
+
+typedef void (*WockyAuthRegistryChallengeFunc) (WockyAuthRegistry *self,
+    const GString *challenge_data,
+    GSimpleAsyncResult *result);
+
+typedef void (*WockyAuthRegistrySuccessFunc) (WockyAuthRegistry *self,
+    GSimpleAsyncResult *result);
+
 struct _WockyAuthRegistry
 {
   GObject parent;
@@ -80,6 +97,10 @@ struct _WockyAuthRegistry
 struct _WockyAuthRegistryClass
 {
   GObjectClass parent_class;
+
+  WockyAuthRegistryStartAuthFunc start_auth_func;
+  WockyAuthRegistryChallengeFunc challenge_func;
+  WockyAuthRegistrySuccessFunc success_func;
 };
 
 GType wocky_auth_registry_get_type (void) G_GNUC_CONST;
