@@ -28,6 +28,7 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
+#include "wocky-xmpp-error-enumtypes.h"
 
 #define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
@@ -289,29 +290,17 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
-      const gchar *msg = NULL;
-      const gchar *err = NULL;
-      WockyNode *child = NULL;
-      WockyNodeIter iter;
+      GError *error;
 
-      wocky_node_iter_init (&iter, wocky_stanza_get_top_node (stanza), NULL,
-          WOCKY_XMPP_NS_STREAMS);
+      error = wocky_xmpp_stream_error_from_node (
+          wocky_stanza_get_top_node (stanza));
 
-      while (wocky_node_iter_next (&iter, &child))
-        {
-          if (!wocky_strdiff (child->name, "text"))
-            msg = child->content;
-          else
-            err = child->name;
-        }
+      auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s",
+          wocky_enum_to_nick (WOCKY_TYPE_XMPP_STREAM_ERROR, error->code),
+          error->message);
 
-      if (msg == NULL)
-        msg = (err != NULL) ? err : "-";
+      g_error_free (error);
 
-      if (err == NULL)
-        err = "unknown-error";
-
-      auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s", err, msg);
       return TRUE;
     }
 
