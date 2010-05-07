@@ -67,7 +67,7 @@ WockySaslAuth *wocky_sasl_auth_new (const gchar *server,
     WockyAuthRegistry *auth_registry);
 
 void wocky_sasl_auth_add_handler (WockySaslAuth *sasl,
-    WockySaslHandler *handler);
+    WockyAuthHandler *handler);
 
 void wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     WockyStanza *features,
@@ -81,7 +81,7 @@ gboolean wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GError **error);
 
 void
-wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockySaslHandler *handler);
+wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockyAuthHandler *handler);
 
 G_END_DECLS
 

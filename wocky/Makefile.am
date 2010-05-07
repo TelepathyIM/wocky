@@ -61,8 +61,8 @@ HANDWRITTEN_SOURCES = \
   wocky-sasl-auth.h \
   wocky-sasl-digest-md5.h \
   wocky-sasl-digest-md5.c \
-  wocky-sasl-handler.c \
-  wocky-sasl-handler.h \
+  wocky-auth-handler.c \
+  wocky-auth-handler.h \
   wocky-sasl-plain.c \
   wocky-sasl-plain.h \
   wocky-stanza.c \
@@ -96,7 +96,14 @@ HANDWRITTEN_SOURCES = \
   wocky-pubsub-node.h \
   wocky-pubsub-node-protected.h \
   wocky-auth-registry.c \
-  wocky-auth-registry.h
+  wocky-auth-registry.h \
+  wocky-jabber-auth.c \
+  wocky-jabber-auth.h \
+  wocky-jabber-auth-digest.c \
+  wocky-jabber-auth-digest.h \
+  wocky-jabber-auth-password.c \
+  wocky-jabber-auth-password.h
+
 
 if USING_OPENSSL
   HANDWRITTEN_SOURCES += $(OPENSSL_SRC)

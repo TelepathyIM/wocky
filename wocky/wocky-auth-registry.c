@@ -1,12 +1,14 @@
 /* wocky-auth-registry.c */
 
 #include "wocky-auth-registry.h"
+#include "wocky-auth-handler.h"
 #include "wocky-sasl-digest-md5.h"
-#include "wocky-sasl-handler.h"
 #include "wocky-sasl-plain.h"
+#include "wocky-jabber-auth-password.h"
+#include "wocky-jabber-auth-digest.h"
 #include "wocky-utils.h"
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 G_DEFINE_TYPE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT)
@@ -15,7 +17,7 @@ G_DEFINE_TYPE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT)
 struct _WockyAuthRegistryPrivate
 {
   gboolean dispose_has_run;
-  WockySaslHandler *handler;
+  WockyAuthHandler *handler;
   GSList *handlers;
 };
 
@@ -144,7 +146,7 @@ wocky_auth_registry_copy_response (GString *response)
   return g_string_new_len (response->str, response->len);
 }
 
-static WockySaslHandler *
+static WockyAuthHandler *
 wocky_auth_registry_select_handler (WockyAuthRegistry *self,
     gboolean allow_plain, const GSList *mechanisms)
 {
@@ -153,10 +155,10 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
 
   for (k = priv->handlers; k != NULL; k = k->next)
     {
-      WockySaslHandler *handler = k->data;
-      const gchar *handler_mech = wocky_sasl_handler_get_mechanism (handler);
+      WockyAuthHandler *handler = k->data;
+      const gchar *handler_mech = wocky_auth_handler_get_mechanism (handler);
 
-      if (wocky_sasl_handler_is_plain (handler) && !allow_plain)
+      if (wocky_auth_handler_is_plain (handler) && !allow_plain)
         continue;
 
       if (wocky_auth_registry_has_mechanism (mechanisms, handler_mech))
@@ -177,6 +179,7 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     const gchar *username,
     const gchar *password,
     const gchar *server,
+    const gchar *session_id,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
@@ -193,20 +196,31 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
 
   if (priv->handler == NULL)
     {
-      if (wocky_auth_registry_has_mechanism (mechanisms, "DIGEST-MD5"))
+      if (wocky_auth_registry_has_mechanism (mechanisms, MECH_SASL_DIGEST_MD5))
         {
           /* XXX: check for username and password here? */
-          DEBUG ("Choosing DIGEST-MD5 as auth mechanism");
-          priv->handler = WOCKY_SASL_HANDLER (wocky_sasl_digest_md5_new (
+          priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_digest_md5_new (
                   server, username, password));
         }
-      else if (allow_plain &&
-          wocky_auth_registry_has_mechanism (mechanisms, "PLAIN"))
+      else if (wocky_auth_registry_has_mechanism (mechanisms,
+              MECH_JABBER_DIGEST))
+        {
+          priv->handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_digest_new (
+                  session_id, password));
+        }
+      else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
+              MECH_SASL_PLAIN))
         {
           /* XXX: check for username and password here? */
           DEBUG ("Choosing PLAIN as auth mechanism");
-          priv->handler = WOCKY_SASL_HANDLER (wocky_sasl_plain_new (
+          priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_plain_new (
                   username, password));
+        }
+      else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
+              MECH_JABBER_PASSWORD))
+        {
+          priv->handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_password_new (
+                  password));
         }
     }
 
@@ -221,7 +235,7 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
       GString *initial_data;
       GError *error = NULL;
 
-      if (!wocky_sasl_handler_get_initial_response (priv->handler,
+      if (!wocky_auth_handler_get_initial_response (priv->handler,
              &initial_data, &error))
         {
           g_simple_async_result_set_from_error (result, error);
@@ -258,7 +272,7 @@ wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
   g_assert (priv->handler != NULL);
 
   if (mechanism != NULL)
-    *mechanism = g_strdup (wocky_sasl_handler_get_mechanism (priv->handler));
+    *mechanism = g_strdup (wocky_auth_handler_get_mechanism (priv->handler));
 
   if (initial_data != NULL)
     *initial_data = wocky_auth_registry_copy_response (
@@ -281,7 +295,7 @@ wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
 
   g_assert (priv->handler != NULL);
 
-  if (!wocky_sasl_handler_handle_auth_data (priv->handler, challenge_data,
+  if (!wocky_auth_handler_handle_auth_data (priv->handler, challenge_data,
           &response, &error))
     {
       g_simple_async_result_set_from_error (result, error);
@@ -321,7 +335,7 @@ wocky_auth_registry_success_async (WockyAuthRegistry *self,
 
   g_assert (priv->handler != NULL);
 
-  if (!wocky_sasl_handler_handle_success (priv->handler, &error))
+  if (!wocky_auth_handler_handle_success (priv->handler, &error))
     {
       g_simple_async_result_set_from_error (result, error);
       g_error_free (error);
@@ -341,7 +355,7 @@ wocky_auth_registry_success_finish (WockyAuthRegistry *self,
 
 void
 wocky_auth_registry_add_handler (WockyAuthRegistry *self,
-    WockySaslHandler *handler)
+    WockyAuthHandler *handler)
 {
   WockyAuthRegistryPrivate *priv = self->priv;
 

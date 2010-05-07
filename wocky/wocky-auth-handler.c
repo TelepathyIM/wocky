@@ -1,9 +1,9 @@
 
-#include "wocky-sasl-handler.h"
+#include "wocky-auth-handler.h"
 #include "wocky-auth-registry.h"
 
 GType
-wocky_sasl_handler_get_type (void)
+wocky_auth_handler_get_type (void)
 {
   static volatile gsize g_define_type_id__volatile = 0;
 
@@ -11,7 +11,7 @@ wocky_sasl_handler_get_type (void)
     {
       const GTypeInfo info =
       {
-        /* class_size */ sizeof (WockySaslHandlerIface),
+        /* class_size */ sizeof (WockyAuthHandlerIface),
         /* base_init */ NULL,
         /* base_finalize */ NULL,
         /* class_init */ NULL,
@@ -23,7 +23,7 @@ wocky_sasl_handler_get_type (void)
         /* value_table */ NULL
       };
       GType g_define_type_id = g_type_register_static (
-          G_TYPE_INTERFACE, "WockySaslHandler", &info, 0);
+          G_TYPE_INTERFACE, "WockyAuthHandler", &info, 0);
 
       g_type_interface_add_prerequisite (g_define_type_id, G_TYPE_OBJECT);
       g_once_init_leave (&g_define_type_id__volatile, g_define_type_id);
@@ -33,24 +33,24 @@ wocky_sasl_handler_get_type (void)
 }
 
 const gchar *
-wocky_sasl_handler_get_mechanism (WockySaslHandler *handler)
+wocky_auth_handler_get_mechanism (WockyAuthHandler *handler)
 {
-  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->mechanism;
+  return WOCKY_AUTH_HANDLER_GET_IFACE (handler)->mechanism;
 }
 
 gboolean
-wocky_sasl_handler_is_plain (WockySaslHandler *handler)
+wocky_auth_handler_is_plain (WockyAuthHandler *handler)
 {
-  return WOCKY_SASL_HANDLER_GET_IFACE (handler)->plain;
+  return WOCKY_AUTH_HANDLER_GET_IFACE (handler)->plain;
 }
 
 gboolean
-wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
+wocky_auth_handler_get_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error)
 {
-  WockySaslInitialResponseFunc func =
-    WOCKY_SASL_HANDLER_GET_IFACE (handler)->initial_response_func;
+  WockyAuthInitialResponseFunc func =
+    WOCKY_AUTH_HANDLER_GET_IFACE (handler)->initial_response_func;
 
   g_assert (initial_data != NULL);
   *initial_data = NULL;
@@ -62,14 +62,14 @@ wocky_sasl_handler_get_initial_response (WockySaslHandler *handler,
 }
 
 gboolean
-wocky_sasl_handler_handle_auth_data (
-    WockySaslHandler *handler,
+wocky_auth_handler_handle_auth_data (
+    WockyAuthHandler *handler,
     const GString *data,
     GString **response,
     GError **error)
 {
-  WockySaslAuthDataFunc func =
-    WOCKY_SASL_HANDLER_GET_IFACE (handler)->auth_data_func;
+  WockyAuthAuthDataFunc func =
+    WOCKY_AUTH_HANDLER_GET_IFACE (handler)->auth_data_func;
 
   g_assert (response != NULL);
   *response = NULL;
@@ -86,12 +86,12 @@ wocky_sasl_handler_handle_auth_data (
 }
 
 gboolean
-wocky_sasl_handler_handle_success (
-    WockySaslHandler *handler,
+wocky_auth_handler_handle_success (
+    WockyAuthHandler *handler,
     GError **error)
 {
-  WockySaslSuccessFunc func =
-    WOCKY_SASL_HANDLER_GET_IFACE (handler)->success_func;
+  WockyAuthSuccessFunc func =
+    WOCKY_AUTH_HANDLER_GET_IFACE (handler)->success_func;
 
   if (func == NULL)
     return TRUE;

@@ -1216,7 +1216,6 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
           {
             gchar *txt = va_arg (ap, gchar *);
 
-            g_assert (txt != NULL);
             wocky_node_set_content (stack->data, txt);
           }
           break;

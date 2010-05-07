@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 typedef enum {
@@ -15,11 +15,11 @@ typedef enum {
 } WockySaslDigestMd5State;
 
 static void
-sasl_handler_iface_init (gpointer g_iface);
+auth_handler_iface_init (gpointer g_iface);
 
 G_DEFINE_TYPE_WITH_CODE (WockySaslDigestMd5, wocky_sasl_digest_md5,
     G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (
-        WOCKY_TYPE_SASL_HANDLER, sasl_handler_iface_init))
+        WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 enum
 {
@@ -135,19 +135,19 @@ wocky_sasl_digest_md5_class_init (
 }
 
 static gboolean
-digest_md5_handle_auth_data (WockySaslHandler *handler,
+digest_md5_handle_auth_data (WockyAuthHandler *handler,
     const GString *data, GString **response, GError **error);
 
 static gboolean
-digest_md5_handle_success (WockySaslHandler *handler,
+digest_md5_handle_success (WockyAuthHandler *handler,
     GError **error);
 
 static void
-sasl_handler_iface_init (gpointer g_iface)
+auth_handler_iface_init (gpointer g_iface)
 {
-  WockySaslHandlerIface *iface = g_iface;
+  WockyAuthHandlerIface *iface = g_iface;
 
-  iface->mechanism = "DIGEST-MD5";
+  iface->mechanism = MECH_SASL_DIGEST_MD5;
   iface->plain = FALSE;
   iface->auth_data_func = digest_md5_handle_auth_data;
   iface->success_func = digest_md5_handle_success;
@@ -476,7 +476,7 @@ auth_data_to_hash (const GString *challenge, GError **error)
 }
 
 static gboolean
-digest_md5_handle_auth_data (WockySaslHandler *handler,
+digest_md5_handle_auth_data (WockyAuthHandler *handler,
     const GString *data,
     GString **response,
     GError **error)
@@ -518,7 +518,7 @@ digest_md5_handle_auth_data (WockySaslHandler *handler,
 }
 
 static gboolean
-digest_md5_handle_success (WockySaslHandler *handler,
+digest_md5_handle_success (WockyAuthHandler *handler,
     GError **error)
 {
   WockySaslDigestMd5 *self = WOCKY_SASL_DIGEST_MD5 (handler);

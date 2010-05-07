@@ -1,14 +1,14 @@
 
 #include "wocky-test-sasl-handler.h"
 
-#include <wocky/wocky-sasl-handler.h>
+#include <wocky/wocky-auth-handler.h>
 
 static void
-sasl_handler_iface_init (gpointer g_iface);
+auth_handler_iface_init (gpointer g_iface);
 
 G_DEFINE_TYPE_WITH_CODE (WockyTestSaslHandler, wocky_test_sasl_handler,
     G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_SASL_HANDLER, sasl_handler_iface_init))
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 static void
 wocky_test_sasl_handler_class_init (WockyTestSaslHandlerClass *klass)
@@ -21,14 +21,14 @@ wocky_test_sasl_handler_init (WockyTestSaslHandler *self)
 }
 
 static gboolean
-test_initial_response (WockySaslHandler *handler,
+test_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error);
 
 static void
-sasl_handler_iface_init (gpointer g_iface)
+auth_handler_iface_init (gpointer g_iface)
 {
-  WockySaslHandlerIface *iface = g_iface;
+  WockyAuthHandlerIface *iface = g_iface;
 
   iface->mechanism = "X-TEST";
   iface->plain = FALSE;
@@ -42,7 +42,7 @@ wocky_test_sasl_handler_new (void)
 }
 
 static gboolean
-test_initial_response (WockySaslHandler *handler,
+test_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error)
 {

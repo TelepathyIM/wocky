@@ -3,14 +3,14 @@
 
 #include "wocky-auth-registry.h"
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 static void
-sasl_handler_iface_init (gpointer g_iface);
+auth_handler_iface_init (gpointer g_iface);
 
 G_DEFINE_TYPE_WITH_CODE (WockySaslPlain, wocky_sasl_plain, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_SASL_HANDLER, sasl_handler_iface_init))
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 enum
 {
@@ -104,16 +104,16 @@ wocky_sasl_plain_class_init (WockySaslPlainClass *klass)
 }
 
 static gboolean
-plain_initial_response (WockySaslHandler *handler,
+plain_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error);
 
 static void
-sasl_handler_iface_init (gpointer g_iface)
+auth_handler_iface_init (gpointer g_iface)
 {
-  WockySaslHandlerIface *iface = g_iface;
+  WockyAuthHandlerIface *iface = g_iface;
 
-  iface->mechanism = "PLAIN";
+  iface->mechanism = MECH_SASL_PLAIN;
   iface->plain = TRUE;
   iface->initial_response_func = plain_initial_response;
 }
@@ -147,7 +147,7 @@ plain_generate_initial_response (const gchar *username, const gchar *password)
 }
 
 static gboolean
-plain_initial_response (WockySaslHandler *handler,
+plain_initial_response (WockyAuthHandler *handler,
     GString **initial_data,
     GError **error)
 {

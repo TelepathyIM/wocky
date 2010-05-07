@@ -28,8 +28,9 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
+#include "wocky-xmpp-error-enumtypes.h"
 
-#define DEBUG_FLAG DEBUG_SASL
+#define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"
 
 G_DEFINE_TYPE(WockySaslAuth, wocky_sasl_auth, G_TYPE_OBJECT)
@@ -192,9 +193,10 @@ wocky_sasl_auth_dispose (GObject *object)
   WockySaslAuthPrivate *priv = self->priv;
 
   if (priv->connection != NULL)
-    {
-      g_object_unref (priv->connection);
-    }
+    g_object_unref (priv->connection);
+
+  if (priv->auth_registry != NULL)
+    g_object_unref (priv->auth_registry);
 
   if (G_OBJECT_CLASS (wocky_sasl_auth_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_sasl_auth_parent_class)->dispose (object);
@@ -277,12 +279,6 @@ static gboolean
 stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 {
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
-  WockyNode *xmpp = NULL;
-  GSList *item = NULL;
-  const gchar *msg = NULL;
-  const gchar *err = NULL;
-  WockyNode *cond = NULL;
-  WockyNode *text = NULL;
 
   if (stanza == NULL)
     {
@@ -294,31 +290,17 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
-      xmpp = wocky_stanza_get_top_node (stanza);
-      for (item = xmpp->children; item != NULL; item = g_slist_next (item))
-        {
-          WockyNode *child = item->data;
-          const gchar *cns = wocky_node_get_ns (child);
+      GError *error;
 
-          if (wocky_strdiff (cns, WOCKY_XMPP_NS_STREAMS))
-            continue;
+      error = wocky_xmpp_stream_error_from_node (
+          wocky_stanza_get_top_node (stanza));
 
-          if (!wocky_strdiff (child->name, "text"))
-            text = child;
-          else
-            cond = child;
-        }
+      auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s",
+          wocky_enum_to_nick (WOCKY_TYPE_XMPP_STREAM_ERROR, error->code),
+          error->message);
 
-      if (text != NULL)
-        msg = text->content;
-      else if (cond != NULL)
-        msg = cond->name;
-      else
-        msg = "-";
+      g_error_free (error);
 
-      err = (cond != NULL) ? cond->name : "unknown-error";
-
-      auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s", err, msg);
       return TRUE;
     }
 
@@ -683,7 +665,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     {
       g_simple_async_report_error_in_idle (G_OBJECT (sasl),
           callback, user_data,
-          WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_SASL_NOT_SUPPORTED,
+          WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_SUPPORTED,
           "Server doesn't have any sasl mechanisms");
       goto out;
     }
@@ -692,7 +674,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     callback, user_data, wocky_sasl_auth_authenticate_finish);
 
   wocky_auth_registry_start_auth_async (priv->auth_registry, mechanisms,
-      allow_plain, TRUE, priv->username, priv->password, priv->server,
+      allow_plain, TRUE, priv->username, priv->password, priv->server, NULL,
       wocky_sasl_auth_start_cb, sasl);
 
 out:
