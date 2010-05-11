@@ -598,11 +598,10 @@ wocky_sasl_auth_start_cb (GObject *source_object,
   WockySaslAuthPrivate *priv = self->priv;
   WockyStanza *stanza;
   GError *error = NULL;
-  GString *initial_response = NULL;
-  gchar *mechanism = NULL;
+  WockyAuthRegistryStartData *start_data = NULL;
 
   if (!wocky_auth_registry_start_auth_finish (priv->auth_registry, res,
-          &mechanism, &initial_response, &error))
+          &start_data, &error))
     {
       auth_failed (self, error->code, error->message);
       g_error_free (error);
@@ -615,28 +614,27 @@ wocky_sasl_auth_start_cb (GObject *source_object,
   wocky_node_set_attribute_ns (wocky_stanza_get_top_node (stanza),
       "client-uses-full-bind-result", "true", WOCKY_GOOGLE_NS_AUTH);
 
-  if (initial_response != NULL)
+  if (start_data->initial_response != NULL)
     {
       gchar *initial_response_str = wocky_sasl_auth_encode_response (
-          initial_response);
+          start_data->initial_response);
 
       wocky_node_set_content (
         wocky_stanza_get_top_node (stanza),
         initial_response_str);
 
       g_free (initial_response_str);
-      g_string_free (initial_response, TRUE);
     }
 
   /* FIXME handle send error */
   wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
-    "mechanism", mechanism);
+    "mechanism", start_data->mechanism);
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
     NULL, NULL, NULL);
   wocky_xmpp_connection_recv_stanza_async (priv->connection,
     NULL, sasl_auth_stanza_received, self);
 
-  g_free (mechanism);
+  wocky_auth_registry_start_data_free (start_data);
 }
 
 /* Initiate sasl auth. features should contain the stream features stanza as

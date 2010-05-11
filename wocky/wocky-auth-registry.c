@@ -160,12 +160,45 @@ wocky_auth_registry_free_response (GString *response)
 }
 
 static GString *
-wocky_auth_registry_copy_response (GString *response)
+wocky_auth_registry_copy_response (const GString *response)
 {
   if (response == NULL)
     return NULL;
 
   return g_string_new_len (response->str, response->len);
+}
+
+WockyAuthRegistryStartData *
+wocky_auth_registry_start_data_new (const gchar *mechanism,
+    const GString *initial_response)
+{
+  WockyAuthRegistryStartData *start_data = g_slice_new0 (
+      WockyAuthRegistryStartData);
+
+  start_data->mechanism = g_strdup (mechanism);
+  start_data->initial_response = wocky_auth_registry_copy_response (
+      initial_response);
+
+  return start_data;
+}
+
+WockyAuthRegistryStartData *
+wocky_auth_registry_start_data_dup (WockyAuthRegistryStartData *start_data)
+{
+  return wocky_auth_registry_start_data_new (
+      start_data->mechanism,
+      start_data->initial_response);
+}
+
+void
+wocky_auth_registry_start_data_free (WockyAuthRegistryStartData *start_data)
+{
+  g_free (start_data->mechanism);
+
+  if (start_data->initial_response != NULL)
+    g_string_free (start_data->initial_response, TRUE);
+
+  g_slice_free (WockyAuthRegistryStartData, start_data);
 }
 
 static WockyAuthHandler *
@@ -260,8 +293,15 @@ wocky_auth_registry_start_auth_func (WockyAuthRegistry *self,
         }
       else
         {
-          g_simple_async_result_set_op_res_gpointer (result, initial_data,
-              (GDestroyNotify) wocky_auth_registry_free_response);
+          WockyAuthRegistryStartData *start_data =
+            wocky_auth_registry_start_data_new (
+                wocky_auth_handler_get_mechanism (priv->handler),
+                initial_data);
+
+          g_simple_async_result_set_op_res_gpointer (result, start_data,
+              (GDestroyNotify) wocky_auth_registry_start_data_free);
+
+          wocky_auth_registry_free_response (initial_data);
         }
     }
 
@@ -294,30 +334,14 @@ wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
 
 gboolean
 wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
-    GAsyncResult *res,
-    gchar **mechanism,
-    GString **initial_data,
+    GAsyncResult *result,
+    WockyAuthRegistryStartData **start_data,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
-          wocky_auth_registry_start_auth_finish), FALSE);
-
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
-
-  g_assert (self->handler != NULL);
-
-  if (mechanism != NULL)
-    *mechanism = g_strdup (wocky_auth_handler_get_mechanism (self->handler));
-
-  if (initial_data != NULL)
-    *initial_data = wocky_auth_registry_copy_response (
-        g_simple_async_result_get_op_res_gpointer (result));
-
-  return TRUE;
+  wocky_implement_finish_copy_pointer (self,
+      wocky_auth_registry_start_auth_finish,
+      wocky_auth_registry_start_data_dup,
+      start_data);
 }
 
 static void

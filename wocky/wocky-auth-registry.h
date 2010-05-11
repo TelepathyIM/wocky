@@ -44,6 +44,11 @@ typedef enum
 #define MECH_SASL_DIGEST_MD5 "DIGEST-MD5"
 #define MECH_SASL_PLAIN "PLAIN"
 
+typedef struct {
+  gchar *mechanism;
+  GString *initial_response;
+} WockyAuthRegistryStartData;
+
 #define WOCKY_TYPE_AUTH_REGISTRY wocky_auth_registry_get_type()
 
 #define WOCKY_AUTH_REGISTRY(obj) \
@@ -119,9 +124,8 @@ void wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     gpointer user_data);
 
 gboolean wocky_auth_registry_start_auth_finish (WockyAuthRegistry *self,
-    GAsyncResult *res,
-    gchar **mechanism,
-    GString **initial_response,
+    GAsyncResult *result,
+    WockyAuthRegistryStartData **start_data,
     GError **error);
 
 void wocky_auth_registry_challenge_async (WockyAuthRegistry *self,
@@ -144,6 +148,16 @@ gboolean wocky_auth_registry_success_finish (WockyAuthRegistry *self,
 
 void wocky_auth_registry_add_handler (WockyAuthRegistry *self,
     WockyAuthHandler *handler);
+
+void wocky_auth_registry_start_data_free (
+    WockyAuthRegistryStartData *start_data);
+
+WockyAuthRegistryStartData * wocky_auth_registry_start_data_new (
+    const gchar *mechanism,
+    const GString *initial_response);
+
+WockyAuthRegistryStartData * wocky_auth_registry_start_data_dup (
+    WockyAuthRegistryStartData *start_data);
 
 G_END_DECLS
 
