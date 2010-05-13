@@ -15,7 +15,7 @@ test_timeout_cb (gpointer data)
 }
 
 test_data_t *
-setup_test (void)
+setup_test_with_timeout (guint timeout)
 {
   test_data_t *data;
 
@@ -38,6 +38,12 @@ setup_test (void)
   data->timeout_id = g_timeout_add_seconds (timeout, test_timeout_cb, NULL);
 
   return data;
+}
+
+test_data_t *
+setup_test (void)
+{
+  return setup_test_with_timeout (TIMEOUT);
 }
 
 void
