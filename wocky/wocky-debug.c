@@ -28,7 +28,8 @@ static GDebugKey keys[] = {
   { "roster",            DEBUG_ROSTER            },
   { "tls",               DEBUG_TLS               },
   { "pubsub",            DEBUG_PUBSUB            },
-  { "dataform",          DEBUG_DATA_FORM        },
+  { "dataform",          DEBUG_DATA_FORM         },
+  { "ping",              DEBUG_PING              },
   { 0, },
 };
 
