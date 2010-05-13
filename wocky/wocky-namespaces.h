@@ -124,6 +124,9 @@
 #define WOCKY_XMPP_NS_PUBSUB_ERRORS \
   WOCKY_XMPP_NS_PUBSUB "#errors"
 
+#define WOCKY_XMPP_NS_PING \
+  "urn:xmpp:ping"
+
 #define WOCKY_NS_MUC \
   "http://jabber.org/protocol/muc"
 
