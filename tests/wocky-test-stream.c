@@ -273,7 +273,7 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
     gsize towrite;
 
     if (self->mode == WOCK_TEST_STREAM_READ_COMBINE_SLICE && self->offset == 0)
-      towrite = MIN (count - written, self->out_array->len/2);
+      towrite = MIN (count - written, MAX (self->out_array->len/2, 1));
     else
       towrite = MIN (count - written, self->out_array->len - self->offset);
 
