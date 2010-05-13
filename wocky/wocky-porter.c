@@ -66,6 +66,7 @@ enum
     REMOTE_CLOSED,
     REMOTE_ERROR,
     CLOSING,
+    SENDING,
     LAST_SIGNAL
 };
 
@@ -477,6 +478,19 @@ wocky_porter_class_init (
       G_TYPE_NONE, 0);
 
   /**
+   * WockyPorter::sending:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::writing signal is emitted whenever #WockyPorter sends data
+   * on the XMPP connection.
+   */
+  signals[SENDING] = g_signal_new ("sending",
+      G_OBJECT_CLASS_TYPE (wocky_porter_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+
+  /**
    * WockyPorter:connection:
    *
    * The underlying #WockyXmppConnection wrapped by the #WockyPorter
@@ -595,6 +609,8 @@ send_head_stanza (WockyPorter *self)
 
   wocky_xmpp_connection_send_stanza_async (priv->connection,
       elem->stanza, elem->cancellable, send_stanza_cb, self);
+
+  g_signal_emit (self, signals[SENDING], 0);
 }
 
 static void
