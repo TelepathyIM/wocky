@@ -92,6 +92,9 @@ typedef void (*WockyAuthRegistryChallengeFunc) (WockyAuthRegistry *self,
 typedef void (*WockyAuthRegistrySuccessFunc) (WockyAuthRegistry *self,
     GSimpleAsyncResult *result);
 
+typedef void (*WockyAuthRegistryFailureFunc) (WockyAuthRegistry *self,
+    GError *error);
+
 struct _WockyAuthRegistry
 {
   GObject parent;
@@ -106,6 +109,7 @@ struct _WockyAuthRegistryClass
   WockyAuthRegistryStartAuthFunc start_auth_func;
   WockyAuthRegistryChallengeFunc challenge_func;
   WockyAuthRegistrySuccessFunc success_func;
+  WockyAuthRegistryFailureFunc failure_func;
 };
 
 GType wocky_auth_registry_get_type (void) G_GNUC_CONST;
@@ -158,6 +162,9 @@ WockyAuthRegistryStartData * wocky_auth_registry_start_data_new (
 
 WockyAuthRegistryStartData * wocky_auth_registry_start_data_dup (
     WockyAuthRegistryStartData *start_data);
+
+void wocky_auth_registry_failure (WockyAuthRegistry *self,
+    GError *error);
 
 G_END_DECLS
 

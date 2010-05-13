@@ -128,6 +128,7 @@ wocky_auth_registry_class_init (WockyAuthRegistryClass *klass)
   klass->start_auth_func = wocky_auth_registry_start_auth_func;
   klass->challenge_func = wocky_auth_registry_challenge_func;
   klass->success_func = wocky_auth_registry_success_func;
+  klass->failure_func = NULL;
 }
 
 static void
@@ -419,6 +420,16 @@ wocky_auth_registry_success_finish (WockyAuthRegistry *self,
     GError **error)
 {
   wocky_implement_finish_void (self, wocky_auth_registry_success_finish);
+}
+
+void
+wocky_auth_registry_failure (WockyAuthRegistry *self,
+    GError *error)
+{
+  WockyAuthRegistryClass *cls = WOCKY_AUTH_REGISTRY_GET_CLASS (self);
+
+  if (cls->failure_func != NULL)
+    cls->failure_func (self, error);
 }
 
 void

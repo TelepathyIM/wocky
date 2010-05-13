@@ -341,7 +341,17 @@ wocky_jabber_auth_authenticate_finish (WockyJabberAuth *self,
   GAsyncResult *result,
   GError **error)
 {
-  wocky_implement_finish_void (self, wocky_jabber_auth_authenticate_finish);
+  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
+      error))
+    {
+      wocky_auth_registry_failure (self->priv->auth_registry, *error);
+      return FALSE;
+    }
+
+  g_return_val_if_fail (g_simple_async_result_is_valid (result,
+    G_OBJECT (self), wocky_jabber_auth_authenticate_finish), FALSE);
+
+  return TRUE;
 }
 
 static void

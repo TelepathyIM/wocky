@@ -581,7 +581,10 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
 {
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
-    return FALSE;
+    {
+      wocky_auth_registry_failure (sasl->priv->auth_registry, *error);
+      return FALSE;
+    }
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (sasl), wocky_sasl_auth_authenticate_finish), FALSE);
