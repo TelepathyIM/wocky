@@ -152,22 +152,6 @@ wocky_auth_registry_has_mechanism (const GSList *list, const gchar *mech) {
   return (t != NULL);
 }
 
-static void
-wocky_auth_registry_free_response (GString *response)
-{
-  if (response != NULL)
-    g_string_free (response, TRUE);
-}
-
-static GString *
-wocky_auth_registry_copy_response (const GString *response)
-{
-  if (response == NULL)
-    return NULL;
-
-  return g_string_new_len (response->str, response->len);
-}
-
 WockyAuthRegistryStartData *
 wocky_auth_registry_start_data_new (const gchar *mechanism,
     const GString *initial_response)
@@ -176,8 +160,7 @@ wocky_auth_registry_start_data_new (const gchar *mechanism,
       WockyAuthRegistryStartData);
 
   start_data->mechanism = g_strdup (mechanism);
-  start_data->initial_response = wocky_auth_registry_copy_response (
-      initial_response);
+  start_data->initial_response = wocky_g_string_dup (initial_response);
 
   return start_data;
 }
@@ -301,7 +284,7 @@ wocky_auth_registry_start_auth_func (WockyAuthRegistry *self,
           g_simple_async_result_set_op_res_gpointer (result, start_data,
               (GDestroyNotify) wocky_auth_registry_start_data_free);
 
-          wocky_auth_registry_free_response (initial_data);
+          wocky_g_string_free (initial_data);
         }
     }
 
@@ -364,7 +347,7 @@ wocky_auth_registry_challenge_func (WockyAuthRegistry *self,
   else
     {
       g_simple_async_result_set_op_res_gpointer (result, response,
-          (GDestroyNotify) wocky_auth_registry_free_response);
+          (GDestroyNotify) wocky_g_string_free);
     }
 
   g_simple_async_result_complete_in_idle (result);
@@ -393,7 +376,7 @@ wocky_auth_registry_challenge_finish (WockyAuthRegistry *self,
 {
   wocky_implement_finish_copy_pointer (self,
       wocky_auth_registry_challenge_finish,
-      wocky_auth_registry_copy_response,
+      wocky_g_string_dup,
       response);
 }
 

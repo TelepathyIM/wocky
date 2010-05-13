@@ -681,3 +681,19 @@ wocky_list_deep_copy (GBoxedCopyFunc copy,
 
   return g_list_reverse (ret);
 }
+
+GString *
+wocky_g_string_dup (const GString *str)
+{
+  if (str == NULL)
+    return NULL;
+
+  return g_string_new_len (str->str, str->len);
+}
+
+void
+wocky_g_string_free (GString *str)
+{
+  if (str != NULL)
+    g_string_free (str, TRUE);
+}
