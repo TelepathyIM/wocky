@@ -21,6 +21,7 @@ typedef struct {
   WockyTestStream *stream;
   guint outstanding;
   GCancellable *cancellable;
+  gulong timeout_id;
 } test_data_t;
 
 test_data_t * setup_test (void);
