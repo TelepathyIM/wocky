@@ -102,7 +102,9 @@ HANDWRITTEN_SOURCES = \
   wocky-jabber-auth-digest.c \
   wocky-jabber-auth-digest.h \
   wocky-jabber-auth-password.c \
-  wocky-jabber-auth-password.h
+  wocky-jabber-auth-password.h \
+  wocky-ping.c \
+  wocky-ping.h
 
 
 if USING_OPENSSL
