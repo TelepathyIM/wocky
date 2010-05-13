@@ -97,6 +97,7 @@ tests/wocky-pep-service-test
 tests/wocky-data-forms-test
 tests/wocky-pubsub-node-test
 tests/wocky-pubsub-service-test
+tests/wocky-ping-test
 tests/*report.xml
 
 # tests/certs/ca-0-cert.pem
