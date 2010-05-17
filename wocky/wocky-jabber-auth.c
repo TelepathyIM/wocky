@@ -259,11 +259,12 @@ auth_succeeded (WockyJabberAuth *self)
 }
 
 static void
-auth_failed (WockyJabberAuth *self, gint error, const gchar *format, ...)
+auth_failed (WockyJabberAuth *self, gint code, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
   GSimpleAsyncResult *r;
+  GError *error;
   WockyJabberAuthPrivate *priv = self->priv;
 
   auth_reset (self);
@@ -277,12 +278,16 @@ auth_failed (WockyJabberAuth *self, gint error, const gchar *format, ...)
   r = priv->result;
   priv->result = NULL;
 
-  g_simple_async_result_set_error (r,
-    WOCKY_AUTH_ERROR, error, "%s", message);
+  error = g_error_new_literal (WOCKY_AUTH_ERROR, code, message);
+
+  g_simple_async_result_set_from_error (r, error);
+
+  wocky_auth_registry_failure (priv->auth_registry, error);
 
   g_simple_async_result_complete (r);
   g_object_unref (r);
 
+  g_error_free (error);
   g_free (message);
 }
 
@@ -341,17 +346,7 @@ wocky_jabber_auth_authenticate_finish (WockyJabberAuth *self,
   GAsyncResult *result,
   GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    {
-      wocky_auth_registry_failure (self->priv->auth_registry, *error);
-      return FALSE;
-    }
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_jabber_auth_authenticate_finish), FALSE);
-
-  return TRUE;
+  wocky_implement_finish_void (self, wocky_jabber_auth_authenticate_finish);
 }
 
 static void

@@ -248,11 +248,12 @@ auth_succeeded (WockySaslAuth *sasl)
 }
 
 static void
-auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
+auth_failed (WockySaslAuth *sasl, gint code, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
   GSimpleAsyncResult *r;
+  GError *error;
   WockySaslAuthPrivate *priv = sasl->priv;
 
   auth_reset (sasl);
@@ -266,12 +267,16 @@ auth_failed (WockySaslAuth *sasl, gint error, const gchar *format, ...)
   r = priv->result;
   priv->result = NULL;
 
-  g_simple_async_result_set_error (r,
-    WOCKY_AUTH_ERROR, error, "%s", message);
+  error = g_error_new_literal (WOCKY_AUTH_ERROR, code, message);
+
+  g_simple_async_result_set_from_error (r, error);
+
+  wocky_auth_registry_failure (priv->auth_registry, error);
 
   g_simple_async_result_complete (r);
   g_object_unref (r);
 
+  g_error_free (error);
   g_free (message);
 }
 
@@ -581,10 +586,7 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
 {
   if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
       error))
-    {
-      wocky_auth_registry_failure (sasl->priv->auth_registry, *error);
-      return FALSE;
-    }
+    return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (sasl), wocky_sasl_auth_authenticate_finish), FALSE);
