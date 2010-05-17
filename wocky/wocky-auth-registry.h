@@ -86,14 +86,31 @@ typedef void (*WockyAuthRegistryStartAuthAsyncFunc) (WockyAuthRegistry *self,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
+typedef gboolean (*WockyAuthRegistryStartAuthFinishFunc) (
+    WockyAuthRegistry *self,
+    GAsyncResult *result,
+    WockyAuthRegistryStartData **start_data,
+    GError **error);
+
 typedef void (*WockyAuthRegistryChallengeAsyncFunc) (WockyAuthRegistry *self,
     const GString *challenge_data,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
+typedef gboolean (*WockyAuthRegistryChallengeFinishFunc) (
+    WockyAuthRegistry *self,
+    GAsyncResult *result,
+    GString **response,
+    GError **error);
+
 typedef void (*WockyAuthRegistrySuccessAsyncFunc) (WockyAuthRegistry *self,
     GAsyncReadyCallback callback,
     gpointer user_data);
+
+typedef gboolean (*WockyAuthRegistrySuccessFinishFunc) (
+    WockyAuthRegistry *self,
+    GAsyncResult *result,
+    GError **error);
 
 typedef void (*WockyAuthRegistryFailureFunc) (WockyAuthRegistry *self,
     GError *error);
@@ -110,8 +127,14 @@ struct _WockyAuthRegistryClass
   GObjectClass parent_class;
 
   WockyAuthRegistryStartAuthAsyncFunc start_auth_async_func;
+  WockyAuthRegistryStartAuthFinishFunc start_auth_finish_func;
+
   WockyAuthRegistryChallengeAsyncFunc challenge_async_func;
+  WockyAuthRegistryChallengeFinishFunc challenge_finish_func;
+
   WockyAuthRegistrySuccessAsyncFunc success_async_func;
+  WockyAuthRegistrySuccessFinishFunc success_finish_func;
+
   WockyAuthRegistryFailureFunc failure_func;
 };
 
