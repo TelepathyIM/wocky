@@ -584,14 +584,7 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (sasl), wocky_sasl_auth_authenticate_finish), FALSE);
-
-  return TRUE;
+  wocky_implement_finish_void (sasl, wocky_sasl_auth_authenticate_finish);
 }
 
 static void
