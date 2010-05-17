@@ -75,6 +75,14 @@ typedef struct _WockyAuthRegistry WockyAuthRegistry;
 typedef struct _WockyAuthRegistryClass WockyAuthRegistryClass;
 typedef struct _WockyAuthRegistryPrivate WockyAuthRegistryPrivate;
 
+/**
+ * WockyAuthRegistryStartAuthAsyncFunc:
+ *
+ * Starts a async authentication: chooses mechanism and gets initial data.
+ * The default function chooses a #WockyAuthHandler by which mechanism it
+ * supports and gets the initial data from the chosen handler.
+ *
+ **/
 typedef void (*WockyAuthRegistryStartAuthAsyncFunc) (WockyAuthRegistry *self,
     const GSList *mechanisms,
     gboolean allow_plain,
@@ -86,32 +94,76 @@ typedef void (*WockyAuthRegistryStartAuthAsyncFunc) (WockyAuthRegistry *self,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
+/**
+ * WockyAuthRegistryStartAuthFinishFunc:
+ *
+ * Called to finish the GAsyncResult task for authentication start. By default,  * it extracts a #WockyAuthRegistryStartData pointer from a given
+ * #GSimpleAsyncResult and copies it to the out param.
+ *
+ **/
 typedef gboolean (*WockyAuthRegistryStartAuthFinishFunc) (
     WockyAuthRegistry *self,
     GAsyncResult *result,
     WockyAuthRegistryStartData **start_data,
     GError **error);
 
+/**
+ * WockyAuthRegistryChallengeAsyncFunc:
+ *
+ * Recieves a challenge and asynchronously provides a reply. By default the
+ * challenge is passed on to the chosen #WockyAuthHandler.
+ *
+ **/
 typedef void (*WockyAuthRegistryChallengeAsyncFunc) (WockyAuthRegistry *self,
     const GString *challenge_data,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
+/**
+ * WockyAuthRegistryChallengeFinishFunc:
+ *
+ * Finishes a GAsyncResult from #WockyAuthRegistryChallengeAsyncFunc. By
+ * default it extracts a #GString response from the given #GSimpleAsyncResult
+ * and copies it to the out param.
+ *
+ **/
 typedef gboolean (*WockyAuthRegistryChallengeFinishFunc) (
     WockyAuthRegistry *self,
     GAsyncResult *result,
     GString **response,
     GError **error);
 
+/**
+ * WockyAuthRegistrySuccessAsyncFunc:
+ *
+ * Notifies the registry of authentication success, and allows a last ditch
+ * attempt at aborting the authentication at the client's discretion.
+ *
+ **/
 typedef void (*WockyAuthRegistrySuccessAsyncFunc) (WockyAuthRegistry *self,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
+/**
+ * WockyAuthRegistrySuccessFinishFunc:
+ *
+ * Finishes a GAsyncResult from #WockyAuthRegistrySuccessAsyncFunc. It checks
+ * for any errors set on the given #GSimpleAsyncResult, copies the #GError to
+ * an out param and returns FALSE if there was an error.
+ *
+ **/
 typedef gboolean (*WockyAuthRegistrySuccessFinishFunc) (
     WockyAuthRegistry *self,
     GAsyncResult *result,
     GError **error);
 
+/**
+ * WockyAuthRegistryFailureFunc:
+ *
+ * Notifies the client of a server-side error. By default this is not
+ * implemented.
+ *
+ **/
 typedef void (*WockyAuthRegistryFailureFunc) (WockyAuthRegistry *self,
     GError *error);
 
