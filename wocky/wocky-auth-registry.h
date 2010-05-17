@@ -75,7 +75,7 @@ typedef struct _WockyAuthRegistry WockyAuthRegistry;
 typedef struct _WockyAuthRegistryClass WockyAuthRegistryClass;
 typedef struct _WockyAuthRegistryPrivate WockyAuthRegistryPrivate;
 
-typedef void (*WockyAuthRegistryStartAuthFunc) (WockyAuthRegistry *self,
+typedef void (*WockyAuthRegistryStartAuthAsyncFunc) (WockyAuthRegistry *self,
     const GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
@@ -83,14 +83,17 @@ typedef void (*WockyAuthRegistryStartAuthFunc) (WockyAuthRegistry *self,
     const gchar *password,
     const gchar *server,
     const gchar *session_id,
-    GSimpleAsyncResult *result);
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
-typedef void (*WockyAuthRegistryChallengeFunc) (WockyAuthRegistry *self,
+typedef void (*WockyAuthRegistryChallengeAsyncFunc) (WockyAuthRegistry *self,
     const GString *challenge_data,
-    GSimpleAsyncResult *result);
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
-typedef void (*WockyAuthRegistrySuccessFunc) (WockyAuthRegistry *self,
-    GSimpleAsyncResult *result);
+typedef void (*WockyAuthRegistrySuccessAsyncFunc) (WockyAuthRegistry *self,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
 
 typedef void (*WockyAuthRegistryFailureFunc) (WockyAuthRegistry *self,
     GError *error);
@@ -106,9 +109,9 @@ struct _WockyAuthRegistryClass
 {
   GObjectClass parent_class;
 
-  WockyAuthRegistryStartAuthFunc start_auth_func;
-  WockyAuthRegistryChallengeFunc challenge_func;
-  WockyAuthRegistrySuccessFunc success_func;
+  WockyAuthRegistryStartAuthAsyncFunc start_auth_async_func;
+  WockyAuthRegistryChallengeAsyncFunc challenge_async_func;
+  WockyAuthRegistrySuccessAsyncFunc success_async_func;
   WockyAuthRegistryFailureFunc failure_func;
 };
 
