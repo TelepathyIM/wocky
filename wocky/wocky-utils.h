@@ -76,12 +76,13 @@ void wocky_g_string_free (GString *str);
  * They should really be in GLib, but let's experiment here first.
  */
 #define wocky_implement_finish_void(source, tag) \
-    GSimpleAsyncResult *_simple; \
+    if (g_simple_async_result_propagate_error (\
+      G_SIMPLE_ASYNC_RESULT (result), error)) \
+      return FALSE; \
     g_return_val_if_fail (g_simple_async_result_is_valid (result, \
-            G_OBJECT (source), tag), \
+            G_OBJECT(source), tag), \
         FALSE); \
-    _simple = (GSimpleAsyncResult *) result; \
-    return !g_simple_async_result_propagate_error (_simple, error);
+    return TRUE;
 
 #define wocky_implement_finish_copy_pointer(source, tag, copy_func, \
     out_param) \
