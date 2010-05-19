@@ -13,6 +13,8 @@
     <title>API Reference</title>
 
     <xi:include href="xml/wocky.xml"/>
+    <xi:include href="xml/wocky-auth-handler.xml"/>
+    <xi:include href="xml/wocky-auth-registry.xml"/>
     <xi:include href="xml/wocky-bare-contact.xml"/>
     <xi:include href="xml/wocky-connector.xml"/>
     <xi:include href="xml/wocky-contact.xml"/>
@@ -20,6 +22,7 @@
     <xi:include href="xml/wocky-data-form.xml"/>
     <xi:include href="xml/wocky-data-form-enumtypes.xml"/>
     <xi:include href="xml/wocky-debug.xml"/>
+    <xi:include href="xml/wocky-jabber-auth.xml"/>
     <xi:include href="xml/wocky-muc.xml"/>
     <xi:include href="xml/wocky-muc-enumtypes.xml"/>
     <xi:include href="xml/wocky-namespaces.xml"/>
@@ -34,7 +37,6 @@
     <xi:include href="xml/wocky-roster.xml"/>
     <xi:include href="xml/wocky-sasl-auth.xml"/>
     <xi:include href="xml/wocky-sasl-digest-md5.xml"/>
-    <xi:include href="xml/wocky-sasl-handler.xml"/>
     <xi:include href="xml/wocky-sasl-plain.xml"/>
     <xi:include href="xml/wocky-session.xml"/>
     <xi:include href="xml/wocky-tls.xml"/>

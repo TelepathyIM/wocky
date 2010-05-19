@@ -63,6 +63,10 @@ gchar *wocky_absolutize_path (const gchar *path);
 
 GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
 
+GString *wocky_g_string_dup (const GString *str);
+
+void wocky_g_string_free (GString *str);
+
 /* These are macros so that the critical message raised by
  * g_return_val_if_fail() contains the actual function name and tag. They
  * magically returns from the function rather than evaluating to a boolean
@@ -72,12 +76,13 @@ GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
  * They should really be in GLib, but let's experiment here first.
  */
 #define wocky_implement_finish_void(source, tag) \
-    GSimpleAsyncResult *_simple; \
+    if (g_simple_async_result_propagate_error (\
+      G_SIMPLE_ASYNC_RESULT (result), error)) \
+      return FALSE; \
     g_return_val_if_fail (g_simple_async_result_is_valid (result, \
-            G_OBJECT (source), tag), \
+            G_OBJECT(source), tag), \
         FALSE); \
-    _simple = (GSimpleAsyncResult *) result; \
-    return !g_simple_async_result_propagate_error (_simple, error);
+    return TRUE;
 
 #define wocky_implement_finish_copy_pointer(source, tag, copy_func, \
     out_param) \

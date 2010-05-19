@@ -259,11 +259,12 @@ auth_succeeded (WockyJabberAuth *self)
 }
 
 static void
-auth_failed (WockyJabberAuth *self, gint error, const gchar *format, ...)
+auth_failed (WockyJabberAuth *self, gint code, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
   GSimpleAsyncResult *r;
+  GError *error;
   WockyJabberAuthPrivate *priv = self->priv;
 
   auth_reset (self);
@@ -277,12 +278,16 @@ auth_failed (WockyJabberAuth *self, gint error, const gchar *format, ...)
   r = priv->result;
   priv->result = NULL;
 
-  g_simple_async_result_set_error (r,
-    WOCKY_AUTH_ERROR, error, "%s", message);
+  error = g_error_new_literal (WOCKY_AUTH_ERROR, code, message);
+
+  g_simple_async_result_set_from_error (r, error);
+
+  wocky_auth_registry_failure (priv->auth_registry, error);
 
   g_simple_async_result_complete (r);
   g_object_unref (r);
 
+  g_error_free (error);
   g_free (message);
 }
 
@@ -465,24 +470,23 @@ wocky_jabber_auth_start_cb (GObject *source,
   WockyXmppConnection *conn = priv->connection;
   gchar *iqid;
   WockyStanza *iq;
-  GString *initial_response = NULL;
-  gchar *mechanism = NULL;
   const gchar *auth_field;
   GError *error = NULL;
+  WockyAuthRegistryStartData *start_data = NULL;
 
   iqid = wocky_xmpp_connection_new_id (conn);
   if (!wocky_auth_registry_start_auth_finish (priv->auth_registry, res,
-          &mechanism, &initial_response, &error))
+          &start_data, &error))
     {
       auth_failed (self, error->code, error->message);
       g_error_free (error);
       return;
     }
 
-  g_assert (initial_response != NULL);
-  g_assert (mechanism != NULL);
+  g_assert (start_data->mechanism != NULL);
+  g_assert (start_data->initial_response != NULL);
 
-  if (g_strcmp0 (mechanism, "X-WOCKY-JABBER-PASSWORD") == 0)
+  if (g_strcmp0 (start_data->mechanism, "X-WOCKY-JABBER-PASSWORD") == 0)
       auth_field = "password";
   else
       auth_field = "digest";
@@ -492,7 +496,7 @@ wocky_jabber_auth_start_cb (GObject *source,
       '@', "id", iqid,
       '(', "query", ':', WOCKY_JABBER_NS_AUTH,
       '(', "username", '$', priv->username, ')',
-      '(', auth_field, '$', initial_response->str, ')',
+      '(', auth_field, '$', start_data->initial_response->str, ')',
       '(', "resource", '$', priv->resource, ')',
       ')',
       NULL);
@@ -501,9 +505,8 @@ wocky_jabber_auth_start_cb (GObject *source,
       jabber_auth_query, self);
 
   g_free (iqid);
-  g_free (mechanism);
   g_object_unref (iq);
-  g_string_free (initial_response, TRUE);
+  wocky_auth_registry_start_data_free (start_data);
 }
 
 static void
