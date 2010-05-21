@@ -383,7 +383,8 @@ wocky_sasl_auth_decode_challenge (const gchar *challenge)
   GString *challenge_data;
   gsize len;
 
-  g_return_val_if_fail (challenge != NULL, NULL);
+  if (challenge == NULL)
+    return g_string_new_len ("", 0);
 
   challenge_str = (gchar *) g_base64_decode (challenge, &len);
 
@@ -397,7 +398,7 @@ wocky_sasl_auth_decode_challenge (const gchar *challenge)
 static gchar *
 wocky_sasl_auth_encode_response (const GString *response_data)
 {
-  if (response_data != NULL)
+  if (response_data != NULL && response_data->len > 0)
     return g_base64_encode ((guchar *) response_data->str,
         response_data->len);
 
