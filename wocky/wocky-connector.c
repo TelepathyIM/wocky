@@ -784,6 +784,7 @@ wocky_connector_dispose (GObject *object)
   UNREF_AND_FORGET (priv->tls_sess);
   UNREF_AND_FORGET (priv->tls);
   UNREF_AND_FORGET (priv->features);
+  UNREF_AND_FORGET (priv->auth_registry);
 
   g_slist_foreach (priv->cas, free_ca_crl_path, NULL);
   g_slist_foreach (priv->crl, free_ca_crl_path, NULL);
