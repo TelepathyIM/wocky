@@ -634,6 +634,7 @@ wocky_sasl_auth_start_cb (GObject *source_object,
     NULL, sasl_auth_stanza_received, self);
 
   wocky_auth_registry_start_data_free (start_data);
+  g_object_unref (stanza);
 }
 
 /* Initiate sasl auth. features should contain the stream features stanza as
