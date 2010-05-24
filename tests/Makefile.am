@@ -225,7 +225,6 @@ check_PROGRAMS = $(TEST_PROGS)
 
 check_c_sources = \
   $(wocky_tls_test_SOURCES) \
-  $(wocky_xmpp_reader_test_SOURCES) \
   $(wocky_xmpp_connection_test_SOURCES) \
   $(wocky_xmpp_readwrite_test_SOURCES) \
   $(wocky_xmpp_reader_test_SOURCES) \
@@ -242,7 +241,8 @@ check_c_sources = \
   $(wocky_pep_service_test_SOURCES) \
   $(wocky_data_form_test_SOURCES) \
   $(wocky_pubsub_service_test_SOURCES) \
-  $(wocky_pubsub_node_test_SOURCES)
+  $(wocky_pubsub_node_test_SOURCES) \
+  $(wocky_ping_test_SOURCES)
 
 
 .PRECIOUS: %.pem
