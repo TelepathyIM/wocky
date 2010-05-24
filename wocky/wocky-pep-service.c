@@ -213,12 +213,23 @@ msg_event_cb (WockyPorter *porter,
   WockyPepServicePrivate *priv = self->priv;
   const gchar *from;
   WockyBareContact *contact;
+  WockyStanzaSubType sub_type;
 
   from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
       "from");
   if (from == NULL)
     {
       DEBUG ("No 'from' attribute; ignoring event");
+      return FALSE;
+    }
+
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
+
+  /* type of the message is supposed to be 'headline' but old ejabberd
+   * omits it */
+  if (sub_type != WOCKY_STANZA_SUB_TYPE_NONE &&
+      sub_type != WOCKY_STANZA_SUB_TYPE_HEADLINE)
+    {
       return FALSE;
     }
 
