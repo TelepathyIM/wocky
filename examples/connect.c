@@ -85,8 +85,8 @@ ssl_features_received_cb (GObject *source,
 
   sasl = wocky_sasl_auth_new (server, username, password, conn, NULL);
 
-  wocky_sasl_auth_authenticate_async (sasl, stanza, TRUE,
-    NULL, auth_done_cb, NULL);
+  wocky_sasl_auth_authenticate_async (sasl, stanza, TRUE, FALSE, NULL,
+      auth_done_cb, NULL);
 }
 
 
