@@ -27,13 +27,12 @@ BUILT_SOURCES = $(built_headers) $(built_sources)
 
 OPENSSL_SRC = \
   wocky-openssl.c \
-  wocky-tls.h \
   wocky-openssl-dh512.c  \
   wocky-openssl-dh1024.c \
   wocky-openssl-dh2048.c \
   wocky-openssl-dh4096.c
 
-GNUTLS_SRC = wocky-tls.c wocky-tls.h
+GNUTLS_SRC = wocky-tls.c
 
 handwritten_headers = \
   wocky.h \
@@ -68,6 +67,7 @@ handwritten_headers = \
   wocky-sasl-plain.h \
   wocky-session.h \
   wocky-stanza.h \
+  wocky-tls.h \
   wocky-types.h \
   wocky-utils.h \
   wocky-xmpp-connection.h \
