@@ -115,6 +115,8 @@ WockyNode *wocky_node_get_child_ns (WockyNode *node,
     const gchar *name, const gchar *ns);
 
 WockyNode *wocky_node_get_first_child (WockyNode *node);
+WockyNode *wocky_node_get_first_child_ns (WockyNode *node,
+    const gchar *ns);
 
 /* Getting content from children */
 const gchar *wocky_node_get_content_from_child (WockyNode *node,

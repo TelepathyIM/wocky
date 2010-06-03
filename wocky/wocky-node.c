@@ -526,9 +526,10 @@ node_compare_child (gconstpointer a, gconstpointer b)
   Tuple *target = (Tuple *) b;
 
   if (target->ns != 0 && target->ns != node->ns)
-    {
-      return 1;
-    }
+    return 1;
+
+  if (target->key == NULL)
+    return 0;
 
   return strcmp (node->name, target->key);
 }
@@ -552,6 +553,9 @@ wocky_node_get_child_ns (WockyNode *node, const gchar *name,
   GSList *link;
   Tuple t;
 
+  /* This secretly works just fine if @name is %NULL, but don't tell anyone!
+   * wocky_node_get_first_child_ns() is what people should be using.
+   * */
   t.key = name;
   t.ns = (ns != NULL ?  g_quark_from_string (ns) : 0);
 
@@ -589,6 +593,27 @@ wocky_node_get_first_child (WockyNode *node)
   g_return_val_if_fail (node != NULL, NULL);
   g_return_val_if_fail (node->children != NULL, NULL);
   return (WockyNode *) node->children->data;
+}
+
+/**
+ * wocky_node_get_first_child_ns:
+ * @node: a #WockyNode
+ * @ns: the namespace of the child node you seek.
+ *
+ * Returns the first child of @node whose namespace is @ns, saving you the
+ * bother of faffing around with a #WockyNodeIter.
+ *
+ * Returns: the first child of @node whose namespace is @ns, or %NULL if none
+ *          is found.
+ */
+WockyNode *
+wocky_node_get_first_child_ns (WockyNode *node,
+    const gchar *ns)
+{
+  g_return_val_if_fail (node != NULL, NULL);
+  g_return_val_if_fail (ns != NULL, NULL);
+
+  return wocky_node_get_child_ns (node, NULL, ns);
 }
 
 /**

@@ -32,14 +32,6 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-xmpp-error.h"
 
-static struct { const gchar *name; WockyMucMsgState state; } msg_state[] =
- { { "active",    WOCKY_MUC_MSG_STATE_ACTIVE   },
-   { "composing", WOCKY_MUC_MSG_STATE_TYPING   },
-   { "inactive",  WOCKY_MUC_MSG_STATE_INACTIVE },
-   { "paused",    WOCKY_MUC_MSG_STATE_PAUSED   },
-   { "gone",      WOCKY_MUC_MSG_STATE_GONE     },
-   { NULL,        WOCKY_MUC_MSG_STATE_NONE     } };
-
 typedef enum {
   SIG_NICK_CHANGE,
   SIG_PERM_CHANGE,
@@ -1382,95 +1374,69 @@ handle_presence (WockyPorter *porter,
 
 /* ************************************************************************ */
 /* handle message from MUC */
-static gboolean
-handle_message (WockyPorter *porter,
-    WockyStanza *stanza,
-    gpointer data)
+
+/* Looks up the sender of a message. If they're not currently a MUC member,
+ * then a temporary structure is created, and @member_is_temporary is set to
+ * %TRUE; the caller needs to free the returned value when they're done with
+ * it.
+ */
+static WockyMucMember *
+get_message_sender (WockyMuc *muc,
+    const gchar *from,
+    gboolean *member_is_temporary)
 {
-  WockyMuc *muc = WOCKY_MUC (data);
   WockyMucPrivate *priv = muc->priv;
-  WockyStanzaSubType stype;
-  WockyNode *msg = wocky_stanza_get_top_node (stanza);
-  const gchar *from = NULL;
-  WockyNode *child = NULL;
-  gboolean from_self = FALSE;
-  int x;
+  WockyMucMember *who = g_hash_table_lookup (priv->members, from);
 
-  time_t stamp = 0;
-  const gchar *id = NULL;
-  const gchar *body = NULL;
-  const gchar *subj = NULL;
-  WockyMucMember *who = NULL;
-  WockyMucMsgType mtype = WOCKY_MUC_MSG_NOTICE;
-  WockyMucMsgState mstate = WOCKY_MUC_MSG_STATE_NONE;
-
-  wocky_stanza_get_type_info (stanza, NULL, &stype);
-
-  /* ***************************************************************** *
-   * HACK: we interrupt this function for a HACK:                      *
-   * google servers send offline messags w/o a type; kludge it:        */
-  if (stype == WOCKY_STANZA_SUB_TYPE_NONE &&
-      wocky_node_get_child_ns (msg, "time", "google:timestamp") != NULL &&
-      wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY) != NULL)
-    stype = WOCKY_STANZA_SUB_TYPE_GROUPCHAT;
-
-  /* ***************************************************************** *
-   * we now return you to your regular logic                           */
-  id = wocky_node_get_attribute (msg, "id");
-  from = wocky_node_get_attribute (msg, "from");
-
-  /* if the message purports to be from a MUC member, treat as such: */
-  if (strchr (from, '/') != NULL)
+  if (who != NULL)
     {
-      who = g_hash_table_lookup (priv->members, from);
-      if (who == NULL)
-        {
-          /* not another member, is it from 'ourselves'? */
-          gchar *from_jid = wocky_normalise_jid (from);
-
-          /* is it from us? fake up a member struct */
-          if (g_str_equal (from_jid, priv->jid))
-            {
-              from_self = TRUE;
-              g_free (from_jid);
-            }
-          else
-            {
-              DEBUG ("Message received from unknown MUC member %s.", from_jid);
-              g_free (from_jid);
-              return FALSE;
-            }
-        }
-
-      /* type must be groupchat, or it is simply a non-MUC message relayed *
-       * by the MUC, and therefore not our responsibility:                 */
-      if (stype != WOCKY_STANZA_SUB_TYPE_GROUPCHAT)
-        {
-          DEBUG ("Non groupchat message from MUC member %s: ignored.", from);
-          return FALSE;
-        }
-
-      if (from_self)
-        {
-          who = alloc_member ();
-          who->from = g_strdup (priv->jid);
-          who->jid  = g_strdup (priv->user);
-          who->nick = g_strdup (priv->nick);
-          who->role = priv->role;
-          who->affiliation = priv->affiliation;
-        }
+      *member_is_temporary = FALSE;
+      return who;
     }
 
-  body = wocky_node_get_content_from_child (msg, "body");
-  subj = wocky_node_get_content_from_child (msg, "subject");
+  /* Okay, it's from someone not currently in the MUC. We'll have to
+   * fake up a structure. */
+  *member_is_temporary = TRUE;
 
-  /* ********************************************************************** */
-  /* parse timestap, if any */
-  child = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
+  who = alloc_member ();
+  who->from = wocky_normalise_jid (from);
 
-  if (child != NULL)
+  if (!wocky_strdiff (who->from, priv->jid))
+  {
+    /* It's from us! */
+    who->jid  = g_strdup (priv->user);
+    who->nick = g_strdup (priv->nick);
+    who->role = priv->role;
+    who->affiliation = priv->affiliation;
+  }
+  /* else, we don't know anything more about the sender.
+   *
+   * FIXME: actually, if the server uses XEP-0203 Delayed Delivery
+   * rather than XEP-0091 Legacy Delayed Delivery, the from=''
+   * attribute of the <delay/> element says who the original JID
+   * actually was. Unfortunately, XEP-0091 said that from='' should be
+   * the bare JID of the MUC, so it's completely useless.
+   *
+   * FIXME: also: we assume here that a delayed message from resource
+   * /blah was sent by the user currently called /blah, but that ain't
+   * necessarily so.
+   */
+
+  return who;
+}
+
+/*
+ * Parse timestamp of delayed messages. For non-delayed, it's 0.
+ */
+static time_t
+extract_timestamp (WockyNode *msg)
+{
+  WockyNode *x = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
+  time_t stamp = 0;
+
+  if (x != NULL)
     {
-      const gchar *tm = wocky_node_get_attribute (child, "stamp");
+      const gchar *tm = wocky_node_get_attribute (x, "stamp");
 
       /* These timestamps do not contain a timezone, but are understood to be
        * in GMT. They're in the format yyyymmddThhmmss, so if we append 'Z'
@@ -1490,28 +1456,93 @@ handle_message (WockyPorter *porter,
         }
     }
 
-  /* ********************************************************************** */
-  /* work out the message type: */
-  if (body != NULL)
+  return stamp;
+}
+
+/* Messages starting with /me are ACTION messages, and the /me should be
+ * removed. type="chat" messages are NORMAL.  Everything else is
+ * something that doesn't necessarily expect a reply or ongoing
+ * conversation ("normal") or has been auto-sent, so we make it NOTICE in
+ * all other cases. */
+static WockyMucMsgType
+determine_message_type (const gchar **body,
+    WockyStanzaSubType sub_type)
+{
+  WockyMucMsgType mtype = WOCKY_MUC_MSG_NOTICE;
+
+  if (*body != NULL)
     {
-      if (g_str_has_prefix (body, "/me "))
+      if (g_str_has_prefix (*body, "/me "))
         {
           mtype = WOCKY_MUC_MSG_ACTION;
-          body += 4;
+          *body += 4;
         }
       else if (g_str_equal (body, "/me"))
         {
           mtype = WOCKY_MUC_MSG_ACTION;
-          body = "";
+          *body = "";
         }
-      else if ((stype == WOCKY_STANZA_SUB_TYPE_GROUPCHAT) ||
-          (stype == WOCKY_STANZA_SUB_TYPE_CHAT))
+      else if ((sub_type == WOCKY_STANZA_SUB_TYPE_GROUPCHAT) ||
+               (sub_type == WOCKY_STANZA_SUB_TYPE_CHAT))
         {
           mtype = WOCKY_MUC_MSG_NORMAL;
         }
     }
 
-  if (stype == WOCKY_STANZA_SUB_TYPE_ERROR)
+  return mtype;
+}
+
+static WockyMucMsgState
+extract_chat_state (WockyNode *msg)
+{
+  WockyNode *child = wocky_node_get_first_child_ns (msg, WOCKY_NS_CHATSTATE);
+  WockyMucMsgState mstate;
+
+  if (child == NULL ||
+      !wocky_enum_from_nick (WOCKY_TYPE_MUC_MSG_STATE, child->name, &mstate))
+    mstate = WOCKY_MUC_MSG_NONE;
+
+  return mstate;
+}
+
+static gboolean
+handle_message (WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer data)
+{
+  WockyMuc *muc = WOCKY_MUC (data);
+  WockyNode *msg = wocky_stanza_get_top_node (stanza);
+  const gchar *id = wocky_node_get_attribute (msg, "id");
+  const gchar *from = wocky_node_get_attribute (msg, "from");
+  const gchar *body = wocky_node_get_content_from_child (msg, "body");
+  const gchar *subj = wocky_node_get_content_from_child (msg, "subject");
+  time_t stamp = extract_timestamp (msg);
+  WockyStanzaSubType sub_type;
+  WockyMucMsgType mtype;
+  WockyMucMember *who = NULL;
+  gboolean member_is_temporary = FALSE;
+
+  wocky_stanza_get_type_info (stanza, NULL, &sub_type);
+
+  /* if the message purports to be from a MUC member, treat as such: */
+  if (strchr (from, '/') != NULL)
+    {
+      who = get_message_sender (muc, from, &member_is_temporary);
+
+      /* If it's a message from a member (as opposed to the MUC itself), and
+       * it's not type='groupchat', then it's a non-MUC message relayed by the
+       * MUC and therefore not our responsibility.
+       */
+      if (sub_type != WOCKY_STANZA_SUB_TYPE_GROUPCHAT)
+        {
+          DEBUG ("Non groupchat message from MUC member %s: ignored.", from);
+          return FALSE;
+        }
+    }
+
+  mtype = determine_message_type (&body, sub_type);
+
+  if (sub_type == WOCKY_STANZA_SUB_TYPE_ERROR)
     {
       WockyXmppErrorType etype;
       GError *error = NULL;
@@ -1520,24 +1551,18 @@ handle_message (WockyPorter *porter,
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
           stanza, mtype, id, stamp, who, body, error->code, etype);
       g_clear_error (&error);
-      goto out;
     }
-
-  for (x = 0; msg_state[x].name != NULL; x++)
+  else
     {
-      const gchar *item = msg_state[x].name;
-      child = wocky_node_get_child_ns (msg, item, WOCKY_NS_CHATSTATE);
-      if (child != NULL)
-        break;
+      WockyMucMsgState mstate = extract_chat_state (msg);
+
+      g_signal_emit (muc, signals[SIG_MSG], 0,
+          stanza, mtype, id, stamp, who, body, subj, mstate);
     }
-  mstate = msg_state[x].state;
 
-  g_signal_emit (muc, signals[SIG_MSG], 0,
-      stanza, mtype, id, stamp, who, body, subj, mstate);
-
- out:
-  if (from_self)
+  if (member_is_temporary)
     free_member (who);
+
   return TRUE;
 }
 
