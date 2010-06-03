@@ -525,6 +525,9 @@ ssl_read_is_complete (WockyTLSSession *session, gint result)
           return FALSE;
         case SSL_ERROR_WANT_WRITE:
           g_warning ("read caused write: unsupported TLS re-negotiation?");
+          /* deliberately falling through to the default case, having logged a
+           * more specific warning.
+           */
         default:
           g_set_error (&session->job.read.error, WOCKY_TLS_ERROR, err,
                        "OpenSSL read: protocol error %d", err);
@@ -1200,6 +1203,9 @@ wocky_tls_output_stream_write_async (GOutputStream       *stream,
           return;
         case SSL_ERROR_WANT_READ:
           g_warning ("write caused read: unsupported TLS re-negotiation?");
+          /* deliberately falling through to the default case, having logged a
+           * more specific warning.
+           */
         default:
           DEBUG ("SSL write failed, setting error %d", error);
           /* if we haven't already generated an error, set one here: */
@@ -1482,8 +1488,13 @@ wocky_tls_session_init (WockyTLSSession *session)
 
   if G_UNLIKELY (g_once_init_enter (&initialised))
     {
+      gint malloc_init_succeeded;
+
       DEBUG ("initialising SSL library and error strings");
-      CRYPTO_malloc_init ();
+
+      malloc_init_succeeded = CRYPTO_malloc_init ();
+      g_warn_if_fail (malloc_init_succeeded);
+
       SSL_library_init ();
       SSL_load_error_strings ();
       OpenSSL_add_all_algorithms();
@@ -1587,7 +1598,10 @@ wocky_tls_session_constructed (GObject *object)
     }
 
   session->ctx = SSL_CTX_new (session->method);
-  SSL_CTX_set_default_verify_paths (session->ctx);
+
+  if (!SSL_CTX_set_default_verify_paths (session->ctx))
+    g_warning ("SSL_CTX_set_default_verify_paths() failed");
+
   /* verification will be done manually after the handshake: */
   SSL_CTX_set_verify (session->ctx, SSL_VERIFY_NONE, NULL);
   SSL_CTX_set_options (session->ctx,
@@ -1632,10 +1646,10 @@ wocky_tls_session_constructed (GObject *object)
   session->wbio = BIO_new (BIO_s_mem ());
 
   if (session->rbio == NULL)
-    DEBUG ("Could not allocate memory BIO for SSL reads");
+    g_error ("Could not allocate memory BIO for SSL reads");
 
   if (session->wbio == NULL)
-    DEBUG ("Could not allocate memory BIO for SSL writes");
+    g_error ("Could not allocate memory BIO for SSL writes");
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     {
