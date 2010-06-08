@@ -57,6 +57,7 @@ struct _WockyJabberAuthPrivate
   GSimpleAsyncResult *result;
   WockyAuthRegistry *auth_registry;
   gboolean allow_plain;
+  gboolean is_secure;
 };
 
 static void
@@ -576,7 +577,7 @@ jabber_auth_fields (GObject *source,
               mechanisms = g_slist_append (mechanisms, MECH_JABBER_DIGEST);
 
             wocky_auth_registry_start_auth_async (priv->auth_registry,
-                mechanisms, priv->allow_plain, FALSE,
+                mechanisms, priv->allow_plain, priv->is_secure,
                 priv->username, priv->password, NULL, priv->session_id,
                 wocky_jabber_auth_start_cb, self);
 
@@ -621,6 +622,7 @@ jabber_auth_init_sent (GObject *source,
 void
 wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
     gboolean allow_plain,
+    gboolean is_secure,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -633,6 +635,8 @@ wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
   DEBUG ("");
 
   priv->allow_plain = allow_plain;
+  priv->is_secure = is_secure;
+
   priv->result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_jabber_auth_authenticate_finish);
 

@@ -71,6 +71,7 @@ void wocky_jabber_auth_add_handler (WockyJabberAuth *self,
 
 void wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
     gboolean allow_plain,
+    gboolean is_secure,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);

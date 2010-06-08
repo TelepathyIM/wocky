@@ -164,7 +164,7 @@ feature_stanza_received (GObject *source,
 
   wocky_sasl_auth_authenticate_async (sasl,
       stanza,
-      current_test->allow_plain, NULL,
+      current_test->allow_plain, FALSE, NULL,
       sasl_auth_finished_cb,
       test);
 

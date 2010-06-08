@@ -933,8 +933,8 @@ jabber_request_auth (WockyConnector *self)
     clear = TRUE;
 
   DEBUG ("handing over control to WockyJabberAuth");
-  wocky_jabber_auth_authenticate_async (jabber_auth, clear, NULL,
-      jabber_auth_done, self);
+  wocky_jabber_auth_authenticate_async (jabber_auth, clear, priv->encrypted,
+      NULL, jabber_auth_done, self);
 }
 
 static void
@@ -1444,7 +1444,8 @@ sasl_request_auth (WockyConnector *object,
     clear = TRUE;
 
   DEBUG ("handing over control to SASL module");
-  wocky_sasl_auth_authenticate_async (s, stanza, clear, NULL, sasl_auth_done, self);
+  wocky_sasl_auth_authenticate_async (s, stanza, clear, priv->encrypted, NULL,
+      sasl_auth_done, self);
 }
 
 static void
