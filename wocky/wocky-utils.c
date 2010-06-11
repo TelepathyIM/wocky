@@ -64,13 +64,19 @@ validate_jid_node (const gchar *node)
 static gboolean
 validate_jid_domain (const gchar *domain)
 {
-  /* XXX: This doesn't do any validation. Previously it checked all characters
-   * were alpha-numeric, or a colon, hyphen or period, but this rejects any
-   * valid domain with unicode in it.  In theory, we check that the domain is a
-   * well-formed IDN or an IPv4/IPv6 address literal.
+  /* XXX: This doesn't do proper validation, it just checks the character
+   * range. In theory, we check that the domain is a well-formed IDN or
+   * an IPv4/IPv6 address literal.
    *
    * See RFC 3920 §3.2.
    */
+
+  const gchar *c;
+
+  for (c = domain; *c; c++)
+    if (!g_ascii_isalnum (*c) && !strchr (":-.", *c))
+      return FALSE;
+
   return TRUE;
 }
 
