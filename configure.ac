@@ -10,7 +10,7 @@ AC_PREREQ([2.59])
 m4_define([wocky_major_version], [0])
 m4_define([wocky_minor_version], [0])
 m4_define([wocky_micro_version], [0])
-m4_define([wocky_nano_version], [0])
+m4_define([wocky_nano_version], [1])
 
 # Some magic
 m4_define([wocky_base_version],
