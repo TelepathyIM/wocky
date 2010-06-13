@@ -1,7 +1,7 @@
 
 #include "wocky-sasl-digest-md5.h"
-
 #include "wocky-auth-registry.h"
+#include "wocky-sasl-utils.h"
 
 #include <string.h>
 
@@ -296,21 +296,6 @@ md5_hex_hash (gchar *value, gsize length)
   return g_compute_checksum_for_string (G_CHECKSUM_MD5, value, length);
 }
 
-static gchar *
-digest_md5_generate_cnonce (void)
-{
-  /* RFC 2831 recommends the the nonce to be either hexadecimal or base64 with
-   * at least 64 bits of entropy */
-#define NR 8
-  guint32 n[NR];
-  int i;
-
-  for (i = 0; i < NR; i++)
-    n[i] = g_random_int ();
-
-  return g_base64_encode ((guchar *) n, sizeof (n));
-}
-
 static GString *
 md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
     GError **error)
@@ -342,7 +327,7 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
       goto error;
     }
 
-  cnonce = digest_md5_generate_cnonce ();
+  cnonce = sasl_generate_base64_nonce ();
 
   /* FIXME challenge can contain multiple realms */
   realm = g_hash_table_lookup (challenge, "realm");
