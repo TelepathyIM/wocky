@@ -84,6 +84,7 @@ tests/wocky-roster-test
 tests/wocky-resource-contact-test
 tests/wocky-stanza-test
 tests/wocky-session-test
+tests/wocky-sasl-utils-test
 tests/wocky-test-sasl-auth
 tests/wocky-tls-test
 tests/wocky-xmpp-connection-test
