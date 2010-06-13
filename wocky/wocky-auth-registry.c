@@ -2,6 +2,7 @@
 
 #include "wocky-auth-registry.h"
 #include "wocky-auth-handler.h"
+#include "wocky-sasl-scram.h"
 #include "wocky-sasl-digest-md5.h"
 #include "wocky-sasl-plain.h"
 #include "wocky-jabber-auth-password.h"
@@ -261,7 +262,16 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
 
   if (priv->handler == NULL)
     {
-      if (wocky_auth_registry_has_mechanism (mechanisms, MECH_SASL_DIGEST_MD5))
+
+      if (wocky_auth_registry_has_mechanism (mechanisms, "SCRAM-SHA-1"))
+        {
+          /* XXX: check for username and password here? */
+          DEBUG ("Choosing SCRAM-SHA-1 as auth mechanism");
+          priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
+              server, username, password));
+        }
+      else if (wocky_auth_registry_has_mechanism (mechanisms,
+              MECH_SASL_DIGEST_MD5))
         {
           /* XXX: check for username and password here? */
           priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_digest_md5_new (
