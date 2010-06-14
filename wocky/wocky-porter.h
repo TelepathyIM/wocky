@@ -174,7 +174,7 @@ void wocky_porter_send_iq_async (WockyPorter *porter,
 WockyStanza * wocky_porter_send_iq_finish (
     WockyPorter *porter,
     GAsyncResult *result,
-    GError **error);
+    GError **error) G_GNUC_WARN_UNUSED_RESULT;
 
 void wocky_porter_force_close_async (WockyPorter *porter,
     GCancellable *cancellable,
