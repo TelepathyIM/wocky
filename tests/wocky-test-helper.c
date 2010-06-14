@@ -1,7 +1,9 @@
 #include <wocky/wocky.h>
 #include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky-porter.h>
+
 #include "wocky-test-helper.h"
+#include "wocky-test-stream.h"
 
 #define TIMEOUT 3
 

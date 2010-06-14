@@ -253,7 +253,7 @@ auth_failed (WockySaslAuth *sasl, gint code, const gchar *format, ...)
   gchar *message;
   va_list args;
   GSimpleAsyncResult *r;
-  GError *error;
+  GError *error = NULL;
   WockySaslAuthPrivate *priv = sasl->priv;
 
   auth_reset (sasl);
@@ -295,9 +295,7 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
-      GError *error;
-
-      error = wocky_xmpp_stream_error_from_node (
+      GError *error = wocky_xmpp_stream_error_from_node (
           wocky_stanza_get_top_node (stanza));
 
       auth_failed (sasl, WOCKY_AUTH_ERROR_STREAM, "%s: %s",

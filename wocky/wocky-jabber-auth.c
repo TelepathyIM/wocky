@@ -265,7 +265,7 @@ auth_failed (WockyJabberAuth *self, gint code, const gchar *format, ...)
   gchar *message;
   va_list args;
   GSimpleAsyncResult *r;
-  GError *error;
+  GError *error = NULL;
   WockyJabberAuthPrivate *priv = self->priv;
 
   auth_reset (self);
@@ -307,9 +307,7 @@ stream_error (WockyJabberAuth *self, WockyStanza *stanza)
 
   if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
     {
-      GError *error;
-
-      error = wocky_xmpp_stream_error_from_node (
+      GError *error = wocky_xmpp_stream_error_from_node (
           wocky_stanza_get_top_node (stanza));
 
       auth_failed (self, WOCKY_AUTH_ERROR_STREAM, "%s: %s",
