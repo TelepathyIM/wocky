@@ -213,28 +213,7 @@ LDADD = $(top_builddir)/wocky/libwocky.la
 
 check_PROGRAMS = $(TEST_PROGS)
 
-check_c_sources = \
-  $(wocky_tls_test_SOURCES) \
-  $(wocky_xmpp_connection_test_SOURCES) \
-  $(wocky_xmpp_readwrite_test_SOURCES) \
-  $(wocky_xmpp_reader_test_SOURCES) \
-  $(wocky_connector_test_SOURCES) \
-  $(wocky_test_sasl_auth_SOURCES) \
-  $(wocky_porter_test_SOURCES) \
-  $(wocky_xmpp_node_test_SOURCES) \
-  $(wocky_stanza_test_SOURCES) \
-  $(wocky_roster_test_SOURCES) \
-  $(wocky_bare_contact_test_SOURCES) \
-  $(wocky_resource_contact_test_SOURCES) \
-  $(wocky_contact_factory_test_SOURCES) \
-  $(wocky_session_test_SOURCES) \
-  $(wocky_pep_service_test_SOURCES) \
-  $(wocky_data_form_test_SOURCES) \
-  $(wocky_pubsub_service_test_SOURCES) \
-  $(wocky_pubsub_node_test_SOURCES) \
-  $(wocky_ping_test_SOURCES) \
-  $(wocky_jid_validation_test_SOURCES)
-
+check_c_sources = $(wildcard $(srcdir)/*.c) $(wildcard $(srcdir)/*.h)
 
 all: $(TEST_PROGS)
 

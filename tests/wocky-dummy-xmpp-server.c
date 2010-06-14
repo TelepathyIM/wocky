@@ -39,15 +39,15 @@ client_connected (GIOChannel *channel,
 
   if (csock < 0)
     {
-      perror("accept() failed");
+      perror ("accept() failed");
       g_warning ("accept() failed on socket that should have been ready.");
       return TRUE;
     }
 
-  switch ((pid = fork()))
+  switch ((pid = fork ()))
     {
     case -1:
-      perror("Failed to spawn child process");
+      perror ("Failed to spawn child process");
       g_main_loop_quit (loop);
       break;
     case 0:
