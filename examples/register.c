@@ -19,7 +19,7 @@ connector_callback (GObject *source, GAsyncResult *res, gpointer user_data)
   gchar *sid = NULL;
   WockyConnector *wcon = WOCKY_CONNECTOR (source);
   WockyXmppConnection *connection =
-    wocky_connector_register_finish (wcon, res, &error, &jid, &sid);
+    wocky_connector_register_finish (wcon, res, &jid, &sid, &error);
 
   if (connection != NULL)
     {

@@ -2269,9 +2269,9 @@ connector_propagate_jid_and_sid (WockyConnector *self,
  * wocky_connector_connect_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_connect_async() callback).
- * @error: (%NULL to ignore) the #GError (if any) is sored here.
  * @jid: (%NULL to ignore): the user JID from the server is stored here.
  * @sid: (%NULL to ignore): the Session ID is stored here.
+ * @error: (%NULL to ignore) the #GError (if any) is sored here.
  *
  * Called by the callback passed to wocky_connector_connect_async().
  *
@@ -2280,9 +2280,9 @@ connector_propagate_jid_and_sid (WockyConnector *self,
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
     GAsyncResult *res,
-    GError **error,
     gchar **jid,
-    gchar **sid)
+    gchar **sid,
+    GError **error)
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
 
@@ -2300,9 +2300,9 @@ wocky_connector_connect_finish (WockyConnector *self,
  * wocky_connector_register_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_register_async() callback).
- * @error: (%NULL to ignore) the #GError (if any) is stored here.
  * @jid: (%NULL to ignore) the JID in effect after connection is stored here.
  * @sid: (%NULL to ignore) the Session ID after connection is stored here.
+ * @error: (%NULL to ignore) the #GError (if any) is stored here.
  *
  * Called by the callback passed to wocky_connector_register_async().
  *
@@ -2311,9 +2311,9 @@ wocky_connector_connect_finish (WockyConnector *self,
 WockyXmppConnection *
 wocky_connector_register_finish (WockyConnector *self,
     GAsyncResult *res,
-    GError **error,
     gchar **jid,
-    gchar **sid)
+    gchar **sid,
+    GError **error)
 {
   GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
 

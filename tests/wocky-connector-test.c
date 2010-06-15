@@ -3149,13 +3149,13 @@ test_done (GObject *source,
   switch (test->client.op)
     {
       case OP_CONNECT:
-        conn = wocky_connector_connect_finish (wcon, res, &error,
-            &test->result.jid, &test->result.sid);
+        conn = wocky_connector_connect_finish (wcon, res,
+            &test->result.jid, &test->result.sid, &error);
         test->ok = (conn != NULL);
         break;
       case OP_REGISTER:
-        conn = wocky_connector_register_finish (wcon, res, &error,
-            &test->result.jid, &test->result.sid);
+        conn = wocky_connector_register_finish (wcon, res,
+            &test->result.jid, &test->result.sid, &error);
         test->ok = (conn != NULL);
         break;
       case OP_CANCEL:
