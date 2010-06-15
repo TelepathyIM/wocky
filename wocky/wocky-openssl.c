@@ -1588,13 +1588,13 @@ wocky_tls_session_constructed (GObject *object)
 
   if (session->server)
     {
-      DEBUG ("SSLv23_server_method");
-      session->method = SSLv23_server_method ();
+      DEBUG ("I'm a server; using TLSv1_server_method");
+      session->method = TLSv1_server_method ();
     }
   else
     {
-      DEBUG ("SSLv23_client_method");
-      session->method = SSLv23_client_method ();
+      DEBUG ("I'm a client; using TLSv1_client_method");
+      session->method = TLSv1_client_method ();
     }
 
   session->ctx = SSL_CTX_new (session->method);
@@ -1605,7 +1605,24 @@ wocky_tls_session_constructed (GObject *object)
   /* verification will be done manually after the handshake: */
   SSL_CTX_set_verify (session->ctx, SSL_VERIFY_NONE, NULL);
   SSL_CTX_set_options (session->ctx,
-                       SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_NO_SSLv2);
+      SSL_OP_CIPHER_SERVER_PREFERENCE |
+      /* It is usually safe to use SSL_OP_ALL to enable the bug workaround
+       * options if compatibility with somewhat broken implementations is
+       * desired.
+       */
+      SSL_OP_ALL |
+      /* Set the NO_TICKET option on the context to be kind to the Google Talk
+       * server, which seems unwilling to handle empty session tickets due to a
+       * bug in Java.
+       *
+       * See http://twistedmatrix.com/trac/ticket/3463 and
+       * http://loudmouth.lighthouseapp.com/projects/17276/tickets/28.
+       */
+      SSL_OP_NO_TICKET |
+      /* SSLv2 is excessively quaint. We shouldn't be using it anyway, since
+       * we're using TLSv1 methods, but...
+       */
+      SSL_OP_NO_SSLv2);
   X509_STORE_set_flags (SSL_CTX_get_cert_store (session->ctx),
                         X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
 
