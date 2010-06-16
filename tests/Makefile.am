@@ -219,7 +219,7 @@ LDADD = $(top_builddir)/wocky/libwocky.la
 
 check_PROGRAMS = $(TEST_PROGS)
 
-check_c_sources = $(wildcard $(srcdir)/*.c) $(wildcard $(srcdir)/*.h)
+check_c_sources = $(notdir $(wildcard $(srcdir)/*.c) $(wildcard $(srcdir)/*.h))
 
 all: $(TEST_PROGS)
 
