@@ -26,6 +26,7 @@ typedef struct {
 
 test_data_t * setup_test (void);
 test_data_t * setup_test_with_timeout (guint timeout);
+test_data_t * setup_test_with_jids (const gchar *in_jid, const gchar *out_jid);
 
 void teardown_test (test_data_t *data);
 

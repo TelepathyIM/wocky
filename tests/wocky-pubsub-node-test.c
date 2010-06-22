@@ -25,7 +25,7 @@ test_instantiation (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  session = wocky_session_new (connection);
+  session = wocky_session_new (connection, "example.com");
 
   pubsub = wocky_pubsub_service_new (session, "pubsub.localhost");
   g_assert (pubsub != NULL);
@@ -56,7 +56,7 @@ test_make_publish_stanza (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  session = wocky_session_new (connection);
+  session = wocky_session_new (connection, "example.com");
   pubsub = wocky_pubsub_service_new (session, "pubsub.localhost");
   node = wocky_pubsub_service_ensure_node (pubsub, "track1");
 

@@ -21,9 +21,15 @@ test_instantiation (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  porter = wocky_porter_new (connection);
+  porter = wocky_porter_new (connection, "juliet@example.com/Balcony");
 
   g_assert (porter != NULL);
+  g_assert_cmpstr (wocky_porter_get_full_jid (porter), ==,
+        "juliet@example.com/Balcony");
+  g_assert_cmpstr (wocky_porter_get_bare_jid (porter), ==,
+        "juliet@example.com");
+  g_assert_cmpstr (wocky_porter_get_resource (porter), ==,
+        "Balcony");
 
   g_object_unref (porter);
   g_object_unref (connection);
@@ -1745,7 +1751,8 @@ test_send_invalid_iq (void)
   teardown_test (test);
 }
 
-/* Test sending IQ's to the server (no 'to' attribute) */
+/* Test sending IQ's to the server (no 'to' attribute). The JID we believe we
+ * have matters, here. */
 static gboolean
 test_send_iq_server_received_cb (WockyPorter *porter,
     WockyStanza *iq,
@@ -1791,7 +1798,9 @@ test_send_iq_server_received_cb (WockyPorter *porter,
 static void
 test_send_iq_server (void)
 {
-  test_data_t *test = setup_test ();
+  /* In this test "in" is Juliet, and "out" is her server */
+  test_data_t *test = setup_test_with_jids ("juliet@example.com/Balcony",
+      "example.com");
   WockyStanza *iq;
   const gchar *node[] = { "first", "second", "third", NULL };
   guint i;
@@ -1820,6 +1829,24 @@ test_send_iq_server (void)
     {
       iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
         WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", NULL,
+        '(', node[i], ')',
+        NULL);
+
+      wocky_porter_send_iq_async (test->sched_in, iq,
+          test->cancellable, test_send_iq_reply_cb, test);
+      g_queue_push_tail (test->expected_stanzas, iq);
+      test->outstanding += 2;
+      test_wait_pending (test);
+    }
+
+  /* The same, but sending to our own bare JID. For instance, when we query
+   * disco#info on our own bare JID on Prosody 0.6.1, the reply has no 'from'
+   * attribute. */
+
+  for (i = 0; node[i] != NULL; i++)
+    {
+      iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+        WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "JULIET@EXAMPLE.COM",
         '(', node[i], ')',
         NULL);
 

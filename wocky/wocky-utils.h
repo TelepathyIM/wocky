@@ -34,6 +34,9 @@ gboolean wocky_decode_jid (const gchar *jid,
     gchar **node,
     gchar **domain,
     gchar **resource);
+gchar *wocky_compose_jid (const gchar *node,
+    const gchar *domain,
+    const gchar *resource);
 
 GValue *wocky_g_value_slice_new (GType type);
 

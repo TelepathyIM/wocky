@@ -99,7 +99,12 @@ GType wocky_porter_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_PORTER, \
    WockyPorterClass))
 
-WockyPorter * wocky_porter_new (WockyXmppConnection *connection);
+WockyPorter * wocky_porter_new (WockyXmppConnection *connection,
+    const gchar *full_jid);
+
+const gchar *wocky_porter_get_full_jid (WockyPorter *self);
+const gchar *wocky_porter_get_bare_jid (WockyPorter *self);
+const gchar *wocky_porter_get_resource (WockyPorter *self);
 
 void wocky_porter_send_async (WockyPorter *porter,
     WockyStanza *stanza,

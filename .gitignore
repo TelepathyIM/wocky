@@ -76,30 +76,8 @@ wocky/wocky-uninstalled.pc
 
 tests/sasl-test.db
 tests/test-report.xml
-tests/wocky-bare-contact-test
-tests/wocky-contact-factory-test
-tests/wocky-data-form-test
-tests/wocky-node-tree-test
-tests/wocky-roster-test
-tests/wocky-resource-contact-test
-tests/wocky-stanza-test
-tests/wocky-session-test
-tests/wocky-sasl-utils-test
+tests/wocky-*-test
 tests/wocky-test-sasl-auth
-tests/wocky-tls-test
-tests/wocky-xmpp-connection-test
-tests/wocky-xmpp-reader-test
-tests/wocky-xmpp-readwrite-test
-tests/wocky-porter-test
-tests/wocky-xmpp-node-test
-tests/wocky-xmpp-stanza-test
-tests/wocky-connector-test
-tests/wocky-pep-service-test
-tests/wocky-data-forms-test
-tests/wocky-pubsub-node-test
-tests/wocky-pubsub-service-test
-tests/wocky-ping-test
-tests/wocky-jid-validation-test
 tests/*report.xml
 
 # tests/certs/ca-0-cert.pem

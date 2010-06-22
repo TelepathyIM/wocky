@@ -51,6 +51,7 @@ enum
   PROP_CONNECTION = 1,
   PROP_PORTER,
   PROP_CONTACT_FACTORY,
+  PROP_FULL_JID,
 };
 
 /* signal enum */
@@ -68,6 +69,7 @@ struct _WockySessionPrivate
 {
   gboolean dispose_has_run;
 
+  gchar *full_jid;
   WockyXmppConnection *connection;
   WockyPorter *porter;
   WockyContactFactory *contact_factory;
@@ -96,6 +98,11 @@ wocky_session_set_property (GObject *object,
       case PROP_CONNECTION:
         priv->connection = g_value_dup_object (value);
         break;
+
+      case PROP_FULL_JID:
+        priv->full_jid = g_value_dup_string (value);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -116,12 +123,19 @@ wocky_session_get_property (GObject *object,
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
         break;
+
       case PROP_PORTER:
         g_value_set_object (value, priv->porter);
         break;
+
       case PROP_CONTACT_FACTORY:
         g_value_set_object (value, priv->contact_factory);
         break;
+
+      case PROP_FULL_JID:
+        g_value_set_string (value, priv->full_jid);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -136,7 +150,7 @@ wocky_session_constructed (GObject *object)
 
   g_assert (priv->connection != NULL);
 
-  priv->porter = wocky_porter_new (priv->connection);
+  priv->porter = wocky_porter_new (priv->connection, priv->full_jid);
 }
 
 static void
@@ -161,10 +175,9 @@ wocky_session_dispose (GObject *object)
 static void
 wocky_session_finalize (GObject *object)
 {
-  /*
   WockySession *self = WOCKY_SESSION (object);
-  WockySessionPrivate *priv = self->priv;
-  */
+
+  g_free (self->priv->full_jid);
 
   G_OBJECT_CLASS (wocky_session_parent_class)->finalize (object);
 }
@@ -204,13 +217,20 @@ wocky_session_class_init (WockySessionClass *wocky_session_class)
       G_PARAM_READABLE |
       G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_CONTACT_FACTORY, spec);
+
+  spec = g_param_spec_string ("full-jid", "Full JID",
+      "The user's JID in this session", NULL,
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_FULL_JID, spec);
 }
 
 WockySession *
-wocky_session_new (WockyXmppConnection *conn)
+wocky_session_new (WockyXmppConnection *conn,
+    const gchar *full_jid)
 {
   return g_object_new (WOCKY_TYPE_SESSION,
       "connection", conn,
+      "full-jid", full_jid,
       NULL);
 }
 

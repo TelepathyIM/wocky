@@ -58,6 +58,9 @@ G_DEFINE_TYPE(WockyPorter, wocky_porter, G_TYPE_OBJECT)
 enum
 {
   PROP_CONNECTION = 1,
+  PROP_FULL_JID,
+  PROP_BARE_JID,
+  PROP_RESOURCE,
 };
 
 /* signal enum */
@@ -77,6 +80,10 @@ struct _WockyPorterPrivate
 {
   gboolean dispose_has_run;
   gboolean forced_shutdown;
+
+  gchar *full_jid;
+  gchar *bare_jid;
+  gchar *resource;
 
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
@@ -346,11 +353,27 @@ wocky_porter_set_property (GObject *object,
 
   switch (property_id)
     {
+      gchar *node, *domain;
+
       case PROP_CONNECTION:
         g_assert (priv->connection == NULL);
         priv->connection = g_value_dup_object (value);
         g_assert (priv->connection != NULL);
         break;
+
+      case PROP_FULL_JID:
+        g_assert (priv->full_jid == NULL);    /* construct-only */
+        g_assert (priv->bare_jid == NULL);
+        g_assert (priv->resource == NULL);
+
+        priv->full_jid = g_value_dup_string (value);
+        g_assert (priv->full_jid != NULL);
+        wocky_decode_jid (priv->full_jid, &node, &domain, &priv->resource);
+        priv->bare_jid = wocky_compose_jid (node, domain, NULL);
+        g_free (node);
+        g_free (domain);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -372,6 +395,19 @@ wocky_porter_get_property (GObject *object,
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
         break;
+
+      case PROP_FULL_JID:
+        g_value_set_string (value, priv->full_jid);
+        break;
+
+      case PROP_BARE_JID:
+        g_value_set_string (value, priv->bare_jid);
+        break;
+
+      case PROP_RESOURCE:
+        g_value_set_string (value, priv->resource);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -506,6 +542,36 @@ wocky_porter_class_init (
     G_PARAM_READWRITE |
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
+
+  /**
+   * WockyPorter:full-jid:
+   *
+   * The user's full JID (node&commat;domain/resource).
+   */
+  spec = g_param_spec_string ("full-jid", "Full JID",
+    "The user's own full JID (node@domain/resource)",
+    NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_FULL_JID, spec);
+
+  /**
+   * WockyPorter:bare-jid:
+   *
+   * The user's bare JID (node&commat;domain).
+   */
+  spec = g_param_spec_string ("bare-jid", "Bare JID",
+    "The user's own bare JID (node@domain)",
+    NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_BARE_JID, spec);
+
+  /**
+   * WockyPorter:resource:
+   *
+   * The resource part of the user's full JID, or %NULL if their full JID does
+   * not contain a resource at all.
+   */
+  spec = g_param_spec_string ("resource", "Resource", "The user's resource",
+    NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_RESOURCE, spec);
 }
 
 void
@@ -569,6 +635,10 @@ wocky_porter_finalize (GObject *object)
   g_list_free (priv->handlers);
   g_hash_table_destroy (priv->iq_reply_handlers);
 
+  g_free (priv->full_jid);
+  g_free (priv->bare_jid);
+  g_free (priv->resource);
+
   G_OBJECT_CLASS (wocky_porter_parent_class)->finalize (object);
 }
 
@@ -576,18 +646,21 @@ wocky_porter_finalize (GObject *object)
  * wocky_porter_new:
  * @connection: #WockyXmppConnection which will be used to receive and send
  * #WockyStanza
+ * @full_jid: the full JID of the user
  *
  * Convenience function to create a new #WockyPorter.
  *
  * Returns: a new #WockyPorter.
  */
 WockyPorter *
-wocky_porter_new (WockyXmppConnection *connection)
+wocky_porter_new (WockyXmppConnection *connection,
+    const gchar *full_jid)
 {
   WockyPorter *result;
 
   result = g_object_new (WOCKY_TYPE_PORTER,
     "connection", connection,
+    "full-jid", full_jid,
     NULL);
 
   return result;
@@ -802,13 +875,72 @@ complete_close (WockyPorter *self)
   g_object_unref (tmp);
 }
 
+/* Return TRUE if not spoofed. */
+static gboolean
+check_spoofing (WockyPorter *self,
+    WockyStanza *reply,
+    const gchar *should_be_from)
+{
+  const gchar *from;
+  gchar *nfrom;
+  gboolean ret = TRUE;
+
+  from = wocky_node_get_attribute (wocky_stanza_get_top_node (reply),
+      "from");
+
+  /* fast path for a byte-for-byte match */
+  if (G_LIKELY (!wocky_strdiff (from, should_be_from)))
+    return TRUE;
+
+  /* OK, we have to do some work */
+
+  nfrom = wocky_normalise_jid (from);
+
+  /* nearly-as-fast path for a normalized match */
+  if (!wocky_strdiff (nfrom, should_be_from))
+    goto finally;
+
+  /* if we sent an IQ without a 'to' attribute, it's to our server: allow it
+   * to use our full or bare JID to reply */
+  if (should_be_from == NULL)
+    {
+      if (from == NULL ||
+          !wocky_strdiff (nfrom, self->priv->full_jid) ||
+          !wocky_strdiff (nfrom, self->priv->bare_jid))
+        goto finally;
+    }
+
+  /* if we sent an IQ to our full or bare JID, allow our server to omit 'to'
+   * in the reply (Prosody 0.6.1 does this with the resulting error if we
+   * send disco#info to our own bare JID), or to use our full JID. */
+  if (from == NULL || !wocky_strdiff (nfrom, self->priv->full_jid))
+    {
+      if (!wocky_strdiff (should_be_from, self->priv->full_jid) ||
+          !wocky_strdiff (should_be_from, self->priv->bare_jid))
+        goto finally;
+    }
+
+  DEBUG ("'%s' (normal: '%s') attempts to spoof an IQ reply from '%s'",
+      from == NULL ? "(null)" : from,
+      nfrom == NULL ? "(null)" : nfrom,
+      should_be_from == NULL ? "(null)" : should_be_from);
+  DEBUG ("Our full JID is '%s' and our bare JID is '%s'",
+      self->priv->full_jid, self->priv->bare_jid);
+
+  ret = FALSE;
+
+finally:
+  g_free (nfrom);
+  return ret;
+}
+
 static gboolean
 handle_iq_reply (WockyPorter *self,
     WockyStanza *reply,
     gpointer user_data)
 {
   WockyPorterPrivate *priv = self->priv;
-  const gchar *id, *from;
+  const gchar *id;
   StanzaIqHandler *handler;
   gboolean ret = FALSE;
 
@@ -827,25 +959,8 @@ handle_iq_reply (WockyPorter *self,
       return FALSE;
     }
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (reply),
-      "from");
-  /* FIXME: If handler->recipient is NULL, we should check if the 'from' is
-   * either NULL, our bare jid or our full jid. */
-  if (handler->recipient != NULL &&
-      wocky_strdiff (from, handler->recipient))
-    {
-      gchar *nfrom = wocky_normalise_jid (from);
-
-      if (wocky_strdiff (nfrom, handler->recipient))
-        {
-          DEBUG ("'%s' (normal: '%s') attempts to spoof an IQ reply from '%s'",
-              from, nfrom, handler->recipient);
-          g_free (nfrom);
-          return FALSE;
-        }
-
-      g_free (nfrom);
-    }
+  if (!check_spoofing (self, reply, handler->recipient))
+    return FALSE;
 
   if (handler->result != NULL)
     {
@@ -1771,4 +1886,52 @@ wocky_porter_force_close_finish (
     G_OBJECT (self), wocky_porter_force_close_finish), FALSE);
 
   return TRUE;
+}
+
+/**
+ * wocky_porter_get_full_jid: (skip)
+ * @self: a porter
+ *
+ * <!-- nothing more to say -->
+ *
+ * Returns: (transfer none): the value of #WockyPorter:full-jid
+ */
+const gchar *
+wocky_porter_get_full_jid (WockyPorter *self)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), NULL);
+
+  return self->priv->full_jid;
+}
+
+/**
+ * wocky_porter_get_bare_jid: (skip)
+ * @self: a porter
+ *
+ * <!-- nothing more to say -->
+ *
+ * Returns: (transfer none): the value of #WockyPorter:bare-jid
+ */
+const gchar *
+wocky_porter_get_bare_jid (WockyPorter *self)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), NULL);
+
+  return self->priv->bare_jid;
+}
+
+/**
+ * wocky_porter_get_resource: (skip)
+ * @self: a porter
+ *
+ * <!-- nothing more to say -->
+ *
+ * Returns: (transfer none): the value of #WockyPorter:resource
+ */
+const gchar *
+wocky_porter_get_resource (WockyPorter *self)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), NULL);
+
+  return self->priv->resource;
 }
