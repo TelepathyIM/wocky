@@ -207,7 +207,6 @@ wocky_normalise_jid (const gchar *jid)
   gchar *node = NULL;
   gchar *domain = NULL;
   gchar *resource = NULL;
-  GString *normal = NULL;
   gchar *rval = NULL;
 
   if (jid == NULL)
@@ -216,31 +215,50 @@ wocky_normalise_jid (const gchar *jid)
   if (!wocky_decode_jid (jid, &node, &domain, &resource))
     return NULL;
 
-  normal = g_string_sized_new (strlen (jid));
+  rval = wocky_compose_jid (node, domain, resource);
+  g_free (node);
+  g_free (domain);
+  g_free (resource);
+  return rval;
+}
+
+static inline gsize
+strlen0 (const gchar *s)
+{
+  return (s == NULL ? 0 : strlen (s));
+}
+
+/**
+ * wocky_compose_jid:
+ * @node: the node part of a JID, possibly empty or %NULL
+ * @domain: the non-%NULL domain part of a JID
+ * @resource: the resource part of a JID, possibly empty or %NULL
+ *
+ * Composes a JID from its parts. If @node is empty or %NULL, the '&commat;'
+ * separator is also omitted; if @resource is empty or %NULL, the '/' separator
+ * is also omitted.
+ *
+ * Returns: a JID constructed from @node, @domain and @resource
+ */
+gchar *
+wocky_compose_jid (const gchar *node,
+    const gchar *domain,
+    const gchar *resource)
+{
+  GString *normal = NULL;
+
+  normal = g_string_sized_new (strlen0 (node) + strlen0 (domain) +
+      strlen0 (resource) + 2);
 
   if (node != NULL && *node != '\0')
     g_string_printf (normal, "%s@%s", node, domain);
   else
     g_string_printf (normal, "%s", domain);
 
-  if (resource != NULL && *resource != '\0')
-    {
-      if (normal->len > 0)
-        {
-          g_string_append_printf (normal, "/%s", resource);
-          rval = g_string_free (normal, FALSE);
-        }
-    }
-  else
-    {
-      rval = g_string_free (normal, FALSE);
-    }
+  if (resource != NULL && *resource != '\0' && normal->len > 0)
+    g_string_append_printf (normal, "/%s", resource);
 
-  g_free (node);
-  g_free (domain);
-  g_free (resource);
-
-  return rval;
+  return g_string_free (normal, FALSE);
 }
 
 /**
