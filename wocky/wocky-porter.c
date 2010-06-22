@@ -875,13 +875,72 @@ complete_close (WockyPorter *self)
   g_object_unref (tmp);
 }
 
+/* Return TRUE if not spoofed. */
+static gboolean
+check_spoofing (WockyPorter *self,
+    WockyStanza *reply,
+    const gchar *should_be_from)
+{
+  const gchar *from;
+  gchar *nfrom;
+  gboolean ret = TRUE;
+
+  from = wocky_node_get_attribute (wocky_stanza_get_top_node (reply),
+      "from");
+
+  /* fast path for a byte-for-byte match */
+  if (G_LIKELY (!wocky_strdiff (from, should_be_from)))
+    return TRUE;
+
+  /* OK, we have to do some work */
+
+  nfrom = wocky_normalise_jid (from);
+
+  /* nearly-as-fast path for a normalized match */
+  if (!wocky_strdiff (nfrom, should_be_from))
+    goto finally;
+
+  /* if we sent an IQ without a 'to' attribute, it's to our server: allow it
+   * to use our full or bare JID to reply */
+  if (should_be_from == NULL)
+    {
+      if (from == NULL ||
+          !wocky_strdiff (nfrom, self->priv->full_jid) ||
+          !wocky_strdiff (nfrom, self->priv->bare_jid))
+        goto finally;
+    }
+
+  /* if we sent an IQ to our full or bare JID, allow our server to omit 'to'
+   * in the reply (Prosody 0.6.1 does this with the resulting error if we
+   * send disco#info to our own bare JID), or to use our full JID. */
+  if (from == NULL || !wocky_strdiff (nfrom, self->priv->full_jid))
+    {
+      if (!wocky_strdiff (should_be_from, self->priv->full_jid) ||
+          !wocky_strdiff (should_be_from, self->priv->bare_jid))
+        goto finally;
+    }
+
+  DEBUG ("'%s' (normal: '%s') attempts to spoof an IQ reply from '%s'",
+      from == NULL ? "(null)" : from,
+      nfrom == NULL ? "(null)" : nfrom,
+      should_be_from == NULL ? "(null)" : should_be_from);
+  DEBUG ("Our full JID is '%s' and our bare JID is '%s'",
+      self->priv->full_jid, self->priv->bare_jid);
+
+  ret = FALSE;
+
+finally:
+  g_free (nfrom);
+  return ret;
+}
+
 static gboolean
 handle_iq_reply (WockyPorter *self,
     WockyStanza *reply,
     gpointer user_data)
 {
   WockyPorterPrivate *priv = self->priv;
-  const gchar *id, *from;
+  const gchar *id;
   StanzaIqHandler *handler;
   gboolean ret = FALSE;
 
@@ -900,25 +959,8 @@ handle_iq_reply (WockyPorter *self,
       return FALSE;
     }
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (reply),
-      "from");
-  /* FIXME: If handler->recipient is NULL, we should check if the 'from' is
-   * either NULL, our bare jid or our full jid. */
-  if (handler->recipient != NULL &&
-      wocky_strdiff (from, handler->recipient))
-    {
-      gchar *nfrom = wocky_normalise_jid (from);
-
-      if (wocky_strdiff (nfrom, handler->recipient))
-        {
-          DEBUG ("'%s' (normal: '%s') attempts to spoof an IQ reply from '%s'",
-              from, nfrom, handler->recipient);
-          g_free (nfrom);
-          return FALSE;
-        }
-
-      g_free (nfrom);
-    }
+  if (!check_spoofing (self, reply, handler->recipient))
+    return FALSE;
 
   if (handler->result != NULL)
     {
