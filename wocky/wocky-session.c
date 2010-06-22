@@ -150,7 +150,7 @@ wocky_session_constructed (GObject *object)
 
   g_assert (priv->connection != NULL);
 
-  priv->porter = wocky_porter_new (priv->connection);
+  priv->porter = wocky_porter_new (priv->connection, priv->full_jid);
 }
 
 static void

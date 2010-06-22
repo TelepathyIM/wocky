@@ -21,7 +21,7 @@ test_instantiation (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  porter = wocky_porter_new (connection);
+  porter = wocky_porter_new (connection, "juliet@example.com/balcony");
 
   g_assert (porter != NULL);
 

@@ -58,6 +58,9 @@ G_DEFINE_TYPE(WockyPorter, wocky_porter, G_TYPE_OBJECT)
 enum
 {
   PROP_CONNECTION = 1,
+  PROP_FULL_JID,
+  PROP_BARE_JID,
+  PROP_RESOURCE,
 };
 
 /* signal enum */
@@ -77,6 +80,10 @@ struct _WockyPorterPrivate
 {
   gboolean dispose_has_run;
   gboolean forced_shutdown;
+
+  gchar *full_jid;
+  gchar *bare_jid;
+  gchar *resource;
 
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
@@ -346,11 +353,27 @@ wocky_porter_set_property (GObject *object,
 
   switch (property_id)
     {
+      gchar *node, *domain;
+
       case PROP_CONNECTION:
         g_assert (priv->connection == NULL);
         priv->connection = g_value_dup_object (value);
         g_assert (priv->connection != NULL);
         break;
+
+      case PROP_FULL_JID:
+        g_assert (priv->full_jid == NULL);    /* construct-only */
+        g_assert (priv->bare_jid == NULL);
+        g_assert (priv->resource == NULL);
+
+        priv->full_jid = g_value_dup_string (value);
+        g_assert (priv->full_jid != NULL);
+        wocky_decode_jid (priv->full_jid, &node, &domain, &priv->resource);
+        priv->bare_jid = wocky_compose_jid (node, domain, NULL);
+        g_free (node);
+        g_free (domain);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -372,6 +395,19 @@ wocky_porter_get_property (GObject *object,
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
         break;
+
+      case PROP_FULL_JID:
+        g_value_set_string (value, priv->full_jid);
+        break;
+
+      case PROP_BARE_JID:
+        g_value_set_string (value, priv->bare_jid);
+        break;
+
+      case PROP_RESOURCE:
+        g_value_set_string (value, priv->resource);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -506,6 +542,36 @@ wocky_porter_class_init (
     G_PARAM_READWRITE |
     G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
+
+  /**
+   * WockyPorter:full-jid:
+   *
+   * The user's full JID (node&commat;domain/resource).
+   */
+  spec = g_param_spec_string ("full-jid", "Full JID",
+    "The user's own full JID (node@domain/resource)",
+    NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_FULL_JID, spec);
+
+  /**
+   * WockyPorter:bare-jid:
+   *
+   * The user's bare JID (node&commat;domain).
+   */
+  spec = g_param_spec_string ("bare-jid", "Bare JID",
+    "The user's own bare JID (node@domain)",
+    NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_BARE_JID, spec);
+
+  /**
+   * WockyPorter:resource:
+   *
+   * The resource part of the user's full JID, or %NULL if their full JID does
+   * not contain a resource at all.
+   */
+  spec = g_param_spec_string ("resource", "Resource", "The user's resource",
+    NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_RESOURCE, spec);
 }
 
 void
@@ -569,6 +635,10 @@ wocky_porter_finalize (GObject *object)
   g_list_free (priv->handlers);
   g_hash_table_destroy (priv->iq_reply_handlers);
 
+  g_free (priv->full_jid);
+  g_free (priv->bare_jid);
+  g_free (priv->resource);
+
   G_OBJECT_CLASS (wocky_porter_parent_class)->finalize (object);
 }
 
@@ -576,18 +646,21 @@ wocky_porter_finalize (GObject *object)
  * wocky_porter_new:
  * @connection: #WockyXmppConnection which will be used to receive and send
  * #WockyStanza
+ * @full_jid: the full JID of the user
  *
  * Convenience function to create a new #WockyPorter.
  *
  * Returns: a new #WockyPorter.
  */
 WockyPorter *
-wocky_porter_new (WockyXmppConnection *connection)
+wocky_porter_new (WockyXmppConnection *connection,
+    const gchar *full_jid)
 {
   WockyPorter *result;
 
   result = g_object_new (WOCKY_TYPE_PORTER,
     "connection", connection,
+    "full-jid", full_jid,
     NULL);
 
   return result;
@@ -1771,4 +1844,52 @@ wocky_porter_force_close_finish (
     G_OBJECT (self), wocky_porter_force_close_finish), FALSE);
 
   return TRUE;
+}
+
+/**
+ * wocky_porter_get_full_jid: (skip)
+ * @self: a porter
+ *
+ * <!-- nothing more to say -->
+ *
+ * Returns: (transfer none): the value of #WockyPorter:full-jid
+ */
+const gchar *
+wocky_porter_get_full_jid (WockyPorter *self)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), NULL);
+
+  return self->priv->full_jid;
+}
+
+/**
+ * wocky_porter_get_bare_jid: (skip)
+ * @self: a porter
+ *
+ * <!-- nothing more to say -->
+ *
+ * Returns: (transfer none): the value of #WockyPorter:bare-jid
+ */
+const gchar *
+wocky_porter_get_bare_jid (WockyPorter *self)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), NULL);
+
+  return self->priv->bare_jid;
+}
+
+/**
+ * wocky_porter_get_resource: (skip)
+ * @self: a porter
+ *
+ * <!-- nothing more to say -->
+ *
+ * Returns: (transfer none): the value of #WockyPorter:resource
+ */
+const gchar *
+wocky_porter_get_resource (WockyPorter *self)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), NULL);
+
+  return self->priv->resource;
 }
