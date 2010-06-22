@@ -21,9 +21,15 @@ test_instantiation (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  porter = wocky_porter_new (connection, "juliet@example.com/balcony");
+  porter = wocky_porter_new (connection, "juliet@example.com/Balcony");
 
   g_assert (porter != NULL);
+  g_assert_cmpstr (wocky_porter_get_full_jid (porter), ==,
+        "juliet@example.com/Balcony");
+  g_assert_cmpstr (wocky_porter_get_bare_jid (porter), ==,
+        "juliet@example.com");
+  g_assert_cmpstr (wocky_porter_get_resource (porter), ==,
+        "Balcony");
 
   g_object_unref (porter);
   g_object_unref (connection);
