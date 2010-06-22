@@ -1745,7 +1745,8 @@ test_send_invalid_iq (void)
   teardown_test (test);
 }
 
-/* Test sending IQ's to the server (no 'to' attribute) */
+/* Test sending IQ's to the server (no 'to' attribute). The JID we believe we
+ * have matters, here. */
 static gboolean
 test_send_iq_server_received_cb (WockyPorter *porter,
     WockyStanza *iq,
@@ -1791,7 +1792,9 @@ test_send_iq_server_received_cb (WockyPorter *porter,
 static void
 test_send_iq_server (void)
 {
-  test_data_t *test = setup_test ();
+  /* In this test "in" is Juliet, and "out" is her server */
+  test_data_t *test = setup_test_with_jids ("juliet@example.com/Balcony",
+      "example.com");
   WockyStanza *iq;
   const gchar *node[] = { "first", "second", "third", NULL };
   guint i;

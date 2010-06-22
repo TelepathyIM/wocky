@@ -16,8 +16,10 @@ test_timeout_cb (gpointer data)
   return FALSE;
 }
 
-test_data_t *
-setup_test_with_timeout (guint timeout)
+static test_data_t *
+setup_test_full (guint timeout,
+    const gchar *in_jid,
+    const gchar *out_jid)
 {
   test_data_t *data;
 
@@ -28,8 +30,8 @@ setup_test_with_timeout (guint timeout)
   data->in = wocky_xmpp_connection_new (data->stream->stream0);
   data->out = wocky_xmpp_connection_new (data->stream->stream1);
 
-  data->session_in = wocky_session_new (data->in);
-  data->session_out = wocky_session_new (data->out);
+  data->session_in = wocky_session_new (data->in, in_jid);
+  data->session_out = wocky_session_new (data->out, out_jid);
 
   data->sched_in = wocky_session_get_porter (data->session_in);
   data->sched_out = wocky_session_get_porter (data->session_out);
@@ -43,9 +45,22 @@ setup_test_with_timeout (guint timeout)
 }
 
 test_data_t *
+setup_test_with_jids (const gchar *in_jid,
+    const gchar *out_jid)
+{
+  return setup_test_full (TIMEOUT, in_jid, out_jid);
+}
+
+test_data_t *
+setup_test_with_timeout (guint timeout)
+{
+  return setup_test_full (timeout, "example.com", "example.com");
+}
+
+test_data_t *
 setup_test (void)
 {
-  return setup_test_with_timeout (TIMEOUT);
+  return setup_test_full (TIMEOUT, "example.com", "example.com");
 }
 
 void
