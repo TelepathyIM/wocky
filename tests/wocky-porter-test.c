@@ -1833,6 +1833,24 @@ test_send_iq_server (void)
       test_wait_pending (test);
     }
 
+  /* The same, but sending to our own bare JID. For instance, when we query
+   * disco#info on our own bare JID on Prosody 0.6.1, the reply has no 'from'
+   * attribute. */
+
+  for (i = 0; node[i] != NULL; i++)
+    {
+      iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+        WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "JULIET@EXAMPLE.COM",
+        '(', node[i], ')',
+        NULL);
+
+      wocky_porter_send_iq_async (test->sched_in, iq,
+          test->cancellable, test_send_iq_reply_cb, test);
+      g_queue_push_tail (test->expected_stanzas, iq);
+      test->outstanding += 2;
+      test_wait_pending (test);
+    }
+
   test_close_both_porters (test);
   teardown_test (test);
 }
