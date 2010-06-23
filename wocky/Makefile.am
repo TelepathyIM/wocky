@@ -5,21 +5,27 @@ noinst_LTLIBRARIES = libwocky.la
 EXTRA_DIST =
 
 built_headers = \
+  wocky-auth-registry-enumtypes.h \
+  wocky-connector-enumtypes.h \
   wocky-data-form-enumtypes.h \
   wocky-muc-enumtypes.h \
   wocky-pubsub-node-enumtypes.h \
   wocky-pubsub-service-enumtypes.h \
   wocky-signals-marshal.h \
+  wocky-tls-enumtypes.h \
   wocky-xmpp-error-enumtypes.h \
   wocky-xmpp-reader-enumtypes.h
 
 built_sources = \
+  wocky-auth-registry-enumtypes.c \
+  wocky-connector-enumtypes.c \
   wocky-data-form-enumtypes.c \
   wocky-muc-enumtypes.c \
   wocky-pubsub-node-enumtypes.c \
   wocky-pubsub-service-enumtypes.c \
   wocky-signals-marshal.c \
   wocky-signals-marshal.list \
+  wocky-tls-enumtypes.c \
   wocky-xmpp-error-enumtypes.c \
   wocky-xmpp-reader-enumtypes.c
 
