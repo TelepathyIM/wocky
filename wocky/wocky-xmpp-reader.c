@@ -141,20 +141,26 @@ wocky_xmpp_reader_error_quark (void)
   return quark;
 }
 
+/* clear parser state */
 static void
-wocky_init_xml_parser (WockyXmppReader *obj)
+wocky_xmpp_reader_clear_parser_state (WockyXmppReader *self)
 {
-  WockyXmppReaderPrivate *priv = obj->priv;
+  WockyXmppReaderPrivate *priv = self->priv;
 
-  if (priv->parser != NULL)
-    xmlFreeParserCtxt (priv->parser);
+  while (!g_queue_is_empty (priv->stanzas)) {
+    gpointer stanza;
+    stanza = g_queue_pop_head (priv->stanzas);
+    if (stanza != NULL)
+      g_object_unref (stanza);
+  }
 
-  priv->parser = xmlCreatePushParserCtxt (&parser_handler, obj, NULL, 0, NULL);
-  xmlCtxtUseOptions (priv->parser, XML_PARSE_NOENT);
+  if (priv->stanza != NULL)
+    g_object_unref (priv->stanza);
+  priv->stanza = NULL;
+
+  g_queue_clear (priv->nodes);
+  priv->node = NULL;
   priv->depth = 0;
-  priv->state = priv->stream_mode ? WOCKY_XMPP_READER_STATE_INITIAL :
-      WOCKY_XMPP_READER_STATE_OPENED;
-  priv->error = FALSE;
 
   g_free (priv->to);
   priv->to = NULL;
@@ -170,6 +176,27 @@ wocky_init_xml_parser (WockyXmppReader *obj)
 
   g_free (priv->id);
   priv->id = NULL;
+
+  if (priv->error != NULL)
+    g_error_free (priv->error);
+  priv->error = NULL;
+
+  if (priv->parser != NULL)
+    xmlFreeParserCtxt (priv->parser);
+  priv->parser = NULL;
+
+  priv->state = WOCKY_XMPP_READER_STATE_CLOSED;
+}
+
+static void
+wocky_init_xml_parser (WockyXmppReader *obj)
+{
+  WockyXmppReaderPrivate *priv = obj->priv;
+
+  priv->parser = xmlCreatePushParserCtxt (&parser_handler, obj, NULL, 0, NULL);
+  xmlCtxtUseOptions (priv->parser, XML_PARSE_NOENT);
+  priv->state = priv->stream_mode ? WOCKY_XMPP_READER_STATE_INITIAL :
+      WOCKY_XMPP_READER_STATE_OPENED;
 }
 
 static void
@@ -187,11 +214,7 @@ wocky_xmpp_reader_init (WockyXmppReader *self)
       WockyXmppReaderPrivate);
   priv = self->priv;
 
-  wocky_init_xml_parser (self);
-
-  priv->stanza = NULL;
   priv->nodes = g_queue_new ();
-  priv->node = NULL;
   priv->stanzas = g_queue_new ();
 }
 
@@ -273,21 +296,7 @@ wocky_xmpp_reader_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-  while (!g_queue_is_empty (priv->stanzas)) {
-    gpointer stanza;
-    stanza = g_queue_pop_head (priv->stanzas);
-    if (stanza != NULL)
-      g_object_unref (stanza);
-  }
-
-  if (priv->stanza != NULL)
-    g_object_unref (priv->stanza);
-  priv->stanza = NULL;
-
-  g_queue_clear (priv->nodes);
-  priv->node = NULL;
-  priv->depth = 0;
-
+  wocky_xmpp_reader_clear_parser_state (self);
 
   if (G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->dispose (object);
@@ -300,18 +309,9 @@ wocky_xmpp_reader_finalize (GObject *object)
   WockyXmppReaderPrivate *priv = self->priv;
 
   /* free any data held directly by the object here */
-  if (priv->parser != NULL) {
-    xmlFreeParserCtxt (priv->parser);
-    priv->parser = NULL;
-  }
-
   g_queue_free (priv->stanzas);
   g_queue_free (priv->nodes);
-  g_free (priv->to);
-  g_free (priv->from);
-  g_free (priv->version);
-  g_free (priv->lang);
-  g_free (priv->id);
+
   if (priv->error != NULL)
     g_error_free (priv->error);
 
@@ -738,13 +738,8 @@ wocky_xmpp_reader_get_error (WockyXmppReader *reader)
 void
 wocky_xmpp_reader_reset (WockyXmppReader *reader)
 {
-  WockyXmppReaderPrivate *priv = reader->priv;
+  DEBUG ("Resetting the xmpp reader");
 
-  DEBUG ("Resetting xmpp reader");
-
-  if (priv->error != NULL)
-    g_error_free (priv->error);
-  priv->error = NULL;
-
+  wocky_xmpp_reader_clear_parser_state (reader);
   wocky_init_xml_parser (reader);
 }
