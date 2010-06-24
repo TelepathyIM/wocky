@@ -161,12 +161,9 @@ test_parse_error (void)
 }
 
 static void
-test_no_stream_hunks (void)
+test_no_stream_parse_message (WockyXmppReader *reader)
 {
-  WockyXmppReader *reader;
   WockyStanza *stanza;
-
-  reader = wocky_xmpp_reader_new_no_stream ();
 
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_OPENED);
@@ -191,6 +188,44 @@ test_no_stream_hunks (void)
     == WOCKY_XMPP_READER_STATE_CLOSED);
 
   g_object_unref (stanza);
+
+}
+
+static void
+test_no_stream_hunks (void)
+{
+  WockyXmppReader *reader;
+
+  reader = wocky_xmpp_reader_new_no_stream ();
+  test_no_stream_parse_message (reader);
+
+  g_object_unref (reader);
+}
+
+static void
+test_no_stream_reset (void)
+{
+  WockyXmppReader *reader;
+
+  reader = wocky_xmpp_reader_new_no_stream ();
+
+  /* whole message, reset, whole message, reset */
+  test_no_stream_parse_message (reader);
+  wocky_xmpp_reader_reset (reader);
+
+  test_no_stream_parse_message (reader);
+  wocky_xmpp_reader_reset (reader);
+
+  /* push half a message and reset the parser*/
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_OPENED);
+  wocky_xmpp_reader_push (reader,
+    (guint8 *) MESSAGE_CHUNK0, strlen (MESSAGE_CHUNK0));
+  wocky_xmpp_reader_reset (reader);
+
+  /* And push a whole message through again */
+  test_no_stream_parse_message (reader);
+
   g_object_unref (reader);
 }
 
@@ -227,6 +262,7 @@ main (int argc,
   g_test_add_func ("/xmpp-reader/stream-open-error", test_stream_open_error);
   g_test_add_func ("/xmpp-reader/parse-error", test_parse_error);
   g_test_add_func ("/xmpp-reader/no-stream-hunks", test_no_stream_hunks);
+  g_test_add_func ("/xmpp-reader/no-stream-resetting", test_no_stream_reset);
   g_test_add_func ("/xmpp-reader/vcard-namespace", test_vcard_namespace);
 
   result = g_test_run ();
