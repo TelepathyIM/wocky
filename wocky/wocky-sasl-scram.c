@@ -293,8 +293,8 @@ scram_calculate_salted_password (WockySaslScram *self)
   guint64 i = priv->iterations;
   GByteArray *result, *prev, *salt;
   guint8 one[] = {0,0,0,1};
-  gint state;
-  guint save;
+  gint state = 0;
+  guint save = 0;
   gsize len;
   gsize pass_len = strlen (priv->password);
 
