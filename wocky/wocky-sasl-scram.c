@@ -496,6 +496,11 @@ scram_check_server_verification (WockySaslScram *self,
 
   ret = !wocky_strdiff (v, verification);
 
+  if (!ret)
+    DEBUG ("Unexpected verification: got %s, expected %s",
+      verification,  v);
+
+
   g_byte_array_free (server_key, TRUE);
   g_byte_array_free (server_signature, TRUE);
   g_free (v);
