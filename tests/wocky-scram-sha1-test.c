@@ -88,24 +88,26 @@ static testcase tests[] = {
     /* client first */
     "n,,n=harry,r=ZtzhX7M96stcA2LzDpX1Lmr0Y7tH1JnHvK5BmRQsy5g=",
     /* server first */
-    "r=ZtzhX7M96stcA2LzDpX1Lmr0Y7tH1JnHvK5BmRQsy5g=deadfish,s=snake,i=128",
+    "r=ZtzhX7M96stcA2LzDpX1Lmr0Y7tH1JnHvK5BmRQsy5g=deadfish,"
+    "s=snakes==,i=128",
     /* client final */
     "c=biws,r=ZtzhX7M96stcA2LzDpX1Lmr0Y7tH1JnHvK5BmRQsy5g=deadfish,"
-    "p=+Bx1qZMimdOlgKeLq0XvxlPNanM=",
+    "p=0933cKmf/GHBIh+GYTROuRT78zM=",
     /* server final */
-    "v=F0nPQXTcebjxntNyDl8zCWWU2uc=",
+    "v=zW58Ag+pg9C8lGkof3wb7/jvQQQ="
   },
   { 0xcafe, "eagle.co.uk", "watson", "dna",
     /* client first */
     "n,,n=watson,r=xHkPPK3a6sJZYzbEJVq965vi70Mt9ZaFPI3PdSj8SEU=",
     /* server first */
-    "r=xHkPPK3a6sJZYzbEJVq965vi70Mt9ZaFPI3PdSj8SEU=doublehelix,s=crick,i=4096",
+    "r=xHkPPK3a6sJZYzbEJVq965vi70Mt9ZaFPI3PdSj8SEU=doublehelix,"
+    "s=francis=,i=4096",
     /* client final */
     "c=biws,"
     "r=xHkPPK3a6sJZYzbEJVq965vi70Mt9ZaFPI3PdSj8SEU=doublehelix,"
-    "p=bSQnl47rFHs9EiKUdpMTqOG0XUw=",
+    "p=V4VHXC1JL++UDZWRg82mcP16Hdc=",
     /* server final */
-    "v=m5XmdX1Cq1BEkmTQgOnX9+bODyc="
+    "v=LYJrt3+nDh0XOEjKZC6DRccsnG0="
   },
 
   { 0, }
