@@ -723,7 +723,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   g_object_class_install_property (oclass, PROP_LEGACY_SSL, spec);
 
   /**
-   * WockyConnector:old-ssl:
+   * WockyConnector:session-id:
    *
    * The Session ID supplied by the server upon successfully connecting.
    * May be useful later on as some XEPs suggest this value should be used
