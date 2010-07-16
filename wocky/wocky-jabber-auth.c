@@ -473,7 +473,6 @@ wocky_jabber_auth_start_cb (GObject *source,
   GError *error = NULL;
   WockyAuthRegistryStartData *start_data = NULL;
 
-  iqid = wocky_xmpp_connection_new_id (conn);
   if (!wocky_auth_registry_start_auth_finish (priv->auth_registry, res,
           &start_data, &error))
     {
@@ -490,6 +489,7 @@ wocky_jabber_auth_start_cb (GObject *source,
   else
       auth_field = "digest";
 
+  iqid = wocky_xmpp_connection_new_id (conn);
   iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_SET, NULL, NULL,
       '@', "id", iqid,
