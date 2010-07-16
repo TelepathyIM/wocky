@@ -64,15 +64,21 @@ void wocky_debug (DebugFlags flag,
                    const gchar *format,
                    ...)
 {
+  va_list args;
+  va_start (args, format);
+  wocky_debug_valist (flag, format, args);
+  va_end (args);
+}
+
+void wocky_debug_valist (DebugFlags flag,
+    const gchar *format,
+    va_list args)
+{
   if (G_UNLIKELY(!initialized))
     wocky_debug_set_flags_from_env ();
+
   if (flag & flags)
-    {
-      va_list args;
-      va_start (args, format);
-      g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, format, args);
-      va_end (args);
-    }
+    g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, format, args);
 }
 
 static void
