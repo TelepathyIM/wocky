@@ -28,6 +28,8 @@
 #include "wocky-stanza.h"
 
 #include "wocky-tls.h"
+#include "wocky-tls-enumtypes.h"
+#include "wocky-tls-handler.h"
 
 G_BEGIN_DECLS
 
@@ -159,7 +161,8 @@ void wocky_connector_connect_async (WockyConnector *self,
 WockyConnector *wocky_connector_new (const gchar *jid,
     const gchar *pass,
     const gchar *resource,
-    WockyAuthRegistry *auth_registry);
+    WockyAuthRegistry *auth_registry,
+    WockyTLSHandler *tls_handler);
 
 void wocky_connector_register_async (WockyConnector *self,
     GAsyncReadyCallback cb,
@@ -172,12 +175,6 @@ void wocky_connector_unregister_async (WockyConnector *self,
 gboolean wocky_connector_unregister_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error);
-
-gboolean wocky_connector_add_crl (WockyConnector *self,
-    const gchar *path);
-
-gboolean wocky_connector_add_ca (WockyConnector *self,
-    const gchar *path);
 
 void wocky_connector_set_auth_registry (WockyConnector *self,
     WockyAuthRegistry *registry);

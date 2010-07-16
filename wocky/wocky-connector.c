@@ -48,17 +48,15 @@
  * │  ↓
  * └→ maybe_old_ssl
  *    ↓
- *    xmpp_init ←─────────────┬──┐
- *    ↓                       │  │
- *    xmpp_init_sent_cb       │  │
- *    ↓                       │  │
- *    xmpp_init_recv_cb       │  │
- *    │ ↓                     │  │
- *    │ xmpp_features_cb      │  │
- *    │ │ │ ↓                 │  │
- *    │ │ │ starttls_sent_cb  │  │
- *    │ │ │ ↓                 │  │
- *    │ │ │ starttls_recv_cb ─┘  │             ①
+ *    xmpp_init ←─────────────────┬──┐
+ *    ↓                           │  │
+ *    xmpp_init_sent_cb           │  │
+ *    ↓                           │  │
+ *    xmpp_init_recv_cb           │  │
+ *    │ ↓                         │  │
+ *    │ xmpp_features_cb          │  │
+ *    │ │ │ ↓                     │  │
+ *    │ │ │ tls_module_secure_cb ─┘  │             ①
  *    │ │ ↓                      │             ↑
  *    │ │ sasl_request_auth      │             jabber_auth_done
  *    │ │ ↓                      │             ↑
@@ -104,6 +102,8 @@
 #include "wocky-debug.h"
 
 #include "wocky-sasl-auth.h"
+#include "wocky-tls-handler.h"
+#include "wocky-tls-connector.h"
 #include "wocky-jabber-auth.h"
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-connection.h"
@@ -126,7 +126,7 @@ static void tcp_host_connected (GObject *source,
 
 static void maybe_old_ssl (WockyConnector *self);
 
-static void xmpp_init (WockyConnector *connector, gboolean new_conn);
+static void xmpp_init (WockyConnector *connector);
 static void xmpp_init_sent_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
@@ -136,15 +136,10 @@ static void xmpp_init_recv_cb (GObject *source,
 static void xmpp_features_cb (GObject *source,
     GAsyncResult *result,
     gpointer data);
-static void starttls_sent_cb (GObject *source,
-    GAsyncResult *result,
-    gpointer data);
-static void starttls_recv_cb (GObject *source,
-    GAsyncResult *result,
-    gpointer data);
-static void starttls_handshake_cb (GObject *source,
+
+static void tls_connector_secure_cb (GObject *source,
     GAsyncResult *res,
-    gpointer data);
+    gpointer user_data);
 
 static void sasl_request_auth (WockyConnector *object,
     WockyStanza *stanza);
@@ -224,6 +219,7 @@ enum
   PROP_SESSION_ID,
   PROP_EMAIL,
   PROP_AUTH_REGISTRY,
+  PROP_TLS_HANDLER,
 };
 
 /* this tracks which XEP 0077 operation (register account, cancel account)  *
@@ -288,13 +284,10 @@ struct _WockyConnectorPrivate
   GSimpleAsyncResult *result;
 
   /* socket/tls/etc structures */
-  GSList *cas;
-  GSList *crl;
   GSocketClient *client;
   GSocketConnection *sock;
-  WockyTLSSession *tls_sess;
-  WockyTLSConnection *tls;
   WockyXmppConnection *conn;
+  WockyTLSHandler *tls_handler;
 
   WockyAuthRegistry *auth_registry;
 };
@@ -482,6 +475,9 @@ wocky_connector_set_property (GObject *object,
       case PROP_AUTH_REGISTRY:
         priv->auth_registry = g_value_dup_object (value);
         break;
+      case PROP_TLS_HANDLER:
+        priv->tls_handler = g_value_dup_object (value);
+        break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -546,6 +542,9 @@ wocky_connector_get_property (GObject *object,
         break;
       case PROP_AUTH_REGISTRY:
         g_value_set_object (value, priv->auth_registry);
+        break;
+      case PROP_TLS_HANDLER:
+        g_value_set_object (value, priv->tls_handler);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -745,28 +744,21 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "Authentication Registry", WOCKY_TYPE_AUTH_REGISTRY,
       (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_AUTH_REGISTRY, spec);
+
+  /**
+   * WockyConnector:tls-handler
+   *
+   * A TLS handler that carries out the interactive verification of the
+   * TLS certitificates provided by the server.
+   */
+  spec = g_param_spec_object ("tls-handler", "TLS Handler",
+      "TLS Handler", WOCKY_TYPE_TLS_HANDLER,
+      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (oclass, PROP_TLS_HANDLER, spec);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
 #define GFREE_AND_FORGET(x) g_free (x); x = NULL;
-
-static void
-add_cas (gpointer path, gpointer wtlsc)
-{
-  wocky_tls_session_add_ca (wtlsc, path);
-}
-
-static void
-add_crl (gpointer path, gpointer wtlsc)
-{
-  wocky_tls_session_add_crl (wtlsc, path);
-}
-
-static void
-free_ca_crl_path (gpointer path, gpointer nil)
-{
-  g_free (path);
-}
 
 static void
 wocky_connector_dispose (GObject *object)
@@ -781,17 +773,9 @@ wocky_connector_dispose (GObject *object)
   UNREF_AND_FORGET (priv->conn);
   UNREF_AND_FORGET (priv->client);
   UNREF_AND_FORGET (priv->sock);
-  UNREF_AND_FORGET (priv->tls_sess);
-  UNREF_AND_FORGET (priv->tls);
   UNREF_AND_FORGET (priv->features);
   UNREF_AND_FORGET (priv->auth_registry);
-
-  g_slist_foreach (priv->cas, free_ca_crl_path, NULL);
-  g_slist_foreach (priv->crl, free_ca_crl_path, NULL);
-  g_slist_free (priv->cas);
-  g_slist_free (priv->crl);
-  priv->cas = NULL;
-  priv->crl = NULL;
+  UNREF_AND_FORGET (priv->tls_handler);
 
   if (G_OBJECT_CLASS (wocky_connector_parent_class )->dispose)
     G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
@@ -975,52 +959,58 @@ jabber_auth_done (GObject *source,
 
 /* ************************************************************************* */
 /* old-style SSL                                                             */
+
+static const gchar *
+get_peername (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = self->priv;
+  const gchar *peer;
+
+  if (priv->legacy_ssl)
+    peer = (priv->xmpp_host != NULL) ? priv->xmpp_host : priv->domain;
+  else
+    peer = priv->domain;
+
+  return peer;
+}
+
 static void
 maybe_old_ssl (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = self->priv;
 
+  g_assert (priv->conn == NULL);
+  g_assert (priv->sock != NULL);
+
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->sock));
+
   if (priv->legacy_ssl && !priv->encrypted)
     {
-      g_assert (priv->conn == NULL);
-      g_assert (priv->sock != NULL);
+      WockyTLSConnector *tls_connector;
 
-      DEBUG ("creating SSL session");
-      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
+      DEBUG ("Creating SSL connector");
+      tls_connector = wocky_tls_connector_new (priv->tls_handler);
 
-      if (priv->tls_sess == NULL)
-        {
-          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
-              "SSL Session Failed");
-          return;
-        }
+      DEBUG ("Beginning SSL handshake");
+      wocky_tls_connector_secure_async (tls_connector,
+          priv->conn, TRUE, get_peername (self),
+          tls_connector_secure_cb, self);
 
-      g_slist_foreach (priv->cas, add_cas, priv->tls_sess);
-      g_slist_foreach (priv->crl, add_crl, priv->tls_sess);
-
-      DEBUG ("beginning SSL handshake");
-      wocky_tls_session_handshake_async (priv->tls_sess,
-          G_PRIORITY_DEFAULT, NULL, starttls_handshake_cb, self);
+      g_object_unref (tls_connector);
     }
   else
     {
-      xmpp_init (self, TRUE);
+      xmpp_init (self);
     }
 }
 
 /* ************************************************************************* */
 /* standard XMPP stanza handling                                             */
 static void
-xmpp_init (WockyConnector *connector, gboolean new_conn)
+xmpp_init (WockyConnector *connector)
 {
   WockyConnector *self = WOCKY_CONNECTOR (connector);
   WockyConnectorPrivate *priv = self->priv;
-
-  if (new_conn)
-    {
-      g_assert (priv->conn == NULL);
-      priv->conn = wocky_xmpp_connection_new (G_IO_STREAM(priv->sock));
-    }
 
   DEBUG ("sending XMPP stream open to server");
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
@@ -1190,11 +1180,15 @@ xmpp_features_cb (GObject *source,
 
   if (!priv->encrypted && can_encrypt)
     {
-      WockyStanza *starttls = wocky_stanza_new ("starttls", WOCKY_XMPP_NS_TLS);
-      DEBUG ("sending TLS request");
-      wocky_xmpp_connection_send_stanza_async (priv->conn, starttls,
-          NULL, starttls_sent_cb, data);
-      g_object_unref (starttls);
+      WockyTLSConnector *tls_connector;
+
+      tls_connector = wocky_tls_connector_new (priv->tls_handler);
+      wocky_tls_connector_secure_async (tls_connector,
+          priv->conn, FALSE, get_peername (self),
+          tls_connector_secure_cb, self);
+
+      g_object_unref (tls_connector);
+
       goto out;
     }
 
@@ -1223,205 +1217,33 @@ xmpp_features_cb (GObject *source,
 }
 
 static void
-starttls_sent_cb (GObject *source,
-    GAsyncResult *result,
-    gpointer data)
-{
-  WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = self->priv;
-  GError *error = NULL;
-
-  if (!wocky_xmpp_connection_send_stanza_finish (priv->conn, result,
-          &error))
-    {
-      abort_connect_error (data, &error, "Failed to send STARTTLS stanza");
-      g_error_free (error);
-      return;
-    }
-
-  DEBUG ("sent TLS request");
-  wocky_xmpp_connection_recv_stanza_async (priv->conn,
-      NULL, starttls_recv_cb, data);
-}
-
-static void
-starttls_recv_cb (GObject *source,
-    GAsyncResult *result,
-    gpointer data)
-{
-  WockyStanza *stanza;
-  GError *error = NULL;
-  WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = self->priv;
-  WockyNode *node;
-
-  stanza =
-    wocky_xmpp_connection_recv_stanza_finish (priv->conn, result, &error);
-
-  if (stanza == NULL)
-    {
-      abort_connect_error (data, &error, "STARTTLS reply not received");
-      g_error_free (error);
-      goto out;
-    }
-
-  if (stream_error_abort (self, stanza))
-    goto out;
-
-  DEBUG ("received TLS response");
-  node = wocky_stanza_get_top_node (stanza);
-
-  if (wocky_strdiff (node->name, "proceed") ||
-      wocky_strdiff (wocky_node_get_ns (node), WOCKY_XMPP_NS_TLS))
-    {
-      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_REFUSED,
-          "STARTTLS refused by server");
-      goto out;
-    }
-  else
-    {
-      priv->tls_sess = wocky_tls_session_new (G_IO_STREAM (priv->sock));
-
-      if (priv->tls_sess == NULL)
-        {
-          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
-              "SSL Session Failed");
-          goto out;
-        }
-
-      g_slist_foreach (priv->cas, add_cas, priv->tls_sess);
-      g_slist_foreach (priv->crl, add_crl, priv->tls_sess);
-
-      DEBUG ("starting client TLS handshake %p", priv->tls_sess);
-      wocky_tls_session_handshake_async (priv->tls_sess,
-          G_PRIORITY_HIGH, NULL, starttls_handshake_cb, self);
-    }
-
- out:
-  if (stanza != NULL)
-    g_object_unref (stanza);
-}
-
-static void
-starttls_handshake_cb (GObject *source,
+tls_connector_secure_cb (GObject *source,
     GAsyncResult *res,
-    gpointer data)
+    gpointer user_data)
 {
+  WockyTLSConnector *tls_connector = WOCKY_TLS_CONNECTOR (source);
+  WockyConnector *self = user_data;
   GError *error = NULL;
-  WockyConnector *self = WOCKY_CONNECTOR (data);
-  WockyConnectorPrivate *priv = self->priv;
-  WockyTLSSession *sess = priv->tls_sess;
-  const gchar *tla = priv->legacy_ssl ? "SSL" : "TLS";
-  long flags = WOCKY_TLS_VERIFY_NORMAL;
-  const gchar *peer = NULL;
-  WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+  WockyXmppConnection *new_connection;
 
-  priv->tls = wocky_tls_session_handshake_finish (sess, res, &error);
-  DEBUG ("completed %s handshake", tla);
+  new_connection = wocky_tls_connector_secure_finish (tls_connector,
+      res, &error);
 
-  if (priv->tls == NULL)
+  if (error != NULL)
     {
-      const gchar *msg = (error == NULL) ? "unknown error" : error->message;
-      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
-          "%s Handshake Error: %s", tla, msg);
+      abort_connect (self, error);
       g_error_free (error);
+
       return;
     }
 
-  /* throw away the old connection object, we're in TLS land now */
-  if (priv->conn != NULL)
-    g_object_unref (priv->conn);
-  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls));
+  if (self->priv->conn != NULL)
+    g_object_unref (self->priv->conn);
 
-  /* when lenient, don't check the peername, set cert flags accordingly   *
-   * when 'strict', leave the flags at NORMAL and check the peername      *
-   * under legacy ssl, the connect hostname is the preferred peername     *
-   * under starttls, we check the domain regardless of the connect server */
-  if (priv->cert_insecure_ok)
-    flags = WOCKY_TLS_VERIFY_LENIENT;
-  else if (priv->legacy_ssl)
-    peer = (priv->xmpp_host != NULL) ? priv->xmpp_host : priv->domain;
-  else
-    peer = priv->domain;
+  self->priv->conn = new_connection;
 
-  DEBUG ("verifying certificate (peer: %s)", (peer == NULL) ? "-" : peer);
-
-  if (wocky_tls_session_verify_peer (sess, peer, flags, &status) != 0)
-    {
-      gboolean ok_when_lenient = FALSE;
-      const gchar *msg = NULL;
-      switch (status)
-        {
-          case WOCKY_TLS_CERT_NAME_MISMATCH:
-            msg = "SSL Certificate does not match name '%s'";
-            break;
-          case WOCKY_TLS_CERT_REVOKED:
-            msg = "SSL Certificate for %s has been revoked";
-            break;
-          case WOCKY_TLS_CERT_SIGNER_UNKNOWN:
-            ok_when_lenient = TRUE;
-            msg = "SSL Certificate for %s is insecure (unknown signer)";
-            break;
-          case WOCKY_TLS_CERT_SIGNER_UNAUTHORISED:
-            msg = "SSL Certificate for %s is insecure (unauthorised signer)";
-            break;
-          case WOCKY_TLS_CERT_INSECURE:
-            msg = "SSL Certificate for %s is insecure (weak crypto)";
-            break;
-          case WOCKY_TLS_CERT_NOT_ACTIVE:
-            msg = "SSL Certificate for %s not active yet";
-            break;
-          case WOCKY_TLS_CERT_EXPIRED:
-            msg = "SSL Certificate for %s expired";
-            break;
-          case WOCKY_TLS_CERT_INVALID:
-            msg = "SSL Certificate for %s invalid";
-            ok_when_lenient = TRUE;
-            break;
-          /* Handle UNKNOWN_ERROR and any other unexpected values equivalently
-           */
-          case WOCKY_TLS_CERT_UNKNOWN_ERROR:
-          default:
-            msg = "SSL Certificate Verification Error for %s";
-        }
-      if (!(priv->cert_insecure_ok && ok_when_lenient))
-        {
-          GError *cert_error = NULL;
-          if (peer == NULL)
-            {
-              if (priv->legacy_ssl)
-                peer = priv->xmpp_host;
-              if (peer == NULL)
-                peer = priv->domain;
-            }
-          cert_error = g_error_new (WOCKY_TLS_CERT_ERROR, status, msg, peer);
-          abort_connect_error (self, &cert_error, NULL);
-          g_error_free (cert_error);
-          return;
-        }
-      else
-        {
-          gchar *err;
-
-          if (peer == NULL)
-            {
-              if (priv->legacy_ssl)
-                peer = priv->xmpp_host;
-              if (peer == NULL)
-                peer = priv->domain;
-            }
-
-          err = g_strdup_printf (msg, peer);
-          DEBUG ("Cert error: '%s', but ignore-ssl-errors is set", err);
-          g_free (err);
-        }
-    }
-
-  DEBUG ("cert verified %s",
-      (flags == WOCKY_TLS_VERIFY_LENIENT) ? "LENIENT" : "NORMAL");
-
-  priv->encrypted = TRUE;
-  xmpp_init (self, FALSE);
+  self->priv->encrypted = TRUE;
+  xmpp_init (self);
 }
 
 /* ************************************************************************* */
@@ -1482,7 +1304,7 @@ sasl_auth_done (GObject *source,
   priv->state = WCON_XMPP_AUTHED;
   priv->authed = TRUE;
   wocky_xmpp_connection_reset (priv->conn);
-  xmpp_init (self, FALSE);
+  xmpp_init (self);
  out:
   g_object_unref (sasl);
 }
@@ -2497,62 +2319,6 @@ wocky_connector_register_async (WockyConnector *self,
 }
 
 /**
- * wocky_connector_add_ca:
- * @self: a #WockyConnector instance
- * @path: a path to a directory or file containing PEM encoded CA certificates
- *
- * Sensible default paths (under Debian derived distributions) are:
- *
- * * for gnutls:  /etc/ssl/certs/ca-certificates.crt
- * * for openssl: /etc/ssl/certs
- *
- * Certificates my also be found under /usr/share/ca-certificates/...
- * if the user wishes to pick and choose which CAs to use.
- *
- * Returns: a #gboolean indicating whether the path was resolved.
- * Does not indicate that there was actually a file or directory there
- * or that any CAs were actually found. The CAs won't actually be loaded
- * until just before the TLS session setup is attempted.
- */
-gboolean
-wocky_connector_add_ca (WockyConnector *self,
-    const gchar *path)
-{
-  WockyConnectorPrivate *priv = self->priv;
-  gchar *abspath = wocky_absolutize_path (path);
-
-  if (abspath != NULL)
-    priv->cas = g_slist_prepend (priv->cas, abspath);
-
-  return abspath != NULL;
-}
-
-/**
- * wocky_connector_add_crl:
- * @self: a #WockyConnector instance
- * @path: a path to a directory or file containing PEM encoded CRLs
- *
- * This function does not descend subdirectories automatically.
- *
- * Returns: a #gboolean indicating whether the path was resolved.
- * Does not indicate that there was actually a file or directory there
- * or that any CRLs were actually found. The CRLs won't actually be loaded
- * until just before the TLS session setup is attempted.
- */
-gboolean
-wocky_connector_add_crl (WockyConnector *self,
-    const gchar *path)
-{
-  WockyConnectorPrivate *priv = self->priv;
-  gchar *abspath = wocky_absolutize_path (path);
-
-  if (abspath != NULL)
-    priv->crl = g_slist_prepend (priv->crl, abspath);
-
-  return abspath != NULL;
-}
-
-/**
  * wocky_connector_new:
  * @jid: a JID (user AT domain).
  * @pass: the password.
@@ -2568,12 +2334,14 @@ WockyConnector *
 wocky_connector_new (const gchar *jid,
     const gchar *pass,
     const gchar *resource,
-    WockyAuthRegistry *auth_registry)
+    WockyAuthRegistry *auth_registry,
+    WockyTLSHandler *tls_handler)
 {
   return g_object_new (WOCKY_TYPE_CONNECTOR,
       "jid", jid,
       "password", pass,
       "resource", resource,
       "auth-registry", auth_registry,
+      "tls-handler", tls_handler,
       NULL);
 }
