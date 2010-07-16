@@ -77,6 +77,7 @@ handwritten_headers = \
   wocky-stanza.h \
   wocky-tls.h \
   wocky-tls-handler.h \
+  wocky-tls-connector.h \
   wocky-types.h \
   wocky-utils.h \
   wocky-xmpp-connection.h \
@@ -117,6 +118,7 @@ handwritten_sources = \
   wocky-stanza.c \
   wocky-utils.c \
   wocky-tls-handler.c \
+  wocky-tls-connector.c \
   wocky-xmpp-connection.c \
   wocky-xmpp-error.c \
   wocky-xmpp-reader.c \
