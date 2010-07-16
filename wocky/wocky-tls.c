@@ -602,6 +602,49 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
 
+GPtrArray *
+wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
+    WockyTLSCertType *type)
+{
+  guint idx, cls;
+  const gnutls_datum_t *peers = NULL;
+  GPtrArray *certificates;
+
+  peers = gnutls_certificate_get_peers (session->session, &cls);
+
+  if (peers == NULL)
+    return NULL;
+
+  certificates =
+    g_ptr_array_new_with_free_func ((GDestroyNotify) g_array_unref);
+
+  for (idx = 0; idx < cls; idx++)
+    {
+      GArray *cert = g_array_sized_new (TRUE, TRUE, sizeof (guchar),
+          peers[idx].size);
+      g_array_append_vals (cert, peers[idx].data, peers[idx].size);
+      g_ptr_array_add (certificates, cert);
+    }
+
+  if (type != NULL)
+    {
+      switch (gnutls_certificate_type_get (session->session))
+        {
+        case GNUTLS_CRT_X509:
+          *type = WOCKY_TLS_CERT_TYPE_X509;
+          break;
+        case GNUTLS_CRT_OPENPGP:
+          *type = WOCKY_TLS_CERT_TYPE_OPENPGP;
+          break;
+        default:
+          *type = WOCKY_TLS_CERT_TYPE_NONE;
+          break;
+        }
+    }
+
+  return certificates;
+}
+
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
@@ -680,7 +723,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           break;
         default:
           *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
-      }
+	}
 
       return rval;
     }

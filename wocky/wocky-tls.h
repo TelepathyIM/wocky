@@ -70,13 +70,22 @@ typedef enum
   WOCKY_TLS_CERT_UNKNOWN_ERROR,
 } WockyTLSCertStatus;
 
+typedef enum
+{
+  WOCKY_TLS_CERT_TYPE_NONE = 0,
+  WOCKY_TLS_CERT_TYPE_X509,
+  WOCKY_TLS_CERT_TYPE_OPENPGP,
+} WockyTLSCertType;
+
 GType wocky_tls_connection_get_type (void);
 GType wocky_tls_session_get_type (void);
 
 int wocky_tls_session_verify_peer (WockyTLSSession    *session,
-                                   const gchar        *peername,
-                                   WockyTLSVerificationLevel level,
-                                   WockyTLSCertStatus *status);
+                                          const gchar        *peername,
+                                          WockyTLSVerificationLevel level,
+                                          WockyTLSCertStatus *status);
+GPtrArray *wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
+    WockyTLSCertType *type);
 
 WockyTLSConnection *wocky_tls_session_handshake (WockyTLSSession   *session,
                                                  GCancellable  *cancellable,

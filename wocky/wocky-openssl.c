@@ -930,6 +930,49 @@ check_peer_name (const char *target, X509 *cert)
   return rval;
 }
 
+GPtrArray *
+wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
+    WockyTLSCertType *type)
+{
+  STACK_OF(X509) *cert_chain = NULL;
+  guint cls = 0;
+  GPtrArray *certificates;
+
+  certificates =
+    g_ptr_array_new_with_free_func ((GDestroyNotify) g_array_unref);
+
+  cert_chain = SSL_get_peer_cert_chain (session->ssl);
+
+  if (cert_chain == NULL)
+    return NULL;
+
+  cls = sk_X509_num (cert_chain);
+
+  for (guint i = 0; i < cls; i++)
+    {
+      GArray *certificate;
+      X509 *peer;
+      gint peer_len;
+      guchar *peer_buffer;
+
+      peer = sk_X509_value (cert_chain, i);
+      peer_len = i2d_X509 (peer, NULL);
+
+      certificate = g_array_sized_new (TRUE, TRUE, sizeof (guchar), peer_len);
+
+      peer_buffer = g_malloc (peer_len);
+      i2d_X509 (peer, &peer_buffer);
+      peer_buffer -= peer_len;
+
+      g_array_append_vals (certificate, peer_buffer, peer_len);
+      g_ptr_array_add (certificates, certificate);
+
+      g_free (peer_buffer);
+    }
+
+  return certificates;
+}
+
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
