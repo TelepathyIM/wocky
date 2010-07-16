@@ -402,10 +402,11 @@ digest_md5_make_initial_response (
     GString **response,
     GError **error)
 {
+  g_return_val_if_fail (response != NULL, FALSE);
 
   *response = md5_prepare_response (priv, challenge, error);
 
-  if (response == NULL)
+  if (*response == NULL)
     return FALSE;
 
   DEBUG ("Prepared response: %s", (*response)->str);

@@ -1958,22 +1958,20 @@ iq_bind_resource (WockyConnector *self)
 {
   WockyConnectorPrivate *priv = self->priv;
   gchar *id = wocky_xmpp_connection_new_id (priv->conn);
+  WockyNode *bind;
   WockyStanza *iq =
     wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
         NULL, NULL,
         '@', "id", id,
         '(', "bind", ':', WOCKY_XMPP_NS_BIND,
+          '*', &bind,
         ')',
         NULL);
 
   /* if we have a specific resource to ask for, ask for it: otherwise the
    * server will make one up for us */
   if ((priv->resource != NULL) && (*priv->resource != '\0'))
-    {
-      WockyNode *bind = wocky_node_get_child (
-        wocky_stanza_get_top_node (iq), "bind");
-      wocky_node_add_child_with_content (bind, "resource", priv->resource);
-    }
+    wocky_node_add_child_with_content (bind, "resource", priv->resource);
 
   DEBUG ("sending bind iq set stanza");
   wocky_xmpp_connection_send_stanza_async (priv->conn, iq, NULL,
