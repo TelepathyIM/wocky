@@ -3239,6 +3239,7 @@ run_test (gpointer data)
 
   ca = test->client.options.ca ? test->client.options.ca : TLS_CA_CRT_FILE;
 
+  /* insecure tls cert/etc not yet implemented */
   handler = wocky_tls_handler_new (test->client.options.lax_ssl);
 
   wcon = g_object_new ( WOCKY_TYPE_CONNECTOR,
@@ -3252,8 +3253,6 @@ run_test (gpointer data)
       "plaintext-auth-allowed"  , !test->client.auth.tls,
       "legacy"                  , test->client.options.jabber,
       "old-ssl"                 , test->client.options.ssl,
-      /* insecure tls cert/etc not yet implemented */
-      "ignore-ssl-errors"       , test->client.options.lax_ssl,
       "tls-handler"             , handler,
       NULL);
 
@@ -3320,8 +3319,7 @@ run_test (gpointer data)
                                       "xmpp-server", "email", NULL };
           const gchar *str_vals[] = { "abc", "PASSWORD",
                                       "xmpp.server", "e@org", NULL };
-          const gchar *boolprop[] = { "ignore-ssl-errors",
-                                      "plaintext-auth-allowed",
+          const gchar *boolprop[] = { "plaintext-auth-allowed",
                                       "encrypted-plain-auth-ok",
                                       "tls-required",
                                       NULL };
