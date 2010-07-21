@@ -154,6 +154,7 @@ real_verify_async (WockyTLSHandler *self,
   GSimpleAsyncResult *result;
   glong flags = WOCKY_TLS_VERIFY_NORMAL;
   WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
+  const gchar *verify_peername = NULL;
 
   result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_tls_handler_verify_finish);
@@ -165,11 +166,13 @@ real_verify_async (WockyTLSHandler *self,
    */
   if (self->priv->ignore_ssl_errors)
     flags = WOCKY_TLS_VERIFY_LENIENT;
+  else
+    verify_peername = peername;
 
   DEBUG ("Verifying certificate (peername: %s)",
-      (peername == NULL) ? "-" : peername);
+      (verify_peername == NULL) ? "-" : verify_peername);
 
-  wocky_tls_session_verify_peer (tls_session, peername, flags, &status);
+  wocky_tls_session_verify_peer (tls_session, verify_peername, flags, &status);
 
   if (status != WOCKY_TLS_CERT_OK)
     {
