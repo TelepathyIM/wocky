@@ -205,6 +205,19 @@ report_error_in_idle (WockyTLSConnector *self,
 }
 
 static void
+report_error_in_idle_gerror (WockyTLSConnector *self,
+    const GError *error)
+{
+  DEBUG ("Reporting error %s", error->message);
+
+  g_simple_async_result_set_from_error (self->priv->secure_result,
+      error);
+  g_simple_async_result_complete_in_idle (self->priv->secure_result);
+
+  g_object_unref (self->priv->secure_result);
+}
+
+static void
 do_handshake (WockyTLSConnector *self)
 {
   GIOStream *base_stream = NULL;
@@ -242,10 +255,10 @@ tls_handler_verify_async_cb (GObject *source,
 
   if (error != NULL)
     {
-      report_error_in_idle (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
-          "TLS verification failed: %s", error->message);
-
+      /* forward the GError as we got it in this case */
+      report_error_in_idle_gerror (self, error);
       g_error_free (error);
+
       return;
     }
 
@@ -314,8 +327,8 @@ starttls_recv_cb (GObject *source,
 
   if (wocky_stanza_extract_stream_error (stanza, &error))
     {
-      report_error_in_idle (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
-          "Detected stream error in the STARTTLS reply: %s", error->message);
+      /* forward the GError as we got it in this case */
+      report_error_in_idle_gerror (self, error);
       g_error_free (error);
 
       goto out;
