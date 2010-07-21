@@ -206,7 +206,6 @@ enum
   PROP_JID = 1,
   PROP_PASS,
   PROP_AUTH_INSECURE_OK,
-  PROP_TLS_INSECURE_OK,
   PROP_ENC_PLAIN_AUTH_OK,
   PROP_RESOURCE,
   PROP_TLS_REQUIRED,
@@ -250,7 +249,6 @@ struct _WockyConnectorPrivate
 
   /* caller's choices about what to allow/disallow */
   gboolean auth_insecure_ok; /* can we auth over non-ssl */
-  gboolean cert_insecure_ok; /* care about bad certs etc? not handled yet */
   gboolean encrypted_plain_auth_ok; /* plaintext auth over secure channel */
 
   /* xmpp account related properties */
@@ -432,9 +430,6 @@ wocky_connector_set_property (GObject *object,
       case PROP_ENC_PLAIN_AUTH_OK:
         priv->encrypted_plain_auth_ok = g_value_get_boolean (value);
         break;
-      case PROP_TLS_INSECURE_OK:
-        priv->cert_insecure_ok = g_value_get_boolean (value);
-        break;
       case PROP_JID:
         g_free (priv->jid);
         priv->jid = g_value_dup_string (value);
@@ -504,9 +499,6 @@ wocky_connector_get_property (GObject *object,
       case PROP_ENC_PLAIN_AUTH_OK:
         g_value_set_boolean (value, priv->encrypted_plain_auth_ok);
         break;
-      case PROP_TLS_INSECURE_OK:
-        g_value_set_boolean (value, priv->cert_insecure_ok);
-        break;
       case PROP_JID:
         g_value_set_string (value, priv->jid);
         break;
@@ -564,17 +556,6 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   oclass->get_property = wocky_connector_get_property;
   oclass->dispose      = wocky_connector_dispose;
   oclass->finalize     = wocky_connector_finalize;
-
-  /**
-   * WockyConnector:ignore-ssl-errors:
-   *
-   * Whether to ignore recoverable SSL errors.
-   * (certificate insecurity/expiry etc) - not actually implemented yet.
-   */
-  spec = g_param_spec_boolean ("ignore-ssl-errors", "ignore-ssl-errors",
-      "Whether recoverable TLS errors should be ignored", TRUE,
-      (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-  g_object_class_install_property (oclass, PROP_TLS_INSECURE_OK, spec);
 
   /**
    * WockyConnector:plaintext-auth-allowed:
