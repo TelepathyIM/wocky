@@ -946,6 +946,9 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
   if (cert_chain == NULL)
     return NULL;
 
+  if (type != NULL)
+    *type = WOCKY_TLS_CERT_TYPE_X509;
+
   cls = sk_X509_num (cert_chain);
 
   for (guint i = 0; i < cls; i++)
