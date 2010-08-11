@@ -52,7 +52,7 @@
 #include <dirent.h>
 
 #define DEFAULT_TLS_OPTIONS \
-  "SECURE:"         /* all algorithms on in most->least secure order     */ \
+  "NORMAL:"         /* all secure algorithms */ \
   "-COMP-NULL:"     /* remove null compression                           */ \
   "+COMP-DEFLATE:"  /* prefer deflate                                    */ \
   "+COMP-NULL"      /* fall back to null                                 */
