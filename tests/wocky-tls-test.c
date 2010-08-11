@@ -159,7 +159,7 @@ server_write_cb (GObject *source,
 
   written = g_output_stream_write_finish (output, result, NULL);
 
-  g_assert (written == TEST_SSL_DATA_LEN);
+  g_assert_cmpint (written, ==, TEST_SSL_DATA_LEN);
 
   ssl_test->write_op_count++;
   if (ssl_test->write_op_count < 5)

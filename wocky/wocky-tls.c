@@ -375,7 +375,7 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
   if (session->handshake_job.job.active)
     {
       gint result;
-      DEBUG ("async job handshake");
+      DEBUG ("session %p: async job handshake", session);
       session->async = TRUE;
       result = gnutls_handshake (session->session);
       g_assert (result != GNUTLS_E_INTERRUPTED);
@@ -385,12 +385,12 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
           gnutls_handshake_description_t i;
           gnutls_handshake_description_t o;
 
-          DEBUG ("async job handshake: %d %s", result, error_to_string(result));
+          DEBUG ("session %p: async job handshake: %d %s", session,
+              result, error_to_string(result));
           i = gnutls_handshake_get_last_in (session->session);
           o = gnutls_handshake_get_last_out (session->session);
-          DEBUG ("async job handshake: { in: %s; out: %s }",
-                 hdesc_to_string (i),
-                 hdesc_to_string (o));
+          DEBUG ("session %p: async job handshake: { in: %s; out: %s }",
+              session, hdesc_to_string (i), hdesc_to_string (o));
         }
 
       session->async = FALSE;
@@ -419,7 +419,8 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
     {
       gssize result;
       if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
-        DEBUG ("async job OP_WRITE");
+        DEBUG ("async job OP_WRITE: %"G_GSIZE_FORMAT,
+          session->write_job.count);
       g_assert (operation == WOCKY_TLS_OP_WRITE);
       g_assert (session->write_job.job.active);
 
