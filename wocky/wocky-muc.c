@@ -833,19 +833,6 @@ wocky_muc_create_presence (WockyMuc *muc,
   return stanza;
 }
 
-static void
-wocky_muc_send_presence (WockyMuc *muc,
-    WockyStanzaSubType type,
-    const gchar *status)
-{
-  WockyMucPrivate *priv = muc->priv;
-  WockyStanza *pres = wocky_muc_create_presence (muc, type, status,
-      priv->pass);
-
-  wocky_porter_send (priv->porter, pres);
-  g_object_unref (pres);
-}
-
 /* ************************************************************************ */
 /* register presence handler for MUC */
 static guint
@@ -1572,6 +1559,8 @@ wocky_muc_join (WockyMuc *muc,
     GCancellable *cancel)
 {
   WockyMucPrivate *priv = muc->priv;
+  WockyStanza *presence = wocky_muc_create_presence (muc,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, priv->pass);
 
   if (priv->state < WOCKY_MUC_INITIATED)
     {
@@ -1581,8 +1570,8 @@ wocky_muc_join (WockyMuc *muc,
 
   priv->state = WOCKY_MUC_INITIATED;
 
-
-  wocky_muc_send_presence (muc, WOCKY_STANZA_SUB_TYPE_NONE, NULL);
+  wocky_porter_send (priv->porter, presence);
+  g_object_unref (presence);
 }
 
 /* misc meta data */
