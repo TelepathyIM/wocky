@@ -186,8 +186,7 @@ gboolean wocky_muc_disco_info_finish (WockyMuc *muc,
 /* presence */
 WockyStanza *wocky_muc_create_presence (WockyMuc *muc,
     WockyStanzaSubType type,
-    const gchar *status,
-    const gchar *password);
+    const gchar *status);
 
 /* initiate */
 void wocky_muc_initiate_async (WockyMuc *muc,

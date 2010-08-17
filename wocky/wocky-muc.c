@@ -798,8 +798,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
 WockyStanza *
 wocky_muc_create_presence (WockyMuc *muc,
     WockyStanzaSubType type,
-    const gchar *status,
-    const gchar *password)
+    const gchar *status)
 {
   WockyMucPrivate *priv = muc->priv;
   WockyStanza *stanza =
@@ -809,8 +808,6 @@ wocky_muc_create_presence (WockyMuc *muc,
         priv->jid,
         NULL);
   WockyNode *presence = wocky_stanza_get_top_node (stanza);
-  WockyNode *x = wocky_node_add_child_ns (presence,
-      "x", WOCKY_NS_MUC);
 
 
   /* There should be separate API to leave a room, but atm there isn't... so
@@ -826,9 +823,6 @@ wocky_muc_create_presence (WockyMuc *muc,
     {
       g_signal_emit (muc, signals[SIG_FILL_PRESENCE], 0, stanza);
     }
-
-  if (password != NULL)
-    wocky_node_add_child_with_content (x, "password", password);
 
   return stanza;
 }
@@ -1560,7 +1554,12 @@ wocky_muc_join (WockyMuc *muc,
 {
   WockyMucPrivate *priv = muc->priv;
   WockyStanza *presence = wocky_muc_create_presence (muc,
-      WOCKY_STANZA_SUB_TYPE_NONE, NULL, priv->pass);
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL);
+  WockyNode *x = wocky_node_add_child_ns (wocky_stanza_get_top_node (presence),
+      "x", WOCKY_NS_MUC);
+
+  if (priv->pass != NULL)
+    wocky_node_add_child_with_content (x, "password", priv->pass);
 
   if (priv->state < WOCKY_MUC_INITIATED)
     {
