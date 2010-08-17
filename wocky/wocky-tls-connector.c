@@ -194,8 +194,9 @@ report_error_in_idle (WockyTLSConnector *self,
   va_start (args, format);
   error = g_error_new_valist (WOCKY_CONNECTOR_ERROR, error_code, format,
       args);
-  wocky_debug_valist (DEBUG_FLAG, format, args);
   va_end (args);
+
+  DEBUG ("%s", error->message);
 
   g_simple_async_result_set_from_error (self->priv->secure_result,
       error);
