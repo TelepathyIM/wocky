@@ -4,6 +4,8 @@ EXAMPLES += wocky-connect
 EXAMPLES += wocky-register
 EXAMPLES += wocky-unregister
 
+INCLUDES := -I$(top_builddir)/wocky
+
 wocky_connect_SOURCES = connect.c
 wocky_connect_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 

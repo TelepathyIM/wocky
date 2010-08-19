@@ -20,6 +20,7 @@ CRL_DIR  := $(CERT_DIR)/crl
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
+INCLUDES := -I$(top_builddir)/wocky
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
             -DTLS_SS_KEY_FILE='"$(SS_KEY)"'      \
