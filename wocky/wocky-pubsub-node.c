@@ -446,6 +446,7 @@ subscribe_cb (GObject *source,
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
+  g_object_unref (self);
 }
 
 /**
@@ -669,6 +670,7 @@ list_subscribers_cb (GObject *source,
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
+  g_object_unref (self);
 }
 
 /**
@@ -816,6 +818,7 @@ list_affiliates_cb (GObject *source,
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
+  g_object_unref (self);
 }
 
 /**

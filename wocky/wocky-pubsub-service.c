@@ -699,6 +699,7 @@ receive_subscriptions_cb (GObject *source,
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
+  g_object_unref (self);
 }
 
 WockyStanza *
@@ -860,7 +861,6 @@ create_node_iq_cb (GObject *source,
 
   g_simple_async_result_complete (result);
   g_object_unref (result);
-  /* g_async_result_get_source_object refs the object */
   g_object_unref (self);
 }
 
