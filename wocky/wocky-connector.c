@@ -281,6 +281,11 @@ struct _WockyConnectorPrivate
   WockyConnectorXEP77Op reg_op;
   GSimpleAsyncResult *result;
 
+  /* Used to hold the error from connecting to the result of an SRV lookup
+   * while we fall back to connecting directly to the host.
+   */
+  GError *srv_connect_error;
+
   /* socket/tls/etc structures */
   GSocketClient *client;
   GSocketConnection *sock;
@@ -778,6 +783,9 @@ wocky_connector_finalize (GObject *object)
   GFREE_AND_FORGET (priv->session_id);
   GFREE_AND_FORGET (priv->email);
 
+  if (priv->srv_connect_error != NULL)
+    g_clear_error (&priv->srv_connect_error);
+
   G_OBJECT_CLASS (wocky_connector_parent_class)->finalize (object);
 }
 
@@ -809,25 +817,26 @@ tcp_srv_connected (GObject *source,
        */
       g_return_if_fail (error != NULL);
 
-      DEBUG ("SRV connect failed: %s", error->message);
+      DEBUG ("SRV connect failed: %s:%d %s", g_quark_to_string (error->domain),
+          error->code, error->message);
 
       /* An IO error implies there IS a SRV record but we could not
-       * connect: we do not fall through in this case: */
+       * connect. Stash the error, and fall back to connecting to the host
+       * directly; if we also fail to connect to the host, we'll report the
+       * error we stashed here rather than the later error. This is
+       * predominantly to work around chat.facebook.com having a broken SRV
+       * record.
+       *
+       * For any other kind of error, we assume this means there's no SRV
+       * record, bin the GError and just fall back to the host completely.
+       */
       if (error->domain == G_IO_ERROR)
-        {
-          abort_connect_error (self, &error, "Bad SRV record");
-          g_error_free (error);
-          return;
-        }
+        priv->srv_connect_error = error;
       else
-        {
-          DEBUG ("SRV error is: %s:%d", g_quark_to_string (error->domain),
-              error->code);
-        }
+        g_clear_error (&error);
 
       DEBUG ("Falling back to HOST connection");
 
-      g_error_free (error);
       priv->state = WCON_TCP_CONNECTING;
 
       /* decode a hostname from the JID here: Don't check for an explicit *
@@ -869,7 +878,19 @@ tcp_host_connected (GObject *source,
   if (priv->sock == NULL)
     {
       DEBUG ("HOST connect failed: %s", error->message);
-      abort_connect_error (connector, &error, "connection failed");
+
+      if (priv->srv_connect_error != NULL)
+        {
+          DEBUG ("we previously hit a GIOError when connecting using SRV; "
+              "reporting that error");
+          abort_connect_error (connector, &priv->srv_connect_error,
+              "Bad SRV record");
+        }
+      else
+        {
+          abort_connect_error (connector, &error, "connection failed");
+        }
+
       g_error_free (error);
     }
   else
