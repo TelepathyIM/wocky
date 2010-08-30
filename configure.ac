@@ -69,10 +69,6 @@ AC_ARG_ENABLE(coding-style-checks,
     [ENABLE_CODING_STYLE_CHECKS=$enableval], [ENABLE_CODING_STYLE_CHECKS=yes])
     ])
 
-if test x$enable_debug = xyes; then
-  AC_DEFINE(ENABLE_DEBUG, [], [Enable debug code])
-fi
-
 AC_SUBST([ENABLE_CODING_STYLE_CHECKS])
 
 dnl debugging stuff
@@ -80,14 +76,16 @@ AC_ARG_ENABLE(debug,
   AC_HELP_STRING([--disable-debug],[compile without debug code]),
   [
     case "${enableval}" in
-      yes|no) enable="${enableval}" ;;
+      yes|no) enable_debug="${enableval}" ;;
       *)   AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
     esac
   ],
-  [enable=yes])
+  [enable_debug=yes])
 
-if test "$enable" = yes; then
+if test "$enable_debug" = yes; then
   AC_DEFINE(ENABLE_DEBUG, [], [Enable debug code])
+else
+  enable_debug=no
 fi
 
 AC_ARG_WITH(installed-headers,
