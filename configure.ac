@@ -128,10 +128,10 @@ AS_CASE([$with_tls],
                 AC_DEFINE(USING_OPENSSL, 1, [Define if using openssl])
                 PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g])],
     [auto],    [PKG_CHECK_MODULES(TLS, [gnutls  >= 2.8.2 ],
-                    [],
+                    [with_tls=gnutls],
                     [USING_OPENSSL=yes
                      AC_DEFINE(USING_OPENSSL, 1, [Define if using openssl])
-                     PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g],[],
+                     PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g],[with_tls=openssl],
                          AC_MSG_ERROR([Neither gnutls nor openssl found]))])],
     [*],       AC_MSG_ERROR([Must have a TLS backend (gnutls or openssl)]))
 
