@@ -198,3 +198,18 @@ AC_OUTPUT( Makefile            \
            docs/Makefile      \
            docs/reference/Makefile
 )
+
+echo "
+Configure summary:
+
+        Compiler Flags.......: ${CFLAGS}
+        Prefix...............: ${prefix}
+        Coverage profiling...: ${enable_coverage}
+        Coding style checks..: ${ENABLE_CODING_STYLE_CHECKS}
+        Debug................: ${enable_debug}
+
+    Features:
+        TLS Backend..........: ${with_tls}
+        SASL2 Tests..........: ${HAVE_LIBSASL2}
+        gtk-doc documentation: ${enable_gtk_doc}
+"
