@@ -167,14 +167,18 @@ AC_ARG_ENABLE(coverage, AC_HELP_STRING([--enable-coverage],
       [compile with coverage profiling instrumentation (gcc only)]),
     [
       case "${enableval}" in
-        "yes"|"no") coverage="${enableval}" ;;
+        "yes"|"no") enable_coverage="${enableval}" ;;
         *)   AC_MSG_ERROR(bad value ${enableval} for --enable-coverage) ;;
       esac
     ]
 )
 
-WOCKY_GCOV(${coverage})
-WOCKY_LCOV(${coverage})
+WOCKY_GCOV(${enable_coverage})
+WOCKY_LCOV(${enable_coverage})
+
+if test "x$enable_coverage" = "x"; then
+  enable_coverage=no
+fi
 
 AC_SUBST(PACKAGE_STRING)
 
