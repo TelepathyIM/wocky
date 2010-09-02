@@ -1,7 +1,7 @@
 /*
  * Copyright © 2008 Christian Kellner, Samuel Cormier-Iijima
  * Copyright © 2008-2009 Codethink Limited
- * Copyright © 2009 Collabora Limited
+ * Copyright © 2009-2010 Collabora Limited
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -1071,6 +1071,11 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           break;
         case X509_V_ERR_PATH_LENGTH_EXCEEDED:
           *status = WOCKY_TLS_CERT_MAYBE_DOS;
+        case X509_V_ERR_UNABLE_TO_GET_CRL:
+          /* if we are in STRICT mode, being unable to see the CRL is a   *
+           * terminal condition: in NORMAL or LENIENT we can live with it */
+          if (level == WOCKY_TLS_VERIFY_STRICT)
+            *status = WOCKY_TLS_CERT_INSECURE;
           break;
         default:
           *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
