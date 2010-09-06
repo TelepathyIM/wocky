@@ -3381,19 +3381,8 @@ run_test (gpointer data)
     }
   else
     {
-      GQuark domain = 0;
-      domain = g_quark_from_string (test->result.domain);
+      GQuark domain = g_quark_from_string (test->result.domain);
 
-      if (error == NULL)
-        fprintf (stderr, "Expected %s error, got NULL\n",
-            g_quark_to_string (domain));
-      else if (!g_error_matches (error, domain, test->result.code))
-        fprintf (stderr, "ERROR: %s.%d: %s\n",
-            g_quark_to_string (error->domain),
-            error->code,
-            error->message);
-
-      g_assert (error != NULL);
       g_assert_error (error, domain, test->result.code);
     }
 
