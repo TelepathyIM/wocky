@@ -284,7 +284,7 @@ struct _WockyConnectorPrivate
   /* Used to hold the error from connecting to the result of an SRV lookup
    * while we fall back to connecting directly to the host.
    */
-  GError *srv_connect_error;
+  GError *srv_connect_error /* jesus christ it's a lion */;
 
   /* socket/tls/etc structures */
   GSocketClient *client;
