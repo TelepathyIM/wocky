@@ -69,7 +69,7 @@ main (int argc,
         "password"   , pass,
         "xmpp-server", host, NULL);
 
-  wocky_connector_unregister_async (wcon, unregister_callback, NULL);
+  wocky_connector_unregister_async (wcon, NULL, unregister_callback, NULL);
   g_main_loop_run (mainloop);
 
   return rval;

@@ -3228,13 +3228,16 @@ start_test (gpointer data)
   switch (test->client.op)
     {
       case OP_CONNECT:
-        wocky_connector_connect_async (test->connector, test_done, data);
+        wocky_connector_connect_async (test->connector, NULL,
+            test_done, data);
         break;
       case OP_REGISTER:
-        wocky_connector_register_async (test->connector, test_done, data);
+        wocky_connector_register_async (test->connector, NULL,
+            test_done, data);
         break;
       case OP_CANCEL:
-        wocky_connector_unregister_async (test->connector, test_done, data);
+        wocky_connector_unregister_async (test->connector, NULL,
+            test_done, data);
         break;
     }
   return FALSE;

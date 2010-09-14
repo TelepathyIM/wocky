@@ -74,7 +74,7 @@ main (int argc,
         "xmpp-server", host, NULL);
 
   g_object_set (G_OBJECT (wcon), "email", email, NULL);
-  wocky_connector_register_async (wcon, connector_callback, NULL);
+  wocky_connector_register_async (wcon, NULL, connector_callback, NULL);
   g_main_loop_run (mainloop);
 
   return 0;
