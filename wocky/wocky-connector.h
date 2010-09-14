@@ -155,6 +155,7 @@ WockyXmppConnection *wocky_connector_register_finish (WockyConnector *self,
     GError **error);
 
 void wocky_connector_connect_async (WockyConnector *self,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data);
 
@@ -165,10 +166,12 @@ WockyConnector *wocky_connector_new (const gchar *jid,
     WockyTLSHandler *tls_handler);
 
 void wocky_connector_register_async (WockyConnector *self,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data);
 
 void wocky_connector_unregister_async (WockyConnector *self,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data);
 

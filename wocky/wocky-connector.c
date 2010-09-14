@@ -280,6 +280,7 @@ struct _WockyConnectorPrivate
   /* register/cancel account, or normal login */
   WockyConnectorXEP77Op reg_op;
   GSimpleAsyncResult *result;
+  GCancellable *cancellable;
 
   /* Used to hold the error from connecting to the result of an SRV lookup
    * while we fall back to connecting directly to the host.
@@ -352,6 +353,12 @@ abort_connect_error (WockyConnector *connector,
     }
   priv->state = WCON_DISCONNECTED;
 
+  if (priv->cancellable != NULL)
+    {
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
+
   tmp = priv->result;
   priv->result = NULL;
   g_simple_async_result_set_from_error (tmp, *error);
@@ -372,6 +379,12 @@ abort_connect (WockyConnector *connector,
       priv->sock = NULL;
     }
   priv->state = WCON_DISCONNECTED;
+
+  if (priv->cancellable != NULL)
+    {
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
 
   tmp = priv->result;
   priv->result = NULL;
@@ -846,7 +859,7 @@ tcp_srv_connected (GObject *source,
 
       if ((host != NULL) && (*host != '\0'))
         g_socket_client_connect_to_host_async (priv->client,
-            host, port, NULL, tcp_host_connected, connector);
+            host, port, priv->cancellable, tcp_host_connected, connector);
       else
         abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
             "JID contains no domain: %s", priv->jid);
@@ -920,7 +933,7 @@ jabber_request_auth (WockyConnector *self)
 
   DEBUG ("handing over control to WockyJabberAuth");
   wocky_jabber_auth_authenticate_async (jabber_auth, clear, priv->encrypted,
-      NULL, jabber_auth_done, self);
+      priv->cancellable, jabber_auth_done, self);
 }
 
 static void
@@ -996,7 +1009,7 @@ maybe_old_ssl (WockyConnector *self)
       DEBUG ("Beginning SSL handshake");
       wocky_tls_connector_secure_async (tls_connector,
           priv->conn, TRUE, get_peername (self),
-          tls_connector_secure_cb, self);
+          priv->cancellable, tls_connector_secure_cb, self);
 
       g_object_unref (tls_connector);
     }
@@ -1016,7 +1029,7 @@ xmpp_init (WockyConnector *connector)
 
   DEBUG ("sending XMPP stream open to server");
   wocky_xmpp_connection_send_open_async (priv->conn, priv->domain, NULL,
-      "1.0", NULL, NULL, NULL, xmpp_init_sent_cb, connector);
+      "1.0", NULL, NULL, priv->cancellable, xmpp_init_sent_cb, connector);
 }
 
 static void
@@ -1036,7 +1049,7 @@ xmpp_init_sent_cb (GObject *source,
     }
 
   DEBUG ("waiting for stream open from server");
-  wocky_xmpp_connection_recv_open_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_open_async (priv->conn, priv->cancellable,
       xmpp_init_recv_cb, data);
 }
 
@@ -1084,7 +1097,7 @@ xmpp_init_recv_cb (GObject *source,
     }
 
   DEBUG ("waiting for feature stanza from server");
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
       xmpp_features_cb, data);
 
  out:
@@ -1186,7 +1199,7 @@ xmpp_features_cb (GObject *source,
 
       tls_connector = wocky_tls_connector_new (priv->tls_handler);
       wocky_tls_connector_secure_async (tls_connector,
-          priv->conn, FALSE, get_peername (self),
+          priv->conn, FALSE, get_peername (self), priv->cancellable,
           tls_connector_secure_cb, self);
 
       g_object_unref (tls_connector);
@@ -1268,8 +1281,8 @@ sasl_request_auth (WockyConnector *object,
     clear = TRUE;
 
   DEBUG ("handing over control to SASL module");
-  wocky_sasl_auth_authenticate_async (s, stanza, clear, priv->encrypted, NULL,
-      sasl_auth_done, self);
+  wocky_sasl_auth_authenticate_async (s, stanza, clear, priv->encrypted,
+      priv->cancellable, sasl_auth_done, self);
 }
 
 static void
@@ -1336,7 +1349,7 @@ xep77_cancel_send (WockyConnector *self)
       ')',
       NULL);
 
-  wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, NULL,
+  wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, priv->cancellable,
       xep77_cancel_sent, self);
 
   g_free (iid);
@@ -1361,7 +1374,7 @@ xep77_cancel_sent (GObject *source,
       return;
     }
 
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
       xep77_cancel_recv, self);
 }
 
@@ -1451,6 +1464,11 @@ xep77_cancel_recv (GObject *source,
       g_object_unref (priv->sock);
       priv->sock = NULL;
     }
+  if (priv->cancellable != NULL)
+    {
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
   g_simple_async_result_complete (priv->result);
   priv->state = WCON_DISCONNECTED;
 }
@@ -1483,7 +1501,7 @@ xep77_begin (WockyConnector *self)
       ')',
       NULL);
 
-  wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, NULL,
+  wocky_xmpp_connection_send_stanza_async (priv->conn, iqs, priv->cancellable,
       xep77_begin_sent, self);
 
   g_free (jid);
@@ -1509,7 +1527,7 @@ xep77_begin_sent (GObject *source,
       return;
     }
 
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
       xep77_begin_recv, self);
 }
 
@@ -1666,7 +1684,7 @@ xep77_signup_send (WockyConnector *self,
 
   /* we understood all args, and there was at least one of them: */
   if (args > 0)
-    wocky_xmpp_connection_send_stanza_async (priv->conn, riq, NULL,
+    wocky_xmpp_connection_send_stanza_async (priv->conn, riq, priv->cancellable,
         xep77_signup_sent, self);
   else
     abort_connect_code (self, WOCKY_CONNECTOR_ERROR_REGISTRATION_EMPTY,
@@ -1696,7 +1714,7 @@ xep77_signup_sent (GObject *source,
       return;
     }
 
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
       xep77_signup_recv, self);
 }
 
@@ -1798,7 +1816,7 @@ iq_bind_resource (WockyConnector *self)
     wocky_node_add_child_with_content (bind, "resource", priv->resource);
 
   DEBUG ("sending bind iq set stanza");
-  wocky_xmpp_connection_send_stanza_async (priv->conn, iq, NULL,
+  wocky_xmpp_connection_send_stanza_async (priv->conn, iq, priv->cancellable,
       iq_bind_resource_sent_cb, self);
   g_free (id);
   g_object_unref (iq);
@@ -1821,7 +1839,7 @@ iq_bind_resource_sent_cb (GObject *source,
     }
 
   DEBUG ("bind iq set stanza sent");
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
       iq_bind_resource_recv_cb, data);
 }
 
@@ -1937,7 +1955,7 @@ establish_session (WockyConnector *self)
             '(', "session", ':', WOCKY_XMPP_NS_SESSION,
             ')',
             NULL);
-      wocky_xmpp_connection_send_stanza_async (conn, session, NULL,
+      wocky_xmpp_connection_send_stanza_async (conn, session, priv->cancellable,
           establish_session_sent_cb, self);
       g_object_unref (session);
       g_free (id);
@@ -1951,6 +1969,13 @@ establish_session (WockyConnector *self)
   else
     {
       GSimpleAsyncResult *tmp = priv->result;
+
+      if (priv->cancellable != NULL)
+        {
+          g_object_unref (priv->cancellable);
+          priv->cancellable = NULL;
+        }
+
       priv->result = NULL;
       g_simple_async_result_complete (tmp);
       g_object_unref (tmp);
@@ -1973,7 +1998,7 @@ establish_session_sent_cb (GObject *source,
       return;
     }
 
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
       establish_session_recv_cb, data);
 }
 
@@ -2047,6 +2072,12 @@ establish_session_recv_cb (GObject *source,
           }
         else
           {
+            if (priv->cancellable != NULL)
+              {
+                g_object_unref (priv->cancellable);
+                priv->cancellable = NULL;
+              }
+
             tmp = priv->result;
             g_simple_async_result_complete (tmp);
             g_object_unref (tmp);
@@ -2179,6 +2210,7 @@ wocky_connector_unregister_finish (WockyConnector *self,
 static void
 connector_connect_async (WockyConnector *self,
     gpointer source_tag,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
@@ -2203,8 +2235,19 @@ connector_connect_async (WockyConnector *self,
       return;
     }
 
+  if (priv->cancellable != NULL)
+    {
+      g_warning ("Cancellable already present, but the async result is NULL; "
+          "something's wrong with the state of the connector, please file a bug.");
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
+
   priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data,
       source_tag);
+
+  if (cancellable != NULL)
+    priv->cancellable = g_object_ref (cancellable);
 
   wocky_decode_jid (priv->jid, &node, &host, &uniq);
 
@@ -2242,13 +2285,13 @@ connector_connect_async (WockyConnector *self,
       const gchar *srv = (priv->xmpp_host == NULL) ? host : priv->xmpp_host;
 
       DEBUG ("host: %s; port: %d", priv->xmpp_host, priv->xmpp_port);
-      g_socket_client_connect_to_host_async (priv->client, srv, port, NULL,
-          tcp_host_connected, self);
+      g_socket_client_connect_to_host_async (priv->client, srv, port,
+          priv->cancellable, tcp_host_connected, self);
     }
   else
     {
       g_socket_client_connect_to_service_async (priv->client,
-          host, "xmpp-client", NULL, tcp_srv_connected, self);
+          host, "xmpp-client", priv->cancellable, tcp_srv_connected, self);
     }
   return;
 
@@ -2270,10 +2313,12 @@ connector_connect_async (WockyConnector *self,
  */
 void
 wocky_connector_connect_async (WockyConnector *self,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
-  connector_connect_async (self, wocky_connector_connect_async, cb, user_data);
+  connector_connect_async (self, wocky_connector_connect_async,
+      cancellable, cb, user_data);
 }
 
 
@@ -2289,14 +2334,15 @@ wocky_connector_connect_async (WockyConnector *self,
  */
 void
 wocky_connector_unregister_async (WockyConnector *self,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
   WockyConnectorPrivate *priv = self->priv;
 
   priv->reg_op = XEP77_CANCEL;
-  connector_connect_async (self, wocky_connector_unregister_async, cb,
-      user_data);
+  connector_connect_async (self, wocky_connector_unregister_async,
+      cancellable, cb, user_data);
 }
 
 /**
@@ -2311,13 +2357,15 @@ wocky_connector_unregister_async (WockyConnector *self,
  */
 void
 wocky_connector_register_async (WockyConnector *self,
+    GCancellable *cancellable,
     GAsyncReadyCallback cb,
     gpointer user_data)
 {
   WockyConnectorPrivate *priv = self->priv;
 
   priv->reg_op = XEP77_SIGNUP;
-  connector_connect_async (self, wocky_connector_register_async, cb, user_data);
+  connector_connect_async (self, wocky_connector_register_async,
+      cancellable, cb, user_data);
 }
 
 /**
