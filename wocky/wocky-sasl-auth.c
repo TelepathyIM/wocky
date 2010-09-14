@@ -229,6 +229,12 @@ auth_reset (WockySaslAuth *sasl)
       g_object_unref (priv->connection);
       priv->connection = NULL;
     }
+
+  if (priv->cancel != NULL)
+    {
+      g_object_unref (priv->cancel);
+      priv->cancel = NULL;
+    }
 }
 
 static void
@@ -578,6 +584,27 @@ sasl_auth_stanza_received (GObject *source,
   return;
 }
 
+static void
+sasl_auth_stanza_sent (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  GError *error = NULL;
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockySaslAuth *self = user_data;
+  WockySaslAuthPrivate *priv = self->priv;
+
+  if (!wocky_xmpp_connection_send_stanza_finish (connection, res, &error))
+    {
+      auth_failed (self, error->code, error->message);
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_recv_stanza_async (priv->connection,
+    priv->cancel, sasl_auth_stanza_received, self);
+}
+
 gboolean
 wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
@@ -623,13 +650,10 @@ wocky_sasl_auth_start_cb (GObject *source_object,
       g_free (initial_response_str);
     }
 
-  /* FIXME handle send error */
   wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
     "mechanism", start_data->mechanism);
   wocky_xmpp_connection_send_stanza_async (priv->connection, stanza,
-    NULL, NULL, NULL);
-  wocky_xmpp_connection_recv_stanza_async (priv->connection,
-    NULL, sasl_auth_stanza_received, self);
+    priv->cancel, sasl_auth_stanza_sent, self);
 
   wocky_auth_registry_start_data_free (start_data);
   g_object_unref (stanza);
@@ -670,6 +694,9 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
 
   priv->result = g_simple_async_result_new (G_OBJECT (sasl),
     callback, user_data, wocky_sasl_auth_authenticate_finish);
+
+  if (cancellable != NULL)
+    priv->cancel = g_object_ref (cancellable);
 
   wocky_auth_registry_start_auth_async (priv->auth_registry, mechanisms,
       allow_plain, is_secure, priv->username, priv->password, priv->server,
