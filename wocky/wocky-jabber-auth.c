@@ -241,6 +241,12 @@ auth_reset (WockyJabberAuth *self)
       g_object_unref (priv->connection);
       priv->connection = NULL;
     }
+
+  if (priv->cancel != NULL)
+    {
+      g_object_unref (priv->cancel);
+      priv->cancel = NULL;
+    }
 }
 
 static void
@@ -455,7 +461,7 @@ jabber_auth_query (GObject *source, GAsyncResult *res, gpointer user_data)
       return;
     }
 
-  wocky_xmpp_connection_recv_stanza_async (conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (conn, priv->cancel,
       jabber_auth_reply, user_data);
 }
 
@@ -500,7 +506,7 @@ wocky_jabber_auth_start_cb (GObject *source,
       ')',
       NULL);
 
-  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
+  wocky_xmpp_connection_send_stanza_async (conn, iq, priv->cancel,
       jabber_auth_query, self);
 
   g_free (iqid);
@@ -611,7 +617,7 @@ jabber_auth_init_sent (GObject *source,
       return;
     }
 
-  wocky_xmpp_connection_recv_stanza_async (conn, NULL,
+  wocky_xmpp_connection_recv_stanza_async (conn, priv->cancel,
       jabber_auth_fields, user_data);
 }
 
@@ -638,6 +644,9 @@ wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
   priv->result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_jabber_auth_authenticate_finish);
 
+  if (cancellable != NULL)
+    priv->cancel = g_object_ref (cancellable);
+
   iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       NULL, NULL,
       '@', "id", id,
@@ -648,7 +657,7 @@ wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
       ')',
       NULL);
 
-  wocky_xmpp_connection_send_stanza_async (conn, iq, NULL,
+  wocky_xmpp_connection_send_stanza_async (conn, iq, priv->cancel,
       jabber_auth_init_sent, self);
 
   g_free (id);
