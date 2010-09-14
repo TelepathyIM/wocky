@@ -45,6 +45,7 @@ struct _WockyTLSConnectorPrivate {
   WockyXmppConnection *tls_connection;
 
   GSimpleAsyncResult *secure_result;
+  GCancellable *cancellable;
 };
 
 enum {
@@ -203,6 +204,12 @@ report_error_in_idle (WockyTLSConnector *self,
   g_simple_async_result_complete_in_idle (self->priv->secure_result);
 
   g_object_unref (self->priv->secure_result);
+
+  if (self->priv->cancellable != NULL)
+    {
+      g_object_unref (self->priv->cancellable);
+      self->priv->cancellable = NULL;
+    }
 }
 
 static void
@@ -216,6 +223,12 @@ report_error_in_idle_gerror (WockyTLSConnector *self,
   g_simple_async_result_complete_in_idle (self->priv->secure_result);
 
   g_object_unref (self->priv->secure_result);
+
+  if (self->priv->cancellable != NULL)
+    {
+      g_object_unref (self->priv->cancellable);
+      self->priv->cancellable = NULL;
+    }
 }
 
 static void
@@ -240,7 +253,7 @@ do_handshake (WockyTLSConnector *self)
   prepare_session (self);
 
   wocky_tls_session_handshake_async (self->priv->session,
-      G_PRIORITY_DEFAULT, NULL, session_handshake_cb, self);
+      G_PRIORITY_DEFAULT, self->priv->cancellable, session_handshake_cb, self);
 }
 
 static void
@@ -268,6 +281,12 @@ tls_handler_verify_async_cb (GObject *source,
   g_simple_async_result_complete_in_idle (self->priv->secure_result);
 
   g_object_unref (self->priv->secure_result);
+
+  if (self->priv->cancellable != NULL)
+    {
+      g_object_unref (self->priv->cancellable);
+      self->priv->cancellable = NULL;
+    }
 }
 
 static void
@@ -367,7 +386,8 @@ starttls_recv_cb (GObject *source,
 
       DEBUG ("Starting client TLS handshake %p", self->priv->session);
       wocky_tls_session_handshake_async (self->priv->session,
-          G_PRIORITY_HIGH, NULL, session_handshake_cb, self);
+          G_PRIORITY_HIGH, self->priv->cancellable,
+          session_handshake_cb, self);
     }
 
  out:
@@ -397,7 +417,7 @@ starttls_sent_cb (GObject *source,
 
   DEBUG ("Sent STARTTLS stanza");
   wocky_xmpp_connection_recv_stanza_async (
-      WOCKY_XMPP_CONNECTION (self->priv->connection), NULL,
+      WOCKY_XMPP_CONNECTION (self->priv->connection), self->priv->cancellable,
       starttls_recv_cb, self);
 }
 
@@ -410,8 +430,8 @@ do_starttls (WockyTLSConnector *self)
 
   DEBUG ("Sending STARTTLS stanza");
   wocky_xmpp_connection_send_stanza_async (
-      WOCKY_XMPP_CONNECTION (self->priv->connection), starttls, NULL,
-      starttls_sent_cb, self);
+      WOCKY_XMPP_CONNECTION (self->priv->connection), starttls,
+      self->priv->cancellable, starttls_sent_cb, self);
   g_object_unref (starttls);
 }
 
@@ -427,6 +447,7 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
     WockyXmppConnection *connection,
     gboolean old_style_ssl,
     const gchar *peername,
+    GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
@@ -436,6 +457,9 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
 
   async_result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_tls_connector_secure_finish);
+
+  if (cancellable != NULL)
+    self->priv->cancellable = g_object_ref (cancellable);
 
   self->priv->connection = connection;
   self->priv->secure_result = async_result;
