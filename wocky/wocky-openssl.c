@@ -1515,18 +1515,40 @@ wocky_tls_session_write_ready (GObject      *object,
     }
   else
     {
-      gchar *pending;
       gchar *buffer;
       long bsize = BIO_get_mem_data (session->wbio, &buffer);
       long psize = bsize - written;
-      gint ignore_warning;
-      DEBUG ("Incomplete async write: attempting to recover.");
-      pending = g_memdup (buffer + written, psize);
-      ignore_warning = BIO_reset (session->wbio);
-      ignore_warning = BIO_write (session->wbio, pending, psize);
-      g_free (pending);
-      /* kick the whle thing off again with what's left: */
-      ssl_flush (session);
+
+      /* scrub the data we did manage to write from our buffer */
+      if (written > 0)
+        {
+          gint ignore_warning;
+          gchar *pending = g_memdup (buffer + written, psize);
+
+          ignore_warning = BIO_reset (session->wbio);
+          ignore_warning = BIO_write (session->wbio, pending, psize);
+          g_free (pending);
+        }
+
+      if (session->job.write.error != NULL)
+        {
+          if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
+            DEBUG ("Incomplete async write [%" G_GSSIZE_FORMAT "/%d bytes]: %s",
+                   written, buffered,
+                   session->job.write.error->code,
+                   session->job.write.error->message);
+
+          /* if we have a  non-fatal error, erase it try again */
+          if (g_error_matches (session->job.write.error,
+                               G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK))
+            g_clear_error (&(session->job.write.error));
+        }
+
+      /* no error here means retry the operation; otherwise bail out */
+      if (session->job.write.error == NULL)
+        ssl_flush (session);
+      else
+        wocky_tls_session_try_operation (session, WOCKY_TLS_OP_WRITE);
     }
 }
 
