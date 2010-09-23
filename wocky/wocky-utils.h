@@ -105,7 +105,7 @@ void wocky_g_string_free (GString *str);
     GSimpleAsyncResult *_simple; \
     g_return_val_if_fail (g_simple_async_result_is_valid (result, \
             G_OBJECT (source), tag), \
-        FALSE); \
+        NULL); \
     _simple = (GSimpleAsyncResult *) result; \
     if (g_simple_async_result_propagate_error (_simple, error)) \
       return NULL; \
