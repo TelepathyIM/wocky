@@ -374,7 +374,7 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   g_assert (priv->output_cancellable == NULL);
 
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_open_finish);
+    callback, user_data, wocky_xmpp_connection_send_open_async);
 
   priv->output_cancellable = cancellable;
   priv->offset = 0;
@@ -431,7 +431,7 @@ wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_send_open_finish), FALSE);
+    G_OBJECT (connection), wocky_xmpp_connection_send_open_async), FALSE);
 
   priv->output_open = TRUE;
 
@@ -565,7 +565,7 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   g_assert (priv->input_cancellable == NULL);
 
   priv->input_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_recv_open_finish);
+    callback, user_data, wocky_xmpp_connection_recv_open_async);
 
   priv->input_cancellable = cancellable;
 
@@ -631,7 +631,7 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_recv_open_finish), FALSE);
+    G_OBJECT (connection), wocky_xmpp_connection_recv_open_async), FALSE);
 
   priv = connection->priv;
   priv->input_open = TRUE;
@@ -695,7 +695,7 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   g_assert (priv->output_cancellable == NULL);
 
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_stanza_finish);
+    callback, user_data, wocky_xmpp_connection_send_stanza_async);
 
   priv->output_cancellable = cancellable;
   priv->offset = 0;
@@ -750,7 +750,7 @@ wocky_xmpp_connection_send_stanza_finish (
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_finish),
+      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_async),
       FALSE);
 
   return TRUE;
@@ -793,7 +793,7 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   g_assert (priv->input_cancellable == NULL);
 
   priv->input_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_recv_stanza_finish);
+    callback, user_data, wocky_xmpp_connection_recv_stanza_async);
 
   /* There is already a stanza waiting, no need to read */
   if (wocky_xmpp_reader_peek_stanza (priv->reader) != NULL)
@@ -857,7 +857,7 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_recv_stanza_finish), NULL);
+    G_OBJECT (connection), wocky_xmpp_connection_recv_stanza_async), NULL);
 
   priv = connection->priv;
 
@@ -929,7 +929,7 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
   g_assert (priv->output_cancellable == NULL);
 
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_close_finish);
+    callback, user_data, wocky_xmpp_connection_send_close_async);
 
   priv->output_cancellable = cancellable;
   priv->offset = 0;
@@ -986,7 +986,7 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_send_close_finish), FALSE);
+    G_OBJECT (connection), wocky_xmpp_connection_send_close_async), FALSE);
 
   priv->output_closed = TRUE;
 
@@ -1080,7 +1080,7 @@ wocky_xmpp_connection_force_close_async (WockyXmppConnection *connection,
     }
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_force_close_finish);
+    callback, user_data, wocky_xmpp_connection_force_close_async);
 
   g_io_stream_close_async (priv->stream, G_PRIORITY_HIGH, cancellable,
       stream_close_cb, connection);
@@ -1097,7 +1097,7 @@ wocky_xmpp_connection_force_close_finish (
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_force_close_finish), FALSE);
+    G_OBJECT (connection), wocky_xmpp_connection_force_close_async), FALSE);
 
   return TRUE;
 }

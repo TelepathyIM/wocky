@@ -454,7 +454,7 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
   g_assert (self->priv->secure_result == NULL);
 
   async_result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_tls_connector_secure_finish);
+      callback, user_data, wocky_tls_connector_secure_async);
 
   if (cancellable != NULL)
     self->priv->cancellable = g_object_ref (cancellable);
@@ -476,5 +476,5 @@ wocky_tls_connector_secure_finish (WockyTLSConnector *self,
     GError **error)
 {
   wocky_implement_finish_return_copy_pointer (self,
-      wocky_tls_connector_secure_finish, g_object_ref);
+      wocky_tls_connector_secure_async, g_object_ref);
 }

@@ -253,7 +253,7 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
   GSimpleAsyncResult *result;
 
   result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      wocky_auth_registry_start_auth_finish);
+      wocky_auth_registry_start_auth_async);
 
   g_assert (priv->handler == NULL);
 
@@ -370,7 +370,7 @@ wocky_auth_registry_start_auth_finish_func (WockyAuthRegistry *self,
     GError **error)
 {
   wocky_implement_finish_copy_pointer (self,
-      wocky_auth_registry_start_auth_finish,
+      wocky_auth_registry_start_auth_async,
       wocky_auth_registry_start_data_dup,
       start_data);
 }
@@ -385,7 +385,7 @@ wocky_auth_registry_challenge_async_func (WockyAuthRegistry *self,
   GString *response = NULL;
   GError *error = NULL;
   GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_auth_registry_challenge_finish);
+      callback, user_data, wocky_auth_registry_challenge_async);
 
   g_assert (priv->handler != NULL);
 
@@ -434,7 +434,7 @@ wocky_auth_registry_challenge_finish_func (WockyAuthRegistry *self,
     GError **error)
 {
   wocky_implement_finish_copy_pointer (self,
-      wocky_auth_registry_challenge_finish,
+      wocky_auth_registry_challenge_async,
       wocky_g_string_dup,
       response);
 }
@@ -447,7 +447,7 @@ wocky_auth_registry_success_async_func (WockyAuthRegistry *self,
   WockyAuthRegistryPrivate *priv = self->priv;
   GError *error = NULL;
   GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_auth_registry_success_finish);
+      callback, user_data, wocky_auth_registry_success_async);
 
   g_assert (priv->handler != NULL);
 
@@ -487,7 +487,7 @@ wocky_auth_registry_success_finish_func (WockyAuthRegistry *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_auth_registry_success_finish);
+  wocky_implement_finish_void (self, wocky_auth_registry_success_async);
 }
 
 void

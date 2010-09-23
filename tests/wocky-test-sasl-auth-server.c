@@ -970,7 +970,7 @@ test_sasl_auth_server_auth_finish (TestSaslAuthServer *self,
 
   ok = g_simple_async_result_is_valid (G_ASYNC_RESULT (res),
       G_OBJECT (self),
-      test_sasl_auth_server_auth_finish);
+      test_sasl_auth_server_auth_async);
   g_return_val_if_fail (ok, FALSE);
 
   return (priv->state == AUTH_STATE_AUTHENTICATED);
@@ -999,7 +999,7 @@ test_sasl_auth_server_auth_async (GObject *obj,
   /* save the details of the point ot which we will hand back control */
   if (cb != NULL)
     priv->result = g_simple_async_result_new (obj, cb, data,
-        test_sasl_auth_server_auth_finish);
+        test_sasl_auth_server_auth_async);
 
   handle_auth (self, auth);
   if (priv->state < AUTH_STATE_AUTHENTICATED)

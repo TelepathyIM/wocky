@@ -150,7 +150,7 @@ sending_queue_elem_new (WockyPorter *self,
     elem->cancellable = g_object_ref (cancellable);
 
   elem->result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_porter_send_finish);
+    callback, user_data, wocky_porter_send_async);
 
   return elem;
 }
@@ -830,7 +830,7 @@ wocky_porter_send_finish (WockyPorter *self,
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_porter_send_finish), FALSE);
+    G_OBJECT (self), wocky_porter_send_async), FALSE);
 
   return TRUE;
 }
@@ -1397,7 +1397,7 @@ wocky_porter_close_async (WockyPorter *self,
     }
 
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_porter_close_finish);
+    callback, user_data, wocky_porter_close_async);
 
   priv->close_cancellable = cancellable;
 
@@ -1434,7 +1434,7 @@ wocky_porter_close_finish (
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_porter_close_finish), FALSE);
+    G_OBJECT (self), wocky_porter_close_async), FALSE);
 
   return TRUE;
 }
@@ -1689,7 +1689,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
   wocky_node_set_attribute (wocky_stanza_get_top_node (stanza), "id", id);
 
   result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_porter_send_iq_finish);
+    callback, user_data, wocky_porter_send_iq_async);
 
   handler = stanza_iq_handler_new (self, id, result, cancellable,
       recipient);
@@ -1735,7 +1735,7 @@ WockyStanza * wocky_porter_send_iq_finish (
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_porter_send_iq_finish), NULL);
+    G_OBJECT (self), wocky_porter_send_iq_async), NULL);
 
   reply = g_simple_async_result_get_op_res_gpointer (
       G_SIMPLE_ASYNC_RESULT (result));
@@ -1814,7 +1814,7 @@ wocky_porter_force_close_async (WockyPorter *self,
     }
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_porter_force_close_finish);
+    callback, user_data, wocky_porter_force_close_async);
   priv->force_close_cancellable = cancellable;
 
   /* force_close_result now keeps a ref on ourself so we can release the ref
@@ -1883,7 +1883,7 @@ wocky_porter_force_close_finish (
     return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_porter_force_close_finish), FALSE);
+    G_OBJECT (self), wocky_porter_force_close_async), FALSE);
 
   return TRUE;
 }

@@ -1574,7 +1574,7 @@ test_connector_server_teardown (TestConnectorServer *self,
 {
   TestConnectorServerPrivate *priv = self->priv;
   GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, test_connector_server_teardown_finish);
+    callback, user_data, test_connector_server_teardown);
 
   /* For now, we'll assert if this gets called twice */
   g_assert (priv->cancellable != NULL);

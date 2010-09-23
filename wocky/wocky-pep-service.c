@@ -330,7 +330,7 @@ wocky_pep_service_get_async (WockyPepService *self,
       ')', NULL);
 
   result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_pep_service_get_finish);
+    callback, user_data, wocky_pep_service_get_async);
 
   wocky_porter_send_iq_async (priv->porter, msg, cancellable, send_query_cb,
       result);
@@ -349,7 +349,7 @@ wocky_pep_service_get_finish (WockyPepService *self,
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_pep_service_get_finish), NULL);
+    G_OBJECT (self), wocky_pep_service_get_async), NULL);
 
   return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
 }

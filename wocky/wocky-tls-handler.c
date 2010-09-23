@@ -157,7 +157,7 @@ real_verify_async (WockyTLSHandler *self,
   const gchar *verify_peername = NULL;
 
   result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_tls_handler_verify_finish);
+      callback, user_data, wocky_tls_handler_verify_async);
 
   /* When lenient, don't check the peername, set cert flags accordingly.
    * When 'strict', leave the flags at NORMAL and check the peername.
@@ -246,7 +246,7 @@ real_verify_finish (WockyTLSHandler *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_tls_handler_verify_finish);
+  wocky_implement_finish_void (self, wocky_tls_handler_verify_async);
 }
 
 void

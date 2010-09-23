@@ -785,7 +785,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       NULL);
 
   result = g_simple_async_result_new (G_OBJECT (muc), callback, data,
-    wocky_muc_disco_info_finish);
+    wocky_muc_disco_info_async);
 
   wocky_porter_send_iq_async (priv->porter, iq, cancel, muc_disco_info,
       result);

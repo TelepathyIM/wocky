@@ -610,7 +610,7 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error)
 {
-  wocky_implement_finish_void (sasl, wocky_sasl_auth_authenticate_finish);
+  wocky_implement_finish_void (sasl, wocky_sasl_auth_authenticate_async);
 }
 
 static void
@@ -693,7 +693,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
     }
 
   priv->result = g_simple_async_result_new (G_OBJECT (sasl),
-    callback, user_data, wocky_sasl_auth_authenticate_finish);
+    callback, user_data, wocky_sasl_auth_authenticate_async);
 
   if (cancellable != NULL)
     priv->cancel = g_object_ref (cancellable);

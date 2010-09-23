@@ -351,7 +351,7 @@ wocky_jabber_auth_authenticate_finish (WockyJabberAuth *self,
   GAsyncResult *result,
   GError **error)
 {
-  wocky_implement_finish_void (self, wocky_jabber_auth_authenticate_finish);
+  wocky_implement_finish_void (self, wocky_jabber_auth_authenticate_async);
 }
 
 static void
@@ -642,7 +642,7 @@ wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
   priv->is_secure = is_secure;
 
   priv->result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_jabber_auth_authenticate_finish);
+      callback, user_data, wocky_jabber_auth_authenticate_async);
 
   if (cancellable != NULL)
     priv->cancel = g_object_ref (cancellable);
