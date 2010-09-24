@@ -403,10 +403,8 @@ starttls_sent_cb (GObject *source,
   WockyTLSConnector *self = user_data;
   GError *error = NULL;
 
-  wocky_xmpp_connection_send_stanza_finish (
-      WOCKY_XMPP_CONNECTION (self->priv->connection), result, &error);
-
-  if (error != NULL)
+  if (!wocky_xmpp_connection_send_stanza_finish (
+          WOCKY_XMPP_CONNECTION (self->priv->connection), result, &error))
     {
       report_error_in_idle (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
           "Failed to send STARTTLS stanza: %s", error->message);
