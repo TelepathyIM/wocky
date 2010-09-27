@@ -757,7 +757,7 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
 {
   wocky_implement_finish_copy_pointer (self,
       wocky_pubsub_service_retrieve_subscriptions_async,
-      wocky_pubsub_subscription_list_copy, subscriptions)
+      wocky_pubsub_subscription_list_copy, subscriptions);
 }
 
 /**
