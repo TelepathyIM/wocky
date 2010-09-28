@@ -460,6 +460,7 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
   GSimpleAsyncResult *async_result;
 
   g_assert (self->priv->secure_result == NULL);
+  g_assert (self->priv->cancellable == NULL);
 
   async_result = g_simple_async_result_new (G_OBJECT (self),
       callback, user_data, wocky_tls_connector_secure_async);

@@ -1418,6 +1418,8 @@ wocky_porter_close_async (WockyPorter *self,
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_porter_close_async);
 
+  g_assert (priv->close_cancellable == NULL);
+
   if (cancellable != NULL)
     priv->close_cancellable = g_object_ref (cancellable);
 
@@ -1834,6 +1836,8 @@ wocky_porter_force_close_async (WockyPorter *self,
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_porter_force_close_async);
+
+  g_assert (priv->force_close_cancellable == NULL);
 
   if (cancellable != NULL)
     priv->force_close_cancellable = g_object_ref (cancellable);

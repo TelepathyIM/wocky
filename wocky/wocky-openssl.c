@@ -626,6 +626,7 @@ wocky_tls_job_start (WockyTLSJob             *job,
                      gpointer             source_tag)
 {
   g_assert (job->active == FALSE);
+  g_assert (job->cancellable == NULL);
 
   /* this is always a circular reference, so it will keep the
    * session alive for as long as the job is running.
