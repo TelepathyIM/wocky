@@ -400,17 +400,25 @@ wocky_tls_session_try_operation (WockyTLSSession   *session,
 
   else if (operation == WOCKY_TLS_OP_READ)
     {
-      gssize result;
+      gssize result = 0;
+
       if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
         DEBUG ("async job OP_READ");
       g_assert (session->read_job.job.active);
 
-      session->async = TRUE;
-      result = gnutls_record_recv (session->session,
-                                   session->read_job.buffer,
-                                   session->read_job.count);
-      g_assert (result != GNUTLS_E_INTERRUPTED);
-      session->async = FALSE;
+      /* If the read result is 0, the remote end disconnected us, no need to
+       * pull data through gnutls_record_recv in that case */
+
+      if (session->read_op.result != 0)
+        {
+
+          session->async = TRUE;
+          result = gnutls_record_recv (session->session,
+              session->read_job.buffer,
+              session->read_job.count);
+          g_assert (result != GNUTLS_E_INTERRUPTED);
+          session->async = FALSE;
+        }
 
       wocky_tls_job_result_gssize (&session->read_job.job, result);
     }
