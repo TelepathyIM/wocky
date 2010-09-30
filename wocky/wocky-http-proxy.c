@@ -49,13 +49,6 @@ G_DEFINE_TYPE_WITH_CODE (WockyHttpProxy, wocky_http_proxy, G_TYPE_OBJECT,
       g_define_type_id, "http", 0))
 
 static void
-wocky_http_proxy_finalize (GObject *object)
-{
-  /* must chain up */
-  G_OBJECT_CLASS (wocky_http_proxy_parent_class)->finalize (object);
-}
-
-static void
 wocky_http_proxy_init (WockyHttpProxy *proxy)
 {
 }
@@ -398,10 +391,6 @@ wocky_http_proxy_supports_hostname (GProxy *proxy)
 static void
 wocky_http_proxy_class_init (WockyHttpProxyClass *class)
 {
-  GObjectClass *object_class;
-
-  object_class = (GObjectClass *) class;
-  object_class->finalize = wocky_http_proxy_finalize;
 }
 
 static void
