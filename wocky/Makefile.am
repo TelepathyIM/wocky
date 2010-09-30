@@ -138,6 +138,8 @@ endif
 
 if HAVE_GIO_PROXY
   handwritten_sources += $(PROXY_SRC)
+else
+  EXTRA_DIST += $(PROXY_SRC)
 endif
 
 libwocky_la_SOURCES = $(handwritten_sources) $(built_sources) \
