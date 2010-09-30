@@ -74,7 +74,7 @@ check_reply (const gchar *buffer, GError **error)
   gint err_code;
   const gchar *ptr = buffer + 7;
 
-  if (strncmp (buffer, "HTTP/1.", 7)
+  if (strncmp (buffer, "HTTP/1.", 7) != 0
       || (*ptr != '0' && *ptr != '1'))
     {
       g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
@@ -101,7 +101,8 @@ check_reply (const gchar *buffer, GError **error)
       msg_start = ptr;
 
       ptr = strchr (msg_start, '\r');
-      if (!ptr)
+
+      if (ptr == NULL)
         ptr = strchr (msg_start, '\0');
 
       msg = g_strndup (msg_start, ptr - msg_start);
@@ -130,7 +131,7 @@ wocky_http_proxy_connect (GProxy *proxy,
 {
   GInputStream *in;
   GOutputStream *out;
-  GDataInputStream *datain;
+  GDataInputStream *data_in;
   gchar *buffer;
   gchar *host;
   gint port;
@@ -147,8 +148,8 @@ wocky_http_proxy_connect (GProxy *proxy,
   in = g_io_stream_get_input_stream (io_stream);
   out = g_io_stream_get_output_stream (io_stream);
 
-  datain = g_data_input_stream_new (in);
-  g_filter_input_stream_set_close_base_stream (G_FILTER_INPUT_STREAM (datain),
+  data_in = g_data_input_stream_new (in);
+  g_filter_input_stream_set_close_base_stream (G_FILTER_INPUT_STREAM (data_in),
       FALSE);
 
   buffer = create_request (host, port);
@@ -165,12 +166,12 @@ wocky_http_proxy_connect (GProxy *proxy,
   password = NULL;
 
   g_free (buffer);
-  buffer = g_data_input_stream_read_until (datain, HTTP_END_MARKER, NULL,
+  buffer = g_data_input_stream_read_until (data_in, HTTP_END_MARKER, NULL,
       cancellable, error);
-  g_object_unref (datain);
-  datain = NULL;
+  g_object_unref (data_in);
+  data_in = NULL;
 
-  if (!buffer)
+  if (buffer == NULL)
       goto error;
 
   if (!check_reply (buffer, error))
@@ -181,8 +182,9 @@ wocky_http_proxy_connect (GProxy *proxy,
   return g_object_ref (io_stream);
 
 error:
-  if (datain)
-    g_object_unref (datain);
+  if (data_in != NULL)
+    g_object_unref (data_in);
+
   g_free (buffer);
   g_free (host);
   g_free (username);
@@ -202,7 +204,7 @@ typedef struct
   gchar *buffer;
   gssize length;
   gssize offset;
-  GDataInputStream *data;
+  GDataInputStream *data_in;
   GCancellable *cancellable;
 } ConnectAsyncData;
 
@@ -216,7 +218,7 @@ static void reply_read_cb (GObject *source,
 static void
 free_connect_data (ConnectAsyncData *data)
 {
-  if (data->io_stream)
+  if (data->io_stream != NULL)
     g_object_unref (data->io_stream);
 
   g_free (data->hostname);
@@ -224,10 +226,10 @@ free_connect_data (ConnectAsyncData *data)
   g_free (data->password);
   g_free (data->buffer);
 
-  if (data->data)
-    g_object_unref (data->data);
+  if (data->data_in != NULL)
+    g_object_unref (data->data_in);
 
-  if (data->cancellable)
+  if (data->cancellable != NULL)
     g_object_unref (data->cancellable);
 
   g_slice_free (ConnectAsyncData, data);
@@ -278,7 +280,7 @@ wocky_http_proxy_connect_async (GProxy *proxy,
   data->simple = simple;
   data->io_stream = g_object_ref (io_stream);
 
-  if (cancellable)
+  if (cancellable != NULL)
     data->cancellable = g_object_ref (cancellable);
 
   g_object_get (G_OBJECT (proxy_address),
@@ -290,8 +292,8 @@ wocky_http_proxy_connect_async (GProxy *proxy,
 
   in = g_io_stream_get_input_stream (io_stream);
 
-  data->data = g_data_input_stream_new (in);
-  g_filter_input_stream_set_close_base_stream (G_FILTER_INPUT_STREAM (data->data),
+  data->data_in = g_data_input_stream_new (in);
+  g_filter_input_stream_set_close_base_stream (G_FILTER_INPUT_STREAM (data->data_in),
       FALSE);
 
   g_simple_async_result_set_op_res_gpointer (simple, data,
@@ -328,7 +330,7 @@ request_write_cb (GObject *source,
       g_free (data->buffer);
       data->buffer = NULL;
 
-      g_data_input_stream_read_until_async (data->data,
+      g_data_input_stream_read_until_async (data->data_in,
           HTTP_END_MARKER,
           G_PRIORITY_DEFAULT,
           data->cancellable,
@@ -349,10 +351,10 @@ reply_read_cb (GObject *source,
   GError *error = NULL;
   ConnectAsyncData *data = user_data;
 
-  data->buffer = g_data_input_stream_read_until_finish (data->data,
+  data->buffer = g_data_input_stream_read_until_finish (data->data_in,
       res, NULL, &error);
 
-  if (!data->buffer)
+  if (data->buffer == NULL)
     {
       complete_async_from_error (data, error);
       return;
