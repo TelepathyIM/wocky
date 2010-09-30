@@ -404,13 +404,19 @@ wocky_xmpp_reader_new_no_stream (void)
 
 static void
 _start_element_ns (void *user_data, const xmlChar *localname,
-    const xmlChar *prefix, const xmlChar *uri, int nb_namespaces,
+    const xmlChar *prefix, const xmlChar *ns_uri, int nb_namespaces,
     const xmlChar **namespaces, int nb_attributes, int nb_defaulted,
     const xmlChar **attributes)
 {
   WockyXmppReader *self = WOCKY_XMPP_READER (user_data);
   WockyXmppReaderPrivate *priv = self->priv;
+  gchar *uri;
   int i;
+
+  if (ns_uri != NULL)
+    uri = g_strstrip (g_strdup ((const gchar *) ns_uri));
+  else
+    uri = NULL;
 
   if (priv->stream_mode && G_UNLIKELY (priv->depth == 0))
     {
@@ -421,7 +427,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
             WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
             "Invalid start of the XMPP stream");
           g_queue_push_tail (priv->stanzas, NULL);
-          return;
+          goto out;
         }
 
       DEBUG ("Received stream opening: %s, prefix: %s, uri: %s",
@@ -475,7 +481,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
             }
         }
       priv->depth++;
-      return;
+      goto out;
     }
 
   if (priv->stanza == NULL)
@@ -531,6 +537,9 @@ _start_element_ns (void *user_data, const xmlChar *localname,
         }
      }
   priv->depth++;
+
+out:
+  g_free (uri);
 }
 
 static void
@@ -590,9 +599,11 @@ _error (void *user_data, xmlErrorPtr error)
   WockyXmppReader *self = WOCKY_XMPP_READER (user_data);
   WockyXmppReaderPrivate *priv = self->priv;
 
-  if (error->level < XML_ERR_ERROR)
+  if (error->level < XML_ERR_FATAL)
     {
-      DEBUG ("Ignoring parser warning: %s", error->message);
+      DEBUG ("Ignoring parser %s: %s",
+       error->level == XML_ERR_WARNING ? "warning" : "recoverable error",
+       error->message);
       return;
     }
 
