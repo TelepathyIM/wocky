@@ -153,17 +153,16 @@ wocky_http_proxy_connect (GProxy *proxy,
       FALSE);
 
   buffer = create_request (host, port);
-
-  if (!g_output_stream_write_all (out, buffer, strlen (buffer), NULL,
-        cancellable, error))
-      goto error;
-
   g_free (host);
   host = NULL;
   g_free (username);
   username = NULL;
   g_free (password);
   password = NULL;
+
+  if (!g_output_stream_write_all (out, buffer, strlen (buffer), NULL,
+        cancellable, error))
+      goto error;
 
   g_free (buffer);
   buffer = g_data_input_stream_read_until (data_in, HTTP_END_MARKER, NULL,
@@ -186,9 +185,6 @@ error:
     g_object_unref (data_in);
 
   g_free (buffer);
-  g_free (host);
-  g_free (username);
-  g_free (password);
   return NULL;
 }
 
