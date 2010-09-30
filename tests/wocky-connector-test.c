@@ -224,7 +224,7 @@ test_t tests[] =
     /* No SRV or connect host specified, bad port specified: FAIL */
     { "/connector/basic/noserv/nohost/duffport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1},
+      { S_G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -263,7 +263,7 @@ test_t tests[] =
     /* No SRV record, connect host and bad port specified: FAIL */
     { "/connector/basic/noserv/host/duffport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -328,7 +328,7 @@ test_t tests[] =
     /* SRV record specified, bad port: ignore SRV and FAIL */
     { "/connector/basic/serv/nohost/duffport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -367,7 +367,7 @@ test_t tests[] =
     /* SRV record, connect host, bad port: ignore SRV, FAIL */
     { "/connector/basic/serv/host/duffport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -432,7 +432,7 @@ test_t tests[] =
      */
     { "/connector/basic/duffserv/nohost/noport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_NETWORK_UNREACHABLE, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -458,7 +458,7 @@ test_t tests[] =
     /* Bad SRV record, bad port specified, ignore SRV and FAIL */
     { "/connector/basic/duffserv/nohost/duffport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -497,7 +497,7 @@ test_t tests[] =
     /* Bad SRV record, connect host and bad port, ignore SRV and FAIL */
     { "/connector/basic/duffserv/host/duffport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_CONNECTION_REFUSED, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -510,7 +510,7 @@ test_t tests[] =
     /* Bad SRV record, bad host and bad port: Just FAIL */
     { "/connector/basic/duffserv/duffhost/noport",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_NETWORK_UNREACHABLE, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -523,7 +523,7 @@ test_t tests[] =
     /*Bad SRV and connect host, ignore SRV and FAIL */
     { "/connector/basic/duffserv/duffhost/port",
       NOISY,
-      { S_G_IO_ERROR, G_IO_ERROR_FAILED, -1 },
+      { S_G_IO_ERROR, G_IO_ERROR_NETWORK_UNREACHABLE, G_IO_ERROR_FAILED },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
