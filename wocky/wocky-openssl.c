@@ -1534,8 +1534,9 @@ wocky_tls_session_write_ready (GObject      *object,
         {
           if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
             DEBUG ("Incomplete async write [%" G_GSSIZE_FORMAT "/%d bytes]: "
-                "%u %s",
+                "%s:%u %s",
                 written, buffered,
+                g_quark_to_string (session->job.write.error->domain),
                 session->job.write.error->code,
                 session->job.write.error->message);
 
