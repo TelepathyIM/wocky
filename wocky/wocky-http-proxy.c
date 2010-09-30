@@ -109,11 +109,14 @@ check_reply (const gchar *buffer, GError **error)
 
       if (err_code == 407)
         g_set_error (error, G_IO_ERROR, G_IO_ERROR_PROXY_NEED_AUTH,
-            "HTTP proxy authentication not supported by GLib");
+            "HTTP error 407: proxy authentication not supported by GLib");
+      else if (msg[0] == '\0')
+        g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
+            "Connection failed due to broken HTTP reply");
       else
         g_set_error (error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
-            "HTTP proxy connection failed: %s",
-            msg);
+            "HTTP error %i: proxy connection failed: %s",
+            err_code, msg);
 
       g_free (msg);
       return FALSE;
