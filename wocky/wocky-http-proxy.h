@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __WOCKY_HTTP_PROXY_H__
-#define __WOCKY_HTTP_PROXY_H__
+#ifndef _WOCKY_HTTP_PROXY_H_
+#define _WOCKY_HTTP_PROXY_H_
 
 #include <gio/gio.h>
 
@@ -40,4 +40,4 @@ GType _wocky_http_proxy_get_type (void);
 
 G_END_DECLS
 
-#endif /* __SOCKS5_PROXY_H__ */
+#endif /* _WOCKY_HTTP_PROXY_H_ */
