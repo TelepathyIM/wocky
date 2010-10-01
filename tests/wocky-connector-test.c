@@ -65,6 +65,11 @@
 #define OK 0
 #define CONNECTOR_OK { OK, OK, OK, OK, OK, OK }
 
+#if ! GLIB_CHECK_VERSION(2, 26, 0)
+#  define G_IO_ERROR_CONNECTION_REFUSED -1
+#  define G_IO_ERROR_NETWORK_UNREACHABLE -1
+#endif
+
 gboolean running_test = FALSE;
 static GError *error = NULL;
 static GResolver *original;
