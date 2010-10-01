@@ -5,7 +5,7 @@
 #include "wocky-test-helper.h"
 #include "wocky-test-stream.h"
 
-#define TIMEOUT 3
+#define TIMEOUT 10
 
 gboolean
 test_timeout_cb (gpointer data)
