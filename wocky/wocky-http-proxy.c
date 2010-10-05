@@ -174,7 +174,12 @@ wocky_http_proxy_connect (GProxy *proxy,
   data_in = NULL;
 
   if (buffer == NULL)
+    {
+      if (error && (*error == NULL))
+        g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
+            "HTTP proxy server closed connection unexpectedly.");
       goto error;
+    }
 
   if (!check_reply (buffer, error))
     goto error;
@@ -238,8 +243,12 @@ static void
 complete_async_from_error (ConnectAsyncData *data, GError *error)
 {
   GSimpleAsyncResult *simple = data->simple;
-  g_simple_async_result_set_from_error (data->simple,
-      error);
+
+  if (error == NULL)
+    g_set_error_literal (&error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
+        "HTTP proxy server closed connection unexpectedly.");
+
+  g_simple_async_result_set_from_error (data->simple, error);
   g_error_free (error);
   g_simple_async_result_set_op_res_gpointer (simple, NULL, NULL);
   g_simple_async_result_complete (simple);
