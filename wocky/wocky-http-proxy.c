@@ -115,7 +115,7 @@ check_reply (const gchar *buffer, GError **error)
             "Connection failed due to broken HTTP reply");
       else
         g_set_error (error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
-            "HTTP error %i: proxy connection failed: %s",
+            "HTTP proxy connection failed: %i %s",
             err_code, msg);
 
       g_free (msg);
