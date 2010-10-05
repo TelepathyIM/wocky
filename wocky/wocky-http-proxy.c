@@ -56,20 +56,60 @@ wocky_http_proxy_init (WockyHttpProxy *proxy)
 #define HTTP_END_MARKER "\r\n\r\n"
 
 static gchar *
-create_request (gchar *host, gint port)
+create_request (GProxyAddress *proxy_address, gboolean *has_cred)
 {
-  return g_strdup_printf ("CONNECT %s:%i HTTP/1.0\r\n"
-      "Host: %s"
-      "Proxy-Connection: keep-alive\r\n"
-      "User-Agent: GLib/%i.%i\r\n"
-      "\r\n",
-      host, port,
-      host,
+  const gchar *hostname;
+  gint port;
+  const gchar *username;
+  const gchar *password;
+  GString *request;
+  gchar *ascii_hostname;
+
+  if (has_cred)
+    *has_cred = FALSE;
+
+  hostname = g_proxy_address_get_destination_hostname (proxy_address);
+  port = g_proxy_address_get_destination_port (proxy_address);
+  username = g_proxy_address_get_username (proxy_address);
+  password = g_proxy_address_get_password (proxy_address);
+
+  request = g_string_new (NULL);
+
+  ascii_hostname = g_hostname_to_ascii (hostname);
+  g_string_append_printf (request,
+      "CONNECT %s:%i HTTP/1.0\r\n"
+        "Host: %s:%i\r\n"
+        "Proxy-Connection: keep-alive\r\n"
+        "User-Agent: GLib/%i.%i\r\n",
+      ascii_hostname, port,
+      ascii_hostname, port,
       GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION);
+  g_free (ascii_hostname);
+
+  if (username != NULL && password != NULL)
+    {
+      gchar *cred;
+      gchar *base64_cred;
+
+      if (has_cred)
+        *has_cred = TRUE;
+
+      cred = g_strdup_printf ("%s:%s", username, password);
+      base64_cred = g_base64_encode ((guchar *) cred, strlen (cred));
+      g_free (cred);
+      g_string_append_printf (request,
+          "Proxy-Authorization: %s\r\n",
+          base64_cred);
+      g_free (base64_cred);
+    }
+
+  g_string_append (request, "\r\n");
+
+  return g_string_free (request, FALSE);
 }
 
 static gboolean
-check_reply (const gchar *buffer, GError **error)
+check_reply (const gchar *buffer, gboolean has_cred, GError **error)
 {
   gint err_code;
   const gchar *ptr = buffer + 7;
@@ -108,8 +148,14 @@ check_reply (const gchar *buffer, GError **error)
       msg = g_strndup (msg_start, ptr - msg_start);
 
       if (err_code == 407)
-        g_set_error (error, G_IO_ERROR, G_IO_ERROR_PROXY_NEED_AUTH,
-            "HTTP error 407: proxy authentication not supported by GLib");
+        {
+          if (has_cred)
+            g_set_error (error, G_IO_ERROR, G_IO_ERROR_PROXY_AUTH_FAILED,
+                "HTTP proxy authentication failed");
+          else
+            g_set_error (error, G_IO_ERROR, G_IO_ERROR_PROXY_NEED_AUTH,
+                "HTTP proxy authentication required");
+        }
       else if (msg[0] == '\0')
         g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_PROXY_FAILED,
             "Connection failed due to broken HTTP reply");
@@ -136,17 +182,7 @@ wocky_http_proxy_connect (GProxy *proxy,
   GOutputStream *out;
   GDataInputStream *data_in;
   gchar *buffer;
-  gchar *host;
-  gint port;
-  gchar *username;
-  gchar *password;
-
-  g_object_get (G_OBJECT (proxy_address),
-      "destination-hostname", &host,
-      "destination-port", &port,
-      "username", &username,
-      "password", &password,
-      NULL);
+  gboolean has_cred;
 
   in = g_io_stream_get_input_stream (io_stream);
   out = g_io_stream_get_output_stream (io_stream);
@@ -155,13 +191,7 @@ wocky_http_proxy_connect (GProxy *proxy,
   g_filter_input_stream_set_close_base_stream (G_FILTER_INPUT_STREAM (data_in),
       FALSE);
 
-  buffer = create_request (host, port);
-  g_free (host);
-  host = NULL;
-  g_free (username);
-  username = NULL;
-  g_free (password);
-  password = NULL;
+  buffer = create_request (proxy_address, &has_cred);
 
   if (!g_output_stream_write_all (out, buffer, strlen (buffer), NULL,
         cancellable, error))
@@ -181,7 +211,7 @@ wocky_http_proxy_connect (GProxy *proxy,
       goto error;
     }
 
-  if (!check_reply (buffer, error))
+  if (!check_reply (buffer, has_cred, error))
     goto error;
 
   g_free (buffer);
@@ -201,14 +231,11 @@ typedef struct
 {
   GSimpleAsyncResult *simple;
   GIOStream *io_stream;
-  gchar *hostname;
-  guint16 port;
-  gchar *username;
-  gchar *password;
   gchar *buffer;
   gssize length;
   gssize offset;
   GDataInputStream *data_in;
+  gboolean has_cred;
   GCancellable *cancellable;
 } ConnectAsyncData;
 
@@ -225,9 +252,6 @@ free_connect_data (ConnectAsyncData *data)
   if (data->io_stream != NULL)
     g_object_unref (data->io_stream);
 
-  g_free (data->hostname);
-  g_free (data->username);
-  g_free (data->password);
   g_free (data->buffer);
 
   if (data->data_in != NULL)
@@ -291,13 +315,6 @@ wocky_http_proxy_connect_async (GProxy *proxy,
   if (cancellable != NULL)
     data->cancellable = g_object_ref (cancellable);
 
-  g_object_get (G_OBJECT (proxy_address),
-      "destination-hostname", &data->hostname,
-      "destination-port", &data->port,
-      "username", &data->username,
-      "password", &data->password,
-      NULL);
-
   in = g_io_stream_get_input_stream (io_stream);
 
   data->data_in = g_data_input_stream_new (in);
@@ -307,7 +324,7 @@ wocky_http_proxy_connect_async (GProxy *proxy,
   g_simple_async_result_set_op_res_gpointer (simple, data,
       (GDestroyNotify) free_connect_data);
 
-  data->buffer = create_request (data->hostname, data->port);
+  data->buffer = create_request (proxy_address, &data->has_cred);
   data->length = strlen (data->buffer);
   data->offset = 0;
 
@@ -368,7 +385,7 @@ reply_read_cb (GObject *source,
       return;
     }
 
-  if (!check_reply (data->buffer, &error))
+  if (!check_reply (data->buffer, data->has_cred, &error))
     {
       complete_async_from_error (data, error);
       return;
