@@ -1843,6 +1843,8 @@ wocky_porter_force_close_async (WockyPorter *self,
               user_data, WOCKY_PORTER_ERROR,
               WOCKY_PORTER_ERROR_FORCIBLY_CLOSED,
               "Porter is already executing a forced-shutdown");
+          g_object_unref (priv->force_close_result);
+          priv->force_close_result = NULL;
           return;
         }
       /* No need to wait, close connection right now */
