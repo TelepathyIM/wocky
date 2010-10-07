@@ -949,11 +949,32 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
     {
       priv->stream = g_object_ref (stream);
       priv->conn = wocky_xmpp_connection_new (stream);
+      priv->cancellable = g_cancellable_new ();
       wocky_xmpp_connection_recv_open_async (priv->conn,
-          NULL, stream_open_received, server);
+          priv->cancellable, stream_open_received, server);
     }
 
   return server;
+}
+
+void
+test_sasl_auth_server_stop (TestSaslAuthServer *self)
+{
+  TestSaslAuthServerPrivate *priv = self->priv;
+
+  if (priv->cancellable != NULL)
+    {
+      if (!g_cancellable_is_cancelled (priv->cancellable))
+        {
+          g_cancellable_cancel (priv->cancellable);
+        }
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
+
+  if (priv->conn)
+    g_object_unref (priv->conn);
+  priv->conn = NULL;
 }
 
 gboolean
@@ -987,10 +1008,8 @@ test_sasl_auth_server_auth_async (GObject *obj,
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = self->priv;
 
-  /* we would normally expect this to be NULL in a take-over situation,
-     but just in case: */
-  if (priv->conn != NULL)
-    g_object_unref (priv->conn);
+  /* We expect the server to not be started but just in case */
+  test_sasl_auth_server_stop (TEST_SASL_AUTH_SERVER (obj));
 
   priv->state = AUTH_STATE_STARTED;
   priv->conn = g_object_ref (conn);

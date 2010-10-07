@@ -97,6 +97,8 @@ TestSaslAuthServer * test_sasl_auth_server_new (GIOStream *stream,
     gchar *mech, const gchar *user, const gchar *password,
     const gchar *servername, ServerProblem problem, gboolean start);
 
+void test_sasl_auth_server_stop (TestSaslAuthServer *self);
+
 gint test_sasl_auth_server_set_mechs (GObject *obj, WockyStanza *feat);
 
 G_END_DECLS
