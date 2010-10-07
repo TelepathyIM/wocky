@@ -160,6 +160,7 @@ test_sasl_auth_server_dispose (GObject *object)
 #endif
 
   g_warn_if_fail (priv->result == NULL);
+  g_warn_if_fail (priv->cancellable == NULL);
 
   if (G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose (object);
@@ -271,6 +272,12 @@ post_auth_recv_stanza (GObject *source,
       GSimpleAsyncResult *r = priv->result;
 
       priv->result = NULL;
+
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
+
       g_simple_async_result_set_from_error (r, error);
 
       g_simple_async_result_complete (r);
@@ -317,6 +324,12 @@ post_auth_open_sent (GObject *source,
       GSimpleAsyncResult *r = priv->result;
 
       priv->result = NULL;
+
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
+
       g_simple_async_result_complete (r);
       g_object_unref (r);
     }
@@ -391,6 +404,10 @@ failure_sent (GObject *source,
 
   if (r != NULL)
     {
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
       g_simple_async_result_complete (r);
       g_object_unref (r);
     }
@@ -1013,7 +1030,9 @@ test_sasl_auth_server_auth_async (GObject *obj,
 
   priv->state = AUTH_STATE_STARTED;
   priv->conn = g_object_ref (conn);
-  priv->cancellable = cancellable;
+
+  if (cancellable != NULL)
+    priv->cancellable = g_object_ref (cancellable);
 
   /* save the details of the point ot which we will hand back control */
   if (cb != NULL)

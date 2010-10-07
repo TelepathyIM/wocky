@@ -606,10 +606,22 @@ wocky_porter_dispose (GObject *object)
       priv->close_result = NULL;
     }
 
+  if (priv->close_cancellable != NULL)
+    {
+      g_object_unref (priv->close_cancellable);
+      priv->close_cancellable = NULL;
+    }
+
   if (priv->force_close_result != NULL)
     {
       g_object_unref (priv->force_close_result);
       priv->force_close_result = NULL;
+    }
+
+  if (priv->force_close_cancellable != NULL)
+    {
+      g_object_unref (priv->force_close_cancellable);
+      priv->force_close_cancellable = NULL;
     }
 
   if (G_OBJECT_CLASS (wocky_porter_parent_class)->dispose)
@@ -866,12 +878,19 @@ complete_close (WockyPorter *self)
           G_IO_ERROR_CANCELLED, "closing operation was cancelled");
     }
 
-  g_simple_async_result_complete (priv->close_result);
+  if (priv->close_cancellable)
+    g_object_unref (priv->close_cancellable);
+
+  priv->close_cancellable = NULL;
+
+ if (priv->force_close_cancellable)
+    g_object_unref (priv->force_close_cancellable);
+
+  priv->force_close_cancellable = NULL;
 
   tmp = priv->close_result;
   priv->close_result = NULL;
-  priv->close_cancellable = NULL;
-
+  g_simple_async_result_complete (tmp);
   g_object_unref (tmp);
 }
 
@@ -1399,7 +1418,8 @@ wocky_porter_close_async (WockyPorter *self,
   priv->close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_porter_close_async);
 
-  priv->close_cancellable = cancellable;
+  if (cancellable != NULL)
+    priv->close_cancellable = g_object_ref (cancellable);
 
   g_signal_emit (self, signals[CLOSING], 0);
 
@@ -1815,7 +1835,9 @@ wocky_porter_force_close_async (WockyPorter *self,
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
     callback, user_data, wocky_porter_force_close_async);
-  priv->force_close_cancellable = cancellable;
+
+  if (cancellable != NULL)
+    priv->force_close_cancellable = g_object_ref (cancellable);
 
   /* force_close_result now keeps a ref on ourself so we can release the ref
    * without risking to destroy the object */

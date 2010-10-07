@@ -327,7 +327,13 @@ wocky_tls_job_make_result (WockyTLSJob *job,
           g_error_free (error);
         }
 
+      if (job->cancellable)
+        g_object_unref (job->cancellable);
+      job->cancellable = NULL;
+
       g_object_unref (job->source_object);
+      job->source_object = NULL;
+
       job->active = FALSE;
 
       return simple;
@@ -461,9 +467,8 @@ wocky_tls_job_start (WockyTLSJob             *job,
   job->source_object = g_object_ref (source_object);
 
   job->io_priority = io_priority;
-  job->cancellable = cancellable;
   if (cancellable)
-    g_object_ref (cancellable);
+    job->cancellable = g_object_ref (cancellable);
   job->callback = callback;
   job->user_data = user_data;
   job->source_tag = source_tag;

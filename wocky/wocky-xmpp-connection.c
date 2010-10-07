@@ -228,6 +228,30 @@ wocky_xmpp_connection_dispose (GObject *object)
       priv->writer = NULL;
     }
 
+  if (priv->output_result != NULL)
+  {
+    g_object_unref (priv->output_result);
+    priv->output_result = NULL;
+  }
+
+  if (priv->output_cancellable != NULL)
+  {
+    g_object_unref (priv->output_cancellable);
+    priv->output_cancellable = NULL;
+  }
+
+  if (priv->input_result != NULL)
+  {
+    g_object_unref (priv->input_result);
+    priv->input_result = NULL;
+  }
+
+  if (priv->input_cancellable != NULL)
+  {
+    g_object_unref (priv->input_cancellable);
+    priv->input_cancellable = NULL;
+  }
+
   /* release any references held by the object here */
 
   if (G_OBJECT_CLASS (wocky_xmpp_connection_parent_class)->dispose)
@@ -304,6 +328,9 @@ finished:
   {
     GSimpleAsyncResult *r = priv->output_result;
 
+    if (priv->output_cancellable != NULL)
+      g_object_unref (priv->output_cancellable);
+
     priv->output_cancellable = NULL;
     priv->output_result = NULL;
 
@@ -376,7 +403,9 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
     callback, user_data, wocky_xmpp_connection_send_open_async);
 
-  priv->output_cancellable = cancellable;
+  if (cancellable != NULL)
+    priv->output_cancellable = g_object_ref (cancellable);
+
   priv->offset = 0;
   priv->length = 0;
 
@@ -523,6 +552,9 @@ finished:
   {
     GSimpleAsyncResult *r = priv->input_result;
 
+    if (priv->input_cancellable != NULL)
+      g_object_unref (priv->input_cancellable);
+
     priv->input_cancellable = NULL;
     priv->input_result = NULL;
 
@@ -567,7 +599,8 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   priv->input_result = g_simple_async_result_new (G_OBJECT (connection),
     callback, user_data, wocky_xmpp_connection_recv_open_async);
 
-  priv->input_cancellable = cancellable;
+  if (cancellable != NULL)
+    priv->input_cancellable = g_object_ref (cancellable);
 
   wocky_xmpp_connection_do_read (connection);
 
@@ -697,7 +730,8 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
     callback, user_data, wocky_xmpp_connection_send_stanza_async);
 
-  priv->output_cancellable = cancellable;
+  if (cancellable != NULL)
+    priv->output_cancellable = g_object_ref (cancellable);
   priv->offset = 0;
   priv->length = 0;
 
@@ -807,7 +841,8 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
       return;
     }
 
-  priv->input_cancellable = cancellable;
+  if (cancellable != NULL)
+    priv->input_cancellable = g_object_ref (cancellable);
 
   wocky_xmpp_connection_do_read (connection);
   return;
@@ -931,7 +966,9 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
   priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
     callback, user_data, wocky_xmpp_connection_send_close_async);
 
-  priv->output_cancellable = cancellable;
+  if (cancellable != NULL)
+    priv->output_cancellable = g_object_ref (cancellable);
+
   priv->offset = 0;
   priv->length = 0;
 
