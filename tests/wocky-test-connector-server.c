@@ -136,6 +136,10 @@ test_connector_server_dispose (GObject *object)
     g_object_unref (priv->sasl);
   priv->sasl = NULL;
 
+  if (priv->tls_sess)
+    g_object_unref (priv->tls_sess);
+  priv->tls_sess = NULL;
+
   if (G_OBJECT_CLASS (test_connector_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_connector_server_parent_class)->dispose (object);
 }
