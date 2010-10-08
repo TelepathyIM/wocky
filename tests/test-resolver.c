@@ -144,7 +144,6 @@ lookup_service_async (GResolver *resolver,
     GAsyncReadyCallback  cb,
     gpointer data)
 {
-  GError *error = NULL;
   TestResolver *tr = TEST_RESOLVER (resolver);
   GList *addr = find_fake_services (tr, rr);
   GObject *source = G_OBJECT (resolver);
@@ -153,27 +152,24 @@ lookup_service_async (GResolver *resolver,
   GList *x;
 #endif
 
-  if (addr == NULL)
-    {
-      g_set_error (&error,
-        G_RESOLVER_ERROR,
-        G_RESOLVER_ERROR_NOT_FOUND,
-        "No fake SRV record registered");
-    }
-#ifdef DEBUG_FAKEDNS
-  else
-    for (x = addr; x; x = x->next)
-      g_debug ("FAKE SRV: addr: %s; port: %d; prio: %d; weight: %d;\n",
-          g_srv_target_get_hostname ((GSrvTarget *) x->data),
-          g_srv_target_get_port ((GSrvTarget *) x->data),
-          g_srv_target_get_priority ((GSrvTarget *) x->data),
-          g_srv_target_get_weight ((GSrvTarget *) x->data));
-#endif
-
   if (addr != NULL)
+    {
+#ifdef DEBUG_FAKEDNS
+      for (x = addr; x; x = x->next)
+        g_debug ("FAKE SRV: addr: %s; port: %d; prio: %d; weight: %d;\n",
+            g_srv_target_get_hostname ((GSrvTarget *) x->data),
+            g_srv_target_get_port ((GSrvTarget *) x->data),
+            g_srv_target_get_priority ((GSrvTarget *) x->data),
+            g_srv_target_get_weight ((GSrvTarget *) x->data));
+#endif
       res = g_simple_async_result_new (source, cb, data, lookup_service_async);
+    }
   else
-      res = g_simple_async_result_new_from_error (source, cb, data, error);
+    {
+      res = g_simple_async_result_new_error (source, cb, data,
+          G_RESOLVER_ERROR, G_RESOLVER_ERROR_NOT_FOUND,
+          "No fake SRV record registered");
+    }
 
   g_simple_async_result_set_op_res_gpointer (res, addr,
       (GDestroyNotify) srv_target_list_free);
@@ -188,7 +184,10 @@ lookup_service_finish (GResolver *resolver,
 {
   GList *res = NULL;
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
-  g_simple_async_result_propagate_error (simple, error);
+
+  if (g_simple_async_result_propagate_error (simple, error))
+    return NULL;
+
   res = g_simple_async_result_get_op_res_gpointer (simple);
   return srv_target_list_copy (res);
 }
@@ -200,7 +199,6 @@ lookup_by_name_async (GResolver *resolver,
                       GAsyncReadyCallback  cb,
                       gpointer data)
 {
-  GError *error = NULL;
   TestResolver *tr = TEST_RESOLVER (resolver);
   GList *addr = find_fake_hosts (tr, hostname);
   GObject *source = G_OBJECT (resolver);
@@ -210,25 +208,22 @@ lookup_by_name_async (GResolver *resolver,
   char a[32];
 #endif
 
-  if (addr == NULL)
+  if (addr != NULL)
     {
-      g_set_error (&error,
-        G_RESOLVER_ERROR,
-        G_RESOLVER_ERROR_NOT_FOUND,
-        "No fake hostname record registered");
-    }
 #ifdef DEBUG_FAKEDNS
-  else
-    for (x = addr; x; x = x->next)
-      g_debug ("FAKE HOST: addr: %s;\n",
-          inet_ntop (AF_INET,
+      for (x = addr; x; x = x->next)
+        g_debug ("FAKE HOST: addr: %s;\n",
+            inet_ntop (AF_INET,
               g_inet_address_to_bytes (x->data), a, sizeof (a)));
 #endif
-
-  if (addr != NULL)
       res = g_simple_async_result_new (source, cb, data, lookup_by_name_async);
+    }
   else
-      res = g_simple_async_result_new_from_error (source, cb, data, error);
+    {
+      res = g_simple_async_result_new_error (source, cb, data,
+          G_RESOLVER_ERROR, G_RESOLVER_ERROR_NOT_FOUND,
+          "No fake hostname record registered");
+    }
 
   g_simple_async_result_set_op_res_gpointer (res, addr,
       (GDestroyNotify) object_list_free);
@@ -243,7 +238,10 @@ lookup_by_name_finish (GResolver *resolver,
 {
   GList *res = NULL;
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
-  g_simple_async_result_propagate_error (simple, error);
+
+  if (g_simple_async_result_propagate_error (simple, error))
+    return NULL;
+
   res = g_simple_async_result_get_op_res_gpointer (simple);
   return object_list_copy (res);
 }
