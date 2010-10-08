@@ -1031,13 +1031,15 @@ test_sasl_auth_server_auth_async (GObject *obj,
   priv->state = AUTH_STATE_STARTED;
   priv->conn = g_object_ref (conn);
 
-  if (cancellable != NULL)
-    priv->cancellable = g_object_ref (cancellable);
-
   /* save the details of the point ot which we will hand back control */
   if (cb != NULL)
-    priv->result = g_simple_async_result_new (obj, cb, data,
-        test_sasl_auth_server_auth_async);
+    {
+      if (cancellable != NULL)
+        priv->cancellable = g_object_ref (cancellable);
+
+      priv->result = g_simple_async_result_new (obj, cb, data,
+          test_sasl_auth_server_auth_async);
+    }
 
   handle_auth (self, auth);
   if (priv->state < AUTH_STATE_AUTHENTICATED)
