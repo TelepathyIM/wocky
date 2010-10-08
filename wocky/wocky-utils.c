@@ -670,9 +670,11 @@ gchar *
 wocky_absolutize_path (const gchar *path)
 {
   GFile *cwd, *absolute;
-  gchar *ret;
+  gchar *cwd_str, *ret;
 
-  cwd = g_file_new_for_path (g_get_current_dir ());
+  cwd_str = g_get_current_dir ();
+  cwd = g_file_new_for_path (cwd_str);
+  g_free (cwd_str);
 
   if (cwd == NULL)
     return NULL;
