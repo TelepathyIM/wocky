@@ -277,7 +277,7 @@ tls_handler_verify_async_cb (GObject *source,
     }
 
   g_simple_async_result_set_op_res_gpointer (self->priv->secure_result,
-      self->priv->tls_connection, NULL);
+      self->priv->tls_connection, (GDestroyNotify) g_object_unref);
   g_simple_async_result_complete_in_idle (self->priv->secure_result);
 
   g_object_unref (self->priv->secure_result);
