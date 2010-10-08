@@ -3132,6 +3132,7 @@ client_connected (GIOChannel *channel,
   flags = flags & ~O_NONBLOCK;
   fcntl (csock, F_SETFL, flags);
   gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
+  g_object_unref (gsock);
   test->server = test_connector_server_new (G_IO_STREAM (gconn),
       test->server_parameters.features.auth_mech,
       test->server_parameters.auth.user,
