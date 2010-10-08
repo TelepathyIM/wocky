@@ -1723,8 +1723,8 @@ wrong_stanza:
  *
  * Returns: a reffed #WockyStanza on success, %NULL on error
  */
-WockyStanza * wocky_porter_send_iq_finish (
-    WockyPorter *self,
+WockyStanza *
+wocky_porter_send_iq_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
