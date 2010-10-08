@@ -1285,8 +1285,9 @@ feature_stanza (TestConnectorServer *self)
 
   if (priv->problem.sasl != SERVER_PROBLEM_NO_SASL)
     {
-      priv->sasl = test_sasl_auth_server_new (NULL, priv->mech,
-          priv->user, priv->pass, NULL, priv->problem.sasl, FALSE);
+      if (priv->sasl == NULL)
+        priv->sasl = test_sasl_auth_server_new (NULL, priv->mech,
+            priv->user, priv->pass, NULL, priv->problem.sasl, FALSE);
       test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), feat);
     }
 
