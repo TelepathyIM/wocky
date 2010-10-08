@@ -410,12 +410,13 @@ wocky_xmpp_error_extract (WockyNode *error,
   if (type != NULL)
     {
       const gchar *type_attr = wocky_node_get_attribute (error, "type");
-      gint type_i = WOCKY_XMPP_ERROR_TYPE_CANCEL;
+      gint type_i;
 
-      if (type_attr != NULL)
-        wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type_attr, &type_i);
-
-      *type = type_i;
+      if (type_attr != NULL &&
+          wocky_enum_from_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type_attr, &type_i))
+        *type = type_i;
+      else
+        *type = WOCKY_XMPP_ERROR_TYPE_CANCEL;
     }
 
   for (l = error->children; l != NULL; l = g_slist_next (l))
