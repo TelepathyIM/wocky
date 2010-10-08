@@ -1045,10 +1045,9 @@ quit (GObject *source,
 {
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = self->priv;
-  GError *error = NULL;
 
   DEBUG ("");
-  wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
+  wocky_xmpp_connection_send_close_finish (priv->conn, result, NULL);
   server_dec_outstanding (self);
 }
 
@@ -1105,6 +1104,7 @@ starttls (GObject *source,
   if (!wocky_xmpp_connection_send_stanza_finish (conn, result, &error))
     {
       DEBUG ("Sending starttls '<proceed...>' failed: %s", error->message);
+      g_error_free (error);
       server_dec_outstanding (self);
       return;
     }
@@ -1151,6 +1151,7 @@ xmpp_handler (GObject *source,
     {
       if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         {
+          g_error_free (error);
           server_dec_outstanding (self);
           return;
         }
@@ -1317,11 +1318,10 @@ xmpp_closed (GObject *source,
     GAsyncResult *result,
     gpointer data)
 {
-  GError *error = NULL;
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = self->priv;
   DEBUG ("Connection closed");
-  wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
+  wocky_xmpp_connection_send_close_finish (priv->conn, result, NULL);
 }
 
 static void startssl (TestConnectorServer *self)
