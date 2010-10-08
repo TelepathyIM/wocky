@@ -1071,6 +1071,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           break;
         case X509_V_ERR_PATH_LENGTH_EXCEEDED:
           *status = WOCKY_TLS_CERT_MAYBE_DOS;
+          break;
         case X509_V_ERR_UNABLE_TO_GET_CRL:
           /* if we are in STRICT mode, being unable to see the CRL is a   *
            * terminal condition: in NORMAL or LENIENT we can live with it */
