@@ -1280,6 +1280,7 @@ wocky_tls_session_pull_func (gpointer  user_data,
           if (session->read_op.result < 0)
             {
               g_free (session->read_op.buffer);
+              session->read_op.buffer = NULL;
               active_job->error = session->read_op.error;
               gnutls_transport_set_errno (session->session, EIO);
 
@@ -1293,6 +1294,7 @@ wocky_tls_session_pull_func (gpointer  user_data,
                       session->read_op.buffer,
                       session->read_op.result);
               g_free (session->read_op.buffer);
+              session->read_op.buffer = NULL;
 
               return session->read_op.result;
             }
@@ -1495,6 +1497,9 @@ wocky_tls_session_dispose (GObject *object)
 
   g_free (session->cert_file);
   session->cert_file = NULL;
+
+  g_free (session->read_op.buffer);
+  session->read_op.buffer = NULL;
 
   G_OBJECT_CLASS (wocky_tls_session_parent_class)->dispose (object);
 }
