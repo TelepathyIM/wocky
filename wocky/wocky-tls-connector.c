@@ -201,6 +201,7 @@ report_error_in_idle (WockyTLSConnector *self,
 
   g_simple_async_result_set_from_error (self->priv->secure_result,
       error);
+  g_error_free (error);
   g_simple_async_result_complete_in_idle (self->priv->secure_result);
 
   g_object_unref (self->priv->secure_result);

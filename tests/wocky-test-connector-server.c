@@ -1069,13 +1069,13 @@ handshake_cb (GObject *source,
     &error);
 
   if (server_dec_outstanding (self))
-    return;
+    goto out;
 
   if (tls_conn == NULL)
     {
       DEBUG ("SSL or TLS Server Setup failed: %s", error->message);
       g_io_stream_close (priv->stream, NULL, NULL);
-      return;
+      goto out;
     }
 
   if (priv->conn != NULL)
@@ -1086,6 +1086,10 @@ handshake_cb (GObject *source,
   g_object_unref (tls_conn);
   priv->tls_started = TRUE;
   xmpp_init (NULL,NULL,self);
+
+out:
+  if (error != NULL)
+    g_error_free (error);
 }
 
 
