@@ -124,7 +124,7 @@ test_connector_server_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-  if (priv->conn)
+  if (priv->conn != NULL)
     g_object_unref (priv->conn);
   priv->conn = NULL;
 

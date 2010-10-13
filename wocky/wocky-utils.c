@@ -133,7 +133,7 @@ wocky_decode_jid (const gchar *jid,
    */
   tmp_resource = strchr (tmp_jid, '/');
 
-  if (tmp_resource)
+  if (tmp_resource != NULL)
     {
       *tmp_resource = '\0';
       tmp_resource++;
@@ -149,7 +149,7 @@ wocky_decode_jid (const gchar *jid,
    */
   tmp_domain = strchr (tmp_jid, '@');
 
-  if (tmp_domain)
+  if (tmp_domain != NULL)
     {
       *tmp_domain = '\0';
       tmp_domain++;

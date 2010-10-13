@@ -3353,7 +3353,7 @@ run_test (gpointer data)
 
   if (test->result.domain == S_NO_ERROR)
     {
-      if (error)
+      if (error != NULL)
         fprintf (stderr, "Error: %s.%d: %s\n",
             g_quark_to_string (error->domain),
             error->code,
