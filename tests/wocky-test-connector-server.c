@@ -132,11 +132,11 @@ test_connector_server_dispose (GObject *object)
     g_object_unref (priv->stream);
   priv->stream = NULL;
 
-  if (priv->sasl)
+  if (priv->sasl != NULL)
     g_object_unref (priv->sasl);
   priv->sasl = NULL;
 
-  if (priv->tls_sess)
+  if (priv->tls_sess != NULL)
     g_object_unref (priv->tls_sess);
   priv->tls_sess = NULL;
 

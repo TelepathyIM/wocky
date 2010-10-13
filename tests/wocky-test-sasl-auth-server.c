@@ -982,15 +982,15 @@ test_sasl_auth_server_stop (TestSaslAuthServer *self)
   if (priv->cancellable != NULL)
     {
       if (!g_cancellable_is_cancelled (priv->cancellable))
-        {
           g_cancellable_cancel (priv->cancellable);
-        }
+
       g_object_unref (priv->cancellable);
       priv->cancellable = NULL;
     }
 
-  if (priv->conn)
+  if (priv->conn != NULL)
     g_object_unref (priv->conn);
+
   priv->conn = NULL;
 }
 
