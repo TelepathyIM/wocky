@@ -232,6 +232,8 @@ run_test (gconstpointer user_data)
       sasl = NULL;
     }
 
+  test_sasl_auth_server_stop (server);
+
   g_object_unref (server);
   g_object_unref (stream);
   g_object_unref (conn);

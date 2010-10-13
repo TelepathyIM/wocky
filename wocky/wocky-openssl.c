@@ -280,8 +280,16 @@ wocky_tls_job_make_result (WockyTLSJob *job,
       job->error = NULL;
     }
 
-  if (job->source_object)
+  if (job->source_object != NULL)
     g_object_unref (job->source_object);
+
+  job->source_object = NULL;
+
+  if (job->cancellable != NULL)
+    g_object_unref (job->cancellable);
+
+  job->cancellable = NULL;
+
   job->active = FALSE;
 
   return simple;
@@ -388,7 +396,7 @@ ssl_handshake (WockyTLSSession *session)
     {
       const gchar *method;
 
-      if (session->server)
+      if (session->server != NULL)
         {
           method = "SSL_accept";
           result = SSL_accept (session->ssl);
@@ -457,7 +465,7 @@ ssl_handshake (WockyTLSSession *session)
   else
     {
       DEBUG ("Handshake failed: [%d:%ld] %s", result, errnum, errstr);
-      if (session->job.handshake.job.error)
+      if (session->job.handshake.job.error != NULL)
         {
           g_error_free (session->job.handshake.job.error);
           session->job.handshake.job.error = NULL;
@@ -625,9 +633,8 @@ wocky_tls_job_start (WockyTLSJob             *job,
   job->source_object = g_object_ref (source_object);
 
   job->io_priority = io_priority;
-  job->cancellable = cancellable;
-  if (cancellable)
-    g_object_ref (cancellable);
+  if (cancellable != NULL)
+    job->cancellable = g_object_ref (cancellable);
   job->callback = callback;
   job->user_data = user_data;
   job->source_tag = source_tag;
@@ -1662,7 +1669,7 @@ wocky_tls_session_constructed (GObject *object)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (object);
 
-  if (session->server)
+  if (session->server != NULL)
     {
       DEBUG ("I'm a server; using TLSv1_server_method");
       session->method = TLSv1_server_method ();
@@ -1708,7 +1715,7 @@ wocky_tls_session_constructed (GObject *object)
    * eg "all:!some-crypto-we-hate"                                      *
    * SSL_CTX_set_cipher_list (session->ctx, CIPHER_LIST);               */
 
-  if (session->server)
+  if (session->server != NULL)
     {
       set_dh_parameters (session);
       set_ecdh_key (session);
@@ -1917,10 +1924,10 @@ wocky_tls_connection_finalize (GObject *object)
 
   g_object_unref (connection->session);
 
-  if (connection->input)
+  if (connection->input != NULL)
     g_object_unref (connection->input);
 
-  if (connection->output)
+  if (connection->output != NULL)
     g_object_unref (connection->output);
 
   G_OBJECT_CLASS (wocky_tls_connection_parent_class)

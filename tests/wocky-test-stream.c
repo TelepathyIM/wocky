@@ -309,9 +309,10 @@ read_async_complete (WockyTestInputStream *self)
     {
       g_signal_handler_disconnect (self->read_cancellable,
           self->read_cancellable_sig_id);
+      g_object_unref (self->read_cancellable);
+      self->read_cancellable = NULL;
     }
 
-  self->read_cancellable = NULL;
   self->read_result = NULL;
 
   g_simple_async_result_complete_in_idle (r);
@@ -358,11 +359,12 @@ wocky_test_input_stream_read_async (GInputStream *stream,
       g_error_free (self->read_error);
       self->read_error = NULL;
       read_async_complete (self);
+      return;
     }
 
   if (cancellable != NULL)
     {
-      self->read_cancellable = cancellable;
+      self->read_cancellable = g_object_ref (cancellable);
       self->read_cancellable_sig_id = g_signal_connect (cancellable,
           "cancelled", G_CALLBACK (read_cancelled_cb), self);
     }
@@ -433,6 +435,9 @@ wocky_test_input_stream_dispose (GObject *object)
   if (self->queue != NULL)
     g_async_queue_unref (self->queue);
   self->queue = NULL;
+
+  g_warn_if_fail (self->read_result == NULL);
+  g_warn_if_fail (self->read_cancellable == NULL);
 
   /* release any references held by the object here */
   if (G_OBJECT_CLASS (wocky_test_input_stream_parent_class)->dispose)

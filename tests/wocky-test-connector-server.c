@@ -104,7 +104,6 @@ struct _TestConnectorServerPrivate
 
   CertSet cert;
   WockyTLSSession *tls_sess;
-  WockyTLSConnection *tls_conn;
 
   GCancellable *cancellable;
   gint outstanding;
@@ -125,7 +124,7 @@ test_connector_server_dispose (GObject *object)
   priv->dispose_has_run = TRUE;
 
   /* release any references held by the object here */
-  if (priv->conn)
+  if (priv->conn != NULL)
     g_object_unref (priv->conn);
   priv->conn = NULL;
 
@@ -133,9 +132,13 @@ test_connector_server_dispose (GObject *object)
     g_object_unref (priv->stream);
   priv->stream = NULL;
 
-  if (priv->sasl)
+  if (priv->sasl != NULL)
     g_object_unref (priv->sasl);
   priv->sasl = NULL;
+
+  if (priv->tls_sess != NULL)
+    g_object_unref (priv->tls_sess);
+  priv->tls_sess = NULL;
 
   if (G_OBJECT_CLASS (test_connector_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_connector_server_parent_class)->dispose (object);
@@ -1042,10 +1045,9 @@ quit (GObject *source,
 {
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = self->priv;
-  GError *error = NULL;
 
   DEBUG ("");
-  wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
+  wocky_xmpp_connection_send_close_finish (priv->conn, result, NULL);
   server_dec_outstanding (self);
 }
 
@@ -1056,32 +1058,38 @@ handshake_cb (GObject *source,
 {
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (user_data);
   TestConnectorServerPrivate *priv = self->priv;
+  WockyTLSConnection *tls_conn;
   GError *error = NULL;
 
   DEBUG ("TLS/SSL handshake finished");
 
-  priv->tls_conn = wocky_tls_session_handshake_finish (
+  tls_conn = wocky_tls_session_handshake_finish (
     WOCKY_TLS_SESSION (source),
     result,
     &error);
 
   if (server_dec_outstanding (self))
-    return;
+    goto out;
 
-  if (priv->tls_conn == NULL)
+  if (tls_conn == NULL)
     {
       DEBUG ("SSL or TLS Server Setup failed: %s", error->message);
       g_io_stream_close (priv->stream, NULL, NULL);
-      return;
+      goto out;
     }
 
   if (priv->conn != NULL)
     g_object_unref (priv->conn);
 
   priv->state = SERVER_STATE_START;
-  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (priv->tls_conn));
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (tls_conn));
+  g_object_unref (tls_conn);
   priv->tls_started = TRUE;
   xmpp_init (NULL,NULL,self);
+
+out:
+  if (error != NULL)
+    g_error_free (error);
 }
 
 
@@ -1100,6 +1108,7 @@ starttls (GObject *source,
   if (!wocky_xmpp_connection_send_stanza_finish (conn, result, &error))
     {
       DEBUG ("Sending starttls '<proceed...>' failed: %s", error->message);
+      g_error_free (error);
       server_dec_outstanding (self);
       return;
     }
@@ -1146,6 +1155,7 @@ xmpp_handler (GObject *source,
     {
       if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
         {
+          g_error_free (error);
           server_dec_outstanding (self);
           return;
         }
@@ -1280,8 +1290,9 @@ feature_stanza (TestConnectorServer *self)
 
   if (priv->problem.sasl != SERVER_PROBLEM_NO_SASL)
     {
-      priv->sasl = test_sasl_auth_server_new (NULL, priv->mech,
-          priv->user, priv->pass, NULL, priv->problem.sasl, FALSE);
+      if (priv->sasl == NULL)
+        priv->sasl = test_sasl_auth_server_new (NULL, priv->mech,
+            priv->user, priv->pass, NULL, priv->problem.sasl, FALSE);
       test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), feat);
     }
 
@@ -1311,11 +1322,10 @@ xmpp_closed (GObject *source,
     GAsyncResult *result,
     gpointer data)
 {
-  GError *error = NULL;
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
   TestConnectorServerPrivate *priv = self->priv;
   DEBUG ("Connection closed");
-  wocky_xmpp_connection_send_close_finish (priv->conn, result, &error);
+  wocky_xmpp_connection_send_close_finish (priv->conn, result, NULL);
 }
 
 static void startssl (TestConnectorServer *self)

@@ -411,7 +411,7 @@ _xml_write_node (WockyXmppWriter *writer, WockyNode *node)
 
   wocky_node_each_child (node, _write_child, writer);
 
-  if (node->content)
+  if (node->content != NULL)
     {
       xmlTextWriterWriteString (priv->xmlwriter,
         (const xmlChar*)node->content);

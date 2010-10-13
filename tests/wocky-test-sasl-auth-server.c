@@ -160,6 +160,7 @@ test_sasl_auth_server_dispose (GObject *object)
 #endif
 
   g_warn_if_fail (priv->result == NULL);
+  g_warn_if_fail (priv->cancellable == NULL);
 
   if (G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose (object);
@@ -271,6 +272,12 @@ post_auth_recv_stanza (GObject *source,
       GSimpleAsyncResult *r = priv->result;
 
       priv->result = NULL;
+
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
+
       g_simple_async_result_set_from_error (r, error);
 
       g_simple_async_result_complete (r);
@@ -317,6 +324,12 @@ post_auth_open_sent (GObject *source,
       GSimpleAsyncResult *r = priv->result;
 
       priv->result = NULL;
+
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
+
       g_simple_async_result_complete (r);
       g_object_unref (r);
     }
@@ -391,6 +404,10 @@ failure_sent (GObject *source,
 
   if (r != NULL)
     {
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
       g_simple_async_result_complete (r);
       g_object_unref (r);
     }
@@ -949,11 +966,32 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
     {
       priv->stream = g_object_ref (stream);
       priv->conn = wocky_xmpp_connection_new (stream);
+      priv->cancellable = g_cancellable_new ();
       wocky_xmpp_connection_recv_open_async (priv->conn,
-          NULL, stream_open_received, server);
+          priv->cancellable, stream_open_received, server);
     }
 
   return server;
+}
+
+void
+test_sasl_auth_server_stop (TestSaslAuthServer *self)
+{
+  TestSaslAuthServerPrivate *priv = self->priv;
+
+  if (priv->cancellable != NULL)
+    {
+      if (!g_cancellable_is_cancelled (priv->cancellable))
+          g_cancellable_cancel (priv->cancellable);
+
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
+
+  if (priv->conn != NULL)
+    g_object_unref (priv->conn);
+
+  priv->conn = NULL;
 }
 
 gboolean
@@ -987,19 +1025,21 @@ test_sasl_auth_server_auth_async (GObject *obj,
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = self->priv;
 
-  /* we would normally expect this to be NULL in a take-over situation,
-     but just in case: */
-  if (priv->conn != NULL)
-    g_object_unref (priv->conn);
+  /* We expect the server to not be started but just in case */
+  test_sasl_auth_server_stop (TEST_SASL_AUTH_SERVER (obj));
 
   priv->state = AUTH_STATE_STARTED;
   priv->conn = g_object_ref (conn);
-  priv->cancellable = cancellable;
 
   /* save the details of the point ot which we will hand back control */
   if (cb != NULL)
-    priv->result = g_simple_async_result_new (obj, cb, data,
-        test_sasl_auth_server_auth_async);
+    {
+      if (cancellable != NULL)
+        priv->cancellable = g_object_ref (cancellable);
+
+      priv->result = g_simple_async_result_new (obj, cb, data,
+          test_sasl_auth_server_auth_async);
+    }
 
   handle_auth (self, auth);
   if (priv->state < AUTH_STATE_AUTHENTICATED)

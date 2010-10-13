@@ -312,7 +312,7 @@ wocky_tls_job_make_result (WockyTLSJob *job,
                                           job->user_data,
                                           job->source_tag);
 
-      if (job->error)
+      if (job->error != NULL)
         {
 #ifdef WOCKY_TLS_STRICT_ERROR_ASSERTIONS
           g_assert (result == GNUTLS_E_PUSH_ERROR ||
@@ -327,7 +327,13 @@ wocky_tls_job_make_result (WockyTLSJob *job,
           g_error_free (error);
         }
 
+      if (job->cancellable != NULL)
+        g_object_unref (job->cancellable);
+      job->cancellable = NULL;
+
       g_object_unref (job->source_object);
+      job->source_object = NULL;
+
       job->active = FALSE;
 
       return simple;
@@ -461,9 +467,8 @@ wocky_tls_job_start (WockyTLSJob             *job,
   job->source_object = g_object_ref (source_object);
 
   job->io_priority = io_priority;
-  job->cancellable = cancellable;
-  if (cancellable)
-    g_object_ref (cancellable);
+  if (cancellable != NULL)
+    job->cancellable = g_object_ref (cancellable);
   job->callback = callback;
   job->user_data = user_data;
   job->source_tag = source_tag;
@@ -489,7 +494,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
   if (tls_debug_level >= DEBUG_HANDSHAKE_LEVEL)
     DEBUG ("sync job handshake: %d %s", result, error_to_string (result));
 
-  if (session->error)
+  if (session->error != NULL)
     {
       g_assert (result == GNUTLS_E_PULL_ERROR ||
                 result == GNUTLS_E_PUSH_ERROR);
@@ -829,7 +834,7 @@ wocky_tls_input_stream_read (GInputStream  *stream,
   g_assert (result != GNUTLS_E_AGAIN);
   session->cancellable = NULL;
 
-  if (session->error)
+  if (session->error != NULL)
     {
       g_assert (result == GNUTLS_E_PULL_ERROR);
       g_propagate_error (error, session->error);
@@ -902,7 +907,7 @@ wocky_tls_output_stream_write (GOutputStream  *stream,
   g_assert (result != GNUTLS_E_AGAIN);
   session->cancellable = NULL;
 
-  if (session->error)
+  if (session->error != NULL)
     {
       g_assert (result == GNUTLS_E_PUSH_ERROR);
       g_propagate_error (error, session->error);
@@ -1275,6 +1280,7 @@ wocky_tls_session_pull_func (gpointer  user_data,
           if (session->read_op.result < 0)
             {
               g_free (session->read_op.buffer);
+              session->read_op.buffer = NULL;
               active_job->error = session->read_op.error;
               gnutls_transport_set_errno (session->session, EIO);
 
@@ -1288,6 +1294,7 @@ wocky_tls_session_pull_func (gpointer  user_data,
                       session->read_op.buffer,
                       session->read_op.result);
               g_free (session->read_op.buffer);
+              session->read_op.buffer = NULL;
 
               return session->read_op.result;
             }
@@ -1491,6 +1498,9 @@ wocky_tls_session_dispose (GObject *object)
   g_free (session->cert_file);
   session->cert_file = NULL;
 
+  g_free (session->read_op.buffer);
+  session->read_op.buffer = NULL;
+
   G_OBJECT_CLASS (wocky_tls_session_parent_class)->dispose (object);
 }
 
@@ -1617,10 +1627,10 @@ wocky_tls_connection_finalize (GObject *object)
 
   g_object_unref (connection->session);
 
-  if (connection->input)
+  if (connection->input != NULL)
     g_object_unref (connection->input);
 
-  if (connection->output)
+  if (connection->output != NULL)
     g_object_unref (connection->output);
 
   G_OBJECT_CLASS (wocky_tls_connection_parent_class)
