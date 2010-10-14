@@ -174,19 +174,18 @@ server_thread (gpointer user_data)
 
   buffer = g_data_input_stream_read_line (data_in, NULL,
       data->thread_cancellable, NULL);
-  g_assert (buffer != NULL);
-  g_assert (!wocky_strdiff ("CONNECT to:443 HTTP/1.0", buffer));
+  g_assert_cmpstr (buffer, ==, "CONNECT to:443 HTTP/1.0");
 
   do {
       g_free (buffer);
       buffer = g_data_input_stream_read_line (data_in, NULL,
           data->thread_cancellable, NULL);
-      g_assert (buffer);
+      g_assert (buffer != NULL);
 
       if (g_ascii_strncasecmp ("Host:", buffer, 5) == 0)
         {
           has_host++;
-          g_assert (!wocky_strdiff ("Host: to:443", buffer));
+          g_assert_cmpstr (buffer, ==, "Host: to:443");
         }
       else if (g_ascii_strncasecmp ("User-Agent:", buffer, 11) == 0)
         has_user_agent++;
@@ -210,7 +209,7 @@ server_thread (gpointer user_data)
           while (*received_cred == ' ')
             received_cred++;
 
-          g_assert (!wocky_strdiff (base64_cred, received_cred));
+          g_assert_cmpstr (base64_cred, ==, received_cred);
           g_free (base64_cred);
         }
   } while (buffer[0] != '\0');
