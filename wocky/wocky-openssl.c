@@ -396,7 +396,7 @@ ssl_handshake (WockyTLSSession *session)
     {
       const gchar *method;
 
-      if (session->server != NULL)
+      if (session->server)
         {
           method = "SSL_accept";
           result = SSL_accept (session->ssl);
@@ -1669,7 +1669,7 @@ wocky_tls_session_constructed (GObject *object)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (object);
 
-  if (session->server != NULL)
+  if (session->server)
     {
       DEBUG ("I'm a server; using TLSv1_server_method");
       session->method = TLSv1_server_method ();
