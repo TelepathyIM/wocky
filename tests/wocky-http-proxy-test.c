@@ -90,7 +90,7 @@ tearup (const HttpTestCase *test_case)
 
   data->listener = g_socket_listener_new ();
   data->port = g_socket_listener_add_any_inet_port (data->listener, NULL, NULL);
-  g_assert (data->port != 0);
+  g_assert_cmpuint (data->port, !=, 0);
 
   data->test_case = test_case;
 
@@ -215,13 +215,13 @@ server_thread (gpointer user_data)
         }
   } while (buffer[0] != '\0');
 
-  g_assert (has_host == 1);
-  g_assert (has_user_agent == 1);
+  g_assert_cmpuint (has_host, ==, 1);
+  g_assert_cmpuint (has_user_agent, ==, 1);
 
   if (data->test_case->username != NULL)
-    g_assert (has_cred == 1);
+    g_assert_cmpuint (has_cred, ==, 1);
   else
-    g_assert (has_cred == 0);
+    g_assert_cmpuint (has_cred, ==, 0);
 
   g_free (buffer);
 
