@@ -1,6 +1,6 @@
 /*
- * gibber-util.h - Header for Wocky utility functions
- * Copyright (C) 2007-2009 Collabora Ltd.
+ * wocky-utils.h - Header for Wocky utility functions
+ * Copyright © 2007–2010 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __WOCKY_UTIL_H__
-#define __WOCKY_UTIL_H__
+#ifndef __WOCKY_UTILS_H__
+#define __WOCKY_UTILS_H__
 
 #include <glib.h>
 #include <glib-object.h>
@@ -113,4 +113,4 @@ void wocky_g_string_free (GString *str);
 
 G_END_DECLS
 
-#endif /* #ifndef __WOCKY_UTIL_H__ */
+#endif /* #ifndef __WOCKY_UTILS_H__ */

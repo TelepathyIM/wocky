@@ -1,6 +1,6 @@
 /*
- * gibber-util.c - Code for Wocky utility functions
- * Copyright (C) 2007-2010 Collabora Ltd.
+ * wocky-utils.c - Code for Wocky utility functions
+ * Copyright © 2007–2010 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
