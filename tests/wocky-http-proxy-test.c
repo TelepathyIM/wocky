@@ -140,6 +140,13 @@ teardown (HttpTestData *data)
   g_free (data);
 }
 
+static gboolean
+str_has_prefix_case (const gchar *str,
+    const gchar *prefix)
+{
+  return g_ascii_strncasecmp (prefix, str, strlen (prefix)) == 0;
+}
+
 static void
 test_http_proxy_instantiation (void)
 {
@@ -182,14 +189,14 @@ server_thread (gpointer user_data)
           data->thread_cancellable, NULL);
       g_assert (buffer != NULL);
 
-      if (g_ascii_strncasecmp ("Host:", buffer, 5) == 0)
+      if (str_has_prefix_case (buffer, "Host:"))
         {
           has_host++;
           g_assert_cmpstr (buffer, ==, "Host: to:443");
         }
-      else if (g_ascii_strncasecmp ("User-Agent:", buffer, 11) == 0)
+      else if (str_has_prefix_case (buffer, "User-Agent:"))
         has_user_agent++;
-      else if (g_ascii_strncasecmp ("Proxy-Authorization:", buffer, 20) == 0)
+      else if (str_has_prefix_case (buffer, "Proxy-Authorization:"))
         {
           gchar *cred;
           gchar *base64_cred;
