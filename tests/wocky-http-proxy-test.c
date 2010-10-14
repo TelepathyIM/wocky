@@ -372,7 +372,7 @@ int main (int argc,
   g_test_add_func ("/http-proxy/instantiation",
       test_http_proxy_instantiation);
 
-  for (i = 0; i < sizeof (test_cases) / sizeof (test_cases[0]); i++)
+  for (i = 0; i < G_N_ELEMENTS (test_cases); i++)
     {
       gchar *async_path;
 
