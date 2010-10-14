@@ -1715,7 +1715,7 @@ wocky_tls_session_constructed (GObject *object)
    * eg "all:!some-crypto-we-hate"                                      *
    * SSL_CTX_set_cipher_list (session->ctx, CIPHER_LIST);               */
 
-  if (session->server != NULL)
+  if (session->server)
     {
       set_dh_parameters (session);
       set_ecdh_key (session);
