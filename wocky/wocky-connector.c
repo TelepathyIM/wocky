@@ -101,6 +101,7 @@
 #define DEBUG_FLAG DEBUG_CONNECTOR
 #include "wocky-debug.h"
 
+#include "wocky-http-proxy.h"
 #include "wocky-sasl-auth.h"
 #include "wocky-tls-handler.h"
 #include "wocky-tls-connector.h"
@@ -575,6 +576,11 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   oclass->dispose      = wocky_connector_dispose;
   oclass->finalize     = wocky_connector_finalize;
 
+#if HAVE_GIO_PROXY
+  /* Ensure that HTTP Proxy extension is registered */
+  _wocky_http_proxy_get_type ();
+#endif
+
   /**
    * WockyConnector:plaintext-auth-allowed:
    *
@@ -803,6 +809,27 @@ wocky_connector_finalize (GObject *object)
 }
 
 static void
+connect_to_host_async (WockyConnector *connector,
+    const gchar *host,
+    guint port)
+{
+  WockyConnectorPrivate *priv = connector->priv;
+
+#if HAVE_GIO_PROXY
+  /* Legacy SSL mode is just like doing HTTPS, so let's trigger HTTPS
+   * proxy setting if any */
+  gchar *uri = g_strdup_printf ("%s://%s:%i",
+      priv->legacy_ssl ? "https" : "xmpp-client", host, port);
+  g_socket_client_connect_to_uri_async (priv->client,
+      uri, port, NULL, tcp_host_connected, connector);
+  g_free (uri);
+#else
+  g_socket_client_connect_to_host_async (priv->client,
+      host, port, NULL, tcp_host_connected, connector);
+#endif
+}
+
+static void
 tcp_srv_connected (GObject *source,
     GAsyncResult *result,
     gpointer connector)
@@ -858,8 +885,7 @@ tcp_srv_connected (GObject *source,
       wocky_decode_jid (priv->jid, &node, &host, NULL);
 
       if ((host != NULL) && (*host != '\0'))
-        g_socket_client_connect_to_host_async (priv->client,
-            host, port, priv->cancellable, tcp_host_connected, connector);
+        connect_to_host_async (connector, host, port);
       else
         abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
             "JID contains no domain: %s", priv->jid);
@@ -2285,8 +2311,7 @@ connector_connect_async (WockyConnector *self,
       const gchar *srv = (priv->xmpp_host == NULL) ? host : priv->xmpp_host;
 
       DEBUG ("host: %s; port: %d", priv->xmpp_host, priv->xmpp_port);
-      g_socket_client_connect_to_host_async (priv->client, srv, port,
-          priv->cancellable, tcp_host_connected, self);
+      connect_to_host_async (self, srv, port);
     }
   else
     {
