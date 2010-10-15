@@ -171,6 +171,14 @@ AM_CONDITIONAL(HAVE_LIBSASL2, test "x$HAVE_LIBSASL2" = "xyes")
 AC_SUBST(LIBXML2_CFLAGS)
 AC_SUBST(LIBXML2_LIBS)
 
+PKG_CHECK_MODULES(LIBIPHB, [libiphb],
+    [AC_DEFINE(HAVE_IPHB, 1, [libiphb is available])
+     have_iphb=yes
+    ],
+    [have_iphb=no])
+AC_SUBST(LIBIPHB_CFLAGS)
+AC_SUBST(LIBIPHB_LIBS)
+
 AC_ARG_ENABLE(coverage, AC_HELP_STRING([--enable-coverage],
       [compile with coverage profiling instrumentation (gcc only)]),
     [
@@ -220,4 +228,5 @@ Configure summary:
         TLS Backend..........: ${with_tls}
         SASL2 Tests..........: ${HAVE_LIBSASL2}
         gtk-doc documentation: ${enable_gtk_doc}
+        libiphb integration..: ${have_iphb}
 "
