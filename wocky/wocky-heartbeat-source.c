@@ -244,3 +244,27 @@ wocky_heartbeat_source_new (
 
   return source;
 }
+
+void
+wocky_heartbeat_source_update_interval (
+    GSource *source,
+    guint min_interval,
+    guint max_interval)
+{
+  WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
+
+  self->next_wakeup.tv_sec += (max_interval - self->max_interval);
+  self->min_interval = min_interval;
+  self->max_interval = max_interval;
+
+  /* If we're not using the heartbeat, the new interval takes effect
+   * immediately. If we are, we just wait for the next heartbeat to fire as
+   * normal, and then use these new values when we ask it to wait again.
+   *
+   * We could alternatively calculate the time already elapsed since we last
+   * called iphb_wait(), and from that calculate how much longer we want to
+   * wait with these new values, taking care to deal with the cases where one
+   * or both of min_interval and max_interval have already passed. But life is
+   * too short.
+   */
+}
