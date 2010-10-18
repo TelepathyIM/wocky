@@ -29,12 +29,10 @@ typedef void (*WockyHeartbeatCallback) (
     gpointer user_data);
 
 GSource *wocky_heartbeat_source_new (
-    guint min_interval,
     guint max_interval);
 
 void wocky_heartbeat_source_update_interval (
     GSource *source,
-    guint min_interval,
     guint max_interval);
 
 G_END_DECLS

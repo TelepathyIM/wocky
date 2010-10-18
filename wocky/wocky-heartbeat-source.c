@@ -38,7 +38,6 @@ typedef struct _WockyHeartbeatSource {
     GPollFD fd;
 #endif
 
-    guint min_interval;
     guint max_interval;
 
     GTimeVal next_wakeup;
@@ -155,6 +154,16 @@ wocky_heartbeat_source_check (
        now.tv_usec >= self->next_wakeup.tv_usec));
 }
 
+#if HAVE_IPHB
+static inline guint
+get_min_interval (
+    WockyHeartbeatSource *self)
+{
+  /* We allow the heartbeat service to wake us up up to a minute early. */
+  return self->max_interval > 60 ? self->max_interval - 60 : 0;
+}
+#endif
+
 static gboolean
 wocky_heartbeat_source_dispatch (
     GSource *source,
@@ -176,7 +185,8 @@ wocky_heartbeat_source_dispatch (
   ((WockyHeartbeatCallback) callback) (user_data);
 
 #if HAVE_IPHB
-  wocky_heartbeat_source_wait (self, self->min_interval, self->max_interval);
+  wocky_heartbeat_source_wait (self, get_min_interval (self),
+      self->max_interval);
 #endif
 
   /* Record the time we next want to wake up. */
@@ -225,14 +235,12 @@ connect_to_heartbeat (
 
 GSource *
 wocky_heartbeat_source_new (
-    guint min_interval,
     guint max_interval)
 {
   GSource *source = g_source_new (&wocky_heartbeat_source_funcs,
       sizeof (WockyHeartbeatSource));
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
 
-  self->min_interval = min_interval;
   self->max_interval = max_interval;
 
   g_get_current_time (&self->next_wakeup);
@@ -248,13 +256,11 @@ wocky_heartbeat_source_new (
 void
 wocky_heartbeat_source_update_interval (
     GSource *source,
-    guint min_interval,
     guint max_interval)
 {
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
 
   self->next_wakeup.tv_sec += (max_interval - self->max_interval);
-  self->min_interval = min_interval;
   self->max_interval = max_interval;
 
   /* If we're not using the heartbeat, the new interval takes effect
