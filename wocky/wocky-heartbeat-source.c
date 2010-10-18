@@ -40,6 +40,8 @@ typedef struct _WockyHeartbeatSource {
 
     guint min_interval;
     guint max_interval;
+
+    GTimeVal next_wakeup;
 } WockyHeartbeatSource;
 
 static void
@@ -61,9 +63,41 @@ wocky_heartbeat_source_finalize (GSource *source)
 static gboolean
 wocky_heartbeat_source_prepare (
     GSource *source,
-    gint *timeout_out_out_out)
+    gint *msec_to_poll)
 {
-  /* FIXME: be smarter. We can figure out when we might be woken up. */
+  WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
+  GTimeVal now;
+
+#if HAVE_IPHB
+  /* If we're listening to the system heartbeat, always rely on it to wake us
+   * up.
+   */
+  if (self->heartbeat != NULL)
+    {
+      *msec_to_poll = -1;
+      return FALSE;
+    }
+#endif
+
+  g_source_get_current_time (source, &now);
+
+  /* If now > self->next_wakeup, it's already time to wake up. */
+  if (now.tv_sec > self->next_wakeup.tv_sec ||
+      (now.tv_sec == self->next_wakeup.tv_sec &&
+       now.tv_usec >= self->next_wakeup.tv_usec))
+    return TRUE;
+
+  /* Otherwise, we should only go back to sleep for a period of
+   * (self->next_wakeup - now). Inconveniently, GTimeVal gives us µs but we
+   * need to return ms; hence the scaling.
+   *
+   * The value calculated here will always be positive. The difference in
+   * seconds is non-negative; if it's zero, the difference in microseconds is
+   * positive.
+   */
+  *msec_to_poll = (self->next_wakeup.tv_sec - now.tv_sec) * 1000
+      + (self->next_wakeup.tv_usec - now.tv_usec) / 1000;
+
   return FALSE;
 }
 
@@ -71,31 +105,36 @@ static gboolean
 wocky_heartbeat_source_check (
     GSource *source)
 {
-#ifdef HAVE_IPHB
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
+  GTimeVal now;
 
-  if (self->heartbeat == NULL)
+#ifdef HAVE_IPHB
+  if (self->heartbeat != NULL)
     {
-      return FALSE;
+      if ((self->fd.revents & (G_IO_ERR | G_IO_HUP)) != 0)
+        {
+          DEBUG ("Heartbeat closed unexpectedly: %hu; "
+              "falling back to internal timeouts", self->fd.revents);
+          wocky_heartbeat_source_finalize (source);
+          return FALSE;
+        }
+      else if ((self->fd.revents & G_IO_IN) != 0)
+        {
+          DEBUG ("Heartbeat fired");
+          return TRUE;
+        }
+      else
+        {
+          return FALSE;
+        }
     }
-  else if ((self->fd.revents & (G_IO_ERR | G_IO_HUP)) != 0)
-    {
-      DEBUG ("Heartbeat closed unexpectedly: %hu", self->fd.revents);
-      g_source_remove_poll (source, &self->fd);
-      return FALSE;
-    }
-  else if ((self->fd.revents & G_IO_IN) != 0)
-    {
-      DEBUG ("Heartbeat fired");
-      return TRUE;
-    }
-  else
-    {
-      return FALSE;
-    }
-#else
-  return FALSE;
 #endif
+
+  g_source_get_current_time (source, &now);
+
+  return (now.tv_sec > self->next_wakeup.tv_sec ||
+      (now.tv_sec == self->next_wakeup.tv_sec &&
+       now.tv_usec >= self->next_wakeup.tv_usec));
 }
 
 static gboolean
@@ -105,11 +144,6 @@ wocky_heartbeat_source_dispatch (
     gpointer user_data)
 {
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
-
-#if HAVE_IPHB
-  if (self->heartbeat == NULL)
-    return FALSE;
-#endif
 
   if (callback == NULL)
     {
@@ -124,14 +158,19 @@ wocky_heartbeat_source_dispatch (
   ((WockyHeartbeatCallback) callback) (user_data);
 
 #if HAVE_IPHB
-  if (iphb_wait (self->heartbeat, self->min_interval, self->max_interval, 0)
+  if (self->heartbeat != NULL &&
+      iphb_wait (self->heartbeat, self->min_interval, self->max_interval, 0)
           == -1)
     {
-      DEBUG ("iphb_wait failed: %s", g_strerror (errno));
+      DEBUG ("iphb_wait failed: %s; falling back to internal timeouts",
+          g_strerror (errno));
       wocky_heartbeat_source_finalize (source);
-      return FALSE;
     }
 #endif
+
+  /* Record the time we next want to wake up. */
+  g_source_get_current_time (source, &self->next_wakeup);
+  self->next_wakeup.tv_sec += self->max_interval;
 
   return TRUE;
 }
@@ -145,6 +184,40 @@ static GSourceFuncs wocky_heartbeat_source_funcs = {
     NULL
 };
 
+#if HAVE_IPHB
+static void
+connect_to_heartbeat (
+    WockyHeartbeatSource *self)
+{
+  GSource *source = (GSource *) self;
+
+  self->heartbeat = iphb_open (NULL);
+
+  if (self->heartbeat == NULL)
+    {
+      DEBUG ("Couldn't open connection to heartbeat service: %s",
+          g_strerror (errno));
+      return;
+    }
+
+  /* We initially wait for anywhere between (0, max_interval) rather than
+   * (min_interval, max_interval) to fall into step with other connections,
+   * which may have started waiting at slightly different times.
+   */
+  if (iphb_wait (self->heartbeat, 0, self->max_interval, 0) == -1)
+    {
+      DEBUG ("Initial call to iphb_wait failed: %s", g_strerror (errno));
+      iphb_close (self->heartbeat);
+      self->heartbeat = NULL;
+      return;
+    }
+
+  self->fd.fd = iphb_get_fd (self->heartbeat);
+  self->fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
+  g_source_add_poll (source, &self->fd);
+}
+#endif
+
 GSource *
 wocky_heartbeat_source_new (
     guint min_interval,
@@ -154,37 +227,15 @@ wocky_heartbeat_source_new (
       sizeof (WockyHeartbeatSource));
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
 
-#if HAVE_IPHB
-  iphb_t heartbeat = iphb_open (NULL);
-
-  if (heartbeat == NULL)
-    {
-      DEBUG ("Couldn't open connection to heartbeat service: %s",
-          g_strerror (errno));
-      return NULL;
-    }
-
-  /* We initially wait for anywhere between (0, max_interval) rather than
-   * (min_interval, max_interval) to fall into step with other connections,
-   * which may have started waiting at slightly different times.
-   */
-  if (iphb_wait (heartbeat, 0, max_interval, 0) == -1)
-    {
-      DEBUG ("Initial call to iphb_wait failed: %s", g_strerror (errno));
-      iphb_close (heartbeat);
-      return NULL;
-    }
-#endif
-
-#if HAVE_IPHB
-  self->heartbeat = heartbeat;
-  self->fd.fd = iphb_get_fd (heartbeat);
-  self->fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
-  g_source_add_poll (source, &self->fd);
-#endif
-
   self->min_interval = min_interval;
   self->max_interval = max_interval;
+
+  g_get_current_time (&self->next_wakeup);
+  self->next_wakeup.tv_sec += max_interval;
+
+#if HAVE_IPHB
+  connect_to_heartbeat (self);
+#endif
 
   return source;
 }
