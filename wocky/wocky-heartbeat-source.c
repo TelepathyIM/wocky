@@ -60,6 +60,24 @@ wocky_heartbeat_source_finalize (GSource *source)
 #endif
 }
 
+#if HAVE_IPHB
+static void
+wocky_heartbeat_source_wait (
+    WockyHeartbeatSource *self,
+    guint min_interval,
+    guint max_interval)
+{
+  if (self->heartbeat != NULL &&
+      iphb_wait (self->heartbeat, min_interval, max_interval, 0)
+          == -1)
+    {
+      DEBUG ("iphb_wait failed: %s; falling back to internal timeouts",
+          g_strerror (errno));
+      wocky_heartbeat_source_finalize ((GSource *) self);
+    }
+}
+#endif
+
 static gboolean
 wocky_heartbeat_source_prepare (
     GSource *source,
@@ -158,14 +176,7 @@ wocky_heartbeat_source_dispatch (
   ((WockyHeartbeatCallback) callback) (user_data);
 
 #if HAVE_IPHB
-  if (self->heartbeat != NULL &&
-      iphb_wait (self->heartbeat, self->min_interval, self->max_interval, 0)
-          == -1)
-    {
-      DEBUG ("iphb_wait failed: %s; falling back to internal timeouts",
-          g_strerror (errno));
-      wocky_heartbeat_source_finalize (source);
-    }
+  wocky_heartbeat_source_wait (self, self->min_interval, self->max_interval);
 #endif
 
   /* Record the time we next want to wake up. */
@@ -200,21 +211,15 @@ connect_to_heartbeat (
       return;
     }
 
+  self->fd.fd = iphb_get_fd (self->heartbeat);
+  self->fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
+  g_source_add_poll (source, &self->fd);
+
   /* We initially wait for anywhere between (0, max_interval) rather than
    * (min_interval, max_interval) to fall into step with other connections,
    * which may have started waiting at slightly different times.
    */
-  if (iphb_wait (self->heartbeat, 0, self->max_interval, 0) == -1)
-    {
-      DEBUG ("Initial call to iphb_wait failed: %s", g_strerror (errno));
-      iphb_close (self->heartbeat);
-      self->heartbeat = NULL;
-      return;
-    }
-
-  self->fd.fd = iphb_get_fd (self->heartbeat);
-  self->fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
-  g_source_add_poll (source, &self->fd);
+  wocky_heartbeat_source_wait (self, 0, self->max_interval);
 }
 #endif
 
