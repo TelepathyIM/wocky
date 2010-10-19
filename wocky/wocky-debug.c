@@ -114,7 +114,7 @@ wocky_debug_node_tree (DebugFlags flag,
   va_list args;
 
   va_start (args, format);
-  wocky_debug_node_tree_va (flags, tree, format, args);
+  wocky_debug_node_tree_va (flag, tree, format, args);
   va_end (args);
 }
 
@@ -127,7 +127,7 @@ wocky_debug_stanza (DebugFlags flag,
   va_list args;
 
   va_start (args, format);
-  wocky_debug_node_tree_va (flags, (WockyNodeTree *) stanza, format, args);
+  wocky_debug_node_tree_va (flag, (WockyNodeTree *) stanza, format, args);
   va_end (args);
 }
 
