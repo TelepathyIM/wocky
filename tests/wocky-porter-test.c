@@ -2490,6 +2490,54 @@ test_remote_error (void)
   teardown_test (test);
 }
 
+/* Herein lies a regression test for a bug where, if a stanza had been passed
+ * by the porter to the XmppConnection but not actually sent when the porter
+ * was unreffed, the subsequent callback from the XmppConnection would crash
+ * us.
+ */
+static gboolean
+idle_main_loop_quit (gpointer user_data)
+{
+  g_main_loop_quit (user_data);
+  return FALSE;
+}
+
+static void
+send_and_disconnect (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *lions = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, NULL, NULL,
+      '(', "dummy", ':', "xmpp:stanza",
+        '(', "nothing-to-see-here", ')',
+      ')', NULL);
+  GMainLoop *loop = g_main_loop_ref (test->loop);
+
+  /* We try to send any old stanza. */
+  wocky_porter_send_async (test->sched_in, lions, NULL, NULL, NULL);
+
+  /* Without giving the mainloop a chance to spin to call any callbacks at all,
+   * we tear everything down, including the porters. This will make sched_in
+   * add an idle to dispatch the (non-existent) callback for the stanza sent
+   * above, saying that sending it failed.
+   */
+  teardown_test (test);
+
+  /* Now we spin the main loop until all (higher-priority) idles have fired.
+   *
+   * The bug we're testing for occured because the porter didn't keep itself
+   * alive for the duration of the wocky_xmpp_connection_send_stanza_async()
+   * call. So, when it'd finished calling the callback above, it'd die, and
+   * then the send_stanza() operations would finish, and the porter's callback
+   * would try to use the newly-freed porter and choke.
+   */
+  g_idle_add_full (G_PRIORITY_LOW, idle_main_loop_quit, loop, NULL);
+  g_main_loop_run (loop);
+  g_main_loop_unref (loop);
+
+  g_object_unref (lions);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2541,6 +2589,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/wait-iq-reply-force-close",
       test_wait_iq_reply_force_close);
   g_test_add_func ("/xmpp-porter/avoid-double-force-close", test_remote_error);
+  g_test_add_func ("/xmpp-porter/send-and-disconnect", send_and_disconnect);
 
   result = g_test_run ();
   test_deinit ();

@@ -698,7 +698,7 @@ send_head_stanza (WockyPorter *self)
     }
 
   wocky_xmpp_connection_send_stanza_async (priv->connection,
-      elem->stanza, elem->cancellable, send_stanza_cb, self);
+      elem->stanza, elem->cancellable, send_stanza_cb, g_object_ref (self));
 
   g_signal_emit (self, signals[SENDING], 0);
 }
@@ -757,6 +757,8 @@ send_stanza_cb (GObject *source,
       DEBUG ("Queue has been flushed. Closing the connection.");
       send_close (self);
     }
+
+  g_object_unref (self);
 }
 
 static void
