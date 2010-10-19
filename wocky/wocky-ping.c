@@ -84,6 +84,7 @@ wocky_ping_set_property (GObject *object,
       break;
     case PROP_PING_INTERVAL:
       priv->ping_interval = g_value_get_uint (value);
+      DEBUG ("updated ping interval to %u", priv->ping_interval);
 
       if (priv->heartbeat != NULL)
         wocky_heartbeat_source_update_interval (priv->heartbeat,
@@ -221,6 +222,7 @@ send_xmpp_ping (WockyPing *self)
           ':', WOCKY_XMPP_NS_PING,
       ')', NULL);
 
+  DEBUG ("pinging");
   wocky_porter_send_iq_async (self->priv->porter, iq, NULL, NULL, NULL);
   g_object_unref (iq);
 }
@@ -228,9 +230,12 @@ send_xmpp_ping (WockyPing *self)
 static gboolean
 ping_iq_cb (WockyPorter *porter, WockyStanza *stanza, gpointer data)
 {
+#ifdef ENABLE_DEBUG
+  const gchar *from = wocky_stanza_get_from (stanza);
+#endif
   WockyStanza *reply;
 
-  DEBUG ("replying to ping request");
+  DEBUG ("replying to ping from %s", from ? from : "<null>");
 
   reply = wocky_stanza_build_iq_result (stanza, NULL);
   wocky_porter_send (porter, reply);
