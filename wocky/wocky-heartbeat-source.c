@@ -100,7 +100,10 @@ wocky_heartbeat_source_prepare (
   if (now.tv_sec > self->next_wakeup.tv_sec ||
       (now.tv_sec == self->next_wakeup.tv_sec &&
        now.tv_usec >= self->next_wakeup.tv_usec))
-    return TRUE;
+    {
+      DEBUG ("ready to wake up");
+      return TRUE;
+    }
 
   /* Otherwise, we should only go back to sleep for a period of
    * (self->next_wakeup - now). Inconveniently, GTimeVal gives us µs but we
@@ -113,6 +116,7 @@ wocky_heartbeat_source_prepare (
   *msec_to_poll = (self->next_wakeup.tv_sec - now.tv_sec) * 1000
       + (self->next_wakeup.tv_usec - now.tv_usec) / 1000;
 
+  DEBUG ("want to wake up in %ums", *msec_to_poll);
   return FALSE;
 }
 
@@ -180,6 +184,7 @@ wocky_heartbeat_source_dispatch (
    * heartbeats from occurring: this source is used for keepalives from the
    * time we're connected until we disconnect.
    */
+  DEBUG ("calling %p (%p)", callback, user_data);
   ((WockyHeartbeatCallback) callback) (user_data);
 
 #if HAVE_IPHB
