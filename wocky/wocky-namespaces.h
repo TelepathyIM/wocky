@@ -130,16 +130,16 @@
 #define WOCKY_NS_MUC \
   "http://jabber.org/protocol/muc"
 
-#define WOCKY_NS_MUC_USR \
+#define WOCKY_NS_MUC_USER \
   WOCKY_NS_MUC "#user"
 
-#define WOCKY_NS_MUC_ADM \
+#define WOCKY_NS_MUC_ADMIN \
   WOCKY_NS_MUC "#admin"
 
-#define WOCKY_NS_MUC_OWN \
+#define WOCKY_NS_MUC_OWNER \
   WOCKY_NS_MUC "#owner"
 
-#define WOCKY_NS_MUC_UNIQ \
+#define WOCKY_NS_MUC_UNIQUE \
   WOCKY_NS_MUC "#unique"
 
 #define WOCKY_NS_CHATSTATE \

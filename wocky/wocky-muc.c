@@ -1130,7 +1130,7 @@ handle_presence_standard (WockyMuc *muc,
   gboolean ok = FALSE;
   WockyNode *node = wocky_stanza_get_top_node (stanza);
   WockyNode *x = wocky_node_get_child_ns (node,
-      "x", WOCKY_NS_MUC_USR);
+      "x", WOCKY_NS_MUC_USER);
   WockyNode *item = NULL;
   const gchar *from = wocky_stanza_get_from (stanza);
   const gchar *pjid = NULL;
