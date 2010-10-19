@@ -64,12 +64,22 @@ wocky_heartbeat_source_wait (
     guint min_interval,
     guint max_interval)
 {
-  if (self->heartbeat != NULL &&
-      iphb_wait (self->heartbeat, min_interval, max_interval, 0)
-          == -1)
+  int ret;
+
+  g_return_if_fail (max_interval == 0 || min_interval < max_interval);
+
+  if (self->heartbeat == NULL)
+    return;
+
+  if (max_interval > 0)
+    ret = iphb_wait (self->heartbeat, min_interval, max_interval, 0);
+  else
+    ret = iphb_I_woke_up (self->heartbeat);
+
+  if (ret == -1)
     {
-      DEBUG ("iphb_wait failed: %s; falling back to internal timeouts",
-          g_strerror (errno));
+      DEBUG ("waiting (%u, %u) failed: %s; falling back to internal timeouts",
+          min_interval, max_interval, g_strerror (errno));
       wocky_heartbeat_source_degrade (self);
     }
 }
@@ -93,6 +103,9 @@ wocky_heartbeat_source_prepare (
       return FALSE;
     }
 #endif
+
+  if (self->max_interval == 0)
+    return FALSE;
 
   g_source_get_current_time (source, &now);
 
@@ -148,6 +161,9 @@ wocky_heartbeat_source_check (
         }
     }
 #endif
+
+  if (self->max_interval == 0)
+    return FALSE;
 
   g_source_get_current_time (source, &now);
 
@@ -249,7 +265,7 @@ connect_to_heartbeat (
 /**
  * wocky_heartbeat_source_new:
  * @max_interval: the maximum interval between calls to the source's callback,
- *                in seconds.
+ *                in seconds. Pass 0 to prevent the callback being called.
  *
  * Creates a source which calls its callback at least every @max_interval
  * seconds. This is similar to g_timeout_source_new_seconds(), except that the
@@ -286,7 +302,8 @@ wocky_heartbeat_source_new (
  * wocky_heartbeat_source_update_interval:
  * @source: a source returned by wocky_heartbeat_source_new()
  * @max_interval: the new maximum interval between calls to the source's
- *                callback, in seconds.
+ *                callback, in seconds. Pass 0 to stop the callback being
+ *                called.
  *
  * Updates the interval between calls to @source's callback. The new interval
  * may not take effect until after the next call to the callback.
@@ -298,12 +315,17 @@ wocky_heartbeat_source_update_interval (
 {
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
 
-  self->next_wakeup.tv_sec += (max_interval - self->max_interval);
-  self->max_interval = max_interval;
+  if (self->max_interval == max_interval)
+    return;
 
   /* If we're not using the heartbeat, the new interval takes effect
-   * immediately. If we are, we just wait for the next heartbeat to fire as
+   * immediately.
+   *
+   * If we are, we just wait for the next heartbeat to fire as
    * normal, and then use these new values when we ask it to wait again.
+   * (Except if the heartbeat was previously disabled, or is being disabled, in
+   * which case we have to be sure to schedule a wakeup, or cancel the pending
+   * wakeup, respectively.)
    *
    * We could alternatively calculate the time already elapsed since we last
    * called iphb_wait(), and from that calculate how much longer we want to
@@ -311,4 +333,23 @@ wocky_heartbeat_source_update_interval (
    * or both of min_interval and max_interval have already passed. But life is
    * too short.
    */
+
+#ifdef HAVE_IPHB
+  /* We specify 0 as the lower bound here to give us a better chance of falling
+   * into step with other connections, which may have started waiting at
+   * slightly different times.
+   */
+  if (self->max_interval == 0 || max_interval == 0)
+    wocky_heartbeat_source_wait (self, 0, max_interval);
+#endif
+
+  /* If we were previously disabled, we need to re-initialize next_wakeup, not
+   * just update it.
+   */
+  if (self->max_interval == 0)
+    g_source_get_current_time (source, &self->next_wakeup);
+
+  self->next_wakeup.tv_sec += (max_interval - self->max_interval);
+  self->max_interval = max_interval;
+
 }
