@@ -43,23 +43,21 @@ typedef struct _WockyHeartbeatSource {
     GTimeVal next_wakeup;
 } WockyHeartbeatSource;
 
+#if HAVE_IPHB
 static void
-wocky_heartbeat_source_finalize (GSource *source)
+wocky_heartbeat_source_degrade (WockyHeartbeatSource *self)
 {
-#ifdef HAVE_IPHB
-  WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
-
+  /* If we were using the heartbeat before, stop using it. */
   if (self->heartbeat != NULL)
     {
+      DEBUG ("closing heartbeat connection");
       g_source_remove_poll ((GSource *) self, &self->fd);
 
       iphb_close (self->heartbeat);
       self->heartbeat = NULL;
     }
-#endif
 }
 
-#if HAVE_IPHB
 static void
 wocky_heartbeat_source_wait (
     WockyHeartbeatSource *self,
@@ -72,7 +70,7 @@ wocky_heartbeat_source_wait (
     {
       DEBUG ("iphb_wait failed: %s; falling back to internal timeouts",
           g_strerror (errno));
-      wocky_heartbeat_source_finalize ((GSource *) self);
+      wocky_heartbeat_source_degrade (self);
     }
 }
 #endif
@@ -132,7 +130,7 @@ wocky_heartbeat_source_check (
         {
           DEBUG ("Heartbeat closed unexpectedly: %hu; "
               "falling back to internal timeouts", self->fd.revents);
-          wocky_heartbeat_source_finalize (source);
+          wocky_heartbeat_source_degrade (self);
           return FALSE;
         }
       else if ((self->fd.revents & G_IO_IN) != 0)
@@ -194,6 +192,16 @@ wocky_heartbeat_source_dispatch (
   self->next_wakeup.tv_sec += self->max_interval;
 
   return TRUE;
+}
+
+static void
+wocky_heartbeat_source_finalize (GSource *source)
+{
+#ifdef HAVE_IPHB
+  WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
+
+  wocky_heartbeat_source_degrade (self);
+#endif
 }
 
 static GSourceFuncs wocky_heartbeat_source_funcs = {
