@@ -111,6 +111,9 @@ WockyStanza * wocky_stanza_build (WockyStanzaType type,
 void wocky_stanza_get_type_info (WockyStanza *stanza,
     WockyStanzaType *type, WockyStanzaSubType *sub_type);
 
+const gchar *wocky_stanza_get_from (WockyStanza *self);
+const gchar *wocky_stanza_get_to (WockyStanza *self);
+
 WockyStanza * wocky_stanza_build_va (WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,

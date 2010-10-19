@@ -559,3 +559,37 @@ wocky_stanza_get_top_node (WockyStanza *self)
 {
   return wocky_node_tree_get_top_node (WOCKY_NODE_TREE (self));
 }
+
+/**
+ * wocky_stanza_get_from:
+ * @self: a stanza
+ *
+ * <!-- moo -->
+ *
+ * Returns: The sender of @self, or %NULL if no sender was specified.
+ */
+const gchar *
+wocky_stanza_get_from (WockyStanza *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
+
+  return wocky_node_get_attribute (wocky_stanza_get_top_node (self), "from");
+}
+
+/**
+ * wocky_stanza_get_to:
+ * @self: a stanza
+ *
+ * <!-- moo -->
+ *
+ * Returns: The recipient of @self, or %NULL if no recipient was specified.
+ */
+const gchar *
+wocky_stanza_get_to (WockyStanza *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
+
+  return wocky_node_get_attribute (wocky_stanza_get_top_node (self), "to");
+}
