@@ -215,8 +215,7 @@ msg_event_cb (WockyPorter *porter,
   WockyBareContact *contact;
   WockyStanzaSubType sub_type;
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
-      "from");
+  from = wocky_stanza_get_from (stanza);
   if (from == NULL)
     {
       DEBUG ("No 'from' attribute; ignoring event");

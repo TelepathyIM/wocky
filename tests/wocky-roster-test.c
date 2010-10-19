@@ -220,8 +220,7 @@ fetch_roster_reply_cb (WockyPorter *porter,
    * is left up to the server to know which client is the user and then throw
    * in a correct to attribute. Here we're just adding a from attribute so the
    * IQ result builder doesn't complain. */
-  if (wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
-        "from") == NULL)
+  if (wocky_stanza_get_from (stanza) == NULL)
     wocky_node_set_attribute (wocky_stanza_get_top_node (stanza), "from",
         "juliet@example.com/balcony");
 

@@ -524,8 +524,7 @@ roster_iq_handler_set_cb (WockyPorter *porter,
   GError *error = NULL;
   WockyStanza *reply;
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
-    "from");
+  from = wocky_stanza_get_from (stanza);
 
   if (from != NULL)
     {

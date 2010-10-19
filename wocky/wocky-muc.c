@@ -1132,7 +1132,7 @@ handle_presence_standard (WockyMuc *muc,
   WockyNode *x = wocky_node_get_child_ns (node,
       "x", WOCKY_NS_MUC_USR);
   WockyNode *item = NULL;
-  const gchar *from = wocky_node_get_attribute (node, "from");
+  const gchar *from = wocky_stanza_get_from (stanza);
   const gchar *pjid = NULL;
   const gchar *pnic = NULL;
   const gchar *role = NULL;
@@ -1298,8 +1298,7 @@ handle_presence_error (WockyMuc *muc,
   gchar *room = NULL;
   gchar *serv = NULL;
   gchar *nick = NULL;
-  const gchar *from = wocky_node_get_attribute (
-      wocky_stanza_get_top_node (stanza), "from");
+  const gchar *from = wocky_stanza_get_from (stanza);
   WockyMucPrivate *priv = muc->priv;
   GError *error = NULL;
 

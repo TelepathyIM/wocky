@@ -1631,8 +1631,7 @@ test_handler_filter_from_juliet_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   const gchar *from;
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
-      "from");
+  from = wocky_stanza_get_from (stanza);
   g_assert (!wocky_strdiff (from, "juliet@example.com"));
 
   test_expected_stanza_received (test, stanza);

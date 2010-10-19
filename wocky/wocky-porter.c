@@ -904,8 +904,7 @@ check_spoofing (WockyPorter *self,
   gchar *nfrom;
   gboolean ret = TRUE;
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (reply),
-      "from");
+  from = wocky_stanza_get_from (reply);
 
   /* fast path for a byte-for-byte match */
   if (G_LIKELY (!wocky_strdiff (from, should_be_from)))
@@ -1016,8 +1015,7 @@ handle_stanza (WockyPorter *self,
 
   /* The from attribute of the stanza need not always be present, for example
    * when receiving roster items, so don't enforce it. */
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
-      "from");
+  from = wocky_stanza_get_from (stanza);
 
   if (from != NULL)
     wocky_decode_jid (from, &node, &domain, &resource);
@@ -1695,8 +1693,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
       sub_type != WOCKY_STANZA_SUB_TYPE_SET)
     goto wrong_stanza;
 
-  recipient = wocky_node_get_attribute (
-      wocky_stanza_get_top_node (stanza), "to");
+  recipient = wocky_stanza_get_to (stanza);
 
   /* Set an unique ID */
   do
