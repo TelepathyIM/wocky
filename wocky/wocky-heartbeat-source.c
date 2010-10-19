@@ -233,6 +233,22 @@ connect_to_heartbeat (
 }
 #endif
 
+/**
+ * wocky_heartbeat_source_new:
+ * @max_interval: the maximum interval between calls to the source's callback,
+ *                in seconds.
+ *
+ * Creates a source which calls its callback at least every @max_interval
+ * seconds. This is similar to g_timeout_source_new_seconds(), except that the
+ * callback may be called slightly earlier than requested, in sync with other
+ * periodic network activity (from other XMPP connections, or other
+ * applications entirely).
+ *
+ * When calling g_source_set_callback() on this source, the supplied callback's
+ * signature should match #WockyHeartbeatCallback.
+ *
+ * Returns: the newly-created source.
+ */
 GSource *
 wocky_heartbeat_source_new (
     guint max_interval)
@@ -253,6 +269,15 @@ wocky_heartbeat_source_new (
   return source;
 }
 
+/**
+ * wocky_heartbeat_source_update_interval:
+ * @source: a source returned by wocky_heartbeat_source_new()
+ * @max_interval: the new maximum interval between calls to the source's
+ *                callback, in seconds.
+ *
+ * Updates the interval between calls to @source's callback. The new interval
+ * may not take effect until after the next call to the callback.
+ */
 void
 wocky_heartbeat_source_update_interval (
     GSource *source,
