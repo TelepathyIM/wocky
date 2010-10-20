@@ -1021,18 +1021,22 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   rval = SSL_get_verify_result (session->ssl);
   DEBUG ("X509 cert: %p; verified: %d", cert, rval);
 
-  /* anonymous SSL: no cert to check - rval will be X509_V_OK (0) *
-   * in this case (see openssl documentation)                     */
-  if (lenient && cert == NULL)
+  /* If no certificate is presented, SSL_get_verify_result() always returns
+   * X509_V_OK. This is listed as a bug in `man 3 SSL_get_verify_result`. To
+   * future-proof against that bug being fixed, we don't assume that behaviour.
+   */
+  if (cert == NULL)
     {
-      *status = WOCKY_TLS_CERT_OK;
-      return X509_V_OK;
-    }
-
-  if (cert == NULL && rval == X509_V_OK)
-    {
-      DEBUG ("Anonymous SSL handshake");
-      rval = X509_V_ERR_CERT_UNTRUSTED;
+      if (lenient)
+        {
+          *status = WOCKY_TLS_CERT_OK;
+          return X509_V_OK;
+        }
+      else if (rval == X509_V_OK)
+        {
+          DEBUG ("Anonymous SSL handshake");
+          rval = X509_V_ERR_CERT_UNTRUSTED;
+        }
     }
 
   if (rval != X509_V_OK)
