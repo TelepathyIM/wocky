@@ -463,11 +463,9 @@ iq_get_query_XEP77_REGISTER (TestConnectorServer *self,
           NULL, NULL,
           '@', "id", id,
           '(', "query", ':', WOCKY_XEP77_NS_REGISTER,
+            '*', &query,
           ')',
           NULL);
-
-      query = wocky_node_get_child (wocky_stanza_get_top_node (iq),
-          "query");
 
       if (!(priv->problem.connector->xep77 & XEP77_PROBLEM_NO_ARGS))
         {
