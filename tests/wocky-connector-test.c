@@ -2738,6 +2738,24 @@ test_t tests[] =
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1 } } },
 
+    /* This is a combination of the above test
+     * (/connector/cert-verification/tls/unknown/fail) and
+     * /connector/cert-verification/tls/host/fail/name-mismatch. It checks that
+     * Wocky considers a hostname mismatch more erroneous than the certificate
+     * being broken.
+     */
+    { "/connector/cert-verification/tls/host/fail/name-mismatch-and-unknown",
+      QUIET,
+      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_NAME_MISMATCH, -1 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_UNKNOWN },
+        { "tomato-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@tomato-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1 } } },
+
     /* ********************************************************************* */
     /* as above but with legacy ssl                                          */
     { "/connector/cert-verification/ssl/nohost/ok",

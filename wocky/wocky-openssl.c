@@ -990,7 +990,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
-  gboolean peer_name_ok = TRUE;
   const gchar *check_level;
   X509 *cert;
   gboolean lenient = (level == WOCKY_TLS_VERIFY_LENIENT);
@@ -1037,6 +1036,14 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           DEBUG ("Anonymous SSL handshake");
           rval = X509_V_ERR_CERT_UNTRUSTED;
         }
+    }
+  else if (peername != NULL && !check_peer_name (peername, cert))
+    {
+      /* Irrespective of whether the certificate is valid, if it's for the
+       * wrong host that's arguably a more useful error condition to report.
+       */
+      *status = WOCKY_TLS_CERT_NAME_MISMATCH;
+      return X509_V_ERR_APPLICATION_VERIFICATION;
     }
 
   if (rval != X509_V_OK)
@@ -1105,24 +1112,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
             rval = X509_V_OK;
             *status = WOCKY_TLS_CERT_OK;
           }
-
-      return rval;
-    }
-
-  /* if we get this far, we have a certificate which should be valid: *
-   * check the hostname matches the peername                          */
-  if (peername != NULL)
-    peer_name_ok = check_peer_name (peername, cert);
-
-  DEBUG ("peer_name_ok: %d", peer_name_ok );
-
-  /* if the hostname didn't match, we can just bail out with an error here *
-   * otherwise we need to figure out which error (if any) our verification *
-   * call failed with:                                                     */
-  if (!peer_name_ok)
-    {
-      *status = WOCKY_TLS_CERT_NAME_MISMATCH;
-      return X509_V_ERR_APPLICATION_VERIFICATION;
     }
 
   return rval;
