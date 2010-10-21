@@ -193,7 +193,7 @@ wocky_ping_class_init (WockyPingClass *wocky_ping_class)
   spec = g_param_spec_uint ("ping-interval", "Ping interval",
       "keepalive ping interval in seconds, or 0 to disable",
       0, G_MAXUINT, 0,
-      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_PING_INTERVAL, spec);
 
 }
