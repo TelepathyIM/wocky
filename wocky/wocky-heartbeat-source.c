@@ -286,6 +286,10 @@ wocky_heartbeat_source_new (
       sizeof (WockyHeartbeatSource));
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
 
+  /* We can't just call wocky_heartbeat_source_update_interval() because it
+   * assumes that we're attached to a main context. I think this is probably a
+   * reasonable assumption.
+   */
   self->max_interval = max_interval;
 
   g_get_current_time (&self->next_wakeup);
