@@ -87,12 +87,14 @@ typedef struct {
   GOutputStreamClass parent_class;
 } WockyTestInputStreamClass;
 
+static void wocky_test_input_stream_pollable_interface_init (GPollableInputStreamInterface *iface);
+static void wocky_test_output_stream_pollable_interface_init (GPollableOutputStreamInterface *iface);
 
-G_DEFINE_TYPE (WockyTestIOStream, wocky_test_io_stream, G_TYPE_IO_STREAM);
-G_DEFINE_TYPE (WockyTestInputStream, wocky_test_input_stream,
-  G_TYPE_INPUT_STREAM);
-G_DEFINE_TYPE (WockyTestOutputStream, wocky_test_output_stream,
-  G_TYPE_OUTPUT_STREAM);
+G_DEFINE_TYPE (WockyTestIOStream, wocky_test_io_stream, G_TYPE_IO_STREAM)
+G_DEFINE_TYPE_WITH_CODE (WockyTestInputStream, wocky_test_input_stream, G_TYPE_INPUT_STREAM,
+                         G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_INPUT_STREAM, wocky_test_input_stream_pollable_interface_init));
+G_DEFINE_TYPE_WITH_CODE (WockyTestOutputStream, wocky_test_output_stream, G_TYPE_OUTPUT_STREAM,
+                         G_IMPLEMENT_INTERFACE (G_TYPE_POLLABLE_OUTPUT_STREAM, wocky_test_output_stream_pollable_interface_init));
 
 #define WOCKY_TYPE_TEST_IO_STREAM (wocky_test_io_stream_get_type ())
 #define WOCKY_TYPE_TEST_INPUT_STREAM (wocky_test_input_stream_get_type ())
@@ -468,6 +470,100 @@ wocky_test_input_stream_class_init (
   stream_class->read_finish = wocky_test_input_stream_read_finish;
 }
 
+static gboolean
+wocky_test_input_stream_is_readable (GPollableInputStream *pollable)
+{
+  WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (pollable);
+
+  if (self->read_error)
+    return TRUE;
+
+  if (self->out_array == NULL && g_async_queue_length (self->queue) == 0)
+    return FALSE;
+
+  if (self->corked)
+    return FALSE;
+
+  return TRUE;
+}
+
+typedef struct {
+  GSource source;
+
+  WockyTestInputStream *self;
+} WockyTestInputStreamSource;
+
+static gboolean
+wocky_test_input_stream_source_prepare (GSource *source,
+                                        gint    *timeout)
+{
+  WockyTestInputStreamSource *wsource = (WockyTestInputStreamSource *) source;
+
+  *timeout = -1;
+  return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (wsource->self));
+}
+
+static gboolean
+wocky_test_input_stream_source_check (GSource *source)
+{
+  WockyTestInputStreamSource *wsource = (WockyTestInputStreamSource *) source;
+
+  return g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (wsource->self));
+}
+
+static gboolean
+wocky_test_input_stream_source_dispatch (GSource     *source,
+                                         GSourceFunc  callback,
+                                         gpointer     user_data)
+{
+  /* We don't do anything here; the "parent" source will handle it */
+
+  return TRUE;
+}
+
+static void
+wocky_test_input_stream_source_finalize (GSource *source)
+{
+  WockyTestInputStreamSource *wsource = (WockyTestInputStreamSource *) source;
+
+  g_object_unref (wsource->self);
+}
+
+static GSourceFuncs wocky_test_input_stream_source_funcs =
+{
+  wocky_test_input_stream_source_prepare,
+  wocky_test_input_stream_source_check,
+  wocky_test_input_stream_source_dispatch,
+  wocky_test_input_stream_source_finalize
+};
+
+static GSource *
+wocky_test_input_stream_create_source (GPollableInputStream *pollable,
+                                       GCancellable *cancellable)
+{
+  WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (pollable);
+  WockyTestInputStreamSource *wsource;
+  GSource *wocky_source, *pollable_source;
+
+  wocky_source = g_source_new (&wocky_test_input_stream_source_funcs,
+                               sizeof (WockyTestInputStreamSource));
+  wsource = (WockyTestInputStreamSource *) wocky_source;
+  wsource->self = g_object_ref (self);
+
+  pollable_source = g_pollable_source_new (G_OBJECT (pollable));
+  g_source_add_child_source (pollable_source, wocky_source);
+  g_source_unref (wocky_source);
+
+  return pollable_source;
+}
+
+static void
+wocky_test_input_stream_pollable_interface_init (GPollableInputStreamInterface *iface)
+{
+  iface->is_readable = wocky_test_input_stream_is_readable;
+  iface->create_source = wocky_test_input_stream_create_source;
+}
+
 /* Output stream */
 enum
 {
@@ -633,6 +729,18 @@ wocky_test_output_stream_set_write_error (GOutputStream *stream)
 
    self->write_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
        "write error");
+}
+
+static gboolean
+wocky_test_output_stream_is_writable (GPollableOutputStream *pollable)
+{
+  return TRUE;
+}
+
+static void
+wocky_test_output_stream_pollable_interface_init (GPollableOutputStreamInterface *iface)
+{
+  iface->is_writable = wocky_test_output_stream_is_writable;
 }
 
 void
