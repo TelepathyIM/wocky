@@ -256,7 +256,8 @@ do_handshake (WockyTLSConnector *self)
   g_object_get (self->priv->connection, "base-stream", &base_stream, NULL);
   g_assert (base_stream != NULL);
 
-  self->priv->session = wocky_tls_session_new (base_stream);
+  self->priv->session = wocky_tls_session_new (base_stream,
+                                               self->priv->peername);
 
   g_object_unref (base_stream);
 
@@ -337,7 +338,7 @@ session_handshake_cb (GObject *source,
   g_object_unref (tls_conn);
 
   wocky_tls_handler_verify_async (self->priv->handler,
-      self->priv->session, self->priv->peername,
+      self->priv->session,
       self->priv->extra_identities, tls_handler_verify_async_cb, self);
 }
 
@@ -388,7 +389,8 @@ starttls_recv_cb (GObject *source,
       g_object_get (self->priv->connection, "base-stream", &base_stream, NULL);
       g_assert (base_stream != NULL);
 
-      self->priv->session = wocky_tls_session_new (base_stream);
+      self->priv->session = wocky_tls_session_new (base_stream,
+                                                   self->priv->peername);
 
       g_object_unref (base_stream);
 

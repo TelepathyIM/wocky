@@ -104,6 +104,7 @@ enum
 {
   PROP_S_NONE,
   PROP_S_STREAM,
+  PROP_S_PEERNAME,
   PROP_S_SERVER,
   PROP_S_DHBITS,
   PROP_S_KEYFILE,
@@ -204,6 +205,9 @@ struct _WockyTLSSession
   GCancellable *cancellable;
   GError *error;
   gboolean async;
+
+  /* tls client support */
+  gchar *peername;
 
   /* tls server support */
   gboolean server;
@@ -777,7 +781,6 @@ cert_names_are_valid (gnutls_x509_crt_t cert)
 
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
-                               const gchar        *peername,
                                GStrv               extra_identities,
                                WockyTLSVerificationLevel level,
                                WockyTLSCertStatus *status)
@@ -855,7 +858,8 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
   /* if we get this far, we have a structurally valid certificate *
    * signed by _someone_: check the hostname matches the peername */
-  if (peername != NULL || extra_identities != NULL)
+  if ((session->peername != NULL && level != WOCKY_TLS_VERIFY_LENIENT)
+      || extra_identities != NULL)
     {
       const gnutls_datum_t *peers;
       guint n_peers;
@@ -883,9 +887,9 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
                     }
                   else
                     {
-                      rval = gnutls_x509_crt_check_hostname (x509, peername);
+                      rval = gnutls_x509_crt_check_hostname (x509, session->peername);
                       DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
-                             peername, rval);
+                             session->peername, rval);
                     }
                 }
               else
@@ -926,14 +930,12 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
             {
               gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
-              rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
-              DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d", peername, rval);
 
-              if (peername != NULL)
+              if (session->peername != NULL)
                 {
-                  rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
+                  rval = gnutls_openpgp_crt_check_hostname (opgp, session->peername);
                   DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",
-                      peername, rval);
+                      session->peername, rval);
                 }
               else
                 {
@@ -1570,6 +1572,9 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
      case PROP_S_STREAM:
       session->stream = g_value_dup_object (value);
       break;
+     case PROP_S_PEERNAME:
+      session->peername = g_value_dup_string (value);
+      break;
     case PROP_S_SERVER:
       session->server = g_value_get_boolean (value);
       break;
@@ -1581,6 +1586,22 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
       break;
     case PROP_S_CERTFILE:
       session->cert_file = g_value_dup_string (value);
+      break;
+     default:
+      g_assert_not_reached ();
+    }
+}
+
+static void
+wocky_tls_session_get_property (GObject *object, guint prop_id,
+				GValue *value, GParamSpec *pspec)
+{
+  WockyTLSSession *session = WOCKY_TLS_SESSION (object);
+
+  switch (prop_id)
+    {
+     case PROP_S_PEERNAME:
+      g_value_set_string (value, session->peername);
       break;
      default:
       g_assert_not_reached ();
@@ -1705,6 +1726,9 @@ wocky_tls_session_dispose (GObject *object)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (object);
 
+  g_free (session->peername);
+  session->peername = NULL;
+
   g_free (session->key_file);
   session->key_file = NULL;
 
@@ -1720,6 +1744,7 @@ wocky_tls_session_dispose (GObject *object)
 static void
 wocky_tls_session_class_init (GObjectClass *class)
 {
+  class->get_property = wocky_tls_session_get_property;
   class->set_property = wocky_tls_session_set_property;
   class->constructed = wocky_tls_session_constructed;
   class->finalize = wocky_tls_session_finalize;
@@ -1729,6 +1754,13 @@ wocky_tls_session_class_init (GObjectClass *class)
     g_param_spec_object ("base-stream", "base stream",
                          "the stream that TLS communicates over",
                          G_TYPE_IO_STREAM, G_PARAM_WRITABLE |
+                         G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
+                         G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
+
+  g_object_class_install_property (class, PROP_S_PEERNAME,
+    g_param_spec_string ("peername", "peer name",
+                         "Peer host/domain name",
+                         NULL, G_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
@@ -1872,10 +1904,12 @@ wocky_tls_connection_class_init (WockyTLSConnectionClass *class)
 }
 
 WockyTLSSession *
-wocky_tls_session_new (GIOStream *stream)
+wocky_tls_session_new (GIOStream *stream,
+		       const gchar *peername)
 {
   return g_object_new (WOCKY_TYPE_TLS_SESSION,
                        "base-stream", stream,
+		       "peername", peername,
                        "server", FALSE, NULL);
 }
 

@@ -48,7 +48,6 @@ typedef struct _WockyTLSHandlerPrivate WockyTLSHandlerPrivate;
 
 typedef void (*WockyTLSHandlerVerifyAsyncFunc) (WockyTLSHandler *self,
     WockyTLSSession *tls_session,
-    const gchar *peername,
     GStrv extra_identities,
     GAsyncReadyCallback callback,
     gpointer user_data);
@@ -94,7 +93,6 @@ WockyTLSHandler * wocky_tls_handler_new (gboolean ignore_ssl_errors);
 
 void wocky_tls_handler_verify_async (WockyTLSHandler *self,
     WockyTLSSession *tls_session,
-    const gchar *peername,
     GStrv extra_identities,
     GAsyncReadyCallback callback,
     gpointer user_data);

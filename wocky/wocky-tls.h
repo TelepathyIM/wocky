@@ -86,7 +86,6 @@ GType wocky_tls_connection_get_type (void);
 GType wocky_tls_session_get_type (void);
 
 int wocky_tls_session_verify_peer (WockyTLSSession    *session,
-                                          const gchar        *peername,
                                           GStrv               extra_identities,
                                           WockyTLSVerificationLevel level,
                                           WockyTLSCertStatus *status);
@@ -110,7 +109,8 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
 void wocky_tls_session_add_ca (WockyTLSSession *session, const gchar *path);
 void wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *path);
 
-WockyTLSSession *wocky_tls_session_new (GIOStream *stream);
+WockyTLSSession *wocky_tls_session_new (GIOStream *stream,
+					const gchar *peername);
 
 WockyTLSSession *wocky_tls_session_server_new (GIOStream   *stream,
                                                guint        dhbits,

@@ -261,7 +261,7 @@ test_tls_handshake_rw (void)
 {
   ssl_test_t ssl_test = { NULL, } ;
   test_data_t *test = setup_test ();
-  WockyTLSSession *client = wocky_tls_session_new (test->stream->stream0);
+  WockyTLSSession *client = wocky_tls_session_new (test->stream->stream0, NULL);
   WockyTLSSession *server = wocky_tls_session_server_new (
     test->stream->stream1, 1024, TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE);
   gsize expected = TEST_SSL_DATA_LEN * 5;

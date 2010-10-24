@@ -30,7 +30,6 @@
 static void
 real_verify_async (WockyTLSHandler *self,
     WockyTLSSession *tls_session,
-    const gchar *peername,
     GStrv extra_identities,
     GAsyncReadyCallback callback,
     gpointer user_data);
@@ -153,7 +152,6 @@ wocky_tls_handler_init (WockyTLSHandler *self)
 static void
 real_verify_async (WockyTLSHandler *self,
     WockyTLSSession *tls_session,
-    const gchar *peername,
     GStrv extra_identities,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -161,7 +159,7 @@ real_verify_async (WockyTLSHandler *self,
   GSimpleAsyncResult *result;
   glong flags = WOCKY_TLS_VERIFY_NORMAL;
   WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
-  const gchar *verify_peername = NULL;
+  gchar *peername;
   GStrv verify_extra_identities = NULL;
 
   result = g_simple_async_result_new (G_OBJECT (self),
@@ -177,14 +175,13 @@ real_verify_async (WockyTLSHandler *self,
     }
   else
     {
-      verify_peername = peername;
       verify_extra_identities = extra_identities;
     }
 
-  DEBUG ("Verifying certificate (peername: %s)",
-      (verify_peername == NULL) ? "-" : verify_peername);
+  g_object_get (G_OBJECT (tls_session), "peername", &peername, NULL);
+  DEBUG ("Verifying certificate (peername: %s)", peername);
 
-  wocky_tls_session_verify_peer (tls_session, verify_peername,
+  wocky_tls_session_verify_peer (tls_session,
       verify_extra_identities, flags, &status);
 
   if (status != WOCKY_TLS_CERT_OK)
@@ -238,6 +235,7 @@ real_verify_async (WockyTLSHandler *self,
           g_simple_async_result_complete_in_idle (result);
           g_object_unref (result);
 
+          g_free (peername);
           return;
         }
       else
@@ -252,6 +250,7 @@ real_verify_async (WockyTLSHandler *self,
 
   g_simple_async_result_complete_in_idle (result);
   g_object_unref (result);
+  g_free (peername);
 }
 
 static gboolean
@@ -265,14 +264,13 @@ real_verify_finish (WockyTLSHandler *self,
 void
 wocky_tls_handler_verify_async (WockyTLSHandler *self,
     WockyTLSSession *session,
-    const gchar *peername,
     GStrv extra_identities,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
   WockyTLSHandlerClass *klass = WOCKY_TLS_HANDLER_GET_CLASS (self);
 
-  klass->verify_async_func (self, session, peername, extra_identities,
+  klass->verify_async_func (self, session, extra_identities,
       callback, user_data);
 }
 
