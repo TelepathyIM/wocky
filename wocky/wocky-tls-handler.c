@@ -159,7 +159,8 @@ real_verify_async (WockyTLSHandler *self,
   GSimpleAsyncResult *result;
   glong flags = WOCKY_TLS_VERIFY_NORMAL;
   WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
-  gchar *peername;
+  GSocketConnectable *identity;
+  const gchar *peername = NULL;
   GStrv verify_extra_identities = NULL;
 
   result = g_simple_async_result_new (G_OBJECT (self),
@@ -178,8 +179,12 @@ real_verify_async (WockyTLSHandler *self,
       verify_extra_identities = extra_identities;
     }
 
-  g_object_get (G_OBJECT (tls_session), "peername", &peername, NULL);
-  DEBUG ("Verifying certificate (peername: %s)", peername);
+  identity = g_tls_client_connection_get_server_identity (G_TLS_CLIENT_CONNECTION (tls_session));
+  if (G_IS_NETWORK_ADDRESS (identity))
+    peername = g_network_address_get_hostname (G_NETWORK_ADDRESS (identity));
+
+  DEBUG ("Verifying certificate (peername: %s)",
+         (peername == NULL) ? "-" : peername);
 
   wocky_tls_session_verify_peer (tls_session,
       verify_extra_identities, flags, &status);
@@ -235,7 +240,6 @@ real_verify_async (WockyTLSHandler *self,
           g_simple_async_result_complete_in_idle (result);
           g_object_unref (result);
 
-          g_free (peername);
           return;
         }
       else
@@ -250,7 +254,6 @@ real_verify_async (WockyTLSHandler *self,
 
   g_simple_async_result_complete_in_idle (result);
   g_object_unref (result);
-  g_free (peername);
 }
 
 static gboolean

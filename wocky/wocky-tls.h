@@ -33,11 +33,10 @@
 
 #include "wocky-enumtypes.h"
 
-#define WOCKY_TYPE_TLS_SESSION    (wocky_tls_session_get_type ())
-#define WOCKY_TLS_SESSION(inst)   (G_TYPE_CHECK_INSTANCE_CAST ((inst),   \
-                                   WOCKY_TYPE_TLS_SESSION, WockyTLSSession))
+#define WOCKY_TYPE_TLS_SESSION    G_TYPE_TLS_CONNECTION
+#define WOCKY_TLS_SESSION(inst)   G_TLS_CONNECTION(inst)
 
-typedef struct _WockyTLSSession WockyTLSSession;
+typedef GTlsConnection WockyTLSSession;
 
 typedef enum
 {
@@ -73,10 +72,8 @@ typedef enum
 {
   WOCKY_TLS_CERT_TYPE_NONE = 0,
   WOCKY_TLS_CERT_TYPE_X509,
-  WOCKY_TLS_CERT_TYPE_OPENPGP,
+  WOCKY_TLS_CERT_TYPE_OPENPGP, /* DANWFIXME: unused */
 } WockyTLSCertType;
-
-GType wocky_tls_session_get_type (void);
 
 int wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                           GStrv               extra_identities,
@@ -85,19 +82,9 @@ int wocky_tls_session_verify_peer (WockyTLSSession    *session,
 GPtrArray *wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
     WockyTLSCertType *type);
 
-gboolean wocky_tls_session_handshake (WockyTLSSession   *session,
-                                                 GCancellable  *cancellable,
-                                                 GError       **error);
-void
-wocky_tls_session_handshake_async (WockyTLSSession         *session,
-                                   gint io_priority,
-                                   GCancellable        *cancellable,
-                                   GAsyncReadyCallback  callback,
-                                   gpointer             user_data);
-gboolean
-wocky_tls_session_handshake_finish (WockyTLSSession   *session,
-                                    GAsyncResult  *result,
-                                    GError       **error);
+#define wocky_tls_session_handshake g_tls_connection_handshake
+#define wocky_tls_session_handshake_async g_tls_connection_handshake_async
+#define wocky_tls_session_handshake_finish g_tls_connection_handshake_finish
 
 void wocky_tls_session_add_ca (WockyTLSSession *session, const gchar *path);
 void wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *path);
@@ -109,9 +96,5 @@ WockyTLSSession *wocky_tls_session_server_new (GIOStream   *stream,
                                                guint        dhbits,
                                                const gchar* key,
                                                const gchar* cert);
-#endif /* _wocky_tls_h_ */
 
-/* this file is "borrowed" from an unmerged gnio feature: */
-/* Local Variables:                                       */
-/* c-file-style: "gnu"                                    */
-/* End:                                                   */
+#endif /* _wocky_tls_h_ */
