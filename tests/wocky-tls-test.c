@@ -27,8 +27,8 @@ typedef struct {
   gsize cli_send_len;
   gsize cli_sent;
 
-  WockyTLSConnection *client;
-  WockyTLSConnection *server;
+  WockyTLSSession *client;
+  WockyTLSSession *server;
   GString *cli_data;
   GString *srv_data;
   guint read_op_count;
@@ -135,8 +135,10 @@ client_handshake_cb (GObject *source,
   GInputStream *input;
   WockyTLSSession *session = WOCKY_TLS_SESSION (source);
   ssl_test_t *ssl_test = data;
+  GError *error = NULL;
 
-  ssl_test->client = wocky_tls_session_handshake_finish (session, result, NULL);
+  wocky_tls_session_handshake_finish (session, result, &error);
+  g_assert_no_error (error);
   input = g_io_stream_get_input_stream (G_IO_STREAM (ssl_test->client));
 
   ssl_test->in_read = TRUE;
@@ -211,11 +213,9 @@ server_handshake_cb (GObject *source,
   ssl_test_t *ssl_test = data;
   GError *error = NULL;
 
-  ssl_test->server = wocky_tls_session_handshake_finish (session,
-    result, &error);
+  wocky_tls_session_handshake_finish (session, result, &error);
 
   g_assert_no_error (error);
-  g_assert (ssl_test->server != NULL);
 
   output = g_io_stream_get_output_stream (G_IO_STREAM (ssl_test->server));
 
@@ -261,9 +261,6 @@ test_tls_handshake_rw (void)
 {
   ssl_test_t ssl_test = { NULL, } ;
   test_data_t *test = setup_test ();
-  WockyTLSSession *client = wocky_tls_session_new (test->stream->stream0, NULL);
-  WockyTLSSession *server = wocky_tls_session_server_new (
-    test->stream->stream1, 1024, TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE);
   gsize expected = TEST_SSL_DATA_LEN * 5;
   gchar *target =
     TEST_SSL_DATA_A "\0" TEST_SSL_DATA_B "\0"
@@ -279,12 +276,15 @@ test_tls_handshake_rw (void)
     }
 
   setup_ssl_test (&ssl_test, test);
+  ssl_test.client = wocky_tls_session_new (test->stream->stream0, "weasel-juice.org");
+  ssl_test.server = wocky_tls_session_server_new (
+    test->stream->stream1, 1024, TLS_SERVER_KEY_FILE, TLS_SERVER_CRT_FILE);
 
-  wocky_tls_session_handshake_async (client, G_PRIORITY_DEFAULT,
+  wocky_tls_session_handshake_async (ssl_test.client, G_PRIORITY_DEFAULT,
       test->cancellable, client_handshake_cb, &ssl_test);
   test->outstanding += 1;
 
-  wocky_tls_session_handshake_async (server, G_PRIORITY_DEFAULT,
+  wocky_tls_session_handshake_async (ssl_test.server, G_PRIORITY_DEFAULT,
       test->cancellable, server_handshake_cb, &ssl_test);
   test->outstanding += 1;
 
@@ -299,8 +299,6 @@ test_tls_handshake_rw (void)
 
   teardown_test (test);
   teardown_ssl_test (&ssl_test);
-  g_object_unref (client);
-  g_object_unref (server);
 }
 
 

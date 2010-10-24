@@ -113,12 +113,6 @@ enum
 
 enum
 {
-  PROP_C_NONE,
-  PROP_C_SESSION,
-};
-
-enum
-{
   PROP_O_NONE,
   PROP_O_SESSION
 };
@@ -186,8 +180,7 @@ typedef struct
   GError *error;
 } WockyTLSOp;
 
-typedef GIOStreamClass WockyTLSConnectionClass;
-typedef GObjectClass WockyTLSSessionClass;
+typedef GIOStreamClass WockyTLSSessionClass;
 typedef GInputStreamClass WockyTLSInputStreamClass;
 typedef GOutputStreamClass WockyTLSOutputStreamClass;
 
@@ -197,9 +190,12 @@ static gnutls_dh_params_t dh_2048 = NULL;
 static gnutls_dh_params_t dh_3072 = NULL;
 static gnutls_dh_params_t dh_4096 = NULL;
 
+typedef struct _WockyTLSInputStream WockyTLSInputStream;
+typedef struct _WockyTLSInputStream WockyTLSOutputStream;
+
 struct _WockyTLSSession
 {
-  GObject parent;
+  GIOStream parent;
 
   GIOStream *stream;
   GCancellable *cancellable;
@@ -228,35 +224,28 @@ struct _WockyTLSSession
   gnutls_session_t session;
 
   gnutls_certificate_credentials_t gnutls_cert_cred;
+
+  WockyTLSInputStream *input;
+  WockyTLSOutputStream *output;
 };
 
-typedef struct
+struct _WockyTLSInputStream
 {
   GInputStream parent;
   WockyTLSSession *session;
-} WockyTLSInputStream;
+};
 
-typedef struct
+struct _WockyTLSOutputStream
 {
   GOutputStream parent;
   WockyTLSSession *session;
-} WockyTLSOutputStream;
-
-struct _WockyTLSConnection
-{
-  GIOStream parent;
-
-  WockyTLSSession *session;
-  WockyTLSInputStream *input;
-  WockyTLSOutputStream *output;
 };
 
 static guint tls_debug_level = 0;
 
 static GType wocky_tls_input_stream_get_type (void);
 static GType wocky_tls_output_stream_get_type (void);
-G_DEFINE_TYPE (WockyTLSConnection, wocky_tls_connection, G_TYPE_IO_STREAM);
-G_DEFINE_TYPE (WockyTLSSession, wocky_tls_session, G_TYPE_OBJECT);
+G_DEFINE_TYPE (WockyTLSSession, wocky_tls_session, G_TYPE_IO_STREAM);
 G_DEFINE_TYPE (WockyTLSInputStream, wocky_tls_input_stream, G_TYPE_INPUT_STREAM);
 G_DEFINE_TYPE (WockyTLSOutputStream, wocky_tls_output_stream, G_TYPE_OUTPUT_STREAM);
 #define WOCKY_TYPE_TLS_INPUT_STREAM (wocky_tls_input_stream_get_type ())
@@ -491,7 +480,7 @@ wocky_tls_job_start (WockyTLSJob             *job,
   job->active = TRUE;
 }
 
-WockyTLSConnection *
+gboolean
 wocky_tls_session_handshake (WockyTLSSession   *session,
                              GCancellable  *cancellable,
                              GError       **error)
@@ -515,12 +504,12 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
                 result == GNUTLS_E_PUSH_ERROR);
 
       g_propagate_error (error, session->error);
-      return NULL;
+      return FALSE;
     }
   else if (wocky_tls_set_error (error, result))
-    return NULL;
+    return FALSE;
 
-  return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
+  return TRUE;
 }
 
 /* ************************************************************************* */
@@ -643,7 +632,7 @@ wocky_tls_session_handshake_async (WockyTLSSession         *session,
   wocky_tls_session_try_operation (session, 0);
 }
 
-WockyTLSConnection *
+gboolean
 wocky_tls_session_handshake_finish (WockyTLSSession   *session,
                                     GAsyncResult  *result,
                                     GError       **error)
@@ -655,17 +644,17 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
 
     source_object = g_async_result_get_source_object (result);
     g_object_unref (source_object);
-    g_return_val_if_fail (G_OBJECT (session) == source_object, NULL);
+    g_return_val_if_fail (G_OBJECT (session) == source_object, FALSE);
   }
 
   g_return_val_if_fail (wocky_tls_session_handshake_async ==
-                        g_simple_async_result_get_source_tag (simple), NULL);
+                        g_simple_async_result_get_source_tag (simple), FALSE);
 
   if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
+    return FALSE;
 
   DEBUG ("connection OK");
-  return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
+  return TRUE;
 }
 
 GPtrArray *
@@ -1164,7 +1153,7 @@ wocky_tls_output_stream_set_property (GObject *object, guint prop_id,
 
   switch (prop_id)
     {
-     case PROP_C_SESSION:
+     case PROP_O_SESSION:
       stream->session = g_value_dup_object (value);
       break;
 
@@ -1220,7 +1209,7 @@ wocky_tls_input_stream_set_property (GObject *object, guint prop_id,
 
   switch (prop_id)
     {
-     case PROP_C_SESSION:
+     case PROP_I_SESSION:
       stream->session = g_value_dup_object (value);
       break;
 
@@ -1266,11 +1255,6 @@ wocky_tls_input_stream_class_init (GInputStreamClass *class)
                          WOCKY_TYPE_TLS_SESSION, G_PARAM_WRITABLE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
-}
-
-static void
-wocky_tls_connection_init (WockyTLSConnection *connection)
-{
 }
 
 static void
@@ -1713,6 +1697,12 @@ wocky_tls_session_finalize (GObject *object)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (object);
 
+  if (session->input != NULL)
+    g_object_unref (session->input);
+
+  if (session->output != NULL)
+    g_object_unref (session->output);
+
   gnutls_deinit (session->session);
   gnutls_certificate_free_credentials (session->gnutls_cert_cred);
   g_object_unref (session->stream);
@@ -1741,166 +1731,99 @@ wocky_tls_session_dispose (GObject *object)
   G_OBJECT_CLASS (wocky_tls_session_parent_class)->dispose (object);
 }
 
-static void
-wocky_tls_session_class_init (GObjectClass *class)
+static gboolean
+wocky_tls_session_close (GIOStream *stream,
+  GCancellable *cancellable,
+  GError **error)
 {
-  class->get_property = wocky_tls_session_get_property;
-  class->set_property = wocky_tls_session_set_property;
-  class->constructed = wocky_tls_session_constructed;
-  class->finalize = wocky_tls_session_finalize;
-  class->dispose = wocky_tls_session_dispose;
+  WockyTLSSession *session = WOCKY_TLS_SESSION (stream);
 
-  g_object_class_install_property (class, PROP_S_STREAM,
+  return g_io_stream_close (session->stream, cancellable, error);
+}
+
+static GInputStream *
+wocky_tls_session_get_input_stream (GIOStream *io_stream)
+{
+  WockyTLSSession *session = WOCKY_TLS_SESSION (io_stream);
+
+  if (session->input == NULL)
+    session->input = g_object_new (WOCKY_TYPE_TLS_INPUT_STREAM,
+                                      "session", session,
+                                      NULL);
+
+  return (GInputStream *)session->input;
+}
+
+static GOutputStream *
+wocky_tls_session_get_output_stream (GIOStream *io_stream)
+{
+  WockyTLSSession *session = WOCKY_TLS_SESSION (io_stream);
+
+  if (session->output == NULL)
+    session->output = g_object_new (WOCKY_TYPE_TLS_OUTPUT_STREAM,
+                                       "session", session,
+                                       NULL);
+
+  return (GOutputStream *)session->output;
+}
+
+static void
+wocky_tls_session_class_init (WockyTLSSessionClass *class)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (class);
+  GIOStreamClass *stream_class = G_IO_STREAM_CLASS (class);
+
+  object_class->get_property = wocky_tls_session_get_property;
+  object_class->set_property = wocky_tls_session_set_property;
+  object_class->constructed = wocky_tls_session_constructed;
+  object_class->finalize = wocky_tls_session_finalize;
+  object_class->dispose = wocky_tls_session_dispose;
+
+  stream_class->get_input_stream = wocky_tls_session_get_input_stream;
+  stream_class->get_output_stream = wocky_tls_session_get_output_stream;
+  stream_class->close_fn = wocky_tls_session_close;
+
+  g_object_class_install_property (object_class, PROP_S_STREAM,
     g_param_spec_object ("base-stream", "base stream",
                          "the stream that TLS communicates over",
                          G_TYPE_IO_STREAM, G_PARAM_WRITABLE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
-  g_object_class_install_property (class, PROP_S_PEERNAME,
+  g_object_class_install_property (object_class, PROP_S_PEERNAME,
     g_param_spec_string ("peername", "peer name",
                          "Peer host/domain name",
                          NULL, G_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
-  g_object_class_install_property (class, PROP_S_SERVER,
+  g_object_class_install_property (object_class, PROP_S_SERVER,
     g_param_spec_boolean ("server", "server",
                           "whether this is a server",
                           FALSE, G_PARAM_WRITABLE |
                           G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                           G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
-  g_object_class_install_property (class, PROP_S_DHBITS,
+  g_object_class_install_property (object_class, PROP_S_DHBITS,
     g_param_spec_uint ("dh-bits", "Diffie-Hellman bits",
                        "Diffie-Hellmann bits: 768, 1024, 2048, 3072 0r 4096",
                        768, 4096, 1024, G_PARAM_WRITABLE |
                        G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                        G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
-  g_object_class_install_property (class, PROP_S_KEYFILE,
+  g_object_class_install_property (object_class, PROP_S_KEYFILE,
     g_param_spec_string ("x509-key", "x509 key",
                          "x509 PEM key file",
                          NULL, G_PARAM_WRITABLE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
 
-  g_object_class_install_property (class, PROP_S_CERTFILE,
+  g_object_class_install_property (object_class, PROP_S_CERTFILE,
     g_param_spec_string ("x509-cert", "x509 certificate",
                          "x509 PEM certificate file",
                          NULL, G_PARAM_WRITABLE |
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_NAME |
                          G_PARAM_STATIC_NICK | G_PARAM_STATIC_BLURB));
-}
-
-static void
-wocky_tls_connection_set_property (GObject *object, guint prop_id,
-                                   const GValue *value, GParamSpec *pspec)
-{
-  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (object);
-
-  switch (prop_id)
-    {
-     case PROP_C_SESSION:
-      connection->session = g_value_dup_object (value);
-      break;
-
-     default:
-      g_assert_not_reached ();
-    }
-}
-
-static gboolean
-wocky_tls_connection_close (GIOStream *stream,
-  GCancellable *cancellable,
-  GError **error)
-{
-  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (stream);
-
-  return g_io_stream_close (connection->session->stream, cancellable, error);
-}
-
-static GInputStream *
-wocky_tls_connection_get_input_stream (GIOStream *io_stream)
-{
-  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (io_stream);
-
-  if (connection->input == NULL)
-    connection->input = g_object_new (WOCKY_TYPE_TLS_INPUT_STREAM,
-                                      "session", connection->session,
-                                      NULL);
-
-  return (GInputStream *)connection->input;
-}
-
-static GOutputStream *
-wocky_tls_connection_get_output_stream (GIOStream *io_stream)
-{
-  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (io_stream);
-
-  if (connection->output == NULL)
-    connection->output = g_object_new (WOCKY_TYPE_TLS_OUTPUT_STREAM,
-                                       "session", connection->session,
-                                       NULL);
-
-  return (GOutputStream *)connection->output;
-}
-
-static void
-wocky_tls_connection_get_property (GObject *object, guint prop_id,
-                               GValue *value, GParamSpec *pspec)
-{
-  switch (prop_id)
-    {
-     default:
-      g_assert_not_reached ();
-    }
-}
-
-static void
-wocky_tls_connection_constructed (GObject *object)
-{
-  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (object);
-
-  g_assert (connection->session);
-}
-
-static void
-wocky_tls_connection_finalize (GObject *object)
-{
-  WockyTLSConnection *connection = WOCKY_TLS_CONNECTION (object);
-
-  g_object_unref (connection->session);
-
-  if (connection->input != NULL)
-    g_object_unref (connection->input);
-
-  if (connection->output != NULL)
-    g_object_unref (connection->output);
-
-  G_OBJECT_CLASS (wocky_tls_connection_parent_class)
-    ->finalize (object);
-}
-
-static void
-wocky_tls_connection_class_init (WockyTLSConnectionClass *class)
-{
-  GObjectClass *gobject_class = G_OBJECT_CLASS (class);
-  GIOStreamClass *stream_class = G_IO_STREAM_CLASS (class);
-
-  gobject_class->get_property = wocky_tls_connection_get_property;
-  gobject_class->set_property = wocky_tls_connection_set_property;
-  gobject_class->constructed = wocky_tls_connection_constructed;
-  gobject_class->finalize = wocky_tls_connection_finalize;
-
-  g_object_class_install_property (gobject_class, PROP_C_SESSION,
-    g_param_spec_object ("session", "TLS session",
-                         "the TLS session object for this connection",
-                         WOCKY_TYPE_TLS_SESSION, G_PARAM_WRITABLE |
-                         G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
-  stream_class->get_input_stream = wocky_tls_connection_get_input_stream;
-  stream_class->get_output_stream = wocky_tls_connection_get_output_stream;
-  stream_class->close_fn = wocky_tls_connection_close;
 }
 
 WockyTLSSession *

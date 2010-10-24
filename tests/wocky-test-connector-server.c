@@ -1066,12 +1066,12 @@ handshake_cb (GObject *source,
 {
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (user_data);
   TestConnectorServerPrivate *priv = self->priv;
-  WockyTLSConnection *tls_conn;
+  gboolean success;
   GError *error = NULL;
 
   DEBUG ("TLS/SSL handshake finished");
 
-  tls_conn = wocky_tls_session_handshake_finish (
+  success = wocky_tls_session_handshake_finish (
     WOCKY_TLS_SESSION (source),
     result,
     &error);
@@ -1079,7 +1079,7 @@ handshake_cb (GObject *source,
   if (server_dec_outstanding (self))
     goto out;
 
-  if (tls_conn == NULL)
+  if (!success)
     {
       DEBUG ("SSL or TLS Server Setup failed: %s", error->message);
       g_io_stream_close (priv->stream, NULL, NULL);
@@ -1090,8 +1090,7 @@ handshake_cb (GObject *source,
     g_object_unref (priv->conn);
 
   priv->state = SERVER_STATE_START;
-  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (tls_conn));
-  g_object_unref (tls_conn);
+  priv->conn = wocky_xmpp_connection_new (G_IO_STREAM (source));
   priv->tls_started = TRUE;
   xmpp_init (NULL,NULL,self);
 

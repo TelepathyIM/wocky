@@ -314,15 +314,15 @@ session_handshake_cb (GObject *source,
     gpointer user_data)
 {
   GError *error = NULL;
-  WockyTLSConnection *tls_conn;
+  gboolean success;
   WockyTLSConnector *self = user_data;
   const gchar *tls_type;
 
   tls_type = self->priv->legacy_ssl ? "SSL" : "TLS";
-  tls_conn = wocky_tls_session_handshake_finish (self->priv->session,
+  success = wocky_tls_session_handshake_finish (self->priv->session,
       res, &error);
 
-  if (tls_conn == NULL)
+  if (!success)
     {
       report_error_in_idle (self, WOCKY_CONNECTOR_ERROR_TLS_SESSION_FAILED,
           "%s handshake error: %s", tls_type, error->message);
@@ -334,8 +334,7 @@ session_handshake_cb (GObject *source,
   DEBUG ("Completed %s handshake", tls_type);
 
   self->priv->tls_connection = wocky_xmpp_connection_new (
-      G_IO_STREAM (tls_conn));
-  g_object_unref (tls_conn);
+      G_IO_STREAM (source));
 
   wocky_tls_handler_verify_async (self->priv->handler,
       self->priv->session,

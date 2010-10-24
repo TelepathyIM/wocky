@@ -33,16 +33,10 @@
 
 #include "wocky-enumtypes.h"
 
-#define WOCKY_TYPE_TLS_CONNECTION (wocky_tls_connection_get_type ())
 #define WOCKY_TYPE_TLS_SESSION    (wocky_tls_session_get_type ())
 #define WOCKY_TLS_SESSION(inst)   (G_TYPE_CHECK_INSTANCE_CAST ((inst),   \
                                    WOCKY_TYPE_TLS_SESSION, WockyTLSSession))
 
-#define WOCKY_TLS_CONNECTION(inst)(G_TYPE_CHECK_INSTANCE_CAST ((inst),   \
-                                   WOCKY_TYPE_TLS_CONNECTION, \
-                                   WockyTLSConnection))
-
-typedef struct _WockyTLSConnection WockyTLSConnection;
 typedef struct _WockyTLSSession WockyTLSSession;
 
 typedef enum
@@ -82,7 +76,6 @@ typedef enum
   WOCKY_TLS_CERT_TYPE_OPENPGP,
 } WockyTLSCertType;
 
-GType wocky_tls_connection_get_type (void);
 GType wocky_tls_session_get_type (void);
 
 int wocky_tls_session_verify_peer (WockyTLSSession    *session,
@@ -92,7 +85,7 @@ int wocky_tls_session_verify_peer (WockyTLSSession    *session,
 GPtrArray *wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
     WockyTLSCertType *type);
 
-WockyTLSConnection *wocky_tls_session_handshake (WockyTLSSession   *session,
+gboolean wocky_tls_session_handshake (WockyTLSSession   *session,
                                                  GCancellable  *cancellable,
                                                  GError       **error);
 void
@@ -101,7 +94,7 @@ wocky_tls_session_handshake_async (WockyTLSSession         *session,
                                    GCancellable        *cancellable,
                                    GAsyncReadyCallback  callback,
                                    gpointer             user_data);
-WockyTLSConnection *
+gboolean
 wocky_tls_session_handshake_finish (WockyTLSSession   *session,
                                     GAsyncResult  *result,
                                     GError       **error);
