@@ -12,7 +12,7 @@
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
-#define PING_COUNT 3
+#define PING_COUNT 2
 #define PING_INTERVAL 1
 
 /* We expect PING_COUNT pings, followed by disabling pings and waiting for
@@ -81,9 +81,9 @@ test_periodic_ping (void)
   test->outstanding = 1;
   test_wait_pending (test);
 
-  /* And then we enable pings again */
+  /* And then we enable pings again, and wait for one more. */
   g_object_set (ping, "ping-interval", PING_INTERVAL, NULL);
-  test->outstanding += PING_COUNT;
+  test->outstanding += 1;
   test_wait_pending (test);
 
   test_close_both_porters (test);
