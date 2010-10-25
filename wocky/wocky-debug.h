@@ -66,7 +66,7 @@ void wocky_debug_node_tree (DebugFlags flag, WockyNodeTree *tree,
   wocky_debug_node_tree (DEBUG_FLAG, tree, "%s: " format, G_STRFUNC,\
       ##__VA_ARGS__)
 
-#define DEBUGGING debug_flag_is_set(DEBUG_FLAG)
+#define DEBUGGING wocky_debug_flag_is_set(DEBUG_FLAG)
 
 #endif /* DEBUG_FLAG */
 
