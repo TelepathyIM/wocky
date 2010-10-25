@@ -363,6 +363,9 @@ wocky_heartbeat_source_update_interval (
   if (self->max_interval == 0)
     g_source_get_current_time (source, &self->next_wakeup);
 
+  /* If this moves self->next_wakeup into the past, then we'll wake up ASAP,
+   * which is what we want.
+   */
   self->next_wakeup.tv_sec += (max_interval - self->max_interval);
   self->max_interval = max_interval;
 
