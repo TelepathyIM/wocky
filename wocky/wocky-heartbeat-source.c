@@ -114,7 +114,7 @@ wocky_heartbeat_source_prepare (
       (now.tv_sec == self->next_wakeup.tv_sec &&
        now.tv_usec >= self->next_wakeup.tv_usec))
     {
-      DEBUG ("ready to wake up");
+      DEBUG ("ready to wake up (at %li.%li)", now.tv_sec, now.tv_usec);
       return TRUE;
     }
 
@@ -200,7 +200,15 @@ wocky_heartbeat_source_dispatch (
    * heartbeats from occurring: this source is used for keepalives from the
    * time we're connected until we disconnect.
    */
-  DEBUG ("calling %p (%p)", callback, user_data);
+  if (DEBUGGING)
+    {
+      GTimeVal now;
+
+      g_source_get_current_time (source, &now);
+      DEBUG ("calling %p (%p) at %li.%li", callback, user_data,
+          now.tv_sec, now.tv_usec);
+    }
+
   ((WockyHeartbeatCallback) callback) (user_data);
 
 #if HAVE_IPHB
@@ -211,6 +219,8 @@ wocky_heartbeat_source_dispatch (
   /* Record the time we next want to wake up. */
   g_source_get_current_time (source, &self->next_wakeup);
   self->next_wakeup.tv_sec += self->max_interval;
+  DEBUG ("next wakeup at %li.%li", self->next_wakeup.tv_sec,
+      self->next_wakeup.tv_usec);
 
   return TRUE;
 }
@@ -356,4 +366,9 @@ wocky_heartbeat_source_update_interval (
   self->next_wakeup.tv_sec += (max_interval - self->max_interval);
   self->max_interval = max_interval;
 
+  if (self->max_interval == 0)
+    DEBUG ("heartbeat disabled");
+  else
+    DEBUG ("next wakeup at or before %li.%li", self->next_wakeup.tv_sec,
+        self->next_wakeup.tv_usec);
 }
