@@ -12,10 +12,15 @@
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
-#define PING_COUNT 3
+#define PING_COUNT 2
 #define PING_INTERVAL 1
 
-#define TOTAL_TIMEOUT (PING_COUNT * PING_INTERVAL + 1)
+/* We expect PING_COUNT pings, followed by disabling pings and waiting for
+ * PING_COUNT * PING_INTERVAL to see if we get any pings we didn't want,
+ * followed by turning pings back on again and testing if we get any. The +1 is
+ * a fudge factor. ;-)
+ */
+#define TOTAL_TIMEOUT (PING_COUNT * PING_INTERVAL + 1) * 3
 
 static gboolean
 ping_recv_cb (WockyPorter *porter, WockyStanza *stanza, gpointer user_data)
@@ -27,9 +32,21 @@ ping_recv_cb (WockyPorter *porter, WockyStanza *stanza, gpointer user_data)
   wocky_porter_send (porter, reply);
   g_object_unref (reply);
 
+  g_assert_cmpuint (data->outstanding, >, 0);
   data->outstanding--;
   g_main_loop_quit (data->loop);
   return TRUE;
+}
+
+static gboolean
+we_have_waited_long_enough (gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  g_assert_cmpuint (test->outstanding, ==, 1);
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return FALSE;
 }
 
 static void
@@ -38,6 +55,7 @@ test_periodic_ping (void)
   WockyPing *ping;
   test_data_t *test = setup_test_with_timeout (TOTAL_TIMEOUT);
 
+  /* First, we ping every n seconds */
   ping = wocky_ping_new (test->sched_in, PING_INTERVAL);
 
   test_open_both_connections (test);
@@ -54,6 +72,18 @@ test_periodic_ping (void)
 
   test->outstanding += PING_COUNT;
 
+  test_wait_pending (test);
+
+  /* Now, we disable pings, and wait briefly to see if we get any pings. */
+  g_object_set (ping, "ping-interval", 0, NULL);
+  g_timeout_add_seconds (PING_INTERVAL * PING_COUNT,
+      we_have_waited_long_enough, test);
+  test->outstanding = 1;
+  test_wait_pending (test);
+
+  /* And then we enable pings again, and wait for one more. */
+  g_object_set (ping, "ping-interval", PING_INTERVAL, NULL);
+  test->outstanding += 1;
   test_wait_pending (test);
 
   test_close_both_porters (test);
