@@ -873,7 +873,7 @@ check_peer_name (const char *target, X509 *cert)
       if (len > 0)
         {
           char *cname = g_new0 (gchar, len + 1);
-          X509_NAME_get_text_by_NID (subject, nid[i], cname, len);
+          X509_NAME_get_text_by_NID (subject, nid[i], cname, len + 1);
           DEBUG ("got cname '%s' from x509 name, nid #%u", cname, i);
           rval = compare_wildcarded_hostname (target, cname);
           g_free (cname);
