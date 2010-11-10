@@ -874,6 +874,7 @@ check_peer_name (const char *target, X509 *cert)
         {
           char *cname = g_new0 (gchar, len + 1);
           X509_NAME_get_text_by_NID (subject, nid[i], cname, len);
+          DEBUG ("got cname '%s' from x509 name, nid #%u", cname, i);
           rval = compare_wildcarded_hostname (target, cname);
           g_free (cname);
         }
@@ -912,6 +913,8 @@ check_peer_name (const char *target, X509 *cert)
         if (convert->i2s != NULL)
           {
             value = convert->i2s (convert, ext_str);
+            DEBUG ("got cname '%s' from subject_alt_name, which is a string",
+                value);
             rval = compare_wildcarded_hostname (target, value);
             OPENSSL_free (value);
           }
@@ -923,7 +926,11 @@ check_peer_name (const char *target, X509 *cert)
               {
                 CONF_VALUE *v = sk_CONF_VALUE_value(nval, j);
                 if (!wocky_strdiff (v->name, "DNS"))
-                  rval = compare_wildcarded_hostname (target, v->value);
+                  {
+                    DEBUG ("Got cname '%s' from subject_alt_name, which is a "
+                        "multi-value stack with a 'DNS' entry", v->value);
+                    rval = compare_wildcarded_hostname (target, v->value);
+                  }
               }
             sk_CONF_VALUE_pop_free(nval, X509V3_conf_free);
           }
