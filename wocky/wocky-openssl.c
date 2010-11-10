@@ -1102,6 +1102,9 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
            * terminal condition: in NORMAL or LENIENT we can live with it */
           if (level == WOCKY_TLS_VERIFY_STRICT)
             *status = WOCKY_TLS_CERT_INSECURE;
+          else
+            DEBUG ("ignoring UNABLE_TO_GET_CRL: we're not in strict mode");
+
           break;
         default:
           *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
@@ -1114,8 +1117,10 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           case WOCKY_TLS_CERT_INTERNAL_ERROR:
           case WOCKY_TLS_CERT_REVOKED:
           case WOCKY_TLS_CERT_MAYBE_DOS:
+            DEBUG ("this error matters, even though we're in lenient mode");
             break;
           default:
+            DEBUG ("ignoring errors: we're in lenient mode");
             rval = X509_V_OK;
             *status = WOCKY_TLS_CERT_OK;
           }
