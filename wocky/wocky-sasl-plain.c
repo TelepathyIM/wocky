@@ -113,7 +113,7 @@ auth_handler_iface_init (gpointer g_iface)
 {
   WockyAuthHandlerIface *iface = g_iface;
 
-  iface->mechanism = MECH_SASL_PLAIN;
+  iface->mechanism = WOCKY_AUTH_MECH_SASL_PLAIN;
   iface->plain = TRUE;
   iface->initial_response_func = plain_initial_response;
 }

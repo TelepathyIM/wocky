@@ -575,10 +575,10 @@ jabber_auth_fields (GObject *source,
             GSList *mechanisms = NULL;
 
             if (wocky_node_get_child (node, "password") != NULL)
-              mechanisms = g_slist_append (mechanisms, MECH_JABBER_PASSWORD);
+              mechanisms = g_slist_append (mechanisms, WOCKY_AUTH_MECH_JABBER_PASSWORD);
 
             if (wocky_node_get_child (node, "digest") != NULL)
-              mechanisms = g_slist_append (mechanisms, MECH_JABBER_DIGEST);
+              mechanisms = g_slist_append (mechanisms, WOCKY_AUTH_MECH_JABBER_DIGEST);
 
             wocky_auth_registry_start_auth_async (priv->auth_registry,
                 mechanisms, priv->allow_plain, priv->is_secure,
