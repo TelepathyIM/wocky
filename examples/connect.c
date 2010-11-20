@@ -382,6 +382,7 @@ main (int argc,
   const char *type = "raw";
 
   g_type_init ();
+  wocky_init ();
 
   if ((argc < 3) || (argc > 4))
     {
@@ -398,7 +399,6 @@ main (int argc,
   if (!strcmp ("connector",type))
     {
       WockyConnector *wcon = NULL;
-      wocky_init ();
       wcon = wocky_connector_new (argv[1], argv[2], NULL, NULL, NULL);
 
       wocky_connector_connect_async (wcon, NULL, connector_callback, NULL);
