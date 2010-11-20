@@ -873,7 +873,7 @@ test_t tests[] =
         { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
-    { "/connector/problem/sas/no-mechanisms",
+    { "/connector/problem/sasl/no-mechanisms",
       NOISY,
       { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_SUPPORTED, -1 },
       { { TLS, NULL },
