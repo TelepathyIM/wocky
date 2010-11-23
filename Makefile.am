@@ -23,3 +23,8 @@ check-local::
 		$(srcdir)/tests/*.[ch] \
 		$(srcdir)/examples/*.[ch] \
 		> FIXME.out || true
+
+# one day we'll have a wocky.freedesktop.org but today is not that day
+maintainer-upload-docs:
+	rsync -rvzPp --chmod=Dg+s,ug+rwX,o=rX $(srcdir)/docs/reference/html/ \
+	telepathy.freedesktop.org:/srv/telepathy.freedesktop.org/www/doc/wocky/
