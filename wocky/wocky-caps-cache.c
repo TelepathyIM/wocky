@@ -431,7 +431,11 @@ caps_cache_prepare (WockyCapsCache *self,
     const gchar *sql,
     sqlite3_stmt **stmt)
 {
-  gint ret = sqlite3_prepare_v2 (self->priv->db, sql, -1, stmt, NULL);
+  gint ret;
+
+  g_return_val_if_fail (self->priv->db != NULL, FALSE);
+
+  ret = sqlite3_prepare_v2 (self->priv->db, sql, -1, stmt, NULL);
 
   if (ret != SQLITE_OK)
     {
