@@ -670,10 +670,10 @@ caps_cache_insert (WockyCapsCache *self,
       &val, &len);
 
   if (!caps_cache_bind_text (self, stmt, 2, len, (const gchar *) val))
-    goto OUT;
+    return;
 
   if (!caps_cache_bind_int (self, stmt, 3, time (NULL)))
-    goto OUT;
+    return;
 
   ret = sqlite3_step (stmt);
 
