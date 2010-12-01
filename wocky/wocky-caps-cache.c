@@ -318,8 +318,8 @@ nuke_it_and_try_again (WockyCapsCache *self)
 
   if (ret != 0)
     DEBUG ("removing database failed: %s", g_strerror (errno));
-  else if (caps_cache_open (self))
-    g_assert (self->priv->db != NULL);
+  else
+    caps_cache_open (self);
 }
 
 static void
