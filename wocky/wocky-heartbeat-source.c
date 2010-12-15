@@ -50,9 +50,15 @@ wocky_heartbeat_source_degrade (WockyHeartbeatSource *self)
   /* If we were using the heartbeat before, stop using it. */
   if (self->heartbeat != NULL)
     {
-      DEBUG ("closing heartbeat connection");
-      g_source_remove_poll ((GSource *) self, &self->fd);
+      GSource *source = (GSource *) self;
 
+      /* If this is being called from wocky_heartbeat_source_finalize(), the
+       * source has been destroyed (which implicitly removes all polls.
+       */
+      if (!g_source_is_destroyed (source))
+        g_source_remove_poll (source, &self->fd);
+
+      DEBUG ("closing heartbeat connection");
       iphb_close (self->heartbeat);
       self->heartbeat = NULL;
     }
