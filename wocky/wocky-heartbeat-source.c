@@ -135,7 +135,6 @@ wocky_heartbeat_source_prepare (
   *msec_to_poll = (self->next_wakeup.tv_sec - now.tv_sec) * 1000
       + (self->next_wakeup.tv_usec - now.tv_usec) / 1000;
 
-  DEBUG ("want to wake up in %ums", *msec_to_poll);
   return FALSE;
 }
 
