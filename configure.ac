@@ -152,6 +152,13 @@ AC_SUBST(GLIB_GENMARSHAL)
 
 dnl Check for libxml2
 PKG_CHECK_MODULES(LIBXML2, [libxml-2.0])
+AC_SUBST(LIBXML2_CFLAGS)
+AC_SUBST(LIBXML2_LIBS)
+
+dnl Check for sqlite
+PKG_CHECK_MODULES(SQLITE, [sqlite3])
+AC_SUBST(SQLITE_CFLAGS)
+AC_SUBST(SQLITE_LIBS)
 
 dnl check for libsasl2 (for sasl test)
 dnl must check for headers as well as library (no .pc so can't use pkg-config)
@@ -167,9 +174,6 @@ AC_CHECK_LIB(sasl2, sasl_server_new,
 AC_SUBST(LIBSASL2_LIBS)
 AC_SUBST(LIBSASL2_CFLAGS)
 AM_CONDITIONAL(HAVE_LIBSASL2, test "x$HAVE_LIBSASL2" = "xyes")
-
-AC_SUBST(LIBXML2_CFLAGS)
-AC_SUBST(LIBXML2_LIBS)
 
 PKG_CHECK_MODULES(LIBIPHB, [libiphb],
     [AC_DEFINE(HAVE_IPHB, 1, [libiphb is available])

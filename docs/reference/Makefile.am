@@ -83,8 +83,8 @@ expand_content_files=
 # signals and properties.
 # e.g. GTKDOC_CFLAGS=-I$(top_srcdir) -I$(top_builddir) $(GTK_DEBUG_FLAGS)
 # e.g. GTKDOC_LIBS=$(top_builddir)/gtk/$(gtktargetlib)
-GTKDOC_CFLAGS=-I$(top_srcdir) -I$(top_builddir) @GLIB_CFLAGS@
-GTKDOC_LIBS= @GLIB_LIBS@ $(top_builddir)/wocky/libwocky.la
+GTKDOC_CFLAGS=-I$(top_srcdir) -I$(top_builddir) @GLIB_CFLAGS@ @SQLITE_CFLAGS@
+GTKDOC_LIBS= @GLIB_LIBS@ @SQLITE_LIBS@ $(top_builddir)/wocky/libwocky.la
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
 include $(top_srcdir)/gtk-doc.make
