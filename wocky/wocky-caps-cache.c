@@ -178,7 +178,7 @@ get_path (void)
       else
         {
           ret = g_build_path (G_DIR_SEPARATOR_S,
-              g_get_user_cache_dir (), "telepathy", "wocky", "caps-cache.db",
+              g_get_user_cache_dir (), "wocky", "caps-cache.db",
               NULL);
           dir = free_dir = g_path_get_dirname (ret);
         }
