@@ -64,9 +64,6 @@ struct _WockyCapsCacheClass
 GType
 wocky_caps_cache_get_type (void);
 
-WockyCapsCache *
-wocky_caps_cache_get_singleton (void);
-
 WockyNodeTree *wocky_caps_cache_lookup (WockyCapsCache *self,
     const gchar *node);
 
