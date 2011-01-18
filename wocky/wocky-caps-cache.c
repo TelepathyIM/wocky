@@ -1,5 +1,4 @@
-/*
- * wocky-caps-cache.c - Source for WockyCapsCache
+/* * wocky-caps-cache.c - Source for WockyCapsCache
  * Copyright (C) 2010 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -149,6 +148,12 @@ wocky_caps_cache_class_init (WockyCapsCacheClass *klass)
   object_class->dispose = wocky_caps_cache_dispose;
   object_class->finalize = wocky_caps_cache_finalize;
 
+  /**
+   * WockyCapsCache:path:
+   *
+   * The path on disk to the SQLite database where this
+   * #WockyCapsCache stores its information.
+   */
   g_object_class_install_property (object_class, PROP_PATH,
       g_param_spec_string ("path", "Path", "The path to the cache", NULL,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE |
@@ -335,6 +340,14 @@ wocky_caps_cache_init (WockyCapsCache *self)
       self, WOCKY_TYPE_CAPS_CACHE, WockyCapsCachePrivate);
 }
 
+/**
+ * wocky_caps_cache_new:
+ * @path: full path to where the cache SQLite database should be stored
+ *
+ * Convenience function to create a new #WockyCapsCache.
+ *
+ * Returns: a new #WockyCapsCache.
+ */
 WockyCapsCache *
 wocky_caps_cache_new (const gchar *path)
 {
@@ -343,6 +356,20 @@ wocky_caps_cache_new (const gchar *path)
       NULL);
 }
 
+/**
+ * wocky_caps_cache_dup_shared:
+ * @path: full path to where the cache SQLite database should be stored
+ *
+ * Returns a new or existing #WockyCapsCache object.
+ *
+ * The returned #WockyCapsCache is cached; the same #WockyCapsCache
+ * object will be returned by this function repeatedly in the same
+ * process. At the end of the process, the caller should call
+ * wocky_caps_cache_free_shared() to shared the shared #WockyCapsCache
+ * object.
+ *
+ * Returns: a new, or cached, #WockyCapsCache.
+ */
 WockyCapsCache *
 wocky_caps_cache_dup_shared (void)
 {
@@ -359,6 +386,13 @@ wocky_caps_cache_dup_shared (void)
   return shared_cache;
 }
 
+/**
+ * wocky_caps_cache_free_shared:
+ *
+ * Free the shared #WockyCapsCache instance which was created by
+ * calling wocky_caps_cache_dup_shared(), or do nothing if said
+ * function was not called.
+ */
 void
 wocky_caps_cache_free_shared (void)
 {
@@ -502,7 +536,17 @@ caps_cache_touch (WockyCapsCache *self,
   sqlite3_finalize (stmt);
 }
 
-/* Caller is responsible for unreffing the returned node tree */
+/**
+ * wocky_caps_cache_lookup:
+ * @self: a #WockyCapsCache
+ * @node: the node to look up in the cache
+ *
+ * Look up @node in the caps cache @self. The caller is responsible
+ * for unreffing the returned #WockyNodeTree.
+ *
+ * Returns: a #WockyNodeTree if @node was found in the cache, or %NULL
+ * if a match was not found
+ */
 WockyNodeTree *
 wocky_caps_cache_lookup (WockyCapsCache *self,
     const gchar *node)
@@ -690,6 +734,16 @@ get_size (void)
   return size;
 }
 
+/**
+ * wocky_caps_cache_insert:
+ * @self: a #WockyCapsCache
+ * @node: the capability node
+ * @query_node: the query #WockyNodeTree associated with @node
+ *
+ * Adds a new item to the caps cache. @node is associated with
+ * @query_node so that subsequent calls to wocky_caps_cache_lookup()
+ * with the same @node value will return @query_node.
+ */
 void
 wocky_caps_cache_insert (WockyCapsCache *self,
     const gchar *node,

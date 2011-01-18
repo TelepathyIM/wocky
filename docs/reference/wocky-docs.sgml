@@ -16,6 +16,7 @@
     <xi:include href="xml/wocky-auth-handler.xml"/>
     <xi:include href="xml/wocky-auth-registry.xml"/>
     <xi:include href="xml/wocky-bare-contact.xml"/>
+    <xi:include href="xml/wocky-caps-cache.xml"/>
     <xi:include href="xml/wocky-connector.xml"/>
     <xi:include href="xml/wocky-contact.xml"/>
     <xi:include href="xml/wocky-contact-factory.xml"/>

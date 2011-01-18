@@ -67,7 +67,7 @@ wocky_caps_cache_get_type (void);
 WockyNodeTree *wocky_caps_cache_lookup (WockyCapsCache *self,
     const gchar *node);
 
-void wocky_caps_cache_insert (WockyCapsCache *cache,
+void wocky_caps_cache_insert (WockyCapsCache *self,
     const gchar *node,
     WockyNodeTree *query_node);
 
