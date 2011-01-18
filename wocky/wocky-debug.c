@@ -31,6 +31,7 @@ static GDebugKey keys[] = {
   { "dataform",          DEBUG_DATA_FORM         },
   { "ping",              DEBUG_PING              },
   { "heartbeat",         DEBUG_HEARTBEAT         },
+  { "presence",          DEBUG_PRESENCE          },
   { 0, },
 };
 

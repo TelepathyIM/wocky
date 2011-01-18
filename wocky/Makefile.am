@@ -49,6 +49,7 @@ handwritten_headers = \
   wocky-auth-handler.h \
   wocky-auth-registry.h \
   wocky-bare-contact.h \
+  wocky-caps-cache.h \
   wocky-connector.h \
   wocky-contact.h \
   wocky-contact-factory.h \
@@ -95,6 +96,7 @@ handwritten_sources = \
   wocky-auth-handler.c \
   wocky-auth-registry.c \
   wocky-bare-contact.c \
+  wocky-caps-cache.c \
   wocky-connector.c \
   wocky-contact.c \
   wocky-contact-factory.c \
