@@ -61,14 +61,14 @@ enum
 };
 
 static void wocky_caps_cache_constructed (GObject *object);
-static gboolean caps_cache_get_one_uint (
-    WockyCapsCache *self,
-    const gchar *sql,
-    guint *value);
+static gboolean caps_cache_get_one_uint (WockyCapsCache *self,
+    const gchar *sql, guint *value);
 
 static void
-wocky_caps_cache_get_property (GObject *object, guint property_id,
-                              GValue *value, GParamSpec *pspec)
+wocky_caps_cache_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
 {
   WockyCapsCache *self = (WockyCapsCache *) object;
 
@@ -83,8 +83,10 @@ wocky_caps_cache_get_property (GObject *object, guint property_id,
 }
 
 static void
-wocky_caps_cache_set_property (GObject *object, guint property_id,
-                              const GValue *value, GParamSpec *pspec)
+wocky_caps_cache_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
 {
   WockyCapsCache *self = (WockyCapsCache *) object;
 
@@ -336,7 +338,9 @@ wocky_caps_cache_init (WockyCapsCache *self)
 WockyCapsCache *
 wocky_caps_cache_new (const gchar *path)
 {
-  return g_object_new (WOCKY_TYPE_CAPS_CACHE, "path", path, NULL);
+  return g_object_new (WOCKY_TYPE_CAPS_CACHE,
+      "path", path,
+      NULL);
 }
 
 WockyCapsCache *
@@ -366,8 +370,7 @@ wocky_caps_cache_free_shared (void)
 }
 
 static gboolean
-caps_cache_prepare (
-    WockyCapsCache *self,
+caps_cache_prepare (WockyCapsCache *self,
     const gchar *sql,
     sqlite3_stmt **stmt)
 {
@@ -386,8 +389,7 @@ caps_cache_prepare (
 
 /* Finalizes @stmt if an error happens. */
 static gboolean
-caps_cache_bind_int (
-    WockyCapsCache *self,
+caps_cache_bind_int (WockyCapsCache *self,
     sqlite3_stmt *stmt,
     gint param,
     gint value)
@@ -411,8 +413,7 @@ caps_cache_bind_int (
  * statment is finalized.
  */
 static gboolean
-caps_cache_bind_text (
-    WockyCapsCache *self,
+caps_cache_bind_text (WockyCapsCache *self,
     sqlite3_stmt *stmt,
     gint param,
     gint len,
@@ -440,8 +441,7 @@ caps_cache_bind_text (
  * Returns: %TRUE if @value was successfully retrieved; %FALSE otherwise.
  */
 static gboolean
-caps_cache_get_one_uint (
-    WockyCapsCache *self,
+caps_cache_get_one_uint (WockyCapsCache *self,
     const gchar *sql,
     guint *value)
 {
@@ -475,7 +475,8 @@ caps_cache_get_one_uint (
 
 /* Update cache entry timestmp. */
 static void
-caps_cache_touch (WockyCapsCache *self, const gchar *node)
+caps_cache_touch (WockyCapsCache *self,
+    const gchar *node)
 {
   gint ret;
   sqlite3_stmt *stmt;
@@ -503,8 +504,7 @@ caps_cache_touch (WockyCapsCache *self, const gchar *node)
 
 /* Caller is responsible for unreffing the returned node tree */
 WockyNodeTree *
-wocky_caps_cache_lookup (
-    WockyCapsCache *self,
+wocky_caps_cache_lookup (WockyCapsCache *self,
     const gchar *node)
 {
   gint ret;
@@ -568,8 +568,7 @@ wocky_caps_cache_lookup (
 }
 
 static void
-caps_cache_insert (
-    WockyCapsCache *self,
+caps_cache_insert (WockyCapsCache *self,
     const gchar *node,
     WockyNodeTree *query_node)
 {
@@ -612,7 +611,8 @@ OUT:
 }
 
 static gboolean
-caps_cache_count_entries (WockyCapsCache *self, guint *count)
+caps_cache_count_entries (WockyCapsCache *self,
+    guint *count)
 {
   if (!self->priv->db)
     return FALSE;
@@ -625,8 +625,7 @@ caps_cache_count_entries (WockyCapsCache *self, guint *count)
  * than @max_age while the cache is bigger than @low_threshold.
  */
 static void
-caps_cache_gc (
-    WockyCapsCache *self,
+caps_cache_gc (WockyCapsCache *self,
     guint high_threshold,
     guint low_threshold)
 {
@@ -692,8 +691,7 @@ get_size (void)
 }
 
 void
-wocky_caps_cache_insert (
-    WockyCapsCache *self,
+wocky_caps_cache_insert (WockyCapsCache *self,
     const gchar *node,
     WockyNodeTree *query_node)
 {

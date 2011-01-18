@@ -22,31 +22,31 @@
 
 #include <glib-object.h>
 
-#include <wocky/wocky-node-tree.h>
+#include "wocky-node-tree.h"
 
 G_BEGIN_DECLS
 
-#define WOCKY_TYPE_CAPS_CACHE wocky_caps_cache_get_type()
+/**
+ * WockyCapsCache:
+ *
+ * An object providing a permanent cache for capabilities.
+ */
+typedef struct _WockyCapsCachePrivate WockyCapsCachePrivate;
 
+#define WOCKY_TYPE_CAPS_CACHE wocky_caps_cache_get_type()
 #define WOCKY_CAPS_CACHE(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST ((obj), WOCKY_TYPE_CAPS_CACHE, \
         WockyCapsCache))
-
 #define WOCKY_CAPS_CACHE_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_CAST ((klass), WOCKY_TYPE_CAPS_CACHE, \
         WockyCapsCacheClass))
-
 #define WOCKY_IS_CAPS_CACHE(obj) \
     (G_TYPE_CHECK_INSTANCE_TYPE ((obj), WOCKY_TYPE_CAPS_CACHE))
-
 #define WOCKY_IS_CAPS_CACHE_CLASS(klass) \
     (G_TYPE_CHECK_CLASS_TYPE ((klass), WOCKY_TYPE_CAPS_CACHE))
-
 #define WOCKY_CAPS_CACHE_GET_CLASS(obj) \
     (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CAPS_CACHE, \
         WockyCapsCacheClass))
-
-typedef struct _WockyCapsCachePrivate WockyCapsCachePrivate;
 
 typedef struct
 {
@@ -65,12 +65,10 @@ wocky_caps_cache_get_type (void);
 WockyCapsCache *
 wocky_caps_cache_get_singleton (void);
 
-WockyNodeTree *wocky_caps_cache_lookup (
-    WockyCapsCache *self,
+WockyNodeTree *wocky_caps_cache_lookup (WockyCapsCache *self,
     const gchar *node);
 
-void wocky_caps_cache_insert (
-    WockyCapsCache *cache,
+void wocky_caps_cache_insert (WockyCapsCache *cache,
     const gchar *node,
     WockyNodeTree *query_node);
 
@@ -85,4 +83,4 @@ wocky_caps_cache_free_shared (void);
 
 G_END_DECLS
 
-#endif /* defined __WOCKY_CAPS_CACHE_H__ */
+#endif /* ifndef __WOCKY_CAPS_CACHE_H__ */
