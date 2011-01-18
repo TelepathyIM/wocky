@@ -31,6 +31,8 @@ G_BEGIN_DECLS
  *
  * An object providing a permanent cache for capabilities.
  */
+typedef struct _WockyCapsCache WockyCapsCache;
+typedef struct _WockyCapsCacheClass WockyCapsCacheClass;
 typedef struct _WockyCapsCachePrivate WockyCapsCachePrivate;
 
 #define WOCKY_TYPE_CAPS_CACHE wocky_caps_cache_get_type()
@@ -48,16 +50,16 @@ typedef struct _WockyCapsCachePrivate WockyCapsCachePrivate;
     (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CAPS_CACHE, \
         WockyCapsCacheClass))
 
-typedef struct
+struct _WockyCapsCache
 {
   GObject parent;
   WockyCapsCachePrivate *priv;
-} WockyCapsCache;
+};
 
-typedef struct
+struct _WockyCapsCacheClass
 {
   GObjectClass parent_class;
-} WockyCapsCacheClass;
+};
 
 GType
 wocky_caps_cache_get_type (void);
