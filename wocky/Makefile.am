@@ -50,11 +50,13 @@ handwritten_headers = \
   wocky-auth-registry.h \
   wocky-bare-contact.h \
   wocky-caps-cache.h \
+  wocky-caps-hash.h \
   wocky-connector.h \
   wocky-contact.h \
   wocky-contact-factory.h \
   wocky-data-form.h \
   wocky-debug.h \
+  wocky-disco-identity.h \
   wocky-heartbeat-source.h \
   wocky-jabber-auth.h \
   wocky-jabber-auth-digest.h \
@@ -97,11 +99,13 @@ handwritten_sources = \
   wocky-auth-registry.c \
   wocky-bare-contact.c \
   wocky-caps-cache.c \
+  wocky-caps-hash.c \
   wocky-connector.c \
   wocky-contact.c \
   wocky-contact-factory.c \
   wocky-data-form.c \
   wocky-debug.c \
+  wocky-disco-identity.c \
   wocky-heartbeat-source.c \
   wocky-jabber-auth.c \
   wocky-jabber-auth-digest.c \
