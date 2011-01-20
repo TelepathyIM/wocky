@@ -20,13 +20,9 @@
 #ifndef __WOCKY_CAPS_HASH_H__
 #define __WOCKY_CAPS_HASH_H__
 
-#include <loudmouth/loudmouth.h>
+#include "wocky-node.h"
 
-#include "connection.h"
-#include "gabble/caps-hash.h"
-
-gchar *caps_hash_compute_from_lm_node (LmMessageNode *node);
-gchar *caps_hash_compute_from_self_presence (
-    GabbleConnection *self);
+gchar *wocky_caps_hash_compute_from_node (
+    WockyNode *node) G_GNUC_WARN_UNUSED_RESULT;
 
 #endif /* __WOCKY_CAPS_HASH_H__ */

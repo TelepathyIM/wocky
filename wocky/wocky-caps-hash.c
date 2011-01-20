@@ -1,6 +1,6 @@
 /*
- * caps-hash.c - Computing verification string hash (XEP-0115 v1.5)
- * Copyright (C) 2008 Collabora Ltd.
+ * wocky-caps-hash.c - Computing verification string hash (XEP-0115 v1.5)
+ * Copyright (C) 2008-2010 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,26 +19,32 @@
 
 /* Computing verification string hash (XEP-0115 v1.5)
  *
- * Gabble does not do anything with dataforms (XEP-0128) included in
+ * Wocky does not do anything with dataforms (XEP-0128) included in
  * capabilities.  However, it needs to parse them in order to compute the hash
  * according to XEP-0115.
  */
 
+/**
+ * SECION: wocky-caps-hash
+ * @title: WockyCapsHash
+ * @short_description: Utilities for computing verification string hash
+ *
+ * Computes verification string hash according to XEP-0115 v1.5
+ */
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
-#include "caps-hash.h"
+#endif
+
+#include "wocky-caps-hash.h"
 
 #include <string.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_PRESENCE
+#include "wocky-disco-identity.h"
+#include "wocky-utils.h"
 
-#include "base64.h"
-#include "capabilities.h"
-#include "debug.h"
-#include "namespaces.h"
-#include "presence-cache.h"
-#include "presence.h"
-#include "util.h"
-#include "gabble/disco-identity.h"
+#define DEBUG_FLAG DEBUG_PRESENCE
+#include "wocky-debug.h"
 
 typedef struct _DataFormField DataFormField;
 
@@ -69,8 +75,8 @@ char_cmp (gconstpointer a, gconstpointer b)
 static gint
 identity_cmp (gconstpointer a, gconstpointer b)
 {
-  GabbleDiscoIdentity *left = *(GabbleDiscoIdentity **) a;
-  GabbleDiscoIdentity *right = *(GabbleDiscoIdentity **) b;
+  WockyDiscoIdentity *left = *(WockyDiscoIdentity **) a;
+  WockyDiscoIdentity *right = *(WockyDiscoIdentity **) b;
   gint ret;
 
   if ((ret = strcmp (left->category, right->category)) != 0)
@@ -126,13 +132,13 @@ _free_form (gpointer data, gpointer user_data)
 }
 
 static void
-gabble_presence_free_xep0115_hash (
+wocky_presence_free_xep0115_hash (
     GPtrArray *features,
     GPtrArray *identities,
     GPtrArray *dataforms)
 {
   g_ptr_array_foreach (features, (GFunc) g_free, NULL);
-  gabble_disco_identity_array_free (identities);
+  wocky_disco_identity_array_free (identities);
   g_ptr_array_foreach (dataforms, _free_form, NULL);
 
   g_ptr_array_free (features, TRUE);
@@ -145,33 +151,34 @@ caps_hash_compute (
     GPtrArray *identities,
     GPtrArray *dataforms)
 {
-  GString *s;
-  gchar sha1[SHA1_HASH_SIZE];
+  GChecksum *checksum;
+  guint8 *sha1;
   guint i;
   gchar *encoded;
+  gsize sha1_buffer_size;
 
   g_ptr_array_sort (identities, identity_cmp);
   g_ptr_array_sort (features, char_cmp);
   g_ptr_array_sort (dataforms, dataforms_cmp);
 
-  s = g_string_new ("");
+  checksum = g_checksum_new (G_CHECKSUM_SHA1);
 
   for (i = 0 ; i < identities->len ; i++)
     {
-      const GabbleDiscoIdentity *identity = g_ptr_array_index (identities, i);
+      const WockyDiscoIdentity *identity = g_ptr_array_index (identities, i);
       gchar *str = g_strdup_printf ("%s/%s/%s/%s",
           identity->category, identity->type,
           identity->lang ? identity->lang : "",
           identity->name ? identity->name : "");
-      g_string_append (s, str);
-      g_string_append_c (s, '<');
+      g_checksum_update (checksum, (guchar *) str, -1);
+      g_checksum_update (checksum, (guchar *) "<", 1);
       g_free (str);
     }
 
   for (i = 0 ; i < features->len ; i++)
     {
-      g_string_append (s, g_ptr_array_index (features, i));
-      g_string_append_c (s, '<');
+      g_checksum_update (checksum, (guchar *) g_ptr_array_index (features, i), -1);
+      g_checksum_update (checksum, (guchar *) "<", 1);
     }
 
   for (i = 0 ; i < dataforms->len ; i++)
@@ -181,8 +188,8 @@ caps_hash_compute (
 
       g_assert (form->form_type != NULL);
 
-      g_string_append (s, form->form_type);
-      g_string_append_c (s, '<');
+      g_checksum_update (checksum, (guchar *) form->form_type, -1);
+      g_checksum_update (checksum, (guchar *) "<", 1);
 
       g_ptr_array_sort (form->fields, fields_cmp);
 
@@ -191,23 +198,26 @@ caps_hash_compute (
           guint k;
           DataFormField *field = g_ptr_array_index (form->fields, j);
 
-          g_string_append (s, field->field_name);
-          g_string_append_c (s, '<');
+          g_checksum_update (checksum, (guchar *) field->field_name, -1);
+          g_checksum_update (checksum, (guchar *) "<", 1);
 
           g_ptr_array_sort (field->values, char_cmp);
 
           for (k = 0 ; k < field->values->len ; k++)
             {
-              g_string_append (s, g_ptr_array_index (field->values, k));
-              g_string_append_c (s, '<');
+              g_checksum_update (checksum, (guchar *) g_ptr_array_index (field->values, k), -1);
+              g_checksum_update (checksum, (guchar *) "<", 1);
             }
         }
     }
 
-  sha1_bin (s->str, s->len, (guchar *) sha1);
-  g_string_free (s, TRUE);
+  sha1_buffer_size = g_checksum_type_get_length (G_CHECKSUM_SHA1);
+  sha1 = g_new0 (guint8, sha1_buffer_size);
+  g_checksum_get_digest (checksum, sha1, &sha1_buffer_size);
 
-  encoded = base64_encode (SHA1_HASH_SIZE, sha1, FALSE);
+  encoded = g_base64_encode (sha1, sha1_buffer_size);
+
+  g_checksum_free (checksum);
 
   return encoded;
 }
@@ -215,72 +225,66 @@ caps_hash_compute (
 /**
  * parse a XEP-0128 dataform
  *
- * helper function for caps_hash_compute_from_lm_node
+ * helper function for wocky_caps_hash_compute_from_node
  */
 static DataForm *
-_parse_dataform (LmMessageNode *node)
+_parse_dataform (WockyNode *node)
 {
   DataForm *form;
-  NodeIter i;
+  GSList *c;
 
   form = g_slice_new0 (DataForm);
   form->form_type = NULL;
   form->fields = g_ptr_array_new ();
 
-  for (i = node_iter (node); i; i = node_iter_next (i))
+  for (c = node->children; c != NULL; c = c->next)
     {
-      LmMessageNode *field_node = node_iter_data (i);
+      WockyNode *field_node = c->data;
       const gchar *var;
 
       if (! g_str_equal (field_node->name, "field"))
         continue;
 
-      var = lm_message_node_get_attribute (field_node, "var");
+      var = wocky_node_get_attribute (field_node, "var");
 
       if (NULL == var)
         continue;
 
       if (g_str_equal (var, "FORM_TYPE"))
         {
-          NodeIter j;
+          GSList *d;
 
-          for (j = node_iter (field_node); j; j = node_iter_next (j))
+          for (d = field_node->children; d != NULL; d = d->next)
             {
-              LmMessageNode *value_node = node_iter_data (j);
-              const gchar *content;
+              WockyNode *value_node = d->data;
 
-              if (tp_strdiff (value_node->name, "value"))
+              if (wocky_strdiff (value_node->name, "value"))
                 continue;
-
-              content = lm_message_node_get_value (value_node);
 
               /* If the stanza is correctly formed, there is only one
                * FORM_TYPE and this check is useless. Otherwise, just
                * use the first one */
               if (form->form_type == NULL)
-                form->form_type = g_strdup (content);
+                form->form_type = g_strdup (value_node->content);
             }
         }
       else
         {
           DataFormField *field = NULL;
-          NodeIter j;
+          GSList *d;
 
           field = g_slice_new0 (DataFormField);
           field->values = g_ptr_array_new ();
           field->field_name = g_strdup (var);
 
-          for (j = node_iter (field_node); j; j = node_iter_next (j))
+          for (d = field_node->children; d != NULL; d = d->next)
             {
-              LmMessageNode *value_node = node_iter_data (j);
-              const gchar *content;
+              WockyNode *value_node = d->data;
 
-              if (tp_strdiff (value_node->name, "value"))
+              if (wocky_strdiff (value_node->name, "value"))
                 continue;
 
-              content = lm_message_node_get_value (value_node);
-
-              g_ptr_array_add (field->values, g_strdup (content));
+              g_ptr_array_add (field->values, g_strdup (field_node->content));
             }
 
             g_ptr_array_add (form->fields, (gpointer) field);
@@ -295,22 +299,22 @@ _parse_dataform (LmMessageNode *node)
 }
 
 /**
- * Compute the hash as defined by the XEP-0115 from a received LmMessageNode
+ * Compute the hash as defined by the XEP-0115 from a received WockyNode.
  *
  * Returns: the hash. The called must free the returned hash with g_free().
  */
 gchar *
-caps_hash_compute_from_lm_node (LmMessageNode *node)
+wocky_caps_hash_compute_from_node (WockyNode *node)
 {
   GPtrArray *features = g_ptr_array_new ();
-  GPtrArray *identities = gabble_disco_identity_array_new ();
+  GPtrArray *identities = wocky_disco_identity_array_new ();
   GPtrArray *dataforms = g_ptr_array_new ();
   gchar *str;
-  NodeIter i;
+  GSList *c;
 
-  for (i = node_iter (node); i; i = node_iter_next (i))
+  for (c = node->children; c != NULL; c = c->next)
     {
-      LmMessageNode *child = node_iter_data (i);
+      WockyNode *child = c->data;
 
       if (g_str_equal (child->name, "identity"))
         {
@@ -318,12 +322,12 @@ caps_hash_compute_from_lm_node (LmMessageNode *node)
           const gchar *name;
           const gchar *type;
           const gchar *xmllang;
-          GabbleDiscoIdentity *identity;
+          WockyDiscoIdentity *identity;
 
-          category = lm_message_node_get_attribute (child, "category");
-          name = lm_message_node_get_attribute (child, "name");
-          type = lm_message_node_get_attribute (child, "type");
-          xmllang = lm_message_node_get_attribute (child, "xml:lang");
+          category = wocky_node_get_attribute (child, "category");
+          name = wocky_node_get_attribute (child, "name");
+          type = wocky_node_get_attribute (child, "type");
+          xmllang = wocky_node_get_attribute (child, "xml:lang");
 
           if (NULL == category)
             continue;
@@ -334,13 +338,13 @@ caps_hash_compute_from_lm_node (LmMessageNode *node)
           if (NULL == xmllang)
             xmllang = "";
 
-          identity = gabble_disco_identity_new (category, type, xmllang, name);
+          identity = wocky_disco_identity_new (category, type, xmllang, name);
           g_ptr_array_add (identities, identity);
         }
       else if (g_str_equal (child->name, "feature"))
         {
           const gchar *var;
-          var = lm_message_node_get_attribute (child, "var");
+          var = wocky_node_get_attribute (child, "var");
 
           if (NULL == var)
             continue;
@@ -352,13 +356,13 @@ caps_hash_compute_from_lm_node (LmMessageNode *node)
           const gchar *xmlns;
           const gchar *type;
 
-          xmlns = lm_message_node_get_attribute (child, "xmlns");
-          type = lm_message_node_get_attribute (child, "type");
+          xmlns = wocky_node_get_attribute (child, "xmlns");
+          type = wocky_node_get_attribute (child, "type");
 
-          if (tp_strdiff (xmlns, "jabber:x:data"))
+          if (wocky_strdiff (xmlns, "jabber:x:data"))
             continue;
 
-          if (tp_strdiff (type, "result"))
+          if (wocky_strdiff (type, "result"))
             continue;
 
           g_ptr_array_add (dataforms, (gpointer) _parse_dataform (child));
@@ -367,73 +371,7 @@ caps_hash_compute_from_lm_node (LmMessageNode *node)
 
   str = caps_hash_compute (features, identities, dataforms);
 
-  gabble_presence_free_xep0115_hash (features, identities, dataforms);
-
-  return str;
-}
-
-static void
-ptr_array_strdup (gpointer str,
-    gpointer array)
-{
-  g_ptr_array_add (array, g_strdup (str));
-}
-
-/**
- * Compute our hash as defined by the XEP-0115.
- *
- * Returns: the hash. The called must free the returned hash with g_free().
- */
-gchar *
-caps_hash_compute_from_self_presence (GabbleConnection *self)
-{
-  GabblePresence *presence = self->self_presence;
-  const GabbleCapabilitySet *cap_set;
-  GPtrArray *features = g_ptr_array_new ();
-  GPtrArray *identities = gabble_disco_identity_array_new ();
-  GPtrArray *dataforms = g_ptr_array_new ();
-  gchar *str;
-
-  /* XEP-0030 requires at least 1 identity. We don't need more. */
-  g_ptr_array_add (identities,
-      gabble_disco_identity_new ("client", CLIENT_TYPE,
-          NULL, PACKAGE_STRING));
-
-  /* Gabble does not use dataforms, let 'dataforms' be empty */
-
-  /* FIXME: allow iteration over the strings without copying */
-  cap_set = gabble_presence_peek_caps (presence);
-  gabble_capability_set_foreach (cap_set, ptr_array_strdup, features);
-
-  str = caps_hash_compute (features, identities, dataforms);
-
-  gabble_presence_free_xep0115_hash (features, identities, dataforms);
-
-  return str;
-}
-
-/**
- * Compute the hash as defined by the XEP-0115 from a received GabbleCapabilitySet
- *
- * Returns: the hash. The called must free the returned hash with g_free().
- */
-gchar *
-gabble_caps_hash_compute (const GabbleCapabilitySet *cap_set,
-    const GPtrArray *identities)
-{
-  GPtrArray *features = g_ptr_array_new ();
-  GPtrArray *identities_copy = ((identities == NULL) ?
-      gabble_disco_identity_array_new () :
-      gabble_disco_identity_array_copy (identities));
-  GPtrArray *dataforms = g_ptr_array_new ();
-  gchar *str;
-
-  /* FIXME: allow iteration over the strings without copying */
-  gabble_capability_set_foreach (cap_set, ptr_array_strdup, features);
-
-  str = caps_hash_compute (features, identities_copy, dataforms);
-
-  gabble_presence_free_xep0115_hash (features, identities_copy, dataforms);
+  wocky_presence_free_xep0115_hash (features, identities, dataforms);
 
   return str;
 }
