@@ -284,7 +284,7 @@ _parse_dataform (WockyNode *node)
               if (wocky_strdiff (value_node->name, "value"))
                 continue;
 
-              g_ptr_array_add (field->values, g_strdup (field_node->content));
+              g_ptr_array_add (field->values, g_strdup (value_node->content));
             }
 
             g_ptr_array_add (form->fields, (gpointer) field);
