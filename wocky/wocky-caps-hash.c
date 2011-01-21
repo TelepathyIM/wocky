@@ -327,7 +327,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
           category = wocky_node_get_attribute (child, "category");
           name = wocky_node_get_attribute (child, "name");
           type = wocky_node_get_attribute (child, "type");
-          xmllang = wocky_node_get_attribute (child, "xml:lang");
+          xmllang = wocky_node_get_language (child);
 
           if (NULL == category)
             continue;
@@ -356,7 +356,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
           const gchar *xmlns;
           const gchar *type;
 
-          xmlns = wocky_node_get_attribute (child, "xmlns");
+          xmlns = wocky_node_get_ns (child);
           type = wocky_node_get_attribute (child, "type");
 
           if (wocky_strdiff (xmlns, "jabber:x:data"))
