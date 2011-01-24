@@ -358,7 +358,6 @@ wocky_caps_cache_new (const gchar *path)
 
 /**
  * wocky_caps_cache_dup_shared:
- * @path: full path to where the cache SQLite database should be stored
  *
  * Returns a new or existing #WockyCapsCache object.
  *
