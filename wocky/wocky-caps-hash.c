@@ -17,19 +17,16 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* Computing verification string hash (XEP-0115 v1.5)
- *
- * Wocky does not do anything with dataforms (XEP-0128) included in
- * capabilities.  However, it needs to parse them in order to compute the hash
- * according to XEP-0115.
- */
-
 /**
- * SECION: wocky-caps-hash
+ * SECTION: wocky-caps-hash
  * @title: WockyCapsHash
  * @short_description: Utilities for computing verification string hash
  *
  * Computes verification string hash according to XEP-0115 v1.5
+ *
+ * Wocky does not do anything with dataforms (XEP-0128) included in
+ * capabilities.  However, it needs to parse them in order to compute the hash
+ * according to XEP-0115.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -61,7 +58,6 @@ struct _DataForm {
   /* array of DataFormField */
   GPtrArray *fields;
 };
-
 
 static gint
 char_cmp (gconstpointer a, gconstpointer b)
@@ -222,7 +218,7 @@ caps_hash_compute (
   return encoded;
 }
 
-/**
+/*
  * parse a XEP-0128 dataform
  *
  * helper function for wocky_caps_hash_compute_from_node
@@ -299,9 +295,17 @@ _parse_dataform (WockyNode *node)
 }
 
 /**
- * Compute the hash as defined by the XEP-0115 from a received WockyNode.
+ * wocky_caps_hash_compute_from_node:
+ * @node: a #WockyNode
  *
- * Returns: the hash. The called must free the returned hash with g_free().
+ * Compute the hash as defined by the XEP-0115 from a received
+ * #WockyNode.
+ *
+ * @node should be the top-level node from a disco response such as
+ * the example given in XEP-0115 §5.3 "Complex Generation Example".
+ *
+ * Returns: the hash. The called must free the returned hash with
+ *          g_free().
  */
 gchar *
 wocky_caps_hash_compute_from_node (WockyNode *node)

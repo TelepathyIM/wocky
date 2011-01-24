@@ -25,4 +25,4 @@
 gchar *wocky_caps_hash_compute_from_node (
     WockyNode *node) G_GNUC_WARN_UNUSED_RESULT;
 
-#endif /* __WOCKY_CAPS_HASH_H__ */
+#endif /* #ifndef __WOCKY_CAPS_HASH_H__ */
