@@ -1,5 +1,5 @@
 /*
- * wocky-disco-identity.h —  utility API representing a Disco Identity
+ * wocky-disco-identity.h — utility API representing a Disco Identity
  * Copyright © 2010 Collabora Ltd.
  * Copyright © 2010 Nokia Corporation
  *
@@ -27,8 +27,15 @@ G_BEGIN_DECLS
 
 typedef struct _WockyDiscoIdentity WockyDiscoIdentity;
 
+/**
+ * WockyDiscoIdentity:
+ *
+ * A structure used to hold information regarding an identity from a
+ * disco reply as described in XEP-0030.
+ */
 struct _WockyDiscoIdentity
 {
+  /*< private >*/
   gchar *category;
   gchar *type;
   gchar *lang;
@@ -57,4 +64,4 @@ void wocky_disco_identity_array_free (GPtrArray *arr);
 
 G_END_DECLS
 
-#endif
+#endif /* #ifndef __WOCKY_DISCO_IDENTITY_H__ */

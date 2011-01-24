@@ -1,5 +1,5 @@
 /*
- * wocky-disco-identity.c - Source for Wocky utility functions
+ * wocky-disco-identity.c - Source for WockyDiscoIdentity
  * Copyright (C) 2010 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -17,6 +17,15 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-disco-identity
+ * @title: WockyDiscoIdentity
+ * @short_description: Structure holding XMPP disco identity information.
+ *
+ * Contains information regarding the identity information in disco
+ * replies, as described in XEP-0030.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -26,6 +35,18 @@
 #define DEBUG_FLAG DEBUG_PRESENCE
 #include "wocky-debug.h"
 
+/**
+ * wocky_disco_identity_new:
+ * @category: disco category
+ * @type: disco type
+ * @lang: disco language
+ * @name: disco name
+ *
+ * <!-- -->
+ *
+ * Returns: a new #WockyDiscoIdentity which should be freed using
+ *          wocky_disco_identity_free().
+ */
 WockyDiscoIdentity *
 wocky_disco_identity_new (const gchar *category,
     const gchar *type,
@@ -45,6 +66,16 @@ wocky_disco_identity_new (const gchar *category,
   return ret;
 }
 
+/**
+ * wocky_disco_identity_copy:
+ * @source: the #WockyDiscoIdentity to copy
+ *
+ * Creates a new #WockyDiscoIdentity structure with the data given by
+ * @source. The copy also copies the internal data so @source can be
+ * freed after this function is called.
+ *
+ * Returns: a new #WockyDiscoIdentity which is a deep copy of @source
+ */
 WockyDiscoIdentity *
 wocky_disco_identity_copy (const WockyDiscoIdentity *source)
 {
@@ -54,30 +85,68 @@ wocky_disco_identity_copy (const WockyDiscoIdentity *source)
       source->lang, source->name);
 }
 
+/**
+ * wocky_disco_identity_get_category:
+ * @identity: a #WockyDiscoIdentity
+ *
+ * <!-- -->
+ *
+ * Returns: @identity's category
+ */
 const gchar *
 wocky_disco_identity_get_category (WockyDiscoIdentity *identity)
 {
   return identity->category;
 }
 
+/**
+ * wocky_disco_identity_get_type:
+ * @identity: a #WockyDiscoIdentity
+ *
+ * <!-- -->
+ *
+ * Returns: @identity's type
+ */
 const gchar *
 wocky_disco_identity_get_type (WockyDiscoIdentity *identity)
 {
   return identity->type;
 }
 
+/**
+ * wocky_disco_identity_get_lang:
+ * @identity: a #WockyDiscoIdentity
+ *
+ * <!-- -->
+ *
+ * Returns: @identity's language
+ */
 const gchar *
 wocky_disco_identity_get_lang (WockyDiscoIdentity *identity)
 {
   return identity->lang;
 }
 
+/**
+ * wocky_disco_identity_get_name:
+ * @identity: a #WockyDiscoIdentity
+ *
+ * <!-- -->
+ *
+ * Returns: @identity's name
+ */
 const gchar *
 wocky_disco_identity_get_name (WockyDiscoIdentity *identity)
 {
   return identity->name;
 }
 
+/**
+ * wocky_disco_identity_free:
+ * @identity: a #WockyDiscoIdentity
+ *
+ * Frees the memory used by @identity.
+ */
 void
 wocky_disco_identity_free (WockyDiscoIdentity *identity)
 {
@@ -94,9 +163,11 @@ wocky_disco_identity_free (WockyDiscoIdentity *identity)
 /**
  * wocky_disco_identity_array_new:
  *
- * Creates a new array of WockyDiscoIdentity objects.
+ * Creates a new array of #WockyDiscoIdentity structures.
  *
- * Returns: A newly instantiated array.
+ * Returns: A newly instantiated
+ *          array. wocky_disco_identity_array_free() should beq used
+ *          to free the memory allocated by this array.
  * See: wocky_disco_identity_array_free()
  */
 GPtrArray *
@@ -107,10 +178,10 @@ wocky_disco_identity_array_new (void)
 }
 
 /**
- * wocky_disco_identity_array_copy():
+ * wocky_disco_identity_array_copy:
  * @source: The source array to be copied.
  *
- * Copies an array of WockyDiscoIdentity objects. The returned array contains
+ * Copies an array of #WockyDiscoIdentity objects. The returned array contains
  * new copies of the contents of the source array.
  *
  * Returns: A newly instantiated array with new copies of the contents of the
@@ -137,15 +208,15 @@ wocky_disco_identity_array_copy (const GPtrArray *source)
 }
 
 /**
- * wocky_disco_identity_array_free():
+ * wocky_disco_identity_array_free:
  * @arr: Array to be freed.
  *
- * Frees an array of WockyDiscoIdentity objects created with
+ * Frees an array of #WockyDiscoIdentity objects created with
  * wocky_disco_identity_array_new() or returned by
  * wocky_disco_identity_array_copy().
  *
  * Note that if this method is called with an array created with
- * g_ptr_array_new, the caller should also free the array contents.
+ * g_ptr_array_new(), the caller should also free the array contents.
  *
  * See: wocky_disco_identity_array_new(), wocky_disco_identity_array_copy()
  */
