@@ -36,10 +36,11 @@ struct _WockyDiscoIdentity
 };
 
 WockyDiscoIdentity *wocky_disco_identity_new (const gchar *category,
-    const gchar *type, const gchar *lang, const gchar *name);
+    const gchar *type, const gchar *lang, const gchar *name)
+    G_GNUC_WARN_UNUSED_RESULT;
 
 WockyDiscoIdentity *wocky_disco_identity_copy (
-    const WockyDiscoIdentity *source);
+    const WockyDiscoIdentity *source) G_GNUC_WARN_UNUSED_RESULT;
 
 const gchar * wocky_disco_identity_get_category (WockyDiscoIdentity *identity);
 const gchar * wocky_disco_identity_get_type (WockyDiscoIdentity *identity);
@@ -49,8 +50,9 @@ const gchar * wocky_disco_identity_get_name (WockyDiscoIdentity *identity);
 void wocky_disco_identity_free (WockyDiscoIdentity *identity);
 
 /* array of WockyDiscoIdentity helper methods */
-GPtrArray * wocky_disco_identity_array_new (void);
-GPtrArray * wocky_disco_identity_array_copy (const GPtrArray *source);
+GPtrArray * wocky_disco_identity_array_new (void) G_GNUC_WARN_UNUSED_RESULT;
+GPtrArray * wocky_disco_identity_array_copy (const GPtrArray *source)
+    G_GNUC_WARN_UNUSED_RESULT;
 void wocky_disco_identity_array_free (GPtrArray *arr);
 
 G_END_DECLS
