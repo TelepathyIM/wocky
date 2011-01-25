@@ -21,7 +21,7 @@
 #ifndef __WOCKY_PLUGINS_DISCO_IDENTITY_H__
 #define __WOCKY_PLUGINS_DISCO_IDENTITY_H__
 
-#include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -41,6 +41,8 @@ struct _WockyDiscoIdentity
   gchar *lang;
   gchar *name;
 };
+
+GType wocky_disco_identity_get_type (void);
 
 WockyDiscoIdentity *wocky_disco_identity_new (const gchar *category,
     const gchar *type, const gchar *lang, const gchar *name)

@@ -35,6 +35,9 @@
 #define DEBUG_FLAG DEBUG_PRESENCE
 #include "wocky-debug.h"
 
+G_DEFINE_BOXED_TYPE (WockyDiscoIdentity, wocky_disco_identity,
+    wocky_disco_identity_copy, wocky_disco_identity_free)
+
 /**
  * wocky_disco_identity_new:
  * @category: disco category
