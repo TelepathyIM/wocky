@@ -100,7 +100,7 @@ wocky_disco_identity_get_category (WockyDiscoIdentity *identity)
 }
 
 /**
- * wocky_disco_identity_get_type:
+ * wocky_disco_identity_get_identity_type:
  * @identity: a #WockyDiscoIdentity
  *
  * <!-- -->
@@ -108,7 +108,7 @@ wocky_disco_identity_get_category (WockyDiscoIdentity *identity)
  * Returns: @identity's type
  */
 const gchar *
-wocky_disco_identity_get_type (WockyDiscoIdentity *identity)
+wocky_disco_identity_get_identity_type (WockyDiscoIdentity *identity)
 {
   return identity->type;
 }

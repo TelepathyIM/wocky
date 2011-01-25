@@ -50,7 +50,7 @@ WockyDiscoIdentity *wocky_disco_identity_copy (
     const WockyDiscoIdentity *source) G_GNUC_WARN_UNUSED_RESULT;
 
 const gchar * wocky_disco_identity_get_category (WockyDiscoIdentity *identity);
-const gchar * wocky_disco_identity_get_type (WockyDiscoIdentity *identity);
+const gchar * wocky_disco_identity_get_identity_type (WockyDiscoIdentity *identity);
 const gchar * wocky_disco_identity_get_lang (WockyDiscoIdentity *identity);
 const gchar * wocky_disco_identity_get_name (WockyDiscoIdentity *identity);
 
