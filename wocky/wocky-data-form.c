@@ -527,12 +527,12 @@ wocky_data_form_new_from_form (WockyNode *root,
     }
 
   type = wocky_node_get_attribute (x, "type");
-  if (wocky_strdiff (type, "form"))
+  if (wocky_strdiff (type, "form") && wocky_strdiff (type, "result"))
     {
-      DEBUG ("'type' attribute is not 'form': %s", type);
+      DEBUG ("'type' attribute is not 'form' or 'result': %s", type);
       g_set_error (error, WOCKY_DATA_FORM_ERROR,
           WOCKY_DATA_FORM_ERROR_WRONG_TYPE,
-          "'type' attribute is not 'form': %s", type);
+          "'type' attribute is not 'form' or 'result': %s", type);
       return NULL;
     }
 
