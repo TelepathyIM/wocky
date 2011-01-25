@@ -426,7 +426,7 @@ extract_var_type_label (WockyNode *node,
     const gchar **_label)
 {
   const gchar *tmp, *var, *label;
-  gint type;
+  gint type = 0;
 
   if (wocky_strdiff (node->name, "field"))
     return FALSE;
@@ -438,7 +438,25 @@ extract_var_type_label (WockyNode *node,
   tmp = wocky_node_get_attribute (node, "type");
   if (tmp == NULL)
     {
-      type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
+      GSList *l;
+
+      for (l = node->children; l != NULL; l = l->next)
+        {
+          WockyNode *child = l->data;
+
+          if (!wocky_strdiff (child->name, "value"))
+            {
+              if (type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE)
+                {
+                  type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI;
+                  break;
+                }
+              else
+                {
+                  type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
+                }
+            }
+        }
     }
   else if (!wocky_enum_from_nick (WOCKY_TYPE_DATA_FORM_FIELD_TYPE,
                 tmp, &type))
