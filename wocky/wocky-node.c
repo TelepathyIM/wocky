@@ -1254,6 +1254,15 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
           }
           break;
 
+        case WOCKY_NODE_LANGUAGE:
+          {
+            gchar *lang = va_arg (ap, gchar *);
+
+            g_assert (lang != NULL);
+            wocky_node_set_language ((WockyNode *) stack->data, lang);
+          }
+          break;
+
         case WOCKY_NODE_END:
           {
             /* delete the top of the stack */

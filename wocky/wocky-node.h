@@ -34,7 +34,8 @@ typedef enum
   WOCKY_NODE_END = ')',
   WOCKY_NODE_ATTRIBUTE = '@',
   WOCKY_NODE_XMLNS = ':',
-  WOCKY_NODE_ASSIGN_TO = '*'
+  WOCKY_NODE_ASSIGN_TO = '*',
+  WOCKY_NODE_LANGUAGE = '#'
 } WockyNodeBuildTag;
 
 typedef struct _WockyNode WockyNode;
