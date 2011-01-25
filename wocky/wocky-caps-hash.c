@@ -39,25 +39,10 @@
 
 #include "wocky-disco-identity.h"
 #include "wocky-utils.h"
+#include "wocky-data-form.h"
 
 #define DEBUG_FLAG DEBUG_PRESENCE
 #include "wocky-debug.h"
-
-typedef struct _DataFormField DataFormField;
-
-struct _DataFormField {
-  gchar *field_name;
-  /* array of strings */
-  GPtrArray *values;
-};
-
-typedef struct _DataForm DataForm;
-
-struct _DataForm {
-  gchar *form_type;
-  /* array of DataFormField */
-  GPtrArray *fields;
-};
 
 static gint
 char_cmp (gconstpointer a, gconstpointer b)
@@ -84,78 +69,37 @@ identity_cmp (gconstpointer a, gconstpointer b)
   return strcmp (left->name, right->name);
 }
 
-static gint
-fields_cmp (gconstpointer a, gconstpointer b)
-{
-  DataFormField *left = *(DataFormField **) a;
-  DataFormField *right = *(DataFormField **) b;
-
-  return strcmp (left->field_name, right->field_name);
-}
-
-static gint
-dataforms_cmp (gconstpointer a, gconstpointer b)
-{
-  DataForm *left = *(DataForm **) a;
-  DataForm *right = *(DataForm **) b;
-
-  return strcmp (left->form_type, right->form_type);
-}
-
-static void
-_free_field (gpointer data, gpointer user_data)
-{
-  DataFormField *field = data;
-
-  g_free (field->field_name);
-  g_ptr_array_foreach (field->values, (GFunc) g_free, NULL);
-  g_ptr_array_free (field->values, TRUE);
-
-  g_slice_free (DataFormField, field);
-}
-
-static void
-_free_form (gpointer data, gpointer user_data)
-{
-  DataForm *form = data;
-
-  g_free (form->form_type);
-
-  g_ptr_array_foreach (form->fields, _free_field, NULL);
-  g_ptr_array_free (form->fields, TRUE);
-
-  g_slice_free (DataForm, form);
-}
-
 static void
 wocky_presence_free_xep0115_hash (
     GPtrArray *features,
     GPtrArray *identities,
-    GPtrArray *dataforms)
+    WockyDataForm *dataform)
 {
   g_ptr_array_foreach (features, (GFunc) g_free, NULL);
   wocky_disco_identity_array_free (identities);
-  g_ptr_array_foreach (dataforms, _free_form, NULL);
 
   g_ptr_array_free (features, TRUE);
-  g_ptr_array_free (dataforms, TRUE);
+
+  if (dataform != NULL)
+    g_object_unref (dataform);
 }
 
 static gchar *
 caps_hash_compute (
     GPtrArray *features,
     GPtrArray *identities,
-    GPtrArray *dataforms)
+    WockyDataForm *dataform)
 {
   GChecksum *checksum;
   guint8 *sha1;
   guint i;
   gchar *encoded;
   gsize sha1_buffer_size;
+  WockyDataFormField *field;
+  GSList *l;
 
   g_ptr_array_sort (identities, identity_cmp);
   g_ptr_array_sort (features, char_cmp);
-  g_ptr_array_sort (dataforms, dataforms_cmp);
 
   checksum = g_checksum_new (G_CHECKSUM_SHA1);
 
@@ -177,32 +121,39 @@ caps_hash_compute (
       g_checksum_update (checksum, (guchar *) "<", 1);
     }
 
-  for (i = 0 ; i < dataforms->len ; i++)
+  if (dataform != NULL)
     {
-      guint j;
-      DataForm *form = g_ptr_array_index (dataforms, i);
+      field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
+      g_assert (field != NULL);
 
-      g_assert (form->form_type != NULL);
-
-      g_checksum_update (checksum, (guchar *) form->form_type, -1);
+      g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
 
-      g_ptr_array_sort (form->fields, fields_cmp);
-
-      for (j = 0 ; j < form->fields->len ; j++)
+      for (l = dataform->fields_list; l != NULL; l = l->next)
         {
-          guint k;
-          DataFormField *field = g_ptr_array_index (form->fields, j);
+          field = l->data;
 
-          g_checksum_update (checksum, (guchar *) field->field_name, -1);
+          if (!wocky_strdiff (field->var, "FORM_TYPE"))
+            continue;
+
+          g_checksum_update (checksum, (guchar *) field->var, -1);
           g_checksum_update (checksum, (guchar *) "<", 1);
 
-          g_ptr_array_sort (field->values, char_cmp);
-
-          for (k = 0 ; k < field->values->len ; k++)
+          if (field->type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE)
             {
-              g_checksum_update (checksum, (guchar *) g_ptr_array_index (field->values, k), -1);
+              g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
               g_checksum_update (checksum, (guchar *) "<", 1);
+            }
+          else if (field->type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI)
+            {
+              GStrv values = g_value_get_boxed (field->default_value);
+              GStrv tmp;
+
+              for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
+                {
+                  g_checksum_update (checksum, (guchar *) *tmp, -1);
+                  g_checksum_update (checksum, (guchar *) "<", 1);
+                }
             }
         }
     }
@@ -216,82 +167,6 @@ caps_hash_compute (
   g_checksum_free (checksum);
 
   return encoded;
-}
-
-/*
- * parse a XEP-0128 dataform
- *
- * helper function for wocky_caps_hash_compute_from_node
- */
-static DataForm *
-_parse_dataform (WockyNode *node)
-{
-  DataForm *form;
-  GSList *c;
-
-  form = g_slice_new0 (DataForm);
-  form->form_type = NULL;
-  form->fields = g_ptr_array_new ();
-
-  for (c = node->children; c != NULL; c = c->next)
-    {
-      WockyNode *field_node = c->data;
-      const gchar *var;
-
-      if (! g_str_equal (field_node->name, "field"))
-        continue;
-
-      var = wocky_node_get_attribute (field_node, "var");
-
-      if (NULL == var)
-        continue;
-
-      if (g_str_equal (var, "FORM_TYPE"))
-        {
-          GSList *d;
-
-          for (d = field_node->children; d != NULL; d = d->next)
-            {
-              WockyNode *value_node = d->data;
-
-              if (wocky_strdiff (value_node->name, "value"))
-                continue;
-
-              /* If the stanza is correctly formed, there is only one
-               * FORM_TYPE and this check is useless. Otherwise, just
-               * use the first one */
-              if (form->form_type == NULL)
-                form->form_type = g_strdup (value_node->content);
-            }
-        }
-      else
-        {
-          DataFormField *field = NULL;
-          GSList *d;
-
-          field = g_slice_new0 (DataFormField);
-          field->values = g_ptr_array_new ();
-          field->field_name = g_strdup (var);
-
-          for (d = field_node->children; d != NULL; d = d->next)
-            {
-              WockyNode *value_node = d->data;
-
-              if (wocky_strdiff (value_node->name, "value"))
-                continue;
-
-              g_ptr_array_add (field->values, g_strdup (value_node->content));
-            }
-
-            g_ptr_array_add (form->fields, (gpointer) field);
-        }
-    }
-
-  /* this should not happen if the stanza is correctly formed. */
-  if (form->form_type == NULL)
-    form->form_type = g_strdup ("");
-
-  return form;
 }
 
 /**
@@ -312,9 +187,10 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
 {
   GPtrArray *features = g_ptr_array_new ();
   GPtrArray *identities = wocky_disco_identity_array_new ();
-  GPtrArray *dataforms = g_ptr_array_new ();
   gchar *str;
   GSList *c;
+  WockyDataForm *dataform;
+  GError *error = NULL;
 
   for (c = node->children; c != NULL; c = c->next)
     {
@@ -355,27 +231,18 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
 
           g_ptr_array_add (features, g_strdup (var));
         }
-      else if (g_str_equal (child->name, "x"))
-        {
-          const gchar *xmlns;
-          const gchar *type;
-
-          xmlns = wocky_node_get_ns (child);
-          type = wocky_node_get_attribute (child, "type");
-
-          if (wocky_strdiff (xmlns, "jabber:x:data"))
-            continue;
-
-          if (wocky_strdiff (type, "result"))
-            continue;
-
-          g_ptr_array_add (dataforms, (gpointer) _parse_dataform (child));
-        }
     }
 
-  str = caps_hash_compute (features, identities, dataforms);
+  dataform = wocky_data_form_new_from_form (node, &error);
+  if (error != NULL)
+    {
+      DEBUG ("Failed to parse data form: %s\n", error->message);
+      g_clear_error (&error);
+    }
 
-  wocky_presence_free_xep0115_hash (features, identities, dataforms);
+  str = caps_hash_compute (features, identities, dataform);
+
+  wocky_presence_free_xep0115_hash (features, identities, dataform);
 
   return str;
 }
