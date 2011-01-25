@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __WOCKY_PLUGINS_DISCO_IDENTITY_H__
-#define __WOCKY_PLUGINS_DISCO_IDENTITY_H__
+#ifndef __WOCKY_DISCO_IDENTITY_H__
+#define __WOCKY_DISCO_IDENTITY_H__
 
 #include <glib-object.h>
 
