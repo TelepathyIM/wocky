@@ -141,8 +141,7 @@ wocky_disco_identity_array_copy (const GPtrArray *source)
   GPtrArray *ret;
   guint i;
 
-  if (!source)
-    return NULL;
+  g_return_val_if_fail (source != NULL, NULL);
 
   ret = g_ptr_array_sized_new (source->len);
   g_ptr_array_set_free_func (ret, (GDestroyNotify) wocky_disco_identity_free);
@@ -170,7 +169,7 @@ wocky_disco_identity_array_copy (const GPtrArray *source)
 void
 wocky_disco_identity_array_free (GPtrArray *arr)
 {
-  if (!arr)
+  if (arr == NULL)
     return;
 
   g_ptr_array_free (arr, TRUE);
