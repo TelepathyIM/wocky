@@ -29,13 +29,16 @@ typedef struct _WockyDiscoIdentity WockyDiscoIdentity;
 
 /**
  * WockyDiscoIdentity:
+ * @category: the identity category
+ * @type: the identity type
+ * @lang: the identity language
+ * @name: the identity name
  *
  * A structure used to hold information regarding an identity from a
  * disco reply as described in XEP-0030.
  */
 struct _WockyDiscoIdentity
 {
-  /*< private >*/
   gchar *category;
   gchar *type;
   gchar *lang;
@@ -50,11 +53,6 @@ WockyDiscoIdentity *wocky_disco_identity_new (const gchar *category,
 
 WockyDiscoIdentity *wocky_disco_identity_copy (
     const WockyDiscoIdentity *source) G_GNUC_WARN_UNUSED_RESULT;
-
-const gchar * wocky_disco_identity_get_category (WockyDiscoIdentity *identity);
-const gchar * wocky_disco_identity_get_identity_type (WockyDiscoIdentity *identity);
-const gchar * wocky_disco_identity_get_lang (WockyDiscoIdentity *identity);
-const gchar * wocky_disco_identity_get_name (WockyDiscoIdentity *identity);
 
 void wocky_disco_identity_free (WockyDiscoIdentity *identity);
 

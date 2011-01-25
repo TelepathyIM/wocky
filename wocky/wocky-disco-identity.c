@@ -89,62 +89,6 @@ wocky_disco_identity_copy (const WockyDiscoIdentity *source)
 }
 
 /**
- * wocky_disco_identity_get_category:
- * @identity: a #WockyDiscoIdentity
- *
- * <!-- -->
- *
- * Returns: @identity's category
- */
-const gchar *
-wocky_disco_identity_get_category (WockyDiscoIdentity *identity)
-{
-  return identity->category;
-}
-
-/**
- * wocky_disco_identity_get_identity_type:
- * @identity: a #WockyDiscoIdentity
- *
- * <!-- -->
- *
- * Returns: @identity's type
- */
-const gchar *
-wocky_disco_identity_get_identity_type (WockyDiscoIdentity *identity)
-{
-  return identity->type;
-}
-
-/**
- * wocky_disco_identity_get_lang:
- * @identity: a #WockyDiscoIdentity
- *
- * <!-- -->
- *
- * Returns: @identity's language
- */
-const gchar *
-wocky_disco_identity_get_lang (WockyDiscoIdentity *identity)
-{
-  return identity->lang;
-}
-
-/**
- * wocky_disco_identity_get_name:
- * @identity: a #WockyDiscoIdentity
- *
- * <!-- -->
- *
- * Returns: @identity's name
- */
-const gchar *
-wocky_disco_identity_get_name (WockyDiscoIdentity *identity)
-{
-  return identity->name;
-}
-
-/**
  * wocky_disco_identity_free:
  * @identity: a #WockyDiscoIdentity
  *
