@@ -118,6 +118,9 @@ GType wocky_data_form_get_type (void);
 WockyDataForm * wocky_data_form_new_from_form (WockyNode *node,
     GError **error);
 
+WockyDataForm * wocky_data_form_new_from_node (WockyNode *x,
+    GError **error);
+
 gboolean wocky_data_form_set_type (WockyDataForm *self,
     const gchar *form_type);
 

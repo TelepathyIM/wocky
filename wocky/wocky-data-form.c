@@ -527,20 +527,20 @@ data_form_add_field (WockyDataForm *self,
 }
 
 WockyDataForm *
-wocky_data_form_new_from_form (WockyNode *root,
+wocky_data_form_new_from_node (WockyNode *x,
     GError **error)
 {
-  WockyNode *x, *node;
+  WockyNode *node;
   WockyNodeIter iter;
   const gchar *type, *title, *instructions;
   WockyDataForm *form;
 
-  x = wocky_node_get_child_ns (root, "x", WOCKY_XMPP_NS_DATA);
-  if (x == NULL)
+  if (wocky_strdiff (x->name, "x")
+      || x->ns != g_quark_from_string (WOCKY_XMPP_NS_DATA))
     {
-      DEBUG ("No 'x' node");
+      DEBUG ("Invalid 'x' node");
       g_set_error (error, WOCKY_DATA_FORM_ERROR,
-          WOCKY_DATA_FORM_ERROR_NOT_FORM, "No 'x' node");
+          WOCKY_DATA_FORM_ERROR_NOT_FORM, "Invalid 'x' node");
       return NULL;
     }
 
@@ -576,6 +576,24 @@ wocky_data_form_new_from_form (WockyNode *root,
   form->fields_list = g_slist_reverse (form->fields_list);
 
   return form;
+}
+
+WockyDataForm *
+wocky_data_form_new_from_form (WockyNode *root,
+    GError **error)
+{
+  WockyNode *x;
+
+  x = wocky_node_get_child_ns (root, "x", WOCKY_XMPP_NS_DATA);
+  if (x == NULL)
+    {
+      DEBUG ("No 'x' node");
+      g_set_error (error, WOCKY_DATA_FORM_ERROR,
+          WOCKY_DATA_FORM_ERROR_NOT_FORM, "No 'x' node");
+      return NULL;
+    }
+
+  return wocky_data_form_new_from_node (x, error);
 }
 
 /**
