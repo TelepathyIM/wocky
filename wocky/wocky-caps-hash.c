@@ -105,8 +105,20 @@ wocky_presence_free_xep0115_hash (
   g_ptr_array_free (dataforms, TRUE);
 }
 
-static gchar *
-caps_hash_compute (
+/**
+ * wocky_caps_hash_compute_from_lists:
+ * @features: a #GPtrArray of strings
+ * @identities: a #GPtrArray of #WockyDiscoIdentity structures
+ * @dataforms: a #GPtrArray of #WockyDataForm objects
+ *
+ * Compute the hash as defined by the XEP-0115 from a list of
+ * features, identities and dataforms.
+ *
+ * Returns: a newly allocated string of the caps hash which should be
+ *          freed using g_free()
+ */
+gchar *
+wocky_caps_hash_compute_from_lists (
     GPtrArray *features,
     GPtrArray *identities,
     GPtrArray *dataforms)
@@ -274,7 +286,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
       g_ptr_array_add (dataforms, dataform);
    }
 
-  str = caps_hash_compute (features, identities, dataforms);
+  str = wocky_caps_hash_compute_from_lists (features, identities, dataforms);
 
   wocky_presence_free_xep0115_hash (features, identities, dataforms);
 

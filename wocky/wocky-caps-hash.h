@@ -22,7 +22,11 @@
 
 #include "wocky-node.h"
 
-gchar *wocky_caps_hash_compute_from_node (
+gchar * wocky_caps_hash_compute_from_node (
     WockyNode *node) G_GNUC_WARN_UNUSED_RESULT;
+
+gchar * wocky_caps_hash_compute_from_lists (
+    GPtrArray *features, GPtrArray *identities,
+    GPtrArray *dataforms) G_GNUC_WARN_UNUSED_RESULT;
 
 #endif /* #ifndef __WOCKY_CAPS_HASH_H__ */
