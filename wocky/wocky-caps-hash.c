@@ -36,6 +36,7 @@
 #include "wocky-disco-identity.h"
 #include "wocky-utils.h"
 #include "wocky-data-form.h"
+#include "wocky-namespaces.h"
 
 #define DEBUG_FLAG DEBUG_PRESENCE
 #include "wocky-debug.h"
@@ -60,37 +61,65 @@ identity_cmp (gconstpointer a,
   return wocky_disco_identity_cmp (left, right);
 }
 
+static gint
+dataforms_cmp (gconstpointer a,
+    gconstpointer b)
+{
+  WockyDataForm *left = *(WockyDataForm **) a;
+  WockyDataForm *right = *(WockyDataForm **) b;
+  WockyDataFormField *left_type, *right_type;
+
+  left_type = g_hash_table_lookup (left->fields, "FORM_TYPE");
+  right_type = g_hash_table_lookup (right->fields, "FORM_TYPE");
+
+  if (left_type == NULL && right_type == NULL)
+    {
+      return 0;
+    }
+  else if (left_type == NULL && right_type != NULL)
+    {
+      return -1;
+    }
+  else if (left_type != NULL && right_type == NULL)
+    {
+      return 0;
+    }
+  else
+    {
+      return strcmp (g_value_get_string (left_type->default_value),
+          g_value_get_string (left_type->default_value));
+    }
+}
+
 static void
 wocky_presence_free_xep0115_hash (
     GPtrArray *features,
     GPtrArray *identities,
-    WockyDataForm *dataform)
+    GPtrArray *dataforms)
 {
   g_ptr_array_foreach (features, (GFunc) g_free, NULL);
   wocky_disco_identity_array_free (identities);
+  g_ptr_array_foreach (dataforms, (GFunc) g_object_unref, NULL);
 
   g_ptr_array_free (features, TRUE);
-
-  if (dataform != NULL)
-    g_object_unref (dataform);
+  g_ptr_array_free (dataforms, TRUE);
 }
 
 static gchar *
 caps_hash_compute (
     GPtrArray *features,
     GPtrArray *identities,
-    WockyDataForm *dataform)
+    GPtrArray *dataforms)
 {
   GChecksum *checksum;
   guint8 *sha1;
   guint i;
   gchar *encoded;
   gsize sha1_buffer_size;
-  WockyDataFormField *field;
-  GSList *l;
 
   g_ptr_array_sort (identities, identity_cmp);
   g_ptr_array_sort (features, char_cmp);
+  g_ptr_array_sort (dataforms, dataforms_cmp);
 
   checksum = g_checksum_new (G_CHECKSUM_SHA1);
 
@@ -112,8 +141,12 @@ caps_hash_compute (
       g_checksum_update (checksum, (guchar *) "<", 1);
     }
 
-  if (dataform != NULL)
+  for (i = 0; i < dataforms->len; i++)
     {
+      WockyDataForm *dataform = g_ptr_array_index (dataforms, i);
+      WockyDataFormField *field;
+      GSList *l;
+
       field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
       g_assert (field != NULL);
 
@@ -178,10 +211,11 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
 {
   GPtrArray *features = g_ptr_array_new ();
   GPtrArray *identities = wocky_disco_identity_array_new ();
+  GPtrArray *dataforms = g_ptr_array_new ();
   gchar *str;
   GSList *c;
-  WockyDataForm *dataform;
-  GError *error = NULL;
+  WockyNodeIter iter;
+  WockyNode *x_node = NULL;
 
   for (c = node->children; c != NULL; c = c->next)
     {
@@ -224,16 +258,25 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
         }
     }
 
-  dataform = wocky_data_form_new_from_form (node, &error);
-  if (error != NULL)
+  wocky_node_iter_init (&iter, node, "x", WOCKY_XMPP_NS_DATA);
+  while (wocky_node_iter_next (&iter, &x_node))
     {
-      DEBUG ("Failed to parse data form: %s\n", error->message);
-      g_clear_error (&error);
-    }
+      GError *error = NULL;
+      WockyDataForm *dataform  = wocky_data_form_new_from_form (node, &error);
 
-  str = caps_hash_compute (features, identities, dataform);
+      if (error != NULL)
+        {
+          DEBUG ("Failed to parse data form: %s\n", error->message);
+          g_clear_error (&error);
+          continue;
+        }
 
-  wocky_presence_free_xep0115_hash (features, identities, dataform);
+      g_ptr_array_add (dataforms, dataform);
+   }
+
+  str = caps_hash_compute (features, identities, dataforms);
+
+  wocky_presence_free_xep0115_hash (features, identities, dataforms);
 
   return str;
 }
