@@ -45,6 +45,7 @@ struct _WockyDiscoIdentity
   gchar *name;
 };
 
+#define WOCKY_TYPE_DISCO_IDENTITY (wocky_disco_identity_get_type ())
 GType wocky_disco_identity_get_type (void);
 
 WockyDiscoIdentity *wocky_disco_identity_new (const gchar *category,
