@@ -439,6 +439,9 @@ extract_var_type_label (WockyNode *node,
   if (tmp == NULL)
     {
       GSList *l;
+      gboolean found = FALSE;
+
+      type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
 
       for (l = node->children; l != NULL; l = l->next)
         {
@@ -446,14 +449,14 @@ extract_var_type_label (WockyNode *node,
 
           if (!wocky_strdiff (child->name, "value"))
             {
-              if (type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE)
+              if (found)
                 {
                   type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI;
                   break;
                 }
               else
                 {
-                  type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
+                  found = TRUE;
                 }
             }
         }
