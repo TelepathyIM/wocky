@@ -22,7 +22,7 @@
  * @title: WockyCapsHash
  * @short_description: Utilities for computing verification string hash
  *
- * Computes verification string hash according to XEP-0115 v1.5
+ * Computes verification string hashes according to XEP-0115 v1.5
  *
  * Wocky does not do anything with dataforms (XEP-0128) included in
  * capabilities.  However, it needs to parse them in order to compute the hash
