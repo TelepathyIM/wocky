@@ -32,6 +32,8 @@
 
 #include "wocky-disco-identity.h"
 
+#include <string.h>
+
 #define DEBUG_FLAG DEBUG_PRESENCE
 #include "wocky-debug.h"
 
@@ -175,3 +177,31 @@ wocky_disco_identity_array_free (GPtrArray *arr)
   g_ptr_array_free (arr, TRUE);
 }
 
+/**
+ * wocky_disco_identity_cmp:
+ * @left: a #WockyDiscoIdentity
+ * @right: a #WockyDiscoIdentity
+ *
+ * Compares @left and @right. It returns an integer less than, equal
+ * to, or greater than zero if @left is found, respectively, to be
+ * less than, to match, or be greater than %right.
+ *
+ * This function can be casted to a %GCompareFunc to sort a list of
+ * #WockyDiscoIdentity structures.
+ *
+ * Returns: the result of comparing @left and @right
+ */
+gint
+wocky_disco_identity_cmp (WockyDiscoIdentity *left,
+    WockyDiscoIdentity *right)
+{
+  gint ret;
+
+  if ((ret = strcmp (left->category, right->category)) != 0)
+    return ret;
+  if ((ret = strcmp (left->type, right->type)) != 0)
+    return ret;
+  if ((ret = strcmp (left->lang, right->lang)) != 0)
+    return ret;
+  return strcmp (left->name, right->name);
+}

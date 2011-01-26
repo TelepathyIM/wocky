@@ -45,7 +45,8 @@
 #include "wocky-debug.h"
 
 static gint
-char_cmp (gconstpointer a, gconstpointer b)
+char_cmp (gconstpointer a,
+    gconstpointer b)
 {
   gchar *left = *(gchar **) a;
   gchar *right = *(gchar **) b;
@@ -54,19 +55,13 @@ char_cmp (gconstpointer a, gconstpointer b)
 }
 
 static gint
-identity_cmp (gconstpointer a, gconstpointer b)
+identity_cmp (gconstpointer a,
+    gconstpointer b)
 {
   WockyDiscoIdentity *left = *(WockyDiscoIdentity **) a;
   WockyDiscoIdentity *right = *(WockyDiscoIdentity **) b;
-  gint ret;
 
-  if ((ret = strcmp (left->category, right->category)) != 0)
-    return ret;
-  if ((ret = strcmp (left->type, right->type)) != 0)
-    return ret;
-  if ((ret = strcmp (left->lang, right->lang)) != 0)
-    return ret;
-  return strcmp (left->name, right->name);
+  return wocky_disco_identity_cmp (left, right);
 }
 
 static void

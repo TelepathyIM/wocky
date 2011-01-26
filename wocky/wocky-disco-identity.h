@@ -56,6 +56,8 @@ WockyDiscoIdentity *wocky_disco_identity_copy (
 
 void wocky_disco_identity_free (WockyDiscoIdentity *identity);
 
+gint wocky_disco_identity_cmp (WockyDiscoIdentity *left, WockyDiscoIdentity *right);
+
 /* array of WockyDiscoIdentity helper methods */
 GPtrArray * wocky_disco_identity_array_new (void) G_GNUC_WARN_UNUSED_RESULT;
 GPtrArray * wocky_disco_identity_array_copy (const GPtrArray *source)
