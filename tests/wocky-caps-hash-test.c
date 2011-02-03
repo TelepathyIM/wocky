@@ -98,6 +98,58 @@ test_complex (void)
   check_hash (stanza, "q07IKJEyjvHSyhy//CH0CxmKi8w=");
 }
 
+static void
+test_sorting (void)
+{
+  WockyStanza *stanza;
+  gchar *one, *two;
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Ψ 0.11",
+        '@', "type", "pc",
+        '#', "el",
+      ')',
+      NULL);
+
+  one = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Ψ 0.11",
+        '@', "type", "pc",
+        '#', "el",
+      ')',
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      NULL);
+
+  two = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert_cmpstr (one, ==, two);
+
+  g_free (one);
+  g_free (two);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -106,6 +158,7 @@ main (int argc, char **argv)
   test_init (argc, argv);
   g_test_add_func ("/caps-hash/simple", test_simple);
   g_test_add_func ("/caps-hash/complex", test_complex);
+  g_test_add_func ("/caps-hash/sorting", test_sorting);
 
   result = g_test_run ();
   test_deinit ();

@@ -105,9 +105,21 @@ wocky_presence_free_xep0115_hash (
   g_ptr_array_free (dataforms, TRUE);
 }
 
+static GPtrArray *
+ptr_array_copy (GPtrArray *old)
+{
+  GPtrArray *new = g_ptr_array_sized_new (old->len);
+  guint i;
+
+  for (i = 0 ; i < old->len ; i++)
+    g_ptr_array_add (new, g_ptr_array_index (old, i));
+
+  return new;
+}
+
 /**
  * wocky_caps_hash_compute_from_lists:
- * @features: a #GPtrArray of strings
+ * @features: a #GPtrArray of strings of features
  * @identities: a #GPtrArray of #WockyDiscoIdentity structures
  * @dataforms: a #GPtrArray of #WockyDataForm objects
  *
@@ -129,15 +141,26 @@ wocky_caps_hash_compute_from_lists (
   gchar *encoded;
   gsize sha1_buffer_size;
 
-  g_ptr_array_sort (identities, identity_cmp);
-  g_ptr_array_sort (features, char_cmp);
-  g_ptr_array_sort (dataforms, dataforms_cmp);
+  GPtrArray *features_sorted, *identities_sorted, *dataforms_sorted;
+
+  g_return_val_if_fail (features != NULL, NULL);
+  g_return_val_if_fail (identities != NULL, NULL);
+  g_return_val_if_fail (dataforms != NULL, NULL);
+
+  /* not a deep copy, we only need to sort */
+  features_sorted = ptr_array_copy (features);
+  identities_sorted = ptr_array_copy (identities);
+  dataforms_sorted = ptr_array_copy (dataforms);
+
+  g_ptr_array_sort (identities_sorted, identity_cmp);
+  g_ptr_array_sort (features_sorted, char_cmp);
+  g_ptr_array_sort (dataforms_sorted, dataforms_cmp);
 
   checksum = g_checksum_new (G_CHECKSUM_SHA1);
 
-  for (i = 0 ; i < identities->len ; i++)
+  for (i = 0 ; i < identities_sorted->len ; i++)
     {
-      const WockyDiscoIdentity *identity = g_ptr_array_index (identities, i);
+      const WockyDiscoIdentity *identity = g_ptr_array_index (identities_sorted, i);
       gchar *str = g_strdup_printf ("%s/%s/%s/%s",
           identity->category, identity->type,
           identity->lang ? identity->lang : "",
@@ -147,15 +170,15 @@ wocky_caps_hash_compute_from_lists (
       g_free (str);
     }
 
-  for (i = 0 ; i < features->len ; i++)
+  for (i = 0 ; i < features_sorted->len ; i++)
     {
-      g_checksum_update (checksum, (guchar *) g_ptr_array_index (features, i), -1);
+      g_checksum_update (checksum, (guchar *) g_ptr_array_index (features_sorted, i), -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
     }
 
-  for (i = 0; i < dataforms->len; i++)
+  for (i = 0; i < dataforms_sorted->len; i++)
     {
-      WockyDataForm *dataform = g_ptr_array_index (dataforms, i);
+      WockyDataForm *dataform = g_ptr_array_index (dataforms_sorted, i);
       WockyDataFormField *field;
       GSList *l;
 
@@ -201,6 +224,10 @@ wocky_caps_hash_compute_from_lists (
   encoded = g_base64_encode (sha1, sha1_buffer_size);
 
   g_checksum_free (checksum);
+
+  g_ptr_array_free (identities_sorted, TRUE);
+  g_ptr_array_free (features_sorted, TRUE);
+  g_ptr_array_free (dataforms_sorted, TRUE);
 
   return encoded;
 }
