@@ -180,7 +180,7 @@ wocky_caps_hash_compute_from_lists (
     {
       WockyDataForm *dataform = g_ptr_array_index (dataforms_sorted, i);
       WockyDataFormField *field;
-      GSList *l;
+      GSList *fields, *l;
 
       field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
       g_assert (field != NULL);
@@ -188,7 +188,11 @@ wocky_caps_hash_compute_from_lists (
       g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
 
-      for (l = dataform->fields_list; l != NULL; l = l->next)
+      /* we need to make a shallow copy to sort the fields */
+      fields = g_slist_copy (dataform->fields_list);
+      fields = g_slist_sort (fields, (GCompareFunc) wocky_data_form_field_cmp);
+
+      for (l = fields; l != NULL; l = l->next)
         {
           field = l->data;
 
@@ -215,6 +219,8 @@ wocky_caps_hash_compute_from_lists (
                 }
             }
         }
+
+      g_slist_free (fields);
     }
 
   sha1_buffer_size = g_checksum_type_get_length (G_CHECKSUM_SHA1);

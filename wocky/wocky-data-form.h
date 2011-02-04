@@ -150,6 +150,9 @@ const gchar *wocky_data_form_get_title (WockyDataForm *self);
 
 const gchar *wocky_data_form_get_instructions (WockyDataForm *self);
 
+gint wocky_data_form_field_cmp (const WockyDataFormField *left,
+    const WockyDataFormField *right);
+
 G_END_DECLS
 
 #endif /* WOCKY_DATA_FORM_H */

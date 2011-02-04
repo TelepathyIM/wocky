@@ -20,6 +20,8 @@
 
 #include "wocky-data-form.h"
 
+#include <string.h>
+
 #include "wocky-data-form-enumtypes.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
@@ -973,4 +975,11 @@ wocky_data_form_get_instructions (WockyDataForm *self)
   WockyDataFormPrivate *priv = self->priv;
 
   return priv->instructions;
+}
+
+gint
+wocky_data_form_field_cmp (const WockyDataFormField *left,
+    const WockyDataFormField *right)
+{
+  return strcmp (left->var, right->var);
 }
