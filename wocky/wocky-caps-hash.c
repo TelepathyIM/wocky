@@ -287,7 +287,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
   while (wocky_node_iter_next (&iter, &x_node))
     {
       GError *error = NULL;
-      WockyDataForm *dataform  = wocky_data_form_new_from_form (node, &error);
+      WockyDataForm *dataform  = wocky_data_form_new_from_node (x_node, &error);
 
       if (error != NULL)
         {
