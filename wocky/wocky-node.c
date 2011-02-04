@@ -267,6 +267,36 @@ wocky_node_set_attribute (WockyNode *node,
 }
 
 /**
+ * wocky_node_set_attributes:
+ * @node: a #WockyNode
+ * @key: the attribute name to set
+ * @Varargs: pairs of keys and values, terminated by %NULL
+ *
+ * Sets attributes in a #WockyNode to specific values.
+ */
+void
+wocky_node_set_attributes (WockyNode *node,
+    const gchar *key,
+    ...)
+{
+  va_list args;
+
+  g_return_if_fail (key != NULL);
+
+  va_start (args, key);
+  while (key != NULL)
+    {
+      const gchar *value;
+      value = (const gchar *) va_arg (args, gchar *);
+
+      wocky_node_set_attribute (node, key, value);
+
+      key = (const gchar *) va_arg (args, gchar *);
+    }
+  va_end (args);
+}
+
+/**
  * wocky_node_set_attribute_ns:
  * @node: a #WockyNode
  * @key: the attribute name to set

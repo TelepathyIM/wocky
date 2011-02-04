@@ -92,6 +92,9 @@ const gchar *wocky_node_get_attribute_ns (WockyNode *node,
 void  wocky_node_set_attribute (WockyNode *node, const gchar *key,
     const gchar *value);
 
+void  wocky_node_set_attributes (WockyNode *node, const gchar *key,
+    ...);
+
 void  wocky_node_set_attribute_ns (WockyNode *node,
     const gchar *key, const gchar *value, const gchar *ns);
 
