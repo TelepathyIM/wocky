@@ -99,7 +99,7 @@ test_complex (void)
 }
 
 static void
-test_sorting (void)
+test_sorting_simple (void)
 {
   WockyStanza *stanza;
   gchar *one, *two;
@@ -150,6 +150,162 @@ test_sorting (void)
   g_free (two);
 }
 
+static void
+test_sorting_complex (void)
+{
+  WockyStanza *stanza;
+  gchar *one, *two;
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Ψ 0.11",
+        '@', "type", "pc",
+        '#', "el",
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/disco#info", ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/disco#items", ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/muc", ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/caps", ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "ip_version",
+          '(', "value", '$', "ipv4", ')',
+          '(', "value", '$', "ipv6", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os",
+          '(', "value", '$', "Mac", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os_version",
+          '(', "value", '$', "10.5.1", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software",
+          '(', "value", '$', "Psi", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software_version",
+          '(', "value", '$', "0.11", ')',
+        ')',
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:somethingelse", ')',
+        ')',
+        '(', "field",
+          '@', "var", "foo",
+          '(', "value", '$', "bananas", ')',
+          '(', "value", '$', "cheese", ')',
+        ')',
+        '(', "field",
+          '@', "var", "wheeeeee",
+          '(', "value", '$', "I'm on a rollercoster", ')',
+        ')',
+      ')',
+      NULL);
+
+  one = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "feature", '@', "var", "http://jabber.org/protocol/disco#items", ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:somethingelse", ')',
+        ')',
+        '(', "field",
+          '@', "var", "wheeeeee",
+          '(', "value", '$', "I'm on a rollercoster", ')',
+        ')',
+        '(', "field",
+          '@', "var", "foo",
+          '(', "value", '$', "bananas", ')',
+          '(', "value", '$', "cheese", ')',
+        ')',
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/muc", ')',
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Ψ 0.11",
+        '@', "type", "pc",
+        '#', "el",
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/disco#info", ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software",
+          '(', "value", '$', "Psi", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os",
+          '(', "value", '$', "Mac", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os_version",
+          '(', "value", '$', "10.5.1", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software_version",
+          '(', "value", '$', "0.11", ')',
+        ')',
+        '(', "field",
+          '@', "var", "ip_version",
+          '(', "value", '$', "ipv4", ')',
+          '(', "value", '$', "ipv6", ')',
+        ')',
+      ')',
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/caps", ')',
+      NULL);
+
+  two = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert_cmpstr (one, ==, two);
+
+  g_free (one);
+  g_free (two);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -158,7 +314,8 @@ main (int argc, char **argv)
   test_init (argc, argv);
   g_test_add_func ("/caps-hash/simple", test_simple);
   g_test_add_func ("/caps-hash/complex", test_complex);
-  g_test_add_func ("/caps-hash/sorting", test_sorting);
+  g_test_add_func ("/caps-hash/sorting/simple", test_sorting_simple);
+  g_test_add_func ("/caps-hash/sorting/complex", test_sorting_complex);
 
   result = g_test_run ();
   test_deinit ();
