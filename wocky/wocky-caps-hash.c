@@ -99,7 +99,7 @@ ptr_array_copy (GPtrArray *old)
  * wocky_caps_hash_compute_from_lists:
  * @features: a #GPtrArray of strings of features
  * @identities: a #GPtrArray of #WockyDiscoIdentity structures
- * @dataforms: a #GPtrArray of #WockyDataForm objects
+ * @dataforms: a #GPtrArray of #WockyDataForm objects, or %NULL
  *
  * Compute the hash as defined by the XEP-0115 from a list of
  * features, identities and dataforms.
@@ -123,12 +123,15 @@ wocky_caps_hash_compute_from_lists (
 
   g_return_val_if_fail (features != NULL, NULL);
   g_return_val_if_fail (identities != NULL, NULL);
-  g_return_val_if_fail (dataforms != NULL, NULL);
 
   /* not a deep copy, we only need to sort */
   features_sorted = ptr_array_copy (features);
   identities_sorted = ptr_array_copy (identities);
-  dataforms_sorted = ptr_array_copy (dataforms);
+
+  if (dataforms != NULL)
+    dataforms_sorted = ptr_array_copy (dataforms);
+  else
+    dataforms_sorted = g_ptr_array_new ();
 
   g_ptr_array_sort (identities_sorted, identity_cmp);
   g_ptr_array_sort (features_sorted, char_cmp);
