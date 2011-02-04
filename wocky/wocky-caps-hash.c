@@ -83,20 +83,6 @@ dataforms_cmp (gconstpointer a,
         g_value_get_string (right_type->default_value));
 }
 
-static void
-wocky_presence_free_xep0115_hash (
-    GPtrArray *features,
-    GPtrArray *identities,
-    GPtrArray *dataforms)
-{
-  g_ptr_array_foreach (features, (GFunc) g_free, NULL);
-  wocky_disco_identity_array_free (identities);
-  g_ptr_array_foreach (dataforms, (GFunc) g_object_unref, NULL);
-
-  g_ptr_array_free (features, TRUE);
-  g_ptr_array_free (dataforms, TRUE);
-}
-
 static GPtrArray *
 ptr_array_copy (GPtrArray *old)
 {
@@ -246,9 +232,11 @@ wocky_caps_hash_compute_from_lists (
 gchar *
 wocky_caps_hash_compute_from_node (WockyNode *node)
 {
-  GPtrArray *features = g_ptr_array_new ();
+  GPtrArray *features = g_ptr_array_new_with_free_func (
+      (GDestroyNotify) g_free);
   GPtrArray *identities = wocky_disco_identity_array_new ();
-  GPtrArray *dataforms = g_ptr_array_new ();
+  GPtrArray *dataforms = g_ptr_array_new_with_free_func (
+      (GDestroyNotify) g_object_unref);
   gchar *str;
   GSList *c;
   WockyNodeIter iter;
@@ -313,7 +301,9 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
 
   str = wocky_caps_hash_compute_from_lists (features, identities, dataforms);
 
-  wocky_presence_free_xep0115_hash (features, identities, dataforms);
+  wocky_disco_identity_array_free (identities);
+  g_ptr_array_free (features, TRUE);
+  g_ptr_array_free (dataforms, TRUE);
 
   return str;
 }
