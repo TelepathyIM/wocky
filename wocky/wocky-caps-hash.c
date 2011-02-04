@@ -73,22 +73,14 @@ dataforms_cmp (gconstpointer a,
   right_type = g_hash_table_lookup (right->fields, "FORM_TYPE");
 
   if (left_type == NULL && right_type == NULL)
-    {
-      return 0;
-    }
+    return 0;
   else if (left_type == NULL && right_type != NULL)
-    {
-      return -1;
-    }
+    return -1;
   else if (left_type != NULL && right_type == NULL)
-    {
-      return 0;
-    }
-  else
-    {
-      return strcmp (g_value_get_string (left_type->default_value),
-          g_value_get_string (right_type->default_value));
-    }
+    return 1;
+  else /* left_type != NULL && right_type != NULL */
+    return strcmp (g_value_get_string (left_type->default_value),
+        g_value_get_string (right_type->default_value));
 }
 
 static void
