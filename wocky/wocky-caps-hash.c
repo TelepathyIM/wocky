@@ -87,7 +87,7 @@ dataforms_cmp (gconstpointer a,
   else
     {
       return strcmp (g_value_get_string (left_type->default_value),
-          g_value_get_string (left_type->default_value));
+          g_value_get_string (right_type->default_value));
     }
 }
 
