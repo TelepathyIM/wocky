@@ -148,6 +148,15 @@ typedef gboolean (* WockyPorterHandlerFunc) (
     WockyStanza *stanza,
     gpointer user_data);
 
+guint wocky_porter_register_handler_va (WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap);
+
 guint wocky_porter_register_handler (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
