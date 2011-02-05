@@ -539,7 +539,7 @@ wocky_stanza_error_to_node (const GError *error,
   wocky_node_set_attribute (error_node, "code", str);
 
   wocky_node_set_attribute (error_node, "type",
-      wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, spec->type));
+      wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR_TYPE, type));
 
   wocky_node_add_child_ns (error_node, wocky_xmpp_error_string (core_error),
       WOCKY_XMPP_NS_STANZAS);
