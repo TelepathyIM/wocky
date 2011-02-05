@@ -896,6 +896,16 @@ complete_close (WockyPorter *self)
   g_object_unref (tmp);
 }
 
+static gboolean
+stanza_is_from_server (
+    WockyPorter *self,
+    const gchar *nfrom)
+{
+  return (nfrom == NULL ||
+      !wocky_strdiff (nfrom, self->priv->full_jid) ||
+      !wocky_strdiff (nfrom, self->priv->bare_jid));
+}
+
 /* Return TRUE if not spoofed. */
 static gboolean
 check_spoofing (WockyPorter *self,
@@ -924,9 +934,7 @@ check_spoofing (WockyPorter *self,
    * to use our full or bare JID to reply */
   if (should_be_from == NULL)
     {
-      if (from == NULL ||
-          !wocky_strdiff (nfrom, self->priv->full_jid) ||
-          !wocky_strdiff (nfrom, self->priv->bare_jid))
+      if (stanza_is_from_server (self, nfrom))
         goto finally;
     }
 
