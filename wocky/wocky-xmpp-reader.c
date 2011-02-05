@@ -35,6 +35,7 @@
 
 #include "wocky-xmpp-reader.h"
 #include "wocky-signals-marshal.h"
+#include "wocky-utils.h"
 
 #include "wocky-namespaces.h"
 
@@ -420,8 +421,8 @@ _start_element_ns (void *user_data, const xmlChar *localname,
 
   if (priv->stream_mode && G_UNLIKELY (priv->depth == 0))
     {
-      if (strcmp ("stream", (gchar *) localname)
-          || strcmp (WOCKY_XMPP_NS_STREAM, (gchar *) uri))
+      if (wocky_strdiff ("stream", (gchar *) localname)
+          || wocky_strdiff (WOCKY_XMPP_NS_STREAM, (gchar *) uri))
         {
           priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
             WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
