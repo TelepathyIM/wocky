@@ -1033,10 +1033,8 @@ handle_stanza (WockyPorter *self,
           handler->sub_type != WOCKY_STANZA_SUB_TYPE_NONE)
         continue;
 
-      if (handler->node != NULL)
+      if (handler->domain != NULL)
         {
-          g_assert (handler->domain != NULL);
-
           if (wocky_strdiff (node, handler->node))
             continue;
 

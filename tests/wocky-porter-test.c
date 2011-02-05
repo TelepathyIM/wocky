@@ -2538,6 +2538,64 @@ send_and_disconnect (void)
   g_object_unref (lions);
 }
 
+static gboolean
+got_stanza_for_example_com (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  g_assert_cmpstr (wocky_stanza_get_from (stanza), ==, "example.com");
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+
+  return TRUE;
+}
+
+/* This is a regression test for a bug where registering a handler for a JID
+ * with no node part was equivalent to registering a handler with from=NULL;
+ * that is, we'd erroneously pass stanzas from *any* server to the handler
+ * function even if it explicitly specified a JID which was just a domain, as
+ * opposed to a JID with an '@' sign in it.
+ */
+static void
+handler_for_domain (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *irrelevant, *relevant;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  wocky_porter_register_handler (test->sched_in, WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "example.com", G_PRIORITY_DEFAULT,
+      got_stanza_for_example_com, test,
+      NULL);
+
+  /* Send a stanza from some other random jid (at example.com, for the sake of
+   * argument). The porter should ignore this stanza.
+   */
+  irrelevant = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "lol@example.com", NULL,
+      '(', "this-is-bullshit", ')', NULL);
+  wocky_porter_send (test->sched_out, irrelevant);
+  g_object_unref (irrelevant);
+
+  relevant = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "example.com", NULL,
+      '(', "i-am-a-fan-of-cocaine", ')', NULL);
+  wocky_porter_send (test->sched_out, relevant);
+  g_object_unref (relevant);
+
+  test->outstanding += 1;
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2590,6 +2648,7 @@ main (int argc, char **argv)
       test_wait_iq_reply_force_close);
   g_test_add_func ("/xmpp-porter/avoid-double-force-close", test_remote_error);
   g_test_add_func ("/xmpp-porter/send-and-disconnect", send_and_disconnect);
+  g_test_add_func ("/xmpp-porter/handler-for-domain", handler_for_domain);
 
   result = g_test_run ();
   test_deinit ();
