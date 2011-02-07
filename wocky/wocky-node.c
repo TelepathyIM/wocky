@@ -1252,6 +1252,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
 
             g_assert (key != NULL);
             g_assert (value != NULL);
+            g_assert (stack != NULL);
             wocky_node_set_attribute (stack->data, key, value);
           }
           break;
@@ -1262,6 +1263,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
             WockyNode *child;
 
             g_assert (name != NULL);
+            g_assert (stack != NULL);
             child = wocky_node_add_child (stack->data, name);
             stack = g_slist_prepend (stack, child);
           }
@@ -1271,6 +1273,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
           {
             gchar *txt = va_arg (ap, gchar *);
 
+            g_assert (stack != NULL);
             wocky_node_set_content (stack->data, txt);
           }
           break;
@@ -1280,6 +1283,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
             gchar *ns = va_arg (ap, gchar *);
 
             g_assert (ns != NULL);
+            g_assert (stack != NULL);
             ((WockyNode *) stack->data)->ns = g_quark_from_string (ns);
           }
           break;
@@ -1288,6 +1292,9 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
           {
             /* delete the top of the stack */
             stack = g_slist_delete_link (stack, stack);
+            /* If you put too many ')'s at the end of your build spec, we just
+             * warn; if you actually try to do anything else having fallen off
+             * the end, we'll assert in the relevant branch. */
             g_warn_if_fail (stack != NULL);
           }
           break;
@@ -1297,6 +1304,7 @@ wocky_node_add_build_va (WockyNode *node, va_list ap)
             WockyNode **dest = va_arg (ap, WockyNode **);
 
             g_assert (dest != NULL);
+            g_assert (stack != NULL);
             *dest = stack->data;
           }
           break;
