@@ -170,8 +170,8 @@ test_subscribe (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_subscribe_iq_cb, test,
       '(', "pubsub",
@@ -271,8 +271,8 @@ test_unsubscribe (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_unsubscribe_iq_cb, &ctx,
       '(', "pubsub",
@@ -353,8 +353,8 @@ test_delete (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_delete_iq_cb, test,
       '(', "pubsub",
@@ -474,8 +474,8 @@ test_list_subscribers (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_list_subscribers_iq_cb, test,
       '(', "pubsub",
@@ -598,8 +598,8 @@ test_list_affiliates (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_list_affiliates_iq_cb, test,
       '(', "pubsub",
@@ -699,8 +699,8 @@ test_modify_affiliates (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_modify_affiliates_iq_cb, test,
       '(', "pubsub",
@@ -840,8 +840,8 @@ test_get_configuration (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_get_configuration_iq_cb, test,
       '(', "pubsub",

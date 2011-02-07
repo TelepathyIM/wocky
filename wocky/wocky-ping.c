@@ -128,8 +128,8 @@ wocky_ping_constructed (GObject *object)
 
   g_assert (priv->porter != NULL);
 
-  priv->ping_iq_cb = wocky_porter_register_handler (priv->porter,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  priv->ping_iq_cb = wocky_porter_register_handler_from_anyone (priv->porter,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, ping_iq_cb, self,
       '(', "ping",
           ':', WOCKY_XMPP_NS_PING,

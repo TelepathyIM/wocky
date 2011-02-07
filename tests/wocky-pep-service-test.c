@@ -195,8 +195,8 @@ test_get (void)
   wocky_porter_start (test->sched_out);
   wocky_porter_start (test->sched_in);
 
-  handler_id = wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  handler_id = wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_send_query_stanza_received_cb, test, NULL);
 

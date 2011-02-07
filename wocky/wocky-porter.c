@@ -172,10 +172,17 @@ sending_queue_elem_free (sending_queue_elem *elem)
   g_slice_free (sending_queue_elem, elem);
 }
 
+typedef enum {
+    MATCH_ANYONE,
+    MATCH_SERVER,
+    MATCH_JID
+} SenderMatch;
+
 typedef struct
 {
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
+  SenderMatch sender_match;
   gchar *node;
   gchar *domain;
   gchar *resource;
@@ -189,6 +196,7 @@ static StanzaHandler *
 stanza_handler_new (
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
+    SenderMatch sender_match,
     const gchar *from,
     guint priority,
     WockyStanza *stanza,
@@ -203,11 +211,20 @@ stanza_handler_new (
   result->callback = callback;
   result->user_data = user_data;
   result->match = g_object_ref (stanza);
+  result->sender_match = sender_match;
 
-  if (from != NULL)
+  if (sender_match == MATCH_JID)
     {
-      wocky_decode_jid (from, &(result->node),
+      gboolean from_valid;
+
+      g_assert (from != NULL);
+      from_valid = wocky_decode_jid (from, &(result->node),
           &(result->domain), &(result->resource));
+      g_assert (from_valid);
+    }
+  else
+    {
+      g_assert (from == NULL);
     }
 
   return result;
@@ -442,19 +459,22 @@ wocky_porter_constructed (GObject *object)
   g_assert (priv->connection != NULL);
 
   /* Register the IQ reply handler */
-  wocky_porter_register_handler (self,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT, NULL,
+  wocky_porter_register_handler_from_anyone (self,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       handle_iq_reply, self, NULL);
 
-  wocky_porter_register_handler (self,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR, NULL,
+  wocky_porter_register_handler_from_anyone (self,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       handle_iq_reply, self, NULL);
 
-  /* Register the stream error handler */
-  wocky_porter_register_handler (self,
-      WOCKY_STANZA_TYPE_STREAM_ERROR, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+  /* Register the stream error handler. We use _from_anyone() here because we can
+   * trust servers not to relay spurious stream errors to us, and this feels
+   * safer than risking missing a stream error to bugs in the _from_server()
+   * checking code. */
+  wocky_porter_register_handler_from_anyone (self,
+      WOCKY_STANZA_TYPE_STREAM_ERROR, WOCKY_STANZA_SUB_TYPE_NONE,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       handle_stream_error, self, NULL);
 }
@@ -1020,6 +1040,7 @@ handle_stanza (WockyPorter *self,
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   gchar *node = NULL, *domain = NULL, *resource = NULL;
+  gboolean is_from_server;
 
   wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
@@ -1027,8 +1048,24 @@ handle_stanza (WockyPorter *self,
    * when receiving roster items, so don't enforce it. */
   from = wocky_stanza_get_from (stanza);
 
-  if (from != NULL)
-    wocky_decode_jid (from, &node, &domain, &resource);
+  if (from == NULL)
+    {
+      is_from_server = TRUE;
+    }
+  else if (wocky_decode_jid (from, &node, &domain, &resource))
+    {
+      /* FIXME: the stanza should really ensure that 'from' and 'to' are
+       * pre-validated and normalized so we don't have to do this again.
+       */
+      gchar *nfrom = wocky_compose_jid (node, domain, resource);
+
+      is_from_server = stanza_is_from_server (self, nfrom);
+      g_free (nfrom);
+    }
+  else
+    {
+      is_from_server = FALSE;
+    }
 
   for (l = priv->handlers; l != NULL; l = g_list_next (l))
     {
@@ -1041,22 +1078,31 @@ handle_stanza (WockyPorter *self,
           handler->sub_type != WOCKY_STANZA_SUB_TYPE_NONE)
         continue;
 
-      if (handler->domain != NULL)
+      switch (handler->sender_match)
         {
-          if (wocky_strdiff (node, handler->node))
-            continue;
+          case MATCH_ANYONE:
+            break;
 
-          if (wocky_strdiff (domain, handler->domain))
-            continue;
+          case MATCH_SERVER:
+            if (!is_from_server)
+              continue;
+            break;
 
-          if (handler->resource != NULL)
-            {
-              /* A ressource is defined so we want to match exactly the same
-               * JID */
+          case MATCH_JID:
+            g_assert (handler->domain != NULL);
 
-              if (wocky_strdiff (resource, handler->resource))
-                continue;
-            }
+            if (wocky_strdiff (node, handler->node))
+              continue;
+
+            if (wocky_strdiff (domain, handler->domain))
+              continue;
+
+            /* If a resource was specified, we need to match against it. */
+            if (handler->resource != NULL &&
+                wocky_strdiff (resource, handler->resource))
+              continue;
+
+            break;
         }
 
       /* Check if the stanza matches the pattern */
@@ -1480,36 +1526,11 @@ compare_handler (StanzaHandler *a,
     return 0;
 }
 
-/**
- * wocky_porter_register_handler_va:
- * @self: A #WockyPorter instance (passed to @callback).
- * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
- *  any type of stanza.
- * @sub_type: The subtype of stanza to be handled, or
- *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
- * @from: the JID whose messages this handler is intended for, or %NULL to
- *  match messages from any sender.
- * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
- *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
- *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
- *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
- * @user_data: Passed to @callback.
- * @ap: a wocky_stanza_build() specification. The handler
- *  will match a stanza only if the stanza received is a superset of the one
- *  passed to this function, as per wocky_node_is_superset().
- *
- * A va_list version of wocky_porter_register_handler(); see that function for
- * more details.
- *
- * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
- */
-guint
-wocky_porter_register_handler_va (WockyPorter *self,
+static guint
+wocky_porter_register_handler_internal (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
+    SenderMatch sender_match,
     const gchar *from,
     guint priority,
     WockyPorterHandlerFunc callback,
@@ -1526,8 +1547,8 @@ wocky_porter_register_handler_va (WockyPorter *self,
       NULL, NULL, ap);
   g_assert (stanza != NULL);
 
-  handler = stanza_handler_new (type, sub_type, from, priority, stanza,
-      callback, user_data);
+  handler = stanza_handler_new (type, sub_type, sender_match, from, priority,
+      stanza, callback, user_data);
   g_object_unref (stanza);
 
   g_hash_table_insert (priv->handlers_by_id,
@@ -1539,14 +1560,58 @@ wocky_porter_register_handler_va (WockyPorter *self,
 }
 
 /**
- * wocky_porter_register_handler:
+ * wocky_porter_register_handler_from_va:
  * @self: A #WockyPorter instance (passed to @callback).
  * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
  *  any type of stanza.
  * @sub_type: The subtype of stanza to be handled, or
  *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
  * @from: the JID whose messages this handler is intended for, or %NULL to
- *  match messages from any sender.
+ *  match messages from the server
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @ap: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * A <type>va_list</type> version of wocky_porter_register_handler_from(); see
+ * that function for more details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_va (WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+  g_return_val_if_fail (from != NULL, 0);
+
+  return wocky_porter_register_handler_internal (self, type, sub_type,
+      MATCH_JID, from,
+      priority, callback, user_data, ap);
+}
+
+/**
+ * wocky_porter_register_handler_from:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @from: the JID whose messages this handler is intended for (may not be
+ *  %NULL)
  * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
@@ -1570,15 +1635,6 @@ wocky_porter_register_handler_va (WockyPorter *self,
  * "foo@<!-- -->bar.org" will match
  * "foo@<!-- -->bar.org", "foo@<!-- -->bar.org/moose" and so forth.
  *
- * To register a handler matching all message stanzas received from anyone:
- *
- * |[
- * id = wocky_porter_register_handler (porter,
- *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
- *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, message_received_cb, NULL,
- *   NULL);
- * ]|
- *
  * To register an IQ handler from Juliet for all the Jingle stanzas related
  * to one Jingle session:
  *
@@ -1593,10 +1649,14 @@ wocky_porter_register_handler_va (WockyPorter *self,
  *   ')', NULL);
  * ]|
  *
+ * To match stanzas from any sender, see
+ * wocky_porter_register_handler_from_anyone(). To match stanzas sent by the
+ * server, see wocky_porter_register_handler_from_server().
+ *
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
  */
 guint
-wocky_porter_register_handler (WockyPorter *self,
+wocky_porter_register_handler_from (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
@@ -1609,10 +1669,228 @@ wocky_porter_register_handler (WockyPorter *self,
   guint ret;
 
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+  g_return_val_if_fail (from != NULL, 0);
 
   va_start (ap, user_data);
-  ret = wocky_porter_register_handler_va (self, type, sub_type, from, priority,
-      callback, user_data, ap);
+  ret = wocky_porter_register_handler_from_va (self, type, sub_type, from,
+      priority, callback, user_data, ap);
+  va_end (ap);
+
+  return ret;
+}
+
+/**
+ * wocky_porter_register_handler_from_anyone_va:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @Varargs: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * A <type>va_list</type> version of
+ * wocky_porter_register_handler_from_anyone(); see that function for more
+ * details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_anyone_va (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+
+  return wocky_porter_register_handler_internal (self, type, sub_type,
+      MATCH_ANYONE, NULL,
+      priority, callback, user_data, ap);
+}
+
+/**
+ * wocky_porter_register_handler_from_anyone:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @Varargs: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * Registers a handler for incoming stanzas from anyone, including those where
+ * the from attribute is missing.
+ *
+ * For example, to register a handler matching all message stanzas received
+ * from anyone, call:
+ *
+ * |[
+ * id = wocky_porter_register_handler (porter,
+ *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, message_received_cb, NULL,
+ *   NULL);
+ * ]|
+ *
+ * As a more interesting example, the following matches incoming PEP
+ * notifications for contacts' geolocation information:
+ *
+ * |[
+ * id = wocky_porter_register_handler_from_anyone (porter,
+ *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+ *    WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+ *    msg_event_cb, self,
+ *    '(', "event",
+ *      ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+ *      '(', "items",
+ *        '@', "node", "http://jabber.org/protocol/geoloc",
+ *      ')',
+ *    ')',
+ *    NULL);
+ * ]|
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_anyone (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    ...)
+{
+  va_list ap;
+  guint ret;
+
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+
+  va_start (ap, user_data);
+  ret = wocky_porter_register_handler_from_anyone_va (self, type, sub_type,
+      priority, callback, user_data, ap);
+  va_end (ap);
+
+  return ret;
+}
+
+/**
+ * wocky_porter_register_handler_from_server_va:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @Varargs: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * A <type>va_list</type> version of
+ * wocky_porter_register_handler_from_server(); see that function for more
+ * details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_server_va (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap)
+{
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+
+  return wocky_porter_register_handler_internal (self, type, sub_type,
+      MATCH_SERVER, NULL,
+      priority, callback, user_data, ap);
+}
+
+/**
+ * wocky_porter_register_handler_from_server:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @Varargs: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * Registers a handler for incoming stanzas from the local user's server; that
+ * is, stanzas with no "from" attribute, or where the sender is the user's own
+ * bare or full JID.
+ *
+ * For example, to register a handler for roster pushes, call:
+ *
+ * |[
+ * id = wocky_porter_register_handler_from_server (porter,
+ *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_SET,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_push_received_cb, NULL,
+ *   '(',
+ *     "query", ':', WOCKY_XMPP_NS_ROSTER,
+ *   ')', NULL);
+ * ]|
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_server (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    ...)
+{
+  va_list ap;
+  guint ret;
+
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+
+  va_start (ap, user_data);
+  ret = wocky_porter_register_handler_from_server_va (self, type, sub_type,
+      priority, callback, user_data, ap);
   va_end (ap);
 
   return ret;
