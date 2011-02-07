@@ -440,6 +440,9 @@ _start_element_ns (void *user_data, const xmlChar *localname,
 
       for (i = 0; i < nb_attributes * 5; i+=5)
         {
+          /* attr_name and attr_value are guaranteed non-NULL; attr_prefix and
+           * attr_uri may be NULL.
+           */
           const gchar *attr_name = (const gchar *) attributes[i];
           const gchar *attr_prefix = (const gchar *) attributes[i+1];
           const gchar *attr_uri = (const gchar *) attributes[i+2];
@@ -468,7 +471,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
               priv->version = attr_value;
             }
           else if (!strcmp (attr_name, "lang") &&
-              !strcmp (attr_prefix, "xml"))
+              !wocky_strdiff (attr_prefix, "xml"))
             {
               g_free (priv->lang);
               priv->lang = attr_value;

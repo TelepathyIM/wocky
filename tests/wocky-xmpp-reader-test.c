@@ -22,6 +22,12 @@
 "<stream:streamsss xmlns='jabber:client'                                   " \
 "  xmlns:stream='http://etherx.jabber.org/streams'>                        "
 
+#define HEADER_WITH_UNQUALIFIED_LANG \
+"<?xml version='1.0' encoding='UTF-8'?>                                    " \
+"<stream:stream xmlns='jabber:client'                                      " \
+"  xmlns:stream='http://etherx.jabber.org/streams'                         " \
+"  lang='fi'>                                                              "
+
 #define BROKEN_MESSAGE \
 "  <message to='juliet@example.com' from='romeo@example.net' xml:lang='en' " \
 "   id=\"0\">                                                              " \
@@ -125,6 +131,24 @@ test_stream_open_error (void)
       WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START);
 
   g_error_free (error);
+
+  g_object_unref (reader);
+}
+
+static void
+test_stream_open_unqualified_lang (void)
+{
+  WockyXmppReader *reader = wocky_xmpp_reader_new ();
+
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_INITIAL);
+
+  wocky_xmpp_reader_push (reader,
+    (guint8 *) HEADER_WITH_UNQUALIFIED_LANG,
+    strlen (HEADER_WITH_UNQUALIFIED_LANG));
+
+  g_assert (wocky_xmpp_reader_get_state (reader)
+    == WOCKY_XMPP_READER_STATE_OPENED);
 
   g_object_unref (reader);
 }
@@ -292,6 +316,8 @@ main (int argc,
 
   g_test_add_func ("/xmpp-reader/stream-no-stanzas", test_stream_no_stanzas);
   g_test_add_func ("/xmpp-reader/stream-open-error", test_stream_open_error);
+  g_test_add_func ("/xmpp-reader/stream-open-unqualified-lang",
+      test_stream_open_unqualified_lang);
   g_test_add_func ("/xmpp-reader/parse-error", test_parse_error);
   g_test_add_func ("/xmpp-reader/no-stream-hunks", test_no_stream_hunks);
   g_test_add_func ("/xmpp-reader/no-stream-resetting", test_no_stream_reset);
