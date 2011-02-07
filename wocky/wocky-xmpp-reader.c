@@ -439,45 +439,47 @@ _start_element_ns (void *user_data, const xmlChar *localname,
 
       for (i = 0; i < nb_attributes * 5; i+=5)
         {
-          DEBUG ("Stream opening attribute: %s = '%.*s' (prefix: %s, uri: %s)",
-            attributes[i],
-            (int) (attributes[i+4] - attributes[i+3]),
-            attributes [i + 3],
-            attributes[i+1] != NULL ? (gchar *) attributes[i+1]
-                : "<no prefix>",
-            attributes[i+2] != NULL ? (gchar *) attributes[i+2]
-                : "<no uri>");
+          const gchar *attr_name = (const gchar *) attributes[i];
+          const gchar *attr_prefix = (const gchar *) attributes[i+1];
+          const gchar *attr_uri = (const gchar *) attributes[i+2];
+          gsize value_len = attributes[i+4] - attributes[i+3];
+          gchar *attr_value = g_strndup (
+              (const gchar *) attributes[i+3], value_len);
 
-          if (!strcmp ((gchar *) attributes[i], "to"))
+          DEBUG ("Stream opening attribute: %s = '%s' (prefix: %s, uri: %s)",
+              attr_name, attr_value,
+              attr_prefix != NULL ? attr_prefix : "<no prefix>",
+              attr_uri != NULL ? attr_uri : "<no uri>");
+
+          if (!strcmp (attr_name, "to"))
             {
               g_free (priv->to);
-              priv->to = g_strndup ((gchar *) attributes[i+3],
-                           (gsize) (attributes[i+4] - attributes[i+3]));
+              priv->to = attr_value;
             }
-          else if (!strcmp ((gchar *) attributes[i], "from"))
+          else if (!strcmp (attr_name, "from"))
             {
               g_free (priv->from);
-              priv->from = g_strndup ((gchar *) attributes[i+3],
-                         (gsize) (attributes[i+4] - attributes[i+3]));
+              priv->from = attr_value;
             }
-          else if (!strcmp ((gchar *) attributes[i], "version"))
+          else if (!strcmp (attr_name, "version"))
             {
               g_free (priv->version);
-              priv->version = g_strndup ((gchar *) attributes[i+3],
-                  (gsize) (attributes[i+4] - attributes[i+3]));
+              priv->version = attr_value;
             }
-          else if (!strcmp ((gchar *) attributes[i], "lang") &&
-              !strcmp ((gchar *) attributes[i + 1], "xml"))
+          else if (!strcmp (attr_name, "lang") &&
+              !strcmp (attr_prefix, "xml"))
             {
               g_free (priv->lang);
-              priv->lang = g_strndup ((gchar *) attributes[i+3],
-                  (gsize) (attributes[i+4] - attributes[i+3]));
+              priv->lang = attr_value;
             }
-          else if (!strcmp ((gchar *) attributes[i], "id"))
+          else if (!strcmp (attr_name, "id"))
             {
-              gsize len = attributes[i+4] - attributes[i+3];
               g_free (priv->id);
-              priv->id = g_strndup ((gchar *) attributes[i+3], len);
+              priv->id = attr_value;
+            }
+          else
+            {
+              g_free (attr_value);
             }
         }
       priv->depth++;
