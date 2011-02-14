@@ -201,7 +201,7 @@ AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @SQLITE_LIBS@ @TLS_LIBS@ @L
 # wocky-xmpp-error-enumtypes.h, and $short is WOCKY.
 $(filter %-enumtypes.h,$(built_headers)): %-enumtypes.h: %.h Makefile.in
 	$(AM_V_GEN)set -e; \
-	long=`echo $* | tr [:lower:]- [:upper:]_`; \
+	long=`echo $(notdir $*) | tr [:lower:]- [:upper:]_`; \
 	short=$${long%%_*}; \
 	guard="__$${long}_ENUM_TYPES_H__"; \
 	glib-mkenums \
