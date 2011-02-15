@@ -108,6 +108,7 @@ tests/tardis
 
 examples/wocky-connect
 examples/wocky-register
+examples/wocky-send-message
 examples/wocky-unregister
 
 coverage/
