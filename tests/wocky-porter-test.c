@@ -3119,6 +3119,72 @@ handler_from_anyone (void)
   teardown_test (test);
 }
 
+static void
+closed_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  WockyPorter *porter = WOCKY_PORTER (source);
+  test_data_t *test = user_data;
+  gboolean ret;
+  GError *error = NULL;
+
+  ret = wocky_porter_close_finish (porter, result, &error);
+  g_assert_no_error (error);
+  g_assert (ret);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+sent_stanza_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  WockyPorter *porter = WOCKY_PORTER (source);
+  test_data_t *test = user_data;
+  gboolean ret;
+  GError *error = NULL;
+
+  ret = wocky_porter_send_finish (porter, result, &error);
+  g_assert_no_error (error);
+  g_assert (ret);
+
+  /* Close up both porters. There's no reason why either of these operations
+   * should fail.
+   */
+  wocky_porter_close_async (test->sched_out, NULL, closed_cb, test);
+  wocky_porter_close_async (test->sched_in, NULL, closed_cb, test);
+}
+
+static void
+close_from_send_callback (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+      '(', "body", '$', "I am made of chalk.", ')', NULL);
+
+  /* Fire up porters in both directions. */
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+  wocky_porter_start (test->sched_out);
+
+  /* Send a stanza. Once it's been safely sent, we should be able to close up
+   * the connection in both directions without any trouble.
+   */
+  wocky_porter_send_async (test->sched_in, stanza, NULL, sent_stanza_cb, test);
+  g_object_unref (stanza);
+
+  /* The two outstanding events are both porters ultimately closing
+   * successfully. */
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -3177,6 +3243,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/send-and-disconnect", send_and_disconnect);
   g_test_add_func ("/xmpp-porter/handler-for-domain", handler_for_domain);
   g_test_add_func ("/xmpp-porter/handler-from-anyone", handler_from_anyone);
+  g_test_add_func ("/xmpp-porter/close-from-send-callback",
+      close_from_send_callback);
 
   result = g_test_run ();
   test_deinit ();
