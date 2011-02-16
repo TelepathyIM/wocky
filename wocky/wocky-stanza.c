@@ -210,14 +210,23 @@ static gboolean
 check_sub_type (WockyStanzaType type,
                 WockyStanzaSubType sub_type)
 {
+  WockyStanzaType expected_type;
+
   g_return_val_if_fail (type > WOCKY_STANZA_TYPE_NONE &&
       type < NUM_WOCKY_STANZA_TYPE, FALSE);
   g_return_val_if_fail (sub_type < NUM_WOCKY_STANZA_SUB_TYPE, FALSE);
 
   g_assert (sub_type_names[sub_type].sub_type == sub_type);
-  g_return_val_if_fail (
-      sub_type_names[sub_type].type == WOCKY_STANZA_TYPE_NONE ||
-      sub_type_names[sub_type].type == type, FALSE);
+
+  expected_type = sub_type_names[sub_type].type;
+
+  if (expected_type != WOCKY_STANZA_TYPE_NONE && expected_type != type)
+    {
+      g_critical ("Stanza sub-type '%s' may only be used with stanzas of "
+        "type '%s', not of type '%s'", sub_type_names[sub_type].name,
+        type_names[expected_type].name, type_names[type].name);
+      g_return_val_if_reached (FALSE);
+    }
 
   return TRUE;
 }
