@@ -136,10 +136,9 @@ wocky_stanza_class_init (WockyStanzaClass *wocky_stanza_class)
 
   object_class->dispose = wocky_stanza_dispose;
   object_class->finalize = wocky_stanza_finalize;
-
 }
 
-void
+static void
 wocky_stanza_dispose (GObject *object)
 {
   WockyStanza *self = WOCKY_STANZA (object);
@@ -155,7 +154,7 @@ wocky_stanza_dispose (GObject *object)
     G_OBJECT_CLASS (wocky_stanza_parent_class)->dispose (object);
 }
 
-void
+static void
 wocky_stanza_finalize (GObject *object)
 {
   G_OBJECT_CLASS (wocky_stanza_parent_class)->finalize (object);
