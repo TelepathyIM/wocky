@@ -109,6 +109,10 @@ WockyStanza * wocky_stanza_build (WockyStanzaType type,
     WockyStanzaSubType sub_type, const gchar *from, const gchar *to,
     ...) G_GNUC_NULL_TERMINATED;
 
+WockyStanza * wocky_stanza_build_to_contact (WockyStanzaType type,
+    WockyStanzaSubType sub_type, const gchar *from,
+    WockyContact *to, ...) G_GNUC_NULL_TERMINATED;
+
 void wocky_stanza_get_type_info (WockyStanza *stanza,
     WockyStanzaType *type, WockyStanzaSubType *sub_type);
 

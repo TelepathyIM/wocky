@@ -328,6 +328,32 @@ wocky_stanza_build (WockyStanzaType type,
 }
 
 WockyStanza *
+wocky_stanza_build_to_contact (WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    WockyContact *to,
+    ...)
+
+{
+  WockyStanza *stanza;
+  va_list ap;
+  gchar *to_jid = NULL;
+
+  if (to != NULL)
+    to_jid = wocky_contact_dup_jid (to);
+
+  va_start (ap, to);
+  stanza = wocky_stanza_build_va (type, sub_type, from, to_jid, ap);
+  va_end (ap);
+
+  g_free (to_jid);
+
+  stanza->priv->contact = g_object_ref (to);
+
+  return stanza;
+}
+
+WockyStanza *
 wocky_stanza_build_va (WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
