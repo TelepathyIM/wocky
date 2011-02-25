@@ -226,7 +226,7 @@ wocky_session_class_init (WockySessionClass *wocky_session_class)
 }
 
 WockySession *
-wocky_session_new (WockyXmppConnection *conn,
+wocky_session_new_with_connection (WockyXmppConnection *conn,
     const gchar *full_jid)
 {
   return g_object_new (WOCKY_TYPE_SESSION,
