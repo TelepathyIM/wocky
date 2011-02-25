@@ -65,6 +65,7 @@ enum
 {
   BARE_CONTACT_ADDED,
   RESOURCE_CONTACT_ADDED,
+  LL_CONTACT_ADDED,
   LAST_SIGNAL,
 };
 
@@ -77,6 +78,8 @@ struct _WockyContactFactoryPrivate
   GHashTable *bare_contacts;
   /* full JID (gchar *) => weak reffed (WockyResourceContact *) */
   GHashTable *resource_contacts;
+  /* JID (gchar *) => weak reffed (WockyLLContact *) */
+  GHashTable *ll_contacts;
 
   gboolean dispose_has_run;
 };
@@ -93,6 +96,8 @@ wocky_contact_factory_init (WockyContactFactory *self)
   priv->bare_contacts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free,
       NULL);
   priv->resource_contacts = g_hash_table_new_full (g_str_hash, g_str_equal,
+      g_free, NULL);
+  priv->ll_contacts = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, NULL);
 }
 
@@ -137,8 +142,9 @@ remove_contact (gpointer key,
   return value == contact;
 }
 
-/* Called when a WockyBareContact or WockyResourceContact has been disposed so
- * we can remove it from his hash table. */
+/* Called when a WockyBareContact, WockyResourceContact or
+ * WockyLLContact has been disposed so we can remove it from his hash
+ * table. */
 static void
 contact_disposed_cb (gpointer user_data,
     GObject *contact)
@@ -175,6 +181,13 @@ wocky_contact_factory_dispose (GObject *object)
           priv->resource_contacts);
     }
 
+  g_hash_table_iter_init (&iter, priv->ll_contacts);
+  while (g_hash_table_iter_next (&iter, NULL, &contact))
+    {
+      g_object_weak_unref (G_OBJECT (contact), contact_disposed_cb,
+          priv->ll_contacts);
+    }
+
   if (G_OBJECT_CLASS (wocky_contact_factory_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_contact_factory_parent_class)->dispose (object);
 }
@@ -187,6 +200,7 @@ wocky_contact_factory_finalize (GObject *object)
 
   g_hash_table_destroy (priv->bare_contacts);
   g_hash_table_destroy (priv->resource_contacts);
+  g_hash_table_destroy (priv->ll_contacts);
 
   G_OBJECT_CLASS (wocky_contact_factory_parent_class)->finalize (object);
 }
@@ -213,6 +227,12 @@ wocky_contact_factory_class_init (
       G_TYPE_NONE, 1, G_TYPE_OBJECT);
 
   signals[RESOURCE_CONTACT_ADDED] = g_signal_new ("resource-contact-added",
+      G_OBJECT_CLASS_TYPE (wocky_contact_factory_class),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__OBJECT,
+      G_TYPE_NONE, 1, G_TYPE_OBJECT);
+
+  signals[LL_CONTACT_ADDED] = g_signal_new ("ll-contact-added",
       G_OBJECT_CLASS_TYPE (wocky_contact_factory_class),
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT,
@@ -356,4 +376,101 @@ wocky_contact_factory_lookup_resource_contact (WockyContactFactory *self,
   WockyContactFactoryPrivate *priv = self->priv;
 
   return g_hash_table_lookup (priv->resource_contacts, full_jid);
+}
+
+/**
+ * wocky_contact_factory_ensure_ll_contact:
+ * @factory: a #WockyContactFactory instance
+ * @jid: the JID of a contact
+ *
+ * Returns an instance of #WockyLLContact for @jid.
+ * The factory cache is used, but if the contact is not found in the cache,
+ * a new #WockyLLContact is created and cached for future use.
+ *
+ * Returns: a new reference to a #WockyLLContact instance, which the
+ *  caller is expected to release with g_object_unref() after use.
+ */
+WockyLLContact *
+wocky_contact_factory_ensure_ll_contact (WockyContactFactory *self,
+    const gchar *jid)
+{
+  WockyContactFactoryPrivate *priv = self->priv;
+  WockyLLContact *contact;
+
+  contact = g_hash_table_lookup (priv->ll_contacts, jid);
+  if (contact != NULL)
+    return g_object_ref (contact);
+
+  contact = wocky_ll_contact_new (jid);
+
+  g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
+      priv->ll_contacts);
+  g_hash_table_insert (priv->ll_contacts, g_strdup (jid), contact);
+
+  g_signal_emit (self, signals[LL_CONTACT_ADDED], 0, contact);
+
+  return contact;
+}
+
+/**
+ * wocky_contact_factory_lookup_ll_contact:
+ * @factory: a #WockyContactFactory instance
+ * @jid: the JID of a contact
+ *
+ * Looks up if there's a #WockyLLContact for @jid in the cache, and
+ * returns it if it's found.
+ *
+ * Returns: a borrowed #WockyLLContact instance (which the caller should
+ *  reference with g_object_ref() if it will be kept), or %NULL if the
+ *  contact is not found.
+ */
+WockyLLContact *
+wocky_contact_factory_lookup_ll_contact (WockyContactFactory *self,
+    const gchar *jid)
+{
+  WockyContactFactoryPrivate *priv = self->priv;
+
+  return g_hash_table_lookup (priv->ll_contacts, jid);
+}
+
+/**
+ * wocky_contact_factory_add_ll_contact:
+ * @factory: a #WockyContactFactory instance
+ * @contact: a #WockyLLContact
+ *
+ * Adds @contact to the contact factory.
+ */
+void
+wocky_contact_factory_add_ll_contact (WockyContactFactory *self,
+    WockyLLContact *contact)
+{
+  WockyContactFactoryPrivate *priv = self->priv;
+
+  if (g_hash_table_lookup (priv->ll_contacts,
+          wocky_contact_dup_jid (WOCKY_CONTACT (contact)))
+      == contact)
+    return;
+
+  g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
+      priv->ll_contacts);
+  g_hash_table_insert (priv->ll_contacts,
+      g_strdup (wocky_contact_dup_jid (WOCKY_CONTACT (contact))),
+      contact);
+
+  g_signal_emit (self, signals[LL_CONTACT_ADDED], 0, contact);
+}
+
+/**
+ * wocky_contact_factory_get_ll_contacts:
+ * @factory: a #WockyContactFactory instance
+ *
+ * <!-- -->
+ *
+ * Returns: a newly allocated #GList of #WockyLLContact<!-- -->s which
+ *   should be freed using g_list_free().
+ */
+GList *
+wocky_contact_factory_get_ll_contacts (WockyContactFactory *self)
+{
+  return g_hash_table_get_values (self->priv->ll_contacts);
 }
