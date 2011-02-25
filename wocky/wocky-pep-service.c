@@ -257,14 +257,14 @@ wocky_pep_service_start (WockyPepService *self,
   g_object_ref (priv->contact_factory);
 
   /* Register event handler */
-  priv->handler_id = wocky_porter_register_handler (priv->porter,
-      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
+  priv->handler_id = wocky_porter_register_handler_from_anyone (priv->porter,
+      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       msg_event_cb, self,
       '(', "event",
         ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
         '(', "items",
-        '@', "node", priv->node,
+          '@', "node", priv->node,
         ')',
       ')',
       NULL);

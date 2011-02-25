@@ -520,18 +520,8 @@ roster_iq_handler_set_cb (WockyPorter *porter,
     gpointer user_data)
 {
   WockyRoster *self = WOCKY_ROSTER (user_data);
-  const gchar *from;
   GError *error = NULL;
   WockyStanza *reply;
-
-  from = wocky_stanza_get_from (stanza);
-
-  if (from != NULL)
-    {
-      /* TODO: discard roster IQs which are not from ourselves or the
-       * server. */
-      return TRUE;
-    }
 
   if (!roster_update (self, stanza, TRUE, &error))
     {
@@ -570,8 +560,8 @@ wocky_roster_constructed (GObject *object)
   g_assert (priv->porter != NULL);
   g_object_ref (priv->porter);
 
-  priv->iq_cb = wocky_porter_register_handler (priv->porter,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  priv->iq_cb = wocky_porter_register_handler_from_server (priv->porter,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_set_cb, self,
       '(', "query",
         ':', WOCKY_XMPP_NS_ROSTER,

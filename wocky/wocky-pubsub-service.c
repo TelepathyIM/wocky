@@ -215,7 +215,7 @@ wocky_pubsub_service_constructed (GObject *object)
 
       t->mapping = m;
       t->self = self;
-      t->handler_id = wocky_porter_register_handler (priv->porter,
+      t->handler_id = wocky_porter_register_handler_from (priv->porter,
           WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
           priv->jid,
           WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,

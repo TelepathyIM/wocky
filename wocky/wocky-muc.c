@@ -835,7 +835,7 @@ register_presence_handler (WockyMuc *muc)
   WockyMucPrivate *priv = muc->priv;
 
   if (priv->pres_handler == 0)
-    priv->pres_handler = wocky_porter_register_handler (priv->porter,
+    priv->pres_handler = wocky_porter_register_handler_from (priv->porter,
         WOCKY_STANZA_TYPE_PRESENCE,
         WOCKY_STANZA_SUB_TYPE_NONE,
         priv->rjid,
@@ -854,7 +854,7 @@ register_message_handler (WockyMuc *muc)
   WockyMucPrivate *priv = muc->priv;
 
   if (priv->mesg_handler == 0)
-    priv->mesg_handler = wocky_porter_register_handler (priv->porter,
+    priv->mesg_handler = wocky_porter_register_handler_from (priv->porter,
         WOCKY_STANZA_TYPE_MESSAGE,
         WOCKY_STANZA_SUB_TYPE_NONE,
         priv->rjid,

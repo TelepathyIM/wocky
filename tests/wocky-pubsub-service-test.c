@@ -157,8 +157,8 @@ get_default_node_configuration_test (WockyPorterHandlerFunc iq_cb,
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       iq_cb, test,
       '(', "pubsub",
@@ -309,8 +309,8 @@ create_node_test (WockyPorterHandlerFunc iq_cb,
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       iq_cb, test,
       '(', "pubsub",
@@ -622,8 +622,8 @@ test_create_node_config (void)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_get_default_node_configuration_iq_cb, test,
       '(', "pubsub",
@@ -632,8 +632,8 @@ test_create_node_config (void)
       ')',
       NULL);
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_create_node_config_create_iq_cb, test,
       '(', "pubsub",
@@ -844,8 +844,8 @@ test_retrieve_subscriptions (gconstpointer mode_)
 
   pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_MAX,
       test_retrieve_subscriptions_iq_cb, &ctx,
         '(', "pubsub",

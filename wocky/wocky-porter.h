@@ -148,10 +148,55 @@ typedef gboolean (* WockyPorterHandlerFunc) (
     WockyStanza *stanza,
     gpointer user_data);
 
-guint wocky_porter_register_handler (WockyPorter *self,
+guint wocky_porter_register_handler_from_va (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap);
+
+guint wocky_porter_register_handler_from (WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    ...) G_GNUC_NULL_TERMINATED;
+
+guint wocky_porter_register_handler_from_anyone_va (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap);
+
+guint wocky_porter_register_handler_from_anyone (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    ...) G_GNUC_NULL_TERMINATED;
+
+guint wocky_porter_register_handler_from_server_va (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap);
+
+guint wocky_porter_register_handler_from_server (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
     guint priority,
     WockyPorterHandlerFunc callback,
     gpointer user_data,

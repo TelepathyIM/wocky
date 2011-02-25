@@ -63,8 +63,8 @@ test_periodic_ping (void)
   wocky_porter_start (test->sched_in);
   wocky_porter_start (test->sched_out);
 
-  wocky_porter_register_handler (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, ping_recv_cb, test,
       '(', "ping",
           ':', WOCKY_XMPP_NS_PING,
