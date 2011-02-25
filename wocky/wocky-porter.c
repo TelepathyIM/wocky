@@ -1535,21 +1535,15 @@ wocky_porter_register_handler_internal (WockyPorter *self,
     guint priority,
     WockyPorterHandlerFunc callback,
     gpointer user_data,
-    va_list ap)
+    WockyStanza *stanza)
 {
   WockyPorterPrivate *priv = self->priv;
   StanzaHandler *handler;
-  WockyStanza *stanza;
 
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
 
-  stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
-      NULL, NULL, ap);
-  g_assert (stanza != NULL);
-
   handler = stanza_handler_new (type, sub_type, sender_match, from, priority,
       stanza, callback, user_data);
-  g_object_unref (stanza);
 
   g_hash_table_insert (priv->handlers_by_id,
       GUINT_TO_POINTER (priv->next_handler_id), handler);
@@ -1595,12 +1589,67 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
     gpointer user_data,
     va_list ap)
 {
+  guint ret;
+  WockyStanza *stanza;
+
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+  g_return_val_if_fail (from != NULL, 0);
+
+  stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, NULL, ap);
+  g_assert (stanza != NULL);
+
+  ret = wocky_porter_register_handler_from_stanza (self, type, sub_type,
+      from,
+      priority, callback, user_data, stanza);
+
+  g_object_unref (stanza);
+
+  return ret;
+}
+
+/**
+ * wocky_porter_register_handler_from_stanza:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @from: the JID whose messages this handler is intended for, or %NULL to
+ *  match messages from the server
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @stanza: a #WockyStanza. The handler will match a stanza only if
+ *  the stanza received is a superset of the one passed to this
+ *  function, as per wocky_node_is_superset().
+ *
+ * A #WockyStanza version of wocky_porter_register_handler_from(); see
+ * that function for more details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_stanza (WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza)
+{
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
   g_return_val_if_fail (from != NULL, 0);
 
   return wocky_porter_register_handler_internal (self, type, sub_type,
       MATCH_JID, from,
-      priority, callback, user_data, ap);
+      priority, callback, user_data, stanza);
 }
 
 /**
@@ -1694,7 +1743,7 @@ wocky_porter_register_handler_from (WockyPorter *self,
  *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
  *  stop further processing.
  * @user_data: Passed to @callback.
- * @Varargs: a wocky_stanza_build() specification. The handler
+ * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
  *  passed to this function, as per wocky_node_is_superset().
  *
@@ -1714,11 +1763,63 @@ wocky_porter_register_handler_from_anyone_va (
     gpointer user_data,
     va_list ap)
 {
+  guint ret;
+  WockyStanza *stanza;
+
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+
+  stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, NULL, ap);
+  g_assert (stanza != NULL);
+
+  ret = wocky_porter_register_handler_from_anyone_stanza (self, type, sub_type,
+      priority, callback, user_data, stanza);
+
+  g_object_unref (stanza);
+
+  return ret;
+}
+
+/**
+ * wocky_porter_register_handler_from_anyone_stanza:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @stanza: a #WockyStanza. The handler will match a stanza only if
+ *  the stanza received is a superset of the one passed to this
+ *  function, as per wocky_node_is_superset().
+ *
+ * A #WockyStanza version of
+ * wocky_porter_register_handler_from_anyone(); see that function for
+ * more details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_anyone_stanza (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza)
+{
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
 
   return wocky_porter_register_handler_internal (self, type, sub_type,
       MATCH_ANYONE, NULL,
-      priority, callback, user_data, ap);
+      priority, callback, user_data, stanza);
 }
 
 /**
@@ -1810,7 +1911,7 @@ wocky_porter_register_handler_from_anyone (
  *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
  *  stop further processing.
  * @user_data: Passed to @callback.
- * @Varargs: a wocky_stanza_build() specification. The handler
+ * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
  *  passed to this function, as per wocky_node_is_superset().
  *
@@ -1830,11 +1931,63 @@ wocky_porter_register_handler_from_server_va (
     gpointer user_data,
     va_list ap)
 {
+  guint ret;
+  WockyStanza *stanza;
+
+  g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+
+  stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, NULL, ap);
+  g_assert (stanza != NULL);
+
+  ret = wocky_porter_register_handler_from_server_stanza (self, type, sub_type,
+      priority, callback, user_data, stanza);
+
+  g_object_unref (stanza);
+
+  return ret;
+}
+
+/**
+ * wocky_porter_register_handler_from_server_stanza:
+ * @self: A #WockyPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @stanza: a #WockyStanza. The handler will match a stanza only if
+ *  the stanza received is a superset of the one passed to this
+ *  function, as per wocky_node_is_superset().
+ *
+ * A #WockyStanza version of
+ * wocky_porter_register_handler_from_server(); see that function for more
+ * details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_porter_register_handler_from_server_stanza (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza)
+{
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
 
   return wocky_porter_register_handler_internal (self, type, sub_type,
       MATCH_SERVER, NULL,
-      priority, callback, user_data, ap);
+      priority, callback, user_data, stanza);
 }
 
 /**

@@ -157,6 +157,15 @@ guint wocky_porter_register_handler_from_va (WockyPorter *self,
     gpointer user_data,
     va_list ap);
 
+guint wocky_porter_register_handler_from_stanza (WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza);
+
 guint wocky_porter_register_handler_from (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -175,6 +184,15 @@ guint wocky_porter_register_handler_from_anyone_va (
     gpointer user_data,
     va_list ap);
 
+guint wocky_porter_register_handler_from_anyone_stanza (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza);
+
 guint wocky_porter_register_handler_from_anyone (
     WockyPorter *self,
     WockyStanzaType type,
@@ -192,6 +210,15 @@ guint wocky_porter_register_handler_from_server_va (
     WockyPorterHandlerFunc callback,
     gpointer user_data,
     va_list ap);
+
+guint wocky_porter_register_handler_from_server_stanza (
+    WockyPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza);
 
 guint wocky_porter_register_handler_from_server (
     WockyPorter *self,
