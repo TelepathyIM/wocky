@@ -156,3 +156,14 @@ wocky_contact_class_init (WockyContactClass *wocky_contact_class)
   object_class->dispose = wocky_contact_dispose;
   object_class->finalize = wocky_contact_finalize;
 }
+
+gchar *
+wocky_contact_dup_jid (WockyContact *self)
+{
+  WockyContactClass *cls = WOCKY_CONTACT_GET_CLASS (self);
+
+  if (cls->dup_jid != NULL)
+    return cls->dup_jid (self);
+  else
+    return NULL;
+}
