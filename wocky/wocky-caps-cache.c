@@ -307,20 +307,43 @@ caps_cache_open (WockyCapsCache *self)
 }
 
 static void
+nuke_it_and_try_again (WockyCapsCache *self)
+{
+  int ret;
+
+  g_return_if_fail (self->priv->path != NULL);
+  g_return_if_fail (self->priv->db == NULL);
+
+  ret = unlink (self->priv->path);
+
+  if (ret != 0)
+    DEBUG ("removing database failed: %s", g_strerror (errno));
+  else
+    caps_cache_open (self);
+}
+
+static void
+close_nuke_and_reopen_database (WockyCapsCache *self)
+{
+  g_return_if_fail (self->priv->db != NULL);
+
+  DEBUG ("Database seems to be corrupt; blowing it away and reinitializing");
+
+  sqlite3_close (self->priv->db);
+  self->priv->db = NULL;
+
+  nuke_it_and_try_again (self);
+}
+
+static void
 wocky_caps_cache_constructed (GObject *object)
 {
   WockyCapsCache *self = WOCKY_CAPS_CACHE (object);
 
   if (!caps_cache_open (self))
     {
-      /* Couldn't open it, or it's got a different user_version. Nuke it and
-       * try again. */
-      int ret = unlink (self->priv->path);
-
-      if (ret != 0)
-        DEBUG ("removing database failed: %s", g_strerror (errno));
-      else if (caps_cache_open (self))
-        g_assert (self->priv->db != NULL);
+      /* Couldn't open it, or it's got a different user_version. */
+      nuke_it_and_try_again (self);
     }
 
   if (self->priv->db == NULL)
@@ -408,7 +431,11 @@ caps_cache_prepare (WockyCapsCache *self,
     const gchar *sql,
     sqlite3_stmt **stmt)
 {
-  gint ret = sqlite3_prepare_v2 (self->priv->db, sql, -1, stmt, NULL);
+  gint ret;
+
+  g_return_val_if_fail (self->priv->db != NULL, FALSE);
+
+  ret = sqlite3_prepare_v2 (self->priv->db, sql, -1, stmt, NULL);
 
   if (ret != SQLITE_OK)
     {
@@ -512,7 +539,7 @@ static void
 caps_cache_touch (WockyCapsCache *self,
     const gchar *node)
 {
-  gint ret;
+  gint ret = SQLITE_OK;
   sqlite3_stmt *stmt;
 
   if (!caps_cache_prepare (self,
@@ -534,6 +561,9 @@ caps_cache_touch (WockyCapsCache *self,
     }
 
   sqlite3_finalize (stmt);
+
+  if (ret == SQLITE_CORRUPT)
+    close_nuke_and_reopen_database (self);
 }
 
 /**
@@ -593,6 +623,8 @@ wocky_caps_cache_lookup (WockyCapsCache *self,
   query_node = (WockyNodeTree *)
       wocky_xmpp_reader_pop_stanza (self->priv->reader);
 
+  sqlite3_finalize (stmt);
+
   if (query_node == NULL)
     {
       GError *error = wocky_xmpp_reader_get_error (self->priv->reader);
@@ -602,12 +634,17 @@ wocky_caps_cache_lookup (WockyCapsCache *self,
 
       if (error != NULL)
         g_error_free (error);
+
+      /* Destroy the town in order to save it. */
+      close_nuke_and_reopen_database (self);
+    }
+  else
+    {
+      caps_cache_touch (self, node);
     }
 
   wocky_xmpp_reader_reset (self->priv->reader);
 
-  sqlite3_finalize (stmt);
-  caps_cache_touch (self, node);
   return query_node;
 }
 
@@ -618,7 +655,7 @@ caps_cache_insert (WockyCapsCache *self,
 {
   const guint8 *val;
   gsize len;
-  gint ret;
+  gint ret = SQLITE_OK;
   sqlite3_stmt *stmt;
 
   if (!caps_cache_prepare (self,
@@ -633,10 +670,10 @@ caps_cache_insert (WockyCapsCache *self,
       &val, &len);
 
   if (!caps_cache_bind_text (self, stmt, 2, len, (const gchar *) val))
-    goto OUT;
+    return;
 
   if (!caps_cache_bind_int (self, stmt, 3, time (NULL)))
-    goto OUT;
+    return;
 
   ret = sqlite3_step (stmt);
 
@@ -652,6 +689,9 @@ caps_cache_insert (WockyCapsCache *self,
 
 OUT:
   sqlite3_finalize (stmt);
+
+  if (ret == SQLITE_CORRUPT)
+    close_nuke_and_reopen_database (self);
 }
 
 static gboolean
@@ -699,15 +739,16 @@ caps_cache_gc (WockyCapsCache *self,
 
   ret = sqlite3_step (stmt);
 
-  if (ret != SQLITE_DONE)
-    {
-      DEBUG ("statement execution failed: %s",
-          sqlite3_errmsg (self->priv->db));
-    }
+  if (ret == SQLITE_DONE)
+    DEBUG ("cache reduced from %d to %d items",
+        count, count - sqlite3_changes (self->priv->db));
+  else
+      DEBUG ("statement execution failed: %s", sqlite3_errmsg (self->priv->db));
 
   sqlite3_finalize (stmt);
-  DEBUG ("cache reduced from %d to %d items",
-      count, count - sqlite3_changes (self->priv->db));
+
+  if (ret == SQLITE_CORRUPT)
+    close_nuke_and_reopen_database (self);
 }
 
 static guint
