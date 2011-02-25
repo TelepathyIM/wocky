@@ -167,11 +167,21 @@ wocky_resource_contact_finalize (GObject *object)
   G_OBJECT_CLASS (wocky_resource_contact_parent_class)->finalize (object);
 }
 
+static gchar *
+wocky_resource_contact_dup_jid (WockyContact *contact)
+{
+  WockyResourceContact *self = WOCKY_RESOURCE_CONTACT (contact);
+  const gchar *bare = wocky_bare_contact_get_jid (self->priv->bare_contact);
+
+  return g_strdup_printf ("%s/%s", bare, self->priv->resource);
+}
+
 static void
 wocky_resource_contact_class_init (
     WockyResourceContactClass *wocky_resource_contact_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_resource_contact_class);
+  WockyContactClass *contact_class = WOCKY_CONTACT_CLASS (wocky_resource_contact_class);
   GParamSpec *spec;
 
   g_type_class_add_private (wocky_resource_contact_class,
@@ -182,6 +192,8 @@ wocky_resource_contact_class_init (
   object_class->get_property = wocky_resource_contact_get_property;
   object_class->dispose = wocky_resource_contact_dispose;
   object_class->finalize = wocky_resource_contact_finalize;
+
+  contact_class->dup_jid = wocky_resource_contact_dup_jid;
 
   /**
    * WockyResourceContact:resource:
