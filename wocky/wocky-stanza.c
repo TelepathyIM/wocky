@@ -173,7 +173,8 @@ wocky_stanza_finalize (GObject *object)
 }
 
 WockyStanza *
-wocky_stanza_new (const gchar *name, const gchar *ns)
+wocky_stanza_new (const gchar *name,
+    const gchar *ns)
 {
   WockyStanza *result;
 
@@ -219,7 +220,7 @@ get_sub_type_name (WockyStanzaSubType sub_type)
 
 static gboolean
 check_sub_type (WockyStanzaType type,
-                WockyStanzaSubType sub_type)
+    WockyStanzaSubType sub_type)
 {
   g_return_val_if_fail (type > WOCKY_STANZA_TYPE_NONE &&
       type < NUM_WOCKY_STANZA_TYPE, FALSE);
@@ -235,7 +236,7 @@ check_sub_type (WockyStanzaType type,
 
 static WockyStanza *
 wocky_stanza_new_with_sub_type (WockyStanzaType type,
-                                      WockyStanzaSubType sub_type)
+    WockyStanzaSubType sub_type)
 {
   WockyStanza *stanza = NULL;
   const gchar *sub_type_name;
@@ -311,10 +312,10 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  */
 WockyStanza *
 wocky_stanza_build (WockyStanzaType type,
-                          WockyStanzaSubType sub_type,
-                          const gchar *from,
-                          const gchar *to,
-                          ...)
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    const gchar *to,
+    ...)
 
 {
   WockyStanza *stanza;
@@ -426,8 +427,8 @@ get_sub_type_from_name (const gchar *name)
 
 void
 wocky_stanza_get_type_info (WockyStanza *stanza,
-                                  WockyStanzaType *type,
-                                  WockyStanzaSubType *sub_type)
+    WockyStanzaType *type,
+    WockyStanzaSubType *sub_type)
 {
   g_return_if_fail (stanza != NULL);
   g_assert (wocky_stanza_get_top_node (stanza) != NULL);
