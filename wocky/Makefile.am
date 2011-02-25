@@ -61,6 +61,7 @@ handwritten_headers = \
   wocky-jabber-auth.h \
   wocky-jabber-auth-digest.h \
   wocky-jabber-auth-password.h \
+  wocky-ll-connector.h \
   wocky-ll-contact.h \
   wocky-muc.h \
   wocky-namespaces.h \
@@ -111,6 +112,7 @@ handwritten_sources = \
   wocky-jabber-auth.c \
   wocky-jabber-auth-digest.c \
   wocky-jabber-auth-password.c \
+  wocky-ll-connector.c \
   wocky-ll-contact.c \
   wocky-muc.c \
   wocky-node.c \
