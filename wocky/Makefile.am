@@ -51,6 +51,7 @@ handwritten_headers = \
   wocky-bare-contact.h \
   wocky-c2s-porter.h \
   wocky-caps-cache.h \
+  wocky-connection-factory.h \
   wocky-connector.h \
   wocky-contact.h \
   wocky-contact-factory.h \
@@ -100,6 +101,7 @@ handwritten_sources = \
   wocky-bare-contact.c \
   wocky-c2s-porter.c \
   wocky-caps-cache.c \
+  wocky-connection-factory.c \
   wocky-connector.c \
   wocky-contact.c \
   wocky-contact-factory.c \

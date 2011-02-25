@@ -32,6 +32,7 @@ static GDebugKey keys[] = {
   { "ping",              DEBUG_PING              },
   { "heartbeat",         DEBUG_HEARTBEAT         },
   { "presence",          DEBUG_PRESENCE          },
+  { "connection-factory",DEBUG_CONNECTION_FACTORY},
   { 0, },
 };
 
