@@ -26,6 +26,7 @@
 #include <glib-object.h>
 #include "wocky-node-tree.h"
 #include "wocky-xmpp-error.h"
+#include "wocky-contact.h"
 
 G_BEGIN_DECLS
 
@@ -134,6 +135,11 @@ gboolean wocky_stanza_extract_errors (WockyStanza *stanza,
 
 gboolean wocky_stanza_extract_stream_error (WockyStanza *stanza,
     GError **stream_error);
+
+WockyContact * wocky_stanza_get_contact (WockyStanza *self);
+
+void wocky_stanza_set_contact (WockyStanza *self,
+    WockyContact *contact);
 
 G_END_DECLS
 

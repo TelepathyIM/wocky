@@ -33,6 +33,8 @@ G_DEFINE_TYPE(WockyStanza, wocky_stanza, WOCKY_TYPE_NODE_TREE)
 /* private structure */
 struct _WockyStanzaPrivate
 {
+  WockyContact *contact;
+
   gboolean dispose_has_run;
 };
 
@@ -122,6 +124,8 @@ wocky_stanza_init (WockyStanza *self)
 {
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_STANZA,
       WockyStanzaPrivate);
+
+  self->priv->contact = NULL;
 }
 
 static void wocky_stanza_dispose (GObject *object);
@@ -157,6 +161,14 @@ wocky_stanza_dispose (GObject *object)
 static void
 wocky_stanza_finalize (GObject *object)
 {
+  WockyStanza *self = WOCKY_STANZA (object);
+
+  if (self->priv->contact != NULL)
+    {
+      g_object_unref (self->priv->contact);
+      self->priv->contact = NULL;
+    }
+
   G_OBJECT_CLASS (wocky_stanza_parent_class)->finalize (object);
 }
 
@@ -412,6 +424,7 @@ create_iq_reply (WockyStanza *iq,
   WockyNode *node;
   WockyStanzaSubType sub_type;
   const gchar *from, *to, *id;
+  WockyContact *contact;
 
   g_return_val_if_fail (iq != NULL, NULL);
 
@@ -430,6 +443,11 @@ create_iq_reply (WockyStanza *iq,
       sub_type_reply, to, from, ap);
 
   wocky_node_set_attribute (wocky_stanza_get_top_node (reply), "id", id);
+
+  contact = wocky_stanza_get_contact (iq);
+  if (contact != NULL)
+    wocky_stanza_set_contact (reply, contact);
+
   return reply;
 }
 
@@ -591,4 +609,27 @@ wocky_stanza_get_to (WockyStanza *self)
   g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
 
   return wocky_node_get_attribute (wocky_stanza_get_top_node (self), "to");
+}
+
+WockyContact *
+wocky_stanza_get_contact (WockyStanza *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
+
+  return self->priv->contact;
+}
+
+void
+wocky_stanza_set_contact (WockyStanza *self,
+    WockyContact *contact)
+{
+  g_return_if_fail (self != NULL);
+  g_return_if_fail (WOCKY_IS_STANZA (self));
+  g_return_if_fail (WOCKY_IS_CONTACT (contact));
+
+  if (self->priv->contact != NULL)
+    g_object_unref (self->priv->contact);
+
+  self->priv->contact = g_object_ref (contact);
 }
