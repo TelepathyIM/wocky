@@ -42,6 +42,7 @@
 
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
+#include "wocky-c2s-porter.h"
 
 G_DEFINE_TYPE (WockySession, wocky_session, G_TYPE_OBJECT)
 
@@ -150,7 +151,7 @@ wocky_session_constructed (GObject *object)
 
   g_assert (priv->connection != NULL);
 
-  priv->porter = wocky_porter_new (priv->connection, priv->full_jid);
+  priv->porter = wocky_c2s_porter_new (priv->connection, priv->full_jid);
 }
 
 static void

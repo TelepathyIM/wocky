@@ -1,7 +1,6 @@
 /*
  * wocky-porter.h - Header for WockyPorter
- * Copyright (C) 2009 Collabora Ltd.
- * @author Guillaume Desmottes <guillaume.desmottes@collabora.co.uk>
+ * Copyright (C) 2011 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,20 +22,11 @@
 
 #include <glib-object.h>
 
-#include "wocky-xmpp-connection.h"
+#include <gio/gio.h>
+
 #include "wocky-stanza.h"
 
 G_BEGIN_DECLS
-
-/**
- * WockyPorter:
- *
- * An object providing a convenient wrapper around a #WockyXmppConnection to
- * send and receive stanzas.
- */
-typedef struct _WockyPorter WockyPorter;
-typedef struct _WockyPorterClass WockyPorterClass;
-typedef struct _WockyPorterPrivate WockyPorterPrivate;
 
 /**
  * WockyPorterError:
@@ -59,10 +49,6 @@ typedef enum {
 
 GQuark wocky_porter_error_quark (void);
 
-#define WOCKY_PORTER_HANDLER_PRIORITY_MIN 0
-#define WOCKY_PORTER_HANDLER_PRIORITY_NORMAL (guint) (G_MAXUINT / 2)
-#define WOCKY_PORTER_HANDLER_PRIORITY_MAX G_MAXUINT
-
 /**
  * WOCKY_PORTER_ERROR:
  *
@@ -70,57 +56,26 @@ GQuark wocky_porter_error_quark (void);
  */
 #define WOCKY_PORTER_ERROR (wocky_porter_error_quark ())
 
-
-struct _WockyPorterClass {
-    GObjectClass parent_class;
-};
-
-struct _WockyPorter {
-    GObject parent;
-    WockyPorterPrivate *priv;
-};
-
 GType wocky_porter_get_type (void);
 
-/* TYPE MACROS */
+/* type macros */
 #define WOCKY_TYPE_PORTER \
   (wocky_porter_get_type ())
 #define WOCKY_PORTER(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), WOCKY_TYPE_PORTER, \
-   WockyPorter))
-#define WOCKY_PORTER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), WOCKY_TYPE_PORTER, \
-   WockyPorterClass))
+  (G_TYPE_CHECK_INSTANCE_CAST ((obj), WOCKY_TYPE_PORTER, \
+      WockyPorter))
 #define WOCKY_IS_PORTER(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj), WOCKY_TYPE_PORTER))
-#define WOCKY_IS_PORTER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass), WOCKY_TYPE_PORTER))
-#define WOCKY_PORTER_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_PORTER, \
-   WockyPorterClass))
+  (G_TYPE_CHECK_INSTANCE_TYPE ((obj), WOCKY_TYPE_PORTER))
+#define WOCKY_PORTER_GET_INTERFACE(inst) \
+  (G_TYPE_INSTANCE_GET_INTERFACE ((inst), WOCKY_TYPE_PORTER, \
+      WockyPorterInterface))
 
-WockyPorter * wocky_porter_new (WockyXmppConnection *connection,
-    const gchar *full_jid);
+typedef struct _WockyPorter WockyPorter;
+typedef struct _WockyPorterInterface WockyPorterInterface;
 
-const gchar *wocky_porter_get_full_jid (WockyPorter *self);
-const gchar *wocky_porter_get_bare_jid (WockyPorter *self);
-const gchar *wocky_porter_get_resource (WockyPorter *self);
-
-void wocky_porter_send_async (WockyPorter *porter,
-    WockyStanza *stanza,
-    GCancellable *cancellable,
-    GAsyncReadyCallback callback,
-    gpointer user_data);
-
-gboolean wocky_porter_send_finish (
-    WockyPorter *porter,
-    GAsyncResult *result,
-    GError **error);
-
-void wocky_porter_send (WockyPorter *porter,
-    WockyStanza *stanza);
-
-void wocky_porter_start (WockyPorter *porter);
+#define WOCKY_PORTER_HANDLER_PRIORITY_MIN 0
+#define WOCKY_PORTER_HANDLER_PRIORITY_NORMAL (guint) (G_MAXUINT / 2)
+#define WOCKY_PORTER_HANDLER_PRIORITY_MAX G_MAXUINT
 
 /**
  * WockyPorterHandlerFunc:
@@ -147,6 +102,106 @@ typedef gboolean (* WockyPorterHandlerFunc) (
     WockyPorter *porter,
     WockyStanza *stanza,
     gpointer user_data);
+
+struct _WockyPorterInterface
+{
+  GTypeInterface parent_iface;
+
+  const gchar * (*get_full_jid) (WockyPorter *self);
+  const gchar * (*get_bare_jid) (WockyPorter *self);
+  const gchar * (*get_resource) (WockyPorter *self);
+
+  void (*start) (WockyPorter *porter);
+
+  void (*send_async) (WockyPorter *porter,
+      WockyStanza *stanza,
+      GCancellable *cancellable,
+      GAsyncReadyCallback callback,
+      gpointer user_data);
+
+  gboolean (*send_finish) (WockyPorter *porter,
+      GAsyncResult *result,
+      GError **error);
+
+  guint (*register_handler_from_stanza) (
+      WockyPorter *self,
+      WockyStanzaType type,
+      WockyStanzaSubType sub_type,
+      const gchar *from,
+      guint priority,
+      WockyPorterHandlerFunc callback,
+      gpointer user_data,
+      WockyStanza *stanza);
+
+  guint (*register_handler_from_anyone_stanza) (
+      WockyPorter *self,
+      WockyStanzaType type,
+      WockyStanzaSubType sub_type,
+      guint priority,
+      WockyPorterHandlerFunc callback,
+      gpointer user_data,
+      WockyStanza *stanza);
+
+  guint (*register_handler_from_server_stanza) (
+      WockyPorter *self,
+      WockyStanzaType type,
+      WockyStanzaSubType sub_type,
+      guint priority,
+      WockyPorterHandlerFunc callback,
+      gpointer user_data,
+      WockyStanza *stanza);
+
+  void (*unregister_handler) (WockyPorter *self,
+      guint id);
+
+  void (*close_async) (WockyPorter *self,
+      GCancellable *cancellable,
+      GAsyncReadyCallback callback,
+      gpointer user_data);
+
+  gboolean (*close_finish) (WockyPorter *self,
+      GAsyncResult *result,
+      GError **error);
+
+  void (*send_iq_async) (WockyPorter *porter,
+      WockyStanza *stanza,
+      GCancellable *cancellable,
+      GAsyncReadyCallback callback,
+      gpointer user_data);
+
+  WockyStanza * (*send_iq_finish) (WockyPorter *porter,
+      GAsyncResult *result,
+      GError **error) G_GNUC_WARN_UNUSED_RESULT;
+
+  void (*force_close_async) (WockyPorter *porter,
+      GCancellable *cancellable,
+      GAsyncReadyCallback callback,
+      gpointer user_data);
+
+  gboolean (*force_close_finish) (WockyPorter *porter,
+      GAsyncResult *result,
+      GError **error);
+};
+
+void wocky_porter_start (WockyPorter *porter);
+
+const gchar * wocky_porter_get_full_jid (WockyPorter *self);
+const gchar * wocky_porter_get_bare_jid (WockyPorter *self);
+const gchar * wocky_porter_get_resource (WockyPorter *self);
+
+void wocky_porter_send_async (WockyPorter *porter,
+    WockyStanza *stanza,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_porter_send_finish (
+    WockyPorter *porter,
+    GAsyncResult *result,
+    GError **error);
+
+void wocky_porter_send (WockyPorter *porter,
+    WockyStanza *stanza);
 
 guint wocky_porter_register_handler_from_va (WockyPorter *self,
     WockyStanzaType type,
@@ -237,8 +292,7 @@ void wocky_porter_close_async (WockyPorter *porter,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-gboolean wocky_porter_close_finish (
-    WockyPorter *porter,
+gboolean wocky_porter_close_finish (WockyPorter *porter,
     GAsyncResult *result,
     GError **error);
 

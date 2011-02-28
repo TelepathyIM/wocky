@@ -4,7 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-porter.h>
+#include <wocky/wocky-c2s-porter.h>
 #include <wocky/wocky-utils.h>
 #include <wocky/wocky-namespaces.h>
 #include <wocky/wocky-xmpp-error.h>
@@ -21,7 +21,7 @@ test_instantiation (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  porter = wocky_porter_new (connection, "juliet@example.com/Balcony");
+  porter = wocky_c2s_porter_new (connection, "juliet@example.com/Balcony");
 
   g_assert (porter != NULL);
   g_assert_cmpstr (wocky_porter_get_full_jid (porter), ==,
