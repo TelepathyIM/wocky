@@ -45,7 +45,6 @@
 #include <gio/gio.h>
 
 #include "wocky-porter.h"
-#include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
 #include "wocky-contact-factory.h"
@@ -67,18 +66,6 @@ enum
   PROP_BARE_JID,
   PROP_RESOURCE,
 };
-
-/* signal enum */
-enum
-{
-    REMOTE_CLOSED,
-    REMOTE_ERROR,
-    CLOSING,
-    SENDING,
-    LAST_SIGNAL
-};
-
-static guint signals[LAST_SIGNAL] = {0};
 
 /* private structure */
 struct _WockyC2SPorterPrivate
@@ -476,7 +463,6 @@ wocky_c2s_porter_class_init (
     WockyC2SPorterClass *wocky_c2s_porter_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_c2s_porter_class);
-  GParamSpec *spec;
 
   g_type_class_add_private (wocky_c2s_porter_class,
       sizeof (WockyC2SPorterPrivate));
@@ -487,103 +473,14 @@ wocky_c2s_porter_class_init (
   object_class->dispose = wocky_c2s_porter_dispose;
   object_class->finalize = wocky_c2s_porter_finalize;
 
-  /**
-   * WockyC2SPorter::remote-closed:
-   * @porter: the object on which the signal is emitted
-   *
-   * The ::remote-closed signal is emitted when the other side closed the XMPP
-   * stream.
-   */
-  signals[REMOTE_CLOSED] = g_signal_new ("remote-closed",
-      G_OBJECT_CLASS_TYPE (wocky_c2s_porter_class),
-      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
-
-  /**
-   * WockyC2SPorter::remote-error:
-   * @porter: the object on which the signal is emitted
-   * @domain: error domain (a #GQuark)
-   * @code: error code
-   * @message: human-readable informative error message
-   *
-   * The ::remote-error signal is emitted when an error has been detected
-   * on the XMPP stream.
-   */
-  signals[REMOTE_ERROR] = g_signal_new ("remote-error",
-      G_OBJECT_CLASS_TYPE (wocky_c2s_porter_class),
-      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__UINT_INT_STRING,
-      G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
-
-  /**
-   * WockyC2SPorter::closing:
-   * @porter: the object on which the signal is emitted
-   *
-   * The ::closing signal is emitted when the #WockyC2SPorter starts to close its
-   * XMPP connection. Once this signal has been emitted, the #WockyC2SPorter
-   * can't be used to send stanzas any more.
-   */
-  signals[CLOSING] = g_signal_new ("closing",
-      G_OBJECT_CLASS_TYPE (wocky_c2s_porter_class),
-      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
-
-  /**
-   * WockyC2SPorter::sending:
-   * @porter: the object on which the signal is emitted
-   *
-   * The ::writing signal is emitted whenever #WockyC2SPorter sends data
-   * on the XMPP connection.
-   */
-  signals[SENDING] = g_signal_new ("sending",
-      G_OBJECT_CLASS_TYPE (wocky_c2s_porter_class),
-      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
-
-  /**
-   * WockyC2SPorter:connection:
-   *
-   * The underlying #WockyXmppConnection wrapped by the #WockyC2SPorter
-   */
-  spec = g_param_spec_object ("connection", "XMPP connection",
-    "the XMPP connection used by this porter",
-    WOCKY_TYPE_XMPP_CONNECTION,
-    G_PARAM_READWRITE |
-    G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_CONNECTION, spec);
-
-  /**
-   * WockyC2SPorter:full-jid:
-   *
-   * The user's full JID (node&commat;domain/resource).
-   */
-  spec = g_param_spec_string ("full-jid", "Full JID",
-    "The user's own full JID (node@domain/resource)",
-    NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_FULL_JID, spec);
-
-  /**
-   * WockyC2SPorter:bare-jid:
-   *
-   * The user's bare JID (node&commat;domain).
-   */
-  spec = g_param_spec_string ("bare-jid", "Bare JID",
-    "The user's own bare JID (node@domain)",
-    NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_BARE_JID, spec);
-
-  /**
-   * WockyC2SPorter:resource:
-   *
-   * The resource part of the user's full JID, or %NULL if their full JID does
-   * not contain a resource at all.
-   */
-  spec = g_param_spec_string ("resource", "Resource", "The user's resource",
-    NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_RESOURCE, spec);
+  g_object_class_override_property (object_class,
+      PROP_CONNECTION, "connection");
+  g_object_class_override_property (object_class,
+      PROP_FULL_JID, "full-jid");
+  g_object_class_override_property (object_class,
+      PROP_BARE_JID, "bare-jid");
+  g_object_class_override_property (object_class,
+      PROP_RESOURCE, "resource");
 }
 
 void
@@ -708,7 +605,7 @@ send_head_stanza (WockyC2SPorter *self)
   wocky_xmpp_connection_send_stanza_async (priv->connection,
       elem->stanza, elem->cancellable, send_stanza_cb, g_object_ref (self));
 
-  g_signal_emit (self, signals[SENDING], 0);
+  g_signal_emit_by_name (self, "sending");
 }
 
 static void
@@ -1129,12 +1026,12 @@ remote_connection_closed (WockyC2SPorter *self,
 
   if (error_occured)
     {
-      g_signal_emit (self, signals[REMOTE_ERROR], 0, error->domain,
+      g_signal_emit_by_name (self, "remote-error", error->domain,
           error->code, error->message);
     }
   else
     {
-      g_signal_emit (self, signals[REMOTE_CLOSED], 0);
+      g_signal_emit_by_name (self, "remote-closed");
     }
 
   if (priv->close_result != NULL && priv->local_closed)
@@ -1408,7 +1305,7 @@ wocky_c2s_porter_close_async (WockyPorter *porter,
   if (cancellable != NULL)
     priv->close_cancellable = g_object_ref (cancellable);
 
-  g_signal_emit (self, signals[CLOSING], 0);
+  g_signal_emit_by_name (self, "closing");
 
   if (g_queue_get_length (priv->sending_queue) > 0)
     {
@@ -1751,7 +1648,7 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
     {
       /* the "closing" signal has already been fired when _close_async has
        * been called */
-      g_signal_emit (self, signals[CLOSING], 0);
+      g_signal_emit_by_name (self, "closing");
     }
 
   priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),

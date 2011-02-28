@@ -19,11 +19,116 @@
 
 #include "wocky-porter.h"
 
+#include "wocky-signals-marshal.h"
+#include "wocky-xmpp-connection.h"
+
 G_DEFINE_INTERFACE (WockyPorter, wocky_porter, G_TYPE_OBJECT)
 
 static void
 wocky_porter_default_init (WockyPorterInterface *iface)
 {
+  GType iface_type = G_TYPE_FROM_INTERFACE (iface);
+  static gboolean initialized = FALSE;
+  GParamSpec *spec;
+
+  if (initialized)
+    return;
+
+  /**
+   * WockyPorter:connection:
+   *
+   * The underlying #WockyXmppConnection wrapped by the #WockyPorter
+   */
+  spec = g_param_spec_object ("connection", "XMPP connection",
+      "the XMPP connection used by this porter",
+      WOCKY_TYPE_XMPP_CONNECTION,
+      G_PARAM_READWRITE |
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_interface_install_property (iface, spec);
+
+  /**
+   * WockyPorter:full-jid:
+   *
+   * The user's full JID (node&commat;domain/resource).
+   */
+  spec = g_param_spec_string ("full-jid", "Full JID",
+      "The user's own full JID (node@domain/resource)",
+      NULL, G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_interface_install_property (iface, spec);
+
+  /**
+   * WockyPorter:bare-jid:
+   *
+   * The user's bare JID (node&commat;domain).
+   */
+  spec = g_param_spec_string ("bare-jid", "Bare JID",
+      "The user's own bare JID (node@domain)",
+      NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_interface_install_property (iface, spec);
+
+  /**
+   * WockyPorter:resource:
+   *
+   * The resource part of the user's full JID, or %NULL if their full JID does
+   * not contain a resource at all.
+   */
+  spec = g_param_spec_string ("resource", "Resource", "The user's resource",
+      NULL, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+  g_object_interface_install_property (iface, spec);
+
+  /**
+   * WockyPorter::remote-closed:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::remote-closed signal is emitted when the other side closed the XMPP
+   * stream.
+   */
+  g_signal_new ("remote-closed", iface_type,
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+
+  /**
+   * WockyPorter::remote-error:
+   * @porter: the object on which the signal is emitted
+   * @domain: error domain (a #GQuark)
+   * @code: error code
+   * @message: human-readable informative error message
+   *
+   * The ::remote-error signal is emitted when an error has been detected
+   * on the XMPP stream.
+   */
+  g_signal_new ("remote-error", iface_type,
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      _wocky_signals_marshal_VOID__UINT_INT_STRING,
+      G_TYPE_NONE, 3, G_TYPE_UINT, G_TYPE_INT, G_TYPE_STRING);
+
+  /**
+   * WockyPorter::closing:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::closing signal is emitted when the #WockyPorter starts to close its
+   * XMPP connection. Once this signal has been emitted, the #WockyPorter
+   * can't be used to send stanzas any more.
+   */
+  g_signal_new ("closing", iface_type,
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+
+  /**
+   * WockyPorter::sending:
+   * @porter: the object on which the signal is emitted
+   *
+   * The ::writing signal is emitted whenever #WockyPorter sends data
+   * on the XMPP connection.
+   */
+  g_signal_new ("sending", iface_type,
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+
+  initialized = TRUE;
 }
 
 /**
