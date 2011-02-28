@@ -425,7 +425,9 @@ create_iq_reply (WockyStanza *iq,
   from = wocky_node_get_attribute (node, "from");
   to = wocky_node_get_attribute (node, "to");
   id = wocky_node_get_attribute (node, "id");
-  g_return_val_if_fail (id != NULL, NULL);
+
+  if (id == NULL)
+    return NULL;
 
   reply = wocky_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
       sub_type_reply, to, from, ap);

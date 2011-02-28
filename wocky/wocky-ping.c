@@ -238,8 +238,12 @@ ping_iq_cb (WockyPorter *porter, WockyStanza *stanza, gpointer data)
   DEBUG ("replying to ping from %s", from ? from : "<null>");
 
   reply = wocky_stanza_build_iq_result (stanza, NULL);
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+
+  if (reply != NULL)
+    {
+      wocky_porter_send (porter, reply);
+      g_object_unref (reply);
+    }
 
   return TRUE;
 }
