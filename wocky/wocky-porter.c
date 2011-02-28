@@ -120,7 +120,7 @@ wocky_porter_default_init (WockyPorterInterface *iface)
    * WockyPorter::sending:
    * @porter: the object on which the signal is emitted
    *
-   * The ::writing signal is emitted whenever #WockyPorter sends data
+   * The ::sending signal is emitted whenever #WockyPorter sends data
    * on the XMPP connection.
    */
   g_signal_new ("sending", iface_type,
