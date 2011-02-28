@@ -31,4 +31,4 @@ void wocky_deinit (void);
 
 G_END_DECLS
 
-#endif /* #ifndef __WOCKY_PORTER_H__*/
+#endif /* #ifndef __WOCKY_H__*/
