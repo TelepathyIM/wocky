@@ -405,6 +405,7 @@ wocky_porter_register_handler_from_stanza (WockyPorter *self,
 
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
   g_return_val_if_fail (from != NULL, 0);
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), 0);
 
   iface = WOCKY_PORTER_GET_INTERFACE (self);
 
@@ -580,6 +581,7 @@ wocky_porter_register_handler_from_anyone_stanza (
   WockyPorterInterface *iface;
 
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), 0);
 
   iface = WOCKY_PORTER_GET_INTERFACE (self);
 
@@ -753,6 +755,7 @@ wocky_porter_register_handler_from_server_stanza (
   WockyPorterInterface *iface;
 
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), 0);
 
   iface = WOCKY_PORTER_GET_INTERFACE (self);
 
