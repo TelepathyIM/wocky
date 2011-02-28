@@ -263,6 +263,30 @@ wocky_ll_connector_new_from_connection (WockyXmppConnection *connection,
       NULL);
 }
 
+static void
+features_sent_cb (GObject *source_object,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source_object);
+  WockyLLConnector *self = user_data;
+  WockyLLConnectorPrivate *priv = self->priv;
+  GError *error = NULL;
+
+  if (!wocky_xmpp_connection_send_stanza_finish (connection, result, &error))
+    {
+      GError *err = g_error_new (WOCKY_LL_CONNECTOR_ERROR,
+          WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_SEND_STANZA,
+          "Failed to send stream features: %s", error->message);
+      g_clear_error (&error);
+
+      DEBUG ("%s", err->message);
+
+      g_simple_async_result_take_error (priv->simple, err);
+    }
+
+  g_simple_async_result_complete (priv->simple);
+}
 
 static void send_open_cb (GObject *source_object,
     GAsyncResult *result, gpointer user_data);
@@ -300,13 +324,10 @@ recv_open_cb (GObject *source_object,
       DEBUG ("connected, sending stream features but not "
           "expecting anything back");
 
-      /* fire and forget */
       features = wocky_stanza_new ("features", WOCKY_XMPP_NS_STREAM);
       wocky_xmpp_connection_send_stanza_async (connection,
-          features, NULL, NULL, NULL);
+          features, NULL, features_sent_cb, self);
       g_object_unref (features);
-
-      g_simple_async_result_complete (priv->simple);
     }
   else
     {
