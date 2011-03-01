@@ -451,6 +451,14 @@ wocky_stanza_build_iq_result (WockyStanza *iq,
 }
 
 WockyStanza *
+wocky_stanza_build_iq_result_va (
+    WockyStanza *iq,
+    va_list ap)
+{
+  return create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_RESULT, ap);
+}
+
+WockyStanza *
 wocky_stanza_build_iq_error (WockyStanza *iq,
     ...)
 {

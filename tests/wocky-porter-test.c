@@ -1477,6 +1477,154 @@ test_send_iq (void)
   teardown_test (test);
 }
 
+static gboolean
+test_acknowledge_iq_acknowledge_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  wocky_porter_acknowledge_iq (porter, stanza,
+      '(', "sup-dawg",
+        '@', "lions", "tigers",
+      ')',
+      NULL);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+static void
+test_acknowledge_iq_reply_cb (
+    GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  WockyPorter *porter = WOCKY_PORTER (source);
+  test_data_t *test = user_data;
+  WockyStanza *reply;
+  WockyStanza *expected_reply;
+  GError *error = NULL;
+
+  reply = wocky_porter_send_iq_finish (porter, result, &error);
+  g_assert_no_error (error);
+  g_assert (reply != NULL);
+
+  expected_reply = g_queue_pop_head (test->expected_stanzas);
+  g_assert (expected_reply != NULL);
+
+  /* If we got the reply dispatched to us, the ID was correct — this is tested
+   * elsewhere. So we don't need to test it again here. */
+  test_assert_stanzas_equal_no_id (reply, expected_reply);
+
+  g_object_unref (reply);
+  g_object_unref (expected_reply);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+/* Tests wocky_porter_acknowledge_iq(). */
+static void
+test_acknowledge_iq (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *iq, *expected_reply;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      0,
+      test_acknowledge_iq_acknowledge_cb, test, NULL);
+
+  /* We re-construct expected_reply for every test because…
+   * test_assert_stanzas_equal_no_id() modifies the stanzas it's comparing to
+   * add an id='' to the one which doesn't have one.
+   */
+
+  /* Send a legal IQ (with a single child element). */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '(', "sup-dawg", ')', NULL);
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg",
+        '@', "lions", "tigers",
+      ')',
+      NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_acknowledge_iq_reply_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+  g_object_unref (iq);
+
+  /* Send an illegal IQ with two child elements. We expect that
+   * wocky_porter_acknowledge_iq() should cope. */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '(', "sup-dawg", ')',
+      '(', "i-heard-you-like-stanzas", ')',
+      NULL);
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg",
+        '@', "lions", "tigers",
+      ')',
+      NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_acknowledge_iq_reply_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+  g_object_unref (iq);
+
+  /* Send another illegal IQ, with no child element at all. Obviously in real
+   * life it should be nacked, but wocky_porter_acknowledge_iq() should still
+   * cope. */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      NULL);
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg",
+        '@', "lions", "tigers",
+      ')',
+      NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_acknowledge_iq_reply_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+  g_object_unref (iq);
+
+  /* Finally, send an IQ that doesn't have an id='' attribute. This is really
+   * illegal, but wocky_porter_acknowledge_iq() needs to deal because it
+   * happens in practice.
+   */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      NULL);
+  wocky_porter_send (test->sched_in, iq);
+  /* In this case, we only expect the recipient's callback to fire. There's no
+   * way for it to send us an IQ back, so we don't need to wait for a reply
+   * there.
+   */
+  test->outstanding += 1;
+  g_object_unref (iq);
+
+  /* Off we go! */
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 static void
 test_send_iq_abnormal (void)
 {
@@ -2780,6 +2928,7 @@ main (int argc, char **argv)
       test_cancel_sent_stanza);
   g_test_add_func ("/xmpp-porter/writing-error", test_writing_error);
   g_test_add_func ("/xmpp-porter/send-iq", test_send_iq);
+  g_test_add_func ("/xmpp-porter/acknowledge-iq", test_acknowledge_iq);
   g_test_add_func ("/xmpp-porter/send-iq-denormalised", test_send_iq_abnormal);
   g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
   g_test_add_func ("/xmpp-porter/handler-filter", test_handler_filter);

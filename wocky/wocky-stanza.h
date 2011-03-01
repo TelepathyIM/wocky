@@ -122,6 +122,9 @@ WockyStanza * wocky_stanza_build_va (WockyStanzaType type,
 
 WockyStanza * wocky_stanza_build_iq_result (WockyStanza *iq,
     ...) G_GNUC_NULL_TERMINATED;
+WockyStanza *wocky_stanza_build_iq_result_va (
+    WockyStanza *iq,
+    va_list ap);
 
 WockyStanza * wocky_stanza_build_iq_error (WockyStanza *iq,
     ...) G_GNUC_NULL_TERMINATED;

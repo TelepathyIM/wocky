@@ -805,6 +805,47 @@ wocky_porter_send_iq_finish (WockyPorter *self,
 }
 
 /**
+ * wocky_porter_acknowledge_iq:
+ * @porter: a #WockyPorter
+ * @stanza: a stanza of type #WOCKY_STANZA_TYPE_IQ and sub-type either
+ *          #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @Varargs: a wocky_stanza_build() specification; pass %NULL to include no
+ *           body in the reply.
+ *
+ * Sends an acknowledgement for @stanza back to the sender, as a shorthand for
+ * calling wocky_stanza_build_iq_result() and wocky_porter_send().
+ */
+void
+wocky_porter_acknowledge_iq (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    ...)
+{
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyStanza *result;
+  va_list ap;
+
+  g_return_if_fail (WOCKY_IS_PORTER (porter));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
+  g_return_if_fail (type == WOCKY_STANZA_TYPE_IQ);
+  g_return_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+      sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  va_start (ap, stanza);
+  result = wocky_stanza_build_iq_result_va (stanza, ap);
+  va_end (ap);
+
+  if (result != NULL)
+    {
+      wocky_porter_send (porter, result);
+      g_object_unref (result);
+    }
+}
+
+/**
  * wocky_porter_force_close_async:
  * @porter: a #WockyPorter
  * @cancellable: optional #GCancellable object, %NULL to ignore
