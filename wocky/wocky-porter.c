@@ -317,8 +317,8 @@ wocky_porter_send (WockyPorter *porter,
  *  any type of stanza.
  * @sub_type: The subtype of stanza to be handled, or
  *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
- * @from: the JID whose messages this handler is intended for, or %NULL to
- *  match messages from the server
+ * @from: the JID whose messages this handler is intended for (may not be
+ *  %NULL)
  * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
@@ -372,8 +372,8 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
  *  any type of stanza.
  * @sub_type: The subtype of stanza to be handled, or
  *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
- * @from: the JID whose messages this handler is intended for, or %NULL to
- *  match messages from the server
+ * @from: the JID whose messages this handler is intended for (may not be
+ *  %NULL)
  * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
