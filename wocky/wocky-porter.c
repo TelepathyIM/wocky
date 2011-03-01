@@ -462,7 +462,9 @@ wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
  * ]|
  *
  * To match stanzas from any sender, see
- * wocky_porter_register_handler_from_anyone().
+ * wocky_porter_register_handler_from_anyone(). If the porter is a
+ * #WockyC2SPorter, one can match stanzas sent by the server; see
+ * wocky_c2s_porter_register_handler_from_server().
  *
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
  */
