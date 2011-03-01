@@ -1,6 +1,6 @@
 /*
- * wocky-porter.h - Header for WockyC2SPorter
- * Copyright (C) 2009 Collabora Ltd.
+ * wocky-c2s-porter.h - Header for WockyC2SPorter
+ * Copyright (C) 2009-2011 Collabora Ltd.
  * @author Guillaume Desmottes <guillaume.desmottes@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or

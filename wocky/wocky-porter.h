@@ -1,6 +1,6 @@
 /*
  * wocky-porter.h - Header for WockyPorter
- * Copyright (C) 2011 Collabora Ltd.
+ * Copyright (C) 2009-2011 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
