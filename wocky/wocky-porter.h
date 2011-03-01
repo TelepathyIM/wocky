@@ -123,7 +123,7 @@ struct _WockyPorterInterface
       GAsyncResult *result,
       GError **error);
 
-  guint (*register_handler_from_stanza) (
+  guint (*register_handler_from_by_stanza) (
       WockyPorter *self,
       WockyStanzaType type,
       WockyStanzaSubType sub_type,
@@ -133,7 +133,7 @@ struct _WockyPorterInterface
       gpointer user_data,
       WockyStanza *stanza);
 
-  guint (*register_handler_from_anyone_stanza) (
+  guint (*register_handler_from_anyone_by_stanza) (
       WockyPorter *self,
       WockyStanzaType type,
       WockyStanzaSubType sub_type,
@@ -142,7 +142,7 @@ struct _WockyPorterInterface
       gpointer user_data,
       WockyStanza *stanza);
 
-  guint (*register_handler_from_server_stanza) (
+  guint (*register_handler_from_server_by_stanza) (
       WockyPorter *self,
       WockyStanzaType type,
       WockyStanzaSubType sub_type,
@@ -212,7 +212,7 @@ guint wocky_porter_register_handler_from_va (WockyPorter *self,
     gpointer user_data,
     va_list ap);
 
-guint wocky_porter_register_handler_from_stanza (WockyPorter *self,
+guint wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
@@ -239,7 +239,7 @@ guint wocky_porter_register_handler_from_anyone_va (
     gpointer user_data,
     va_list ap);
 
-guint wocky_porter_register_handler_from_anyone_stanza (
+guint wocky_porter_register_handler_from_anyone_by_stanza (
     WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -266,7 +266,7 @@ guint wocky_porter_register_handler_from_server_va (
     gpointer user_data,
     va_list ap);
 
-guint wocky_porter_register_handler_from_server_stanza (
+guint wocky_porter_register_handler_from_server_by_stanza (
     WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,

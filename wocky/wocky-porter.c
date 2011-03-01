@@ -356,7 +356,7 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
       NULL, NULL, ap);
   g_assert (stanza != NULL);
 
-  ret = wocky_porter_register_handler_from_stanza (self, type, sub_type,
+  ret = wocky_porter_register_handler_from_by_stanza (self, type, sub_type,
       from,
       priority, callback, user_data, stanza);
 
@@ -366,7 +366,7 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
 }
 
 /**
- * wocky_porter_register_handler_from_stanza:
+ * wocky_porter_register_handler_from_by_stanza:
  * @self: A #WockyPorter instance (passed to @callback).
  * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
  *  any type of stanza.
@@ -392,7 +392,7 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
  */
 guint
-wocky_porter_register_handler_from_stanza (WockyPorter *self,
+wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
@@ -409,9 +409,9 @@ wocky_porter_register_handler_from_stanza (WockyPorter *self,
 
   iface = WOCKY_PORTER_GET_INTERFACE (self);
 
-  g_assert (iface->register_handler_from_stanza != NULL);
+  g_assert (iface->register_handler_from_by_stanza != NULL);
 
-  return iface->register_handler_from_stanza (self, type, sub_type,
+  return iface->register_handler_from_by_stanza (self, type, sub_type,
       from, priority, callback, user_data, stanza);
 }
 
@@ -535,7 +535,7 @@ wocky_porter_register_handler_from_anyone_va (
       NULL, NULL, ap);
   g_assert (stanza != NULL);
 
-  ret = wocky_porter_register_handler_from_anyone_stanza (self, type, sub_type,
+  ret = wocky_porter_register_handler_from_anyone_by_stanza (self, type, sub_type,
       priority, callback, user_data, stanza);
 
   g_object_unref (stanza);
@@ -544,7 +544,7 @@ wocky_porter_register_handler_from_anyone_va (
 }
 
 /**
- * wocky_porter_register_handler_from_anyone_stanza:
+ * wocky_porter_register_handler_from_anyone_by_stanza:
  * @self: A #WockyPorter instance (passed to @callback).
  * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
  *  any type of stanza.
@@ -569,7 +569,7 @@ wocky_porter_register_handler_from_anyone_va (
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
  */
 guint
-wocky_porter_register_handler_from_anyone_stanza (
+wocky_porter_register_handler_from_anyone_by_stanza (
     WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -585,9 +585,9 @@ wocky_porter_register_handler_from_anyone_stanza (
 
   iface = WOCKY_PORTER_GET_INTERFACE (self);
 
-  g_assert (iface->register_handler_from_anyone_stanza != NULL);
+  g_assert (iface->register_handler_from_anyone_by_stanza != NULL);
 
-  return iface->register_handler_from_anyone_stanza (self, type, sub_type,
+  return iface->register_handler_from_anyone_by_stanza (self, type, sub_type,
       priority, callback, user_data, stanza);
 }
 
@@ -709,7 +709,7 @@ wocky_porter_register_handler_from_server_va (
       NULL, NULL, ap);
   g_assert (stanza != NULL);
 
-  ret = wocky_porter_register_handler_from_server_stanza (self, type, sub_type,
+  ret = wocky_porter_register_handler_from_server_by_stanza (self, type, sub_type,
       priority, callback, user_data, stanza);
 
   g_object_unref (stanza);
@@ -718,7 +718,7 @@ wocky_porter_register_handler_from_server_va (
 }
 
 /**
- * wocky_porter_register_handler_from_server_stanza:
+ * wocky_porter_register_handler_from_server_by_stanza:
  * @self: A #WockyPorter instance (passed to @callback).
  * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
  *  any type of stanza.
@@ -743,7 +743,7 @@ wocky_porter_register_handler_from_server_va (
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
  */
 guint
-wocky_porter_register_handler_from_server_stanza (
+wocky_porter_register_handler_from_server_by_stanza (
     WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -759,9 +759,9 @@ wocky_porter_register_handler_from_server_stanza (
 
   iface = WOCKY_PORTER_GET_INTERFACE (self);
 
-  g_assert (iface->register_handler_from_server_stanza != NULL);
+  g_assert (iface->register_handler_from_server_by_stanza != NULL);
 
-  return iface->register_handler_from_server_stanza (self, type, sub_type,
+  return iface->register_handler_from_server_by_stanza (self, type, sub_type,
       priority, callback, user_data, stanza);
 }
 

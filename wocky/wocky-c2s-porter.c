@@ -1373,7 +1373,7 @@ wocky_c2s_porter_register_handler_internal (WockyC2SPorter *self,
 }
 
 static guint
-wocky_c2s_porter_register_handler_from_stanza (WockyPorter *porter,
+wocky_c2s_porter_register_handler_from_by_stanza (WockyPorter *porter,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     const gchar *from,
@@ -1392,7 +1392,7 @@ wocky_c2s_porter_register_handler_from_stanza (WockyPorter *porter,
 }
 
 static guint
-wocky_c2s_porter_register_handler_from_anyone_stanza (
+wocky_c2s_porter_register_handler_from_anyone_by_stanza (
     WockyPorter *porter,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -1409,7 +1409,7 @@ wocky_c2s_porter_register_handler_from_anyone_stanza (
 }
 
 static guint
-wocky_c2s_porter_register_handler_from_server_stanza (
+wocky_c2s_porter_register_handler_from_server_by_stanza (
     WockyPorter *porter,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -1773,12 +1773,12 @@ wocky_porter_iface_init (gpointer g_iface,
   iface->send_async = wocky_c2s_porter_send_async;
   iface->send_finish = wocky_c2s_porter_send_finish;
 
-  iface->register_handler_from_stanza =
-    wocky_c2s_porter_register_handler_from_stanza;
-  iface->register_handler_from_anyone_stanza =
-    wocky_c2s_porter_register_handler_from_anyone_stanza;
-  iface->register_handler_from_server_stanza =
-    wocky_c2s_porter_register_handler_from_server_stanza;
+  iface->register_handler_from_by_stanza =
+    wocky_c2s_porter_register_handler_from_by_stanza;
+  iface->register_handler_from_anyone_by_stanza =
+    wocky_c2s_porter_register_handler_from_anyone_by_stanza;
+  iface->register_handler_from_server_by_stanza =
+    wocky_c2s_porter_register_handler_from_server_by_stanza;
 
   iface->unregister_handler = wocky_c2s_porter_unregister_handler;
 
