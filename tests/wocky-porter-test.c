@@ -2682,7 +2682,8 @@ handler_from_anyone (void)
   wocky_porter_start (test->sched_in);
 
 
-  wocky_porter_register_handler_from_server (test->sched_in,
+  wocky_c2s_porter_register_handler_from_server (
+      WOCKY_C2S_PORTER (test->sched_in),
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL + 10,
       got_stanza_from_server, test, NULL);

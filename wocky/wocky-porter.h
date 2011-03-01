@@ -142,15 +142,6 @@ struct _WockyPorterInterface
       gpointer user_data,
       WockyStanza *stanza);
 
-  guint (*register_handler_from_server_by_stanza) (
-      WockyPorter *self,
-      WockyStanzaType type,
-      WockyStanzaSubType sub_type,
-      guint priority,
-      WockyPorterHandlerFunc callback,
-      gpointer user_data,
-      WockyStanza *stanza);
-
   void (*unregister_handler) (WockyPorter *self,
       guint id);
 
@@ -249,33 +240,6 @@ guint wocky_porter_register_handler_from_anyone_by_stanza (
     WockyStanza *stanza);
 
 guint wocky_porter_register_handler_from_anyone (
-    WockyPorter *self,
-    WockyStanzaType type,
-    WockyStanzaSubType sub_type,
-    guint priority,
-    WockyPorterHandlerFunc callback,
-    gpointer user_data,
-    ...) G_GNUC_NULL_TERMINATED;
-
-guint wocky_porter_register_handler_from_server_va (
-    WockyPorter *self,
-    WockyStanzaType type,
-    WockyStanzaSubType sub_type,
-    guint priority,
-    WockyPorterHandlerFunc callback,
-    gpointer user_data,
-    va_list ap);
-
-guint wocky_porter_register_handler_from_server_by_stanza (
-    WockyPorter *self,
-    WockyStanzaType type,
-    WockyStanzaSubType sub_type,
-    guint priority,
-    WockyPorterHandlerFunc callback,
-    gpointer user_data,
-    WockyStanza *stanza);
-
-guint wocky_porter_register_handler_from_server (
     WockyPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,

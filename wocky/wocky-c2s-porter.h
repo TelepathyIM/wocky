@@ -70,6 +70,33 @@ GType wocky_c2s_porter_get_type (void);
 WockyPorter * wocky_c2s_porter_new (WockyXmppConnection *connection,
     const gchar *full_jid);
 
+guint wocky_c2s_porter_register_handler_from_server_va (
+    WockyC2SPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap);
+
+guint wocky_c2s_porter_register_handler_from_server_by_stanza (
+    WockyC2SPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza);
+
+guint wocky_c2s_porter_register_handler_from_server (
+    WockyC2SPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    ...) G_GNUC_NULL_TERMINATED;
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_C2S_PORTER_H__*/

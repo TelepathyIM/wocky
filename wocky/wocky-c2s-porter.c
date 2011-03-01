@@ -1408,9 +1408,86 @@ wocky_c2s_porter_register_handler_from_anyone_by_stanza (
       priority, callback, user_data, stanza);
 }
 
-static guint
+/**
+ * wocky_c2s_porter_register_handler_from_server_va:
+ * @self: A #WockyC2SPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @ap: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * A <type>va_list</type> version of
+ * wocky_porter_register_handler_from_server(); see that function for more
+ * details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_c2s_porter_register_handler_from_server_va (
+    WockyC2SPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    va_list ap)
+{
+  guint ret;
+  WockyStanza *stanza;
+
+  g_return_val_if_fail (WOCKY_IS_C2S_PORTER (self), 0);
+
+  stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
+      NULL, NULL, ap);
+  g_assert (stanza != NULL);
+
+  ret = wocky_c2s_porter_register_handler_from_server_by_stanza (self, type, sub_type,
+      priority, callback, user_data, stanza);
+
+  g_object_unref (stanza);
+
+  return ret;
+}
+
+/**
+ * wocky_c2s_porter_register_handler_from_server_by_stanza:
+ * @self: A #WockyC2SPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @stanza: a #WockyStanza. The handler will match a stanza only if
+ *  the stanza received is a superset of the one passed to this
+ *  function, as per wocky_node_is_superset().
+ *
+ * A #WockyStanza version of
+ * wocky_porter_register_handler_from_server(); see that function for more
+ * details.
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
 wocky_c2s_porter_register_handler_from_server_by_stanza (
-    WockyPorter *porter,
+    WockyC2SPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     guint priority,
@@ -1418,11 +1495,71 @@ wocky_c2s_porter_register_handler_from_server_by_stanza (
     gpointer user_data,
     WockyStanza *stanza)
 {
-  WockyC2SPorter *self = WOCKY_C2S_PORTER (porter);
+  g_return_val_if_fail (WOCKY_IS_C2S_PORTER (self), 0);
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), 0);
 
   return wocky_c2s_porter_register_handler_internal (self, type, sub_type,
       MATCH_SERVER, NULL,
       priority, callback, user_data, stanza);
+}
+
+/**
+ * wocky_c2s_porter_register_handler_from_server:
+ * @self: A #WockyC2SPorter instance (passed to @callback).
+ * @type: The type of stanza to be handled, or WOCKY_STANZA_TYPE_NONE to match
+ *  any type of stanza.
+ * @sub_type: The subtype of stanza to be handled, or
+ *  WOCKY_STANZA_SUB_TYPE_NONE to match any type of stanza.
+ * @priority: a priority between %WOCKY_PORTER_HANDLER_PRIORITY_MIN and
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
+ *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
+ *  (larger number) are called first.
+ * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
+ *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
+ *  stop further processing.
+ * @user_data: Passed to @callback.
+ * @Varargs: a wocky_stanza_build() specification. The handler
+ *  will match a stanza only if the stanza received is a superset of the one
+ *  passed to this function, as per wocky_node_is_superset().
+ *
+ * Registers a handler for incoming stanzas from the local user's server; that
+ * is, stanzas with no "from" attribute, or where the sender is the user's own
+ * bare or full JID.
+ *
+ * For example, to register a handler for roster pushes, call:
+ *
+ * |[
+ * id = wocky_c2s_porter_register_handler_from_server (porter,
+ *   WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_SET,
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_push_received_cb, NULL,
+ *   '(',
+ *     "query", ':', WOCKY_XMPP_NS_ROSTER,
+ *   ')', NULL);
+ * ]|
+ *
+ * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
+ */
+guint
+wocky_c2s_porter_register_handler_from_server (
+    WockyC2SPorter *self,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    ...)
+{
+  va_list ap;
+  guint ret;
+
+  g_return_val_if_fail (WOCKY_IS_C2S_PORTER (self), 0);
+
+  va_start (ap, user_data);
+  ret = wocky_c2s_porter_register_handler_from_server_va (self, type, sub_type,
+      priority, callback, user_data, ap);
+  va_end (ap);
+
+  return ret;
 }
 
 static void
@@ -1777,8 +1914,6 @@ wocky_porter_iface_init (gpointer g_iface,
     wocky_c2s_porter_register_handler_from_by_stanza;
   iface->register_handler_from_anyone_by_stanza =
     wocky_c2s_porter_register_handler_from_anyone_by_stanza;
-  iface->register_handler_from_server_by_stanza =
-    wocky_c2s_porter_register_handler_from_server_by_stanza;
 
   iface->unregister_handler = wocky_c2s_porter_unregister_handler;
 

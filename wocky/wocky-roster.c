@@ -33,6 +33,7 @@
 #include "wocky-roster.h"
 
 #include "wocky-bare-contact.h"
+#include "wocky-c2s-porter.h"
 #include "wocky-namespaces.h"
 #include "wocky-stanza.h"
 #include "wocky-utils.h"
@@ -560,7 +561,8 @@ wocky_roster_constructed (GObject *object)
   g_assert (priv->porter != NULL);
   g_object_ref (priv->porter);
 
-  priv->iq_cb = wocky_porter_register_handler_from_server (priv->porter,
+  priv->iq_cb = wocky_c2s_porter_register_handler_from_server (
+      WOCKY_C2S_PORTER (priv->porter),
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, roster_iq_handler_set_cb, self,
       '(', "query",
