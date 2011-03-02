@@ -24,6 +24,7 @@
     <xi:include href="xml/wocky-data-form-enumtypes.xml"/>
     <xi:include href="xml/wocky-debug.xml"/>
     <xi:include href="xml/wocky-jabber-auth.xml"/>
+    <xi:include href="xml/wocky-meta-porter.xml"/>
     <xi:include href="xml/wocky-muc.xml"/>
     <xi:include href="xml/wocky-muc-enumtypes.xml"/>
     <xi:include href="xml/wocky-namespaces.xml"/>
