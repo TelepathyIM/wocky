@@ -1678,7 +1678,7 @@ test_send_iq_error_cb (GObject *source,
 }
 
 static void
-test_send_iq_error (void)
+test_error_while_sending_iq (void)
 {
   test_data_t *test = setup_test ();
   WockyStanza *iq;
@@ -2930,7 +2930,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/send-iq", test_send_iq);
   g_test_add_func ("/xmpp-porter/acknowledge-iq", test_acknowledge_iq);
   g_test_add_func ("/xmpp-porter/send-iq-denormalised", test_send_iq_abnormal);
-  g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
+  g_test_add_func ("/xmpp-porter/error-while-sending-iq",
+      test_error_while_sending_iq);
   g_test_add_func ("/xmpp-porter/handler-filter", test_handler_filter);
   g_test_add_func ("/xmpp-porter/send-invalid-iq", test_send_invalid_iq);
   g_test_add_func ("/xmpp-porter/handler-filter-from",
