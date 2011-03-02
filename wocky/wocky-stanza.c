@@ -458,16 +458,70 @@ wocky_stanza_build_iq_result_va (
   return create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_RESULT, ap);
 }
 
+/**
+ * wocky_stanza_build_iq_error:
+ * @iq: a stanza of type #WOCKY_STANZA_TYPE_IQ and sub-type either
+ *      #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @Varargs: a wocky_stanza_build() specification
+ *
+ * Builds an error reply to @iq containing the given body. This function also
+ * adds the child element of @iq to the reply, as recommended by <ulink
+ * url='http://xmpp.org/rfcs/rfc3920.html#stanzas-semantics-iq'>RFC3920 §9.2.3
+ * ‘IQ Semantics’</ulink>.
+ *
+ * No <code>&lt;error/&gt;</code> element is added to the reply. To add a
+ * standard stanza error, plus message, consider using
+ * wocky_stanza_error_to_node(). To add a more complicated error with an
+ * application-specific condition, specify it when calling this function. For
+ * example:
+ *
+ * |[
+ * WockyStanza *reply = wocky_stanza_build_iq_error (iq,
+ *    '(', "error",
+ *      '@', "type", "cancel",
+ *      '(', "feature-not-implemented", ':', WOCKY_XMPP_NS_STANZAS, ')',
+ *      '(', "unsupported", ':', WOCKY_XMPP_NS_PUBSUB_ERRORS,
+ *        '@', "feature", "subscribe",
+ *      ')',
+ *    ')', NULL);
+ * ]|
+ *
+ * Returns: an error reply for @iq
+ */
 WockyStanza *
 wocky_stanza_build_iq_error (WockyStanza *iq,
     ...)
 {
   WockyStanza *reply;
+  WockyNode *query;
   va_list ap;
 
   va_start (ap, iq);
   reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, ap);
   va_end (ap);
+
+  /* RFC3920 §9.2.3 dictates:
+   *    An IQ stanza of type "error" SHOULD include the child element contained
+   *    in the associated "get" or "set" …
+   *
+   * It also dictates:
+   *    An IQ stanza of type "get" or "set" MUST contain one and only one child
+   *    element that specifies the semantics of the particular request or
+   *    response.
+   *
+   * We handle the erroneous case where an incoming IQ has *no* child element,
+   * and we ignore any elements after the first.
+   */
+  query = wocky_node_get_first_child (wocky_stanza_get_top_node (iq));
+
+  if (reply != NULL && query != NULL)
+    {
+      WockyNodeTree *query_tree = wocky_node_tree_new_from_node (query);
+
+      wocky_node_prepend_node_tree (wocky_stanza_get_top_node (reply),
+          query_tree);
+      g_object_unref (query_tree);
+    }
 
   return reply;
 }

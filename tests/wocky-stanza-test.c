@@ -110,6 +110,9 @@ test_build_iq_error (void)
   expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
     WOCKY_STANZA_SUB_TYPE_ERROR, "romeo@example.net", "juliet@example.com",
     '@', "id", "one",
+    '(', "query",
+      ':', "http://jabber.org/protocol/disco#items",
+    ')',
     NULL);
 
   reply = wocky_stanza_build_iq_error (iq, NULL);
@@ -134,9 +137,6 @@ test_build_iq_error (void)
     NULL);
 
   reply = wocky_stanza_build_iq_error (iq,
-      '(', "query",
-        ':', "http://jabber.org/protocol/disco#items",
-      ')',
       '(', "error",
         '@', "code", "403",
         '@', "type", "auth",
