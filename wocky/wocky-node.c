@@ -615,13 +615,16 @@ wocky_node_get_child (WockyNode *node, const gchar *name)
  *
  * Convenience function to return the first child of a #WockyNode.
  *
- * Returns: a #WockyNode.
+ * Returns: a #WockyNode, or %NULL if @node has no children.
  */
 WockyNode *
 wocky_node_get_first_child (WockyNode *node)
 {
   g_return_val_if_fail (node != NULL, NULL);
-  g_return_val_if_fail (node->children != NULL, NULL);
+
+  if (node->children == NULL)
+    return NULL;
+
   return (WockyNode *) node->children->data;
 }
 
