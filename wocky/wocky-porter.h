@@ -162,7 +162,7 @@ struct _WockyPorterInterface
 
   WockyStanza * (*send_iq_finish) (WockyPorter *porter,
       GAsyncResult *result,
-      GError **error) G_GNUC_WARN_UNUSED_RESULT;
+      GError **error);
 
   void (*force_close_async) (WockyPorter *porter,
       GCancellable *cancellable,
