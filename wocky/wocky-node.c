@@ -1368,8 +1368,7 @@ _wocky_node_copy (WockyNode *node)
  * @node: A node
  * @tree: The node tree to add
  *
- * Copies the nodes from @tree adds them as a child of @node.
- *
+ * Copies the nodes from @tree, and appends them to @node's children.
  */
 void
 wocky_node_add_node_tree (WockyNode *node, WockyNodeTree *tree)
