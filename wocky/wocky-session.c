@@ -275,3 +275,19 @@ wocky_session_get_contact_factory (WockySession *self)
 
   return priv->contact_factory;
 }
+
+void
+wocky_session_set_jid (WockySession *self,
+    const gchar *jid)
+{
+  WockySessionPrivate *priv = self->priv;
+
+  g_free (priv->full_jid);
+  priv->full_jid = g_strdup (jid);
+
+  if (WOCKY_IS_META_PORTER (priv->porter))
+    {
+      wocky_meta_porter_set_jid (WOCKY_META_PORTER (priv->porter),
+          priv->full_jid);
+    }
+}
