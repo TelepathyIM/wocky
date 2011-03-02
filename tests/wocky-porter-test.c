@@ -1497,7 +1497,7 @@ test_acknowledge_iq_acknowledge_cb (
 }
 
 static void
-test_acknowledge_iq_reply_cb (
+test_iq_reply_no_id_cb (
     GObject *source,
     GAsyncResult *result,
     gpointer user_data)
@@ -1559,7 +1559,7 @@ test_acknowledge_iq (void)
       ')',
       NULL);
   wocky_porter_send_iq_async (test->sched_in, iq,
-      NULL, test_acknowledge_iq_reply_cb, test);
+      NULL, test_iq_reply_no_id_cb, test);
   test->outstanding += 2;
   g_queue_push_tail (test->expected_stanzas, expected_reply);
   g_object_unref (iq);
@@ -1579,7 +1579,7 @@ test_acknowledge_iq (void)
       ')',
       NULL);
   wocky_porter_send_iq_async (test->sched_in, iq,
-      NULL, test_acknowledge_iq_reply_cb, test);
+      NULL, test_iq_reply_no_id_cb, test);
   test->outstanding += 2;
   g_queue_push_tail (test->expected_stanzas, expected_reply);
   g_object_unref (iq);
@@ -1598,7 +1598,7 @@ test_acknowledge_iq (void)
       ')',
       NULL);
   wocky_porter_send_iq_async (test->sched_in, iq,
-      NULL, test_acknowledge_iq_reply_cb, test);
+      NULL, test_iq_reply_no_id_cb, test);
   test->outstanding += 2;
   g_queue_push_tail (test->expected_stanzas, expected_reply);
   g_object_unref (iq);
@@ -1619,6 +1619,131 @@ test_acknowledge_iq (void)
   g_object_unref (iq);
 
   /* Off we go! */
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
+static gboolean
+test_send_iq_error_nak_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  wocky_porter_send_iq_error (porter, stanza,
+      WOCKY_XMPP_ERROR_BAD_REQUEST, "bye bye beautiful");
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return TRUE;
+}
+
+/* Tests wocky_porter_send_iq_error(). */
+static void
+test_send_iq_error (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *iq, *expected_reply;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      0,
+      test_send_iq_error_nak_cb, test, NULL);
+
+  /* Send a legal IQ (with a single child element). */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '(', "sup-dawg", ')',
+      NULL);
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg", ')',
+      '(', "error",
+        '@', "code", "400",
+        '@', "type", "modify",
+        '(', "bad-request", ':', WOCKY_XMPP_NS_STANZAS, ')',
+        '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+          '$', "bye bye beautiful",
+        ')',
+      ')', NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_iq_reply_no_id_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+  g_object_unref (iq);
+
+  /* Send an illegal IQ with two child elements. We expect that
+   * wocky_porter_send_iq_error() should cope by just picking the first one.
+   */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '(', "sup-dawg", ')',
+      '(', "i-heard-you-like-stanzas", ')',
+      NULL);
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg", ')',
+      '(', "error",
+        '@', "code", "400",
+        '@', "type", "modify",
+        '(', "bad-request", ':', WOCKY_XMPP_NS_STANZAS, ')',
+        '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+          '$', "bye bye beautiful",
+        ')',
+      ')', NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_iq_reply_no_id_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+  g_object_unref (iq);
+
+  /* Send another illegal IQ, with no child element at all.
+   * wocky_porter_send_iq_error() should not blow up.
+   */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      NULL);
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "romeo@example.net", "juliet@example.com",
+      '(', "error",
+        '@', "code", "400",
+        '@', "type", "modify",
+        '(', "bad-request", ':', WOCKY_XMPP_NS_STANZAS, ')',
+        '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+          '$', "bye bye beautiful",
+        ')',
+      ')', NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_iq_reply_no_id_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+  g_object_unref (iq);
+
+  /* Finally, send an IQ that doesn't have an id='' attribute. This is really
+   * illegal, but wocky_porter_send_iq_error() needs to deal because it
+   * happens in practice.
+   */
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      NULL);
+  wocky_porter_send (test->sched_in, iq);
+  /* In this case, we only expect the recipient's callback to fire. There's no
+   * way for it to send us an IQ back, so we don't need to wait for a reply
+   * there.
+   */
+  test->outstanding += 1;
+  g_object_unref (iq);
+
   test_wait_pending (test);
 
   test_close_both_porters (test);
@@ -2929,6 +3054,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/writing-error", test_writing_error);
   g_test_add_func ("/xmpp-porter/send-iq", test_send_iq);
   g_test_add_func ("/xmpp-porter/acknowledge-iq", test_acknowledge_iq);
+  g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
   g_test_add_func ("/xmpp-porter/send-iq-denormalised", test_send_iq_abnormal);
   g_test_add_func ("/xmpp-porter/error-while-sending-iq",
       test_error_while_sending_iq);

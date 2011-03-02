@@ -276,6 +276,12 @@ void wocky_porter_acknowledge_iq (
     WockyStanza *stanza,
     ...) G_GNUC_NULL_TERMINATED;
 
+void wocky_porter_send_iq_error (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    WockyXmppError error_code,
+    const gchar *message);
+
 void wocky_porter_force_close_async (WockyPorter *porter,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

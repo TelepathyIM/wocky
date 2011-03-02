@@ -846,6 +846,60 @@ wocky_porter_acknowledge_iq (
 }
 
 /**
+ * wocky_porter_send_iq_error:
+ * @porter: the porter whence @stanza came
+ * @stanza: a stanza of type %WOCKY_STANZA_TYPE_IQ and sub-type either
+ *          #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @error_code: an XMPP Core stanza error code
+ * @message: (allow-none): an optional error message to include with the reply.
+ *
+ * Sends an error reply for @stanza back to its sender, with the given
+ * @error_code and @message, and including the child element from the original
+ * stanza. To send error replies with more detailed error elements, use
+ * wocky_stanza_build_iq_error() and wocky_porter_send() directly, possibly
+ * using wocky_stanza_error_to_node() to construct the error element.
+ */
+void
+wocky_porter_send_iq_error (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    WockyXmppError error_code,
+    const gchar *message)
+{
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyStanza *result;
+  WockyNode *result_node;
+
+  g_return_if_fail (WOCKY_IS_PORTER (porter));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
+  g_return_if_fail (type == WOCKY_STANZA_TYPE_IQ);
+  g_return_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+      sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  g_return_if_fail (error_code < NUM_WOCKY_XMPP_ERRORS);
+
+  result = wocky_stanza_build_iq_error (stanza, '*', &result_node, NULL);
+
+  if (result != NULL)
+    {
+      GError *error = g_error_new_literal (WOCKY_XMPP_ERROR, error_code,
+          message != NULL ? message : "");
+
+      /* RFC3920 §9.2.3 dictates:
+       *    An IQ stanza of type "error" … MUST include an <error/> child.
+       */
+      wocky_stanza_error_to_node (error, result_node);
+      g_error_free (error);
+
+      wocky_porter_send (porter, result);
+      g_object_unref (result);
+    }
+}
+
+/**
  * wocky_porter_force_close_async:
  * @porter: a #WockyPorter
  * @cancellable: optional #GCancellable object, %NULL to ignore
