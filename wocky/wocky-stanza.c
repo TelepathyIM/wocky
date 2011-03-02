@@ -472,6 +472,14 @@ wocky_stanza_build_iq_error (WockyStanza *iq,
   return reply;
 }
 
+WockyStanza *
+wocky_stanza_build_iq_error_va (
+    WockyStanza *iq,
+    va_list ap)
+{
+  return create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, ap);
+}
+
 /**
  * wocky_stanza_extract_errors:
  * @stanza: a message/iq/presence stanza
