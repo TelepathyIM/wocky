@@ -126,20 +126,20 @@ test_build_iq_error (void)
     '@', "id", "one",
       '(', "query",
         ':', "http://jabber.org/protocol/disco#items",
-        '(', "error",
-          '@', "code", "403",
-          '@', "type", "auth",
-        ')',
+      ')',
+      '(', "error",
+        '@', "code", "403",
+        '@', "type", "auth",
       ')',
     NULL);
 
   reply = wocky_stanza_build_iq_error (iq,
       '(', "query",
         ':', "http://jabber.org/protocol/disco#items",
-        '(', "error",
-          '@', "code", "403",
-          '@', "type", "auth",
-        ')',
+      ')',
+      '(', "error",
+        '@', "code", "403",
+        '@', "type", "auth",
       ')',
       NULL);
 
