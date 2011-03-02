@@ -1383,6 +1383,28 @@ wocky_node_add_node_tree (WockyNode *node, WockyNodeTree *tree)
 }
 
 /**
+ * wocky_node_prepend_node_tree:
+ * @node: a node
+ * @tree: the node tree to prepend to @node's children
+ *
+ * Copies the nodes from @tree, and inserts them as the first child of @node,
+ * before any existing children.
+ */
+void
+wocky_node_prepend_node_tree (
+    WockyNode *node,
+    WockyNodeTree *tree)
+{
+  WockyNode *copy;
+
+  g_return_if_fail (node != NULL);
+  g_return_if_fail (tree != NULL);
+
+  copy = _wocky_node_copy (wocky_node_tree_get_top_node (tree));
+  node->children = g_slist_prepend (node->children, copy);
+}
+
+/**
  * wocky_node_init:
  *
  * Initializes the caches used by #WockyNode.
