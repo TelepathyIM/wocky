@@ -62,6 +62,8 @@ GType wocky_session_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_SESSION, \
    WockySessionClass))
 
+WockySession * wocky_session_new_ll (const gchar *full_jid);
+
 WockySession * wocky_session_new_with_connection (WockyXmppConnection *conn,
     const gchar *full_jid);
 

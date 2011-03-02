@@ -43,6 +43,7 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 #include "wocky-c2s-porter.h"
+#include "wocky-meta-porter.h"
 
 G_DEFINE_TYPE (WockySession, wocky_session, G_TYPE_OBJECT)
 
@@ -149,9 +150,10 @@ wocky_session_constructed (GObject *object)
   WockySession *self = WOCKY_SESSION (object);
   WockySessionPrivate *priv = self->priv;
 
-  g_assert (priv->connection != NULL);
-
-  priv->porter = wocky_c2s_porter_new (priv->connection, priv->full_jid);
+  if (priv->connection != NULL)
+    priv->porter = wocky_c2s_porter_new (priv->connection, priv->full_jid);
+  else
+    priv->porter = wocky_meta_porter_new (priv->full_jid, priv->contact_factory);
 }
 
 static void
@@ -165,7 +167,12 @@ wocky_session_dispose (GObject *object)
 
   priv->dispose_has_run = TRUE;
 
-  g_object_unref (priv->connection);
+  if (priv->connection != NULL)
+    {
+      g_object_unref (priv->connection);
+      priv->connection = NULL;
+    }
+
   g_object_unref (priv->porter);
   g_object_unref (priv->contact_factory);
 
@@ -229,8 +236,19 @@ WockySession *
 wocky_session_new_with_connection (WockyXmppConnection *conn,
     const gchar *full_jid)
 {
+  g_return_val_if_fail (WOCKY_IS_XMPP_CONNECTION (conn), NULL);
+  g_return_val_if_fail (full_jid != NULL, NULL);
+
   return g_object_new (WOCKY_TYPE_SESSION,
       "connection", conn,
+      "full-jid", full_jid,
+      NULL);
+}
+
+WockySession *
+wocky_session_new_ll (const gchar *full_jid)
+{
+  return g_object_new (WOCKY_TYPE_SESSION,
       "full-jid", full_jid,
       NULL);
 }
