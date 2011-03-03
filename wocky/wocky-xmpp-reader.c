@@ -404,104 +404,109 @@ wocky_xmpp_reader_new_no_stream (void)
 }
 
 static void
-_start_element_ns (void *user_data, const xmlChar *localname,
-    const xmlChar *prefix, const xmlChar *ns_uri, int nb_namespaces,
-    const xmlChar **namespaces, int nb_attributes, int nb_defaulted,
+handle_stream_open (
+    WockyXmppReader *self,
+    const gchar *localname,
+    const gchar *uri,
+    const gchar *prefix,
+    int nb_attributes,
     const xmlChar **attributes)
 {
-  WockyXmppReader *self = WOCKY_XMPP_READER (user_data);
   WockyXmppReaderPrivate *priv = self->priv;
-  gchar *uri;
   int i;
 
-  if (ns_uri != NULL)
-    uri = g_strstrip (g_strdup ((const gchar *) ns_uri));
-  else
-    uri = NULL;
-
-  if (priv->stream_mode && G_UNLIKELY (priv->depth == 0))
+  if (wocky_strdiff ("stream", localname)
+      || wocky_strdiff (WOCKY_XMPP_NS_STREAM, uri))
     {
-      if (wocky_strdiff ("stream", (gchar *) localname)
-          || wocky_strdiff (WOCKY_XMPP_NS_STREAM, (gchar *) uri))
-        {
-          priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
-            WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
-            "Invalid start of the XMPP stream");
-          g_queue_push_tail (priv->stanzas, NULL);
-          goto out;
-        }
-
-      DEBUG ("Received stream opening: %s, prefix: %s, uri: %s",
-        localname,
-        prefix != NULL ? (gchar *) prefix : "<no prefix>",
-        uri != NULL ? (gchar *) uri : "<no uri>");
-
-      priv->state = WOCKY_XMPP_READER_STATE_OPENED;
-
-      for (i = 0; i < nb_attributes * 5; i+=5)
-        {
-          /* attr_name and attr_value are guaranteed non-NULL; attr_prefix and
-           * attr_uri may be NULL.
-           */
-          const gchar *attr_name = (const gchar *) attributes[i];
-          const gchar *attr_prefix = (const gchar *) attributes[i+1];
-          const gchar *attr_uri = (const gchar *) attributes[i+2];
-          gsize value_len = attributes[i+4] - attributes[i+3];
-          gchar *attr_value = g_strndup (
-              (const gchar *) attributes[i+3], value_len);
-
-          DEBUG ("Stream opening attribute: %s = '%s' (prefix: %s, uri: %s)",
-              attr_name, attr_value,
-              attr_prefix != NULL ? attr_prefix : "<no prefix>",
-              attr_uri != NULL ? attr_uri : "<no uri>");
-
-          if (!strcmp (attr_name, "to"))
-            {
-              g_free (priv->to);
-              priv->to = attr_value;
-            }
-          else if (!strcmp (attr_name, "from"))
-            {
-              g_free (priv->from);
-              priv->from = attr_value;
-            }
-          else if (!strcmp (attr_name, "version"))
-            {
-              g_free (priv->version);
-              priv->version = attr_value;
-            }
-          else if (!strcmp (attr_name, "lang") &&
-              !wocky_strdiff (attr_prefix, "xml"))
-            {
-              g_free (priv->lang);
-              priv->lang = attr_value;
-            }
-          else if (!strcmp (attr_name, "id"))
-            {
-              g_free (priv->id);
-              priv->id = attr_value;
-            }
-          else
-            {
-              g_free (attr_value);
-            }
-        }
-      priv->depth++;
-      goto out;
+      priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
+        WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
+        "Invalid start of the XMPP stream");
+      g_queue_push_tail (priv->stanzas, NULL);
+      return;
     }
+
+  DEBUG ("Received stream opening: %s, prefix: %s, uri: %s",
+    localname,
+    prefix != NULL ? prefix : "<no prefix>",
+    uri != NULL ? uri : "<no uri>");
+
+  priv->state = WOCKY_XMPP_READER_STATE_OPENED;
+
+  for (i = 0; i < nb_attributes * 5; i+=5)
+    {
+      /* attr_name and attr_value are guaranteed non-NULL; attr_prefix and
+       * attr_uri may be NULL.
+       */
+      const gchar *attr_name = (const gchar *) attributes[i];
+      const gchar *attr_prefix = (const gchar *) attributes[i+1];
+      const gchar *attr_uri = (const gchar *) attributes[i+2];
+      gsize value_len = attributes[i+4] - attributes[i+3];
+      gchar *attr_value = g_strndup (
+          (const gchar *) attributes[i+3], value_len);
+
+      DEBUG ("Stream opening attribute: %s = '%s' (prefix: %s, uri: %s)",
+          attr_name, attr_value,
+          attr_prefix != NULL ? attr_prefix : "<no prefix>",
+          attr_uri != NULL ? attr_uri : "<no uri>");
+
+      if (!strcmp (attr_name, "to"))
+        {
+          g_free (priv->to);
+          priv->to = attr_value;
+        }
+      else if (!strcmp (attr_name, "from"))
+        {
+          g_free (priv->from);
+          priv->from = attr_value;
+        }
+      else if (!strcmp (attr_name, "version"))
+        {
+          g_free (priv->version);
+          priv->version = attr_value;
+        }
+      else if (!strcmp (attr_name, "lang") &&
+          !wocky_strdiff (attr_prefix, "xml"))
+        {
+          g_free (priv->lang);
+          priv->lang = attr_value;
+        }
+      else if (!strcmp (attr_name, "id"))
+        {
+          g_free (priv->id);
+          priv->id = attr_value;
+        }
+      else
+        {
+          g_free (attr_value);
+        }
+    }
+
+  priv->depth++;
+}
+
+static void
+handle_regular_element (
+    WockyXmppReader *self,
+    const gchar *localname,
+    const gchar *uri,
+    int nb_attributes,
+    const xmlChar **attributes)
+{
+  WockyXmppReaderPrivate *priv = self->priv;
+  int i;
 
   if (priv->stanza == NULL)
     {
       if (uri != NULL)
         {
-          priv->stanza = wocky_stanza_new ((gchar *) localname, (gchar *) uri);
+          priv->stanza = wocky_stanza_new (localname, uri);
         }
       else
         {
           /* This can only happy in non-streaming mode when the top node
            * of the document doesn't have a namespace. */
           DEBUG ("Stanza without a namespace, using dummy namespace..");
-          priv->stanza = wocky_stanza_new ((gchar *) localname, (gchar *) "");
+          priv->stanza = wocky_stanza_new (localname, "");
         }
 
       priv->node = wocky_stanza_get_top_node (priv->stanza);
@@ -510,8 +515,7 @@ _start_element_ns (void *user_data, const xmlChar *localname,
     {
       g_queue_push_tail (priv->nodes, priv->node);
       priv->node = wocky_node_add_child_ns (priv->node,
-        (gchar *) localname,
-        (gchar *) uri);
+        localname, uri);
     }
 
   for (i = 0; i < nb_attributes * 5; i+=5)
@@ -542,9 +546,30 @@ _start_element_ns (void *user_data, const xmlChar *localname,
               (gchar *) attributes[i+2]);                   /* NS URI */
         }
      }
-  priv->depth++;
 
-out:
+  priv->depth++;
+}
+
+static void
+_start_element_ns (void *user_data, const xmlChar *localname,
+    const xmlChar *prefix, const xmlChar *ns_uri, int nb_namespaces,
+    const xmlChar **namespaces, int nb_attributes, int nb_defaulted,
+    const xmlChar **attributes)
+{
+  WockyXmppReader *self = WOCKY_XMPP_READER (user_data);
+  WockyXmppReaderPrivate *priv = self->priv;
+  gchar *uri = NULL;
+
+  if (ns_uri != NULL)
+    uri = g_strstrip (g_strdup ((const gchar *) ns_uri));
+
+  if (priv->stream_mode && G_UNLIKELY (priv->depth == 0))
+    handle_stream_open (self, (const gchar *) localname, uri,
+        (const gchar *) prefix, nb_attributes, attributes);
+  else
+    handle_regular_element (self, (const gchar *) localname, uri,
+        nb_attributes, attributes);
+
   g_free (uri);
 }
 
