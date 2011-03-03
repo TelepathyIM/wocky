@@ -597,16 +597,6 @@ _end_element_ns (void *user_data, const xmlChar *localname,
 
   priv->depth--;
 
-  if (priv->node && priv->node->content)
-    {
-      /* Remove content if it's purely whitespace */
-      const char *c;
-      for (c = priv->node->content; *c != '\0' && g_ascii_isspace (*c); c++)
-        ;
-      if (*c == '\0')
-        wocky_node_set_content (priv->node, NULL);
-    }
-
   if (priv->stream_mode && priv->depth == 0)
     {
       DEBUG ("Stream ended");
