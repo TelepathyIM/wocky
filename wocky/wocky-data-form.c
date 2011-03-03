@@ -440,27 +440,16 @@ extract_var_type_label (WockyNode *node,
   tmp = wocky_node_get_attribute (node, "type");
   if (tmp == NULL)
     {
-      GSList *l;
-      gboolean found = FALSE;
+      WockyNodeIter iter;
 
       type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE;
 
-      for (l = node->children; l != NULL; l = l->next)
-        {
-          WockyNode *child = l->data;
+      wocky_node_iter_init (&iter, node, "value", NULL);
 
-          if (!wocky_strdiff (child->name, "value"))
-            {
-              if (found)
-                {
-                  type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI;
-                  break;
-                }
-              else
-                {
-                  found = TRUE;
-                }
-            }
+      if (wocky_node_iter_next (&iter, NULL) &&
+          wocky_node_iter_next (&iter, NULL))
+        {
+          type = WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI;
         }
     }
   else if (!wocky_enum_from_nick (WOCKY_TYPE_DATA_FORM_FIELD_TYPE,
