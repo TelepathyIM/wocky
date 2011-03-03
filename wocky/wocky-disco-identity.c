@@ -84,7 +84,8 @@ wocky_disco_identity_new (const gchar *category,
 WockyDiscoIdentity *
 wocky_disco_identity_copy (const WockyDiscoIdentity *source)
 {
-  g_return_val_if_fail (source != NULL, NULL);
+  if (source == NULL)
+    return NULL;
 
   return wocky_disco_identity_new (source->category, source->type,
       source->lang, source->name);
