@@ -246,7 +246,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
   GPtrArray *identities = wocky_disco_identity_array_new ();
   GPtrArray *dataforms = g_ptr_array_new_with_free_func (
       (GDestroyNotify) g_object_unref);
-  gchar *str;
+  gchar *str = NULL;
   GSList *c;
   WockyNodeIter iter;
   WockyNode *x_node = NULL;
@@ -302,7 +302,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
         {
           DEBUG ("Failed to parse data form: %s\n", error->message);
           g_clear_error (&error);
-          continue;
+          goto out;
         }
 
       g_ptr_array_add (dataforms, dataform);
@@ -310,6 +310,7 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
 
   str = wocky_caps_hash_compute_from_lists (features, identities, dataforms);
 
+out:
   wocky_disco_identity_array_free (identities);
   g_ptr_array_free (features, TRUE);
   g_ptr_array_free (dataforms, TRUE);

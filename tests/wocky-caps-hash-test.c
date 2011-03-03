@@ -306,6 +306,33 @@ test_sorting_complex (void)
   g_free (two);
 }
 
+static void
+test_dataforms_invalid (void)
+{
+  gchar *out;
+  WockyStanza *  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "lol",
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  /* should have failed, so no output. of course if the test fails
+   * then the string won't be freed! oh no!  */
+  g_assert (out == NULL);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -316,6 +343,7 @@ main (int argc, char **argv)
   g_test_add_func ("/caps-hash/complex", test_complex);
   g_test_add_func ("/caps-hash/sorting/simple", test_sorting_simple);
   g_test_add_func ("/caps-hash/sorting/complex", test_sorting_complex);
+  g_test_add_func ("/caps-hash/dataforms/invalid", test_dataforms_invalid);
 
   result = g_test_run ();
   test_deinit ();
