@@ -520,30 +520,32 @@ handle_regular_element (
 
   for (i = 0; i < nb_attributes * 5; i+=5)
     {
-      /* Node is localname, prefix, uri, valuestart, valueend */
-      if (attributes[i+1] != NULL && !strcmp ((gchar *) attributes[i+1], "xml")
-          && !strcmp ((gchar *) attributes[i], "lang"))
+      /* attr_name and attr_value are guaranteed non-NULL; attr_prefix and
+       * attr_uri may be NULL.
+       */
+      const gchar *attr_name = (const gchar *) attributes[i];
+      const gchar *attr_prefix = (const gchar *) attributes[i+1];
+      const gchar *attr_uri = (const gchar *) attributes[i+2];
+      /* Not NULL-terminated! */
+      const gchar *attr_value = (const gchar *) attributes[i+3];
+      gsize value_len = attributes[i+4] - attributes[i+3];
+
+      if (!wocky_strdiff (attr_prefix, "xml") &&
+          !wocky_strdiff (attr_name, "lang"))
         {
-          wocky_node_set_language_n (priv->node,
-              (gchar *) attributes[i+3],
-              (gsize) (attributes[i+4] - attributes[i+3]));
+          wocky_node_set_language_n (priv->node, attr_value, value_len);
         }
       else
         {
           /* preserve the prefix, if any was received */
-          if (attributes[i+1] != NULL)
+          if (attr_prefix != NULL)
             {
-              const gchar *urn = (gchar *) attributes[i+2];
-              const gchar *pre = (gchar *) attributes[i+1];
-              GQuark ns = g_quark_from_string (urn);
-              wocky_node_attribute_ns_set_prefix (ns, pre);
+              GQuark ns = g_quark_from_string (attr_uri);
+              wocky_node_attribute_ns_set_prefix (ns, attr_prefix);
             }
 
-          wocky_node_set_attribute_n_ns (priv->node,
-              (gchar *) attributes[i],                      /* key    */
-              (gchar *) attributes[i+3],                    /* value  */
-              (gsize)(attributes[i+4] - attributes[i+3]),   /* length */
-              (gchar *) attributes[i+2]);                   /* NS URI */
+          wocky_node_set_attribute_n_ns (priv->node, attr_name,
+              attr_value, value_len, attr_uri);
         }
      }
 
