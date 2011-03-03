@@ -545,8 +545,6 @@ jabber_auth_fields (GObject *source,
     {
       WockyNode *node = NULL;
       WockyAuthError code;
-      gboolean passwd;
-      gboolean digest;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         wocky_stanza_extract_errors (fields, NULL, &error, NULL, NULL);
@@ -563,8 +561,6 @@ jabber_auth_fields (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        passwd = FALSE;
-        digest = FALSE;
         node = wocky_stanza_get_top_node (fields);
         node = wocky_node_get_child_ns (node, "query",
             WOCKY_JABBER_NS_AUTH);
