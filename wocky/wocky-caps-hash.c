@@ -201,6 +201,10 @@ wocky_caps_hash_compute_from_lists (
                   g_checksum_update (checksum, (guchar *) "<", 1);
                 }
             }
+          else
+            {
+              DEBUG ("Unknown data field type (WockyDataFormFieldType ID %u)", field->type);
+            }
         }
 
       g_slist_free (fields);
