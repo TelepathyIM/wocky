@@ -164,7 +164,9 @@ wocky_caps_hash_compute_from_lists (
       GSList *fields, *l;
 
       field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
-      g_assert (field != NULL);
+
+      if (field == NULL)
+        continue;
 
       g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
