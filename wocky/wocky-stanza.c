@@ -501,16 +501,19 @@ wocky_stanza_build_iq_error (WockyStanza *iq,
   va_end (ap);
 
   /* RFC3920 §9.2.3 dictates:
-   *    An IQ stanza of type "error" SHOULD include the child element contained
-   *    in the associated "get" or "set" …
+   *    5. An IQ stanza of type "get" or "set" MUST contain one and only one
+   *       child element that specifies the semantics of the particular request
+   *       or response.
+   *    …
+   *    7. An IQ stanza of type "error" SHOULD include the child element
+   *       contained in the associated "get" or "set" and MUST include an
+   *       <error/> child; for details, see Stanza Errors.
    *
-   * It also dictates:
-   *    An IQ stanza of type "get" or "set" MUST contain one and only one child
-   *    element that specifies the semantics of the particular request or
-   *    response.
-   *
-   * We handle the erroneous case where an incoming IQ has *no* child element,
-   * and we ignore any elements after the first.
+   * So here we take the first child out of the stanza we're replying to, and
+   * include it in the error reply. If @iq has more than one child, it
+   * was illegal, so we're within our rights to ignore everything after the
+   * first. If @iq has no children, it was also illegal, so there's no way we
+   * can comply with the SHOULD.
    */
   query = wocky_node_get_first_child (wocky_stanza_get_top_node (iq));
 
