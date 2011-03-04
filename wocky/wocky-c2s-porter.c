@@ -942,6 +942,7 @@ handle_stanza (WockyC2SPorter *self,
   WockyStanzaSubType sub_type;
   gchar *node = NULL, *domain = NULL, *resource = NULL;
   gboolean is_from_server;
+  gboolean handled = FALSE;
 
   wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
@@ -968,7 +969,7 @@ handle_stanza (WockyC2SPorter *self,
       is_from_server = FALSE;
     }
 
-  for (l = priv->handlers; l != NULL; l = g_list_next (l))
+  for (l = priv->handlers; l != NULL && !handled; l = g_list_next (l))
     {
       StanzaHandler *handler = (StanzaHandler *) l->data;
 
@@ -1013,12 +1014,21 @@ handle_stanza (WockyC2SPorter *self,
               wocky_stanza_get_top_node (handler->match)))
         continue;
 
-      if (handler->callback (WOCKY_PORTER (self), stanza, handler->user_data))
-        goto out;
+      handled = handler->callback (WOCKY_PORTER (self), stanza,
+          handler->user_data);
     }
 
-  DEBUG ("Stanza not handled");
-out:
+  if (!handled)
+    {
+      DEBUG ("Stanza not handled");
+
+      if (type == WOCKY_STANZA_TYPE_IQ &&
+          (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+           sub_type == WOCKY_STANZA_SUB_TYPE_SET))
+        wocky_porter_send_iq_error (WOCKY_PORTER (self), stanza,
+            WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE, NULL);
+    }
+
   g_free (node);
   g_free (domain);
   g_free (resource);
