@@ -148,11 +148,11 @@ wocky_loopback_connection_dispose (GObject *object)
   WockyLoopbackConnection *self = WOCKY_LOOPBACK_CONNECTION (object);
   WockyLoopbackConnectionPrivate *priv = self->priv;
 
-  g_object_unref (priv->input);
-  g_object_unref (priv->output);
-
   if (G_OBJECT_CLASS (wocky_loopback_connection_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_loopback_connection_parent_class)->dispose (object);
+
+  g_object_unref (priv->input);
+  g_object_unref (priv->output);
 }
 
 static GInputStream *
