@@ -282,6 +282,11 @@ void wocky_porter_send_iq_error (
     WockyXmppError error_code,
     const gchar *message);
 
+void wocky_porter_send_iq_gerror (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    const GError *error);
+
 void wocky_porter_force_close_async (WockyPorter *porter,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

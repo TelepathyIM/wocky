@@ -1750,6 +1750,100 @@ test_send_iq_error (void)
   teardown_test (test);
 }
 
+typedef struct {
+    test_data_t *test;
+    GError error;
+} TestSendIqGErrorCtx;
+
+static gboolean
+test_send_iq_gerror_nak_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  TestSendIqGErrorCtx *ctx = user_data;
+
+  wocky_porter_send_iq_gerror (porter, stanza, &ctx->error);
+
+  ctx->test->outstanding--;
+  g_main_loop_quit (ctx->test->loop);
+  return TRUE;
+}
+
+/* Tests wocky_porter_send_iq_gerror(). */
+static void
+test_send_iq_gerror (void)
+{
+  test_data_t *test = setup_test ();
+  TestSendIqGErrorCtx ctx = { test, };
+  WockyStanza *iq, *expected_reply;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
+
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      0,
+      test_send_iq_gerror_nak_cb, &ctx, NULL);
+
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '(', "sup-dawg", ')',
+      NULL);
+
+  /* Test responding with a simple error */
+  ctx.error.domain = WOCKY_XMPP_ERROR;
+  ctx.error.code = WOCKY_XMPP_ERROR_UNEXPECTED_REQUEST;
+  ctx.error.message = "i'm twelve years old and what is this?";
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg", ')',
+      '(', "error",
+        '@', "code", "400",
+        '@', "type", "wait",
+        '(', "unexpected-request", ':', WOCKY_XMPP_NS_STANZAS, ')',
+        '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+          '$', ctx.error.message,
+        ')',
+      ')', NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_iq_reply_no_id_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+
+  test_wait_pending (test);
+
+  /* Test responding with an application-specific error */
+  ctx.error.domain = WOCKY_JINGLE_ERROR;
+  ctx.error.code = WOCKY_JINGLE_ERROR_OUT_OF_ORDER;
+  ctx.error.message = "i'm twelve years old and what is this?";
+  expected_reply = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "romeo@example.net", "juliet@example.com",
+      '(', "sup-dawg", ')',
+      '(', "error",
+        '@', "code", "400",
+        '@', "type", "wait",
+        '(', "unexpected-request", ':', WOCKY_XMPP_NS_STANZAS, ')',
+        '(', "out-of-order", ':', WOCKY_XMPP_NS_JINGLE_ERRORS, ')',
+        '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+          '$', ctx.error.message,
+        ')',
+      ')', NULL);
+  wocky_porter_send_iq_async (test->sched_in, iq,
+      NULL, test_iq_reply_no_id_cb, test);
+  test->outstanding += 2;
+  g_queue_push_tail (test->expected_stanzas, expected_reply);
+
+  test_wait_pending (test);
+
+  g_object_unref (iq);
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 static void
 test_send_iq_abnormal (void)
 {
@@ -3055,6 +3149,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/send-iq", test_send_iq);
   g_test_add_func ("/xmpp-porter/acknowledge-iq", test_acknowledge_iq);
   g_test_add_func ("/xmpp-porter/send-iq-error", test_send_iq_error);
+  g_test_add_func ("/xmpp-porter/send-iq-gerror", test_send_iq_gerror);
   g_test_add_func ("/xmpp-porter/send-iq-denormalised", test_send_iq_abnormal);
   g_test_add_func ("/xmpp-porter/error-while-sending-iq",
       test_error_while_sending_iq);
