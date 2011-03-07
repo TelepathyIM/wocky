@@ -42,6 +42,7 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
   wocky-xmpp-connection-test \
   wocky-porter-test \
+  wocky-loopback-test \
   wocky-xmpp-node-test \
   wocky-node-tree-test \
   wocky-stanza-test \
@@ -129,6 +130,12 @@ wocky_porter_test_SOURCES = \
   wocky-porter-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
+
+wocky_loopback_test_DEPENDENCIES = $(LIBWOCKY)
+wocky_loopback_test_SOURCES = \
+  wocky-test-helper.c wocky-test-helper.h \
+  wocky-test-stream.c wocky-test-stream.h \
+  wocky-loopback-test.c
 
 wocky_xmpp_node_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_node_test_SOURCES = \
