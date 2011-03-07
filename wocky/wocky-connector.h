@@ -57,11 +57,6 @@ typedef struct _WockyConnectorPrivate WockyConnectorPrivate;
  * @WOCKY_CONNECTOR_ERROR_SESSION_DENIED           : Session Refused by Server
  * @WOCKY_CONNECTOR_ERROR_SESSION_CONFLICT         : Session Not Allowed
  * @WOCKY_CONNECTOR_ERROR_SESSION_REJECTED         : Session Error
- * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_UNAVAILABLE  : Jabber Auth Unavailable
- * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_FAILED       : Jabber Auth Failed
- * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_NO_MECHS     : Jabber Auth - No Mechanisms
- * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_REJECTED     : Jabber Auth - Unauthorised
- * @WOCKY_CONNECTOR_ERROR_JABBER_AUTH_INCOMPLETE   : Jabber Auth Args Incomplete
  * @WOCKY_CONNECTOR_ERROR_INSECURE                 : Insufficent Security for Requested Operation
  * @WOCKY_CONNECTOR_ERROR_REGISTRATION_FAILED      : Account Registration Error
  * @WOCKY_CONNECTOR_ERROR_REGISTRATION_UNAVAILABLE : Account Registration Not Available
