@@ -29,6 +29,7 @@
 #include "wocky-utils.h"
 #include "wocky-ll-contact.h"
 #include "wocky-ll-connector.h"
+#include "wocky-loopback-connection.h"
 
 #define DEBUG_FLAG DEBUG_PORTER
 #include "wocky-debug.h"
@@ -504,6 +505,67 @@ free_handler (gpointer data)
 }
 
 static void
+loopback_recv_open_cb (GObject *source_object,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source_object);
+  WockyMetaPorter *self = user_data;
+  WockyMetaPorterPrivate *priv = self->priv;
+  WockyLLContact *contact;
+
+  if (!wocky_xmpp_connection_recv_open_finish (connection, result,
+          NULL, NULL, NULL, NULL, NULL, NULL))
+    return;
+
+  contact = wocky_contact_factory_ensure_ll_contact (
+      priv->contact_factory, priv->jid);
+
+  /* the ref, the porter and the connection will all be freed when the
+   * meta porter is freed */
+  create_porter (self, connection, WOCKY_CONTACT (contact));
+  wocky_meta_porter_ref (self, WOCKY_CONTACT (contact));
+
+  g_object_unref (contact);
+  g_object_unref (connection);
+}
+
+static void
+loopback_sent_open_cb (GObject *source_object,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source_object);
+  WockyMetaPorter *self = user_data;
+
+  if (!wocky_xmpp_connection_send_open_finish (connection, result, NULL))
+    return;
+
+  wocky_xmpp_connection_recv_open_async (connection, NULL,
+      loopback_recv_open_cb, self);
+}
+
+static void
+create_loopback_porter (WockyMetaPorter *self)
+{
+  WockyMetaPorterPrivate *priv = self->priv;
+  GIOStream *stream;
+  WockyXmppConnection *connection;
+
+  if (priv->jid == NULL)
+    return;
+
+  stream = wocky_loopback_connection_new ();
+  connection = wocky_xmpp_connection_new (stream);
+
+  /* really simple connector */
+  wocky_xmpp_connection_send_open_async (connection, NULL, NULL, NULL,
+      NULL, NULL, NULL, loopback_sent_open_cb, self);
+
+  g_object_unref (stream);
+}
+
+static void
 wocky_meta_porter_constructed (GObject *obj)
 {
   WockyMetaPorter *self = WOCKY_META_PORTER (obj);
@@ -522,6 +584,10 @@ wocky_meta_porter_constructed (GObject *obj)
 
   priv->handlers = g_hash_table_new_full (g_direct_hash, g_direct_equal,
       NULL, free_handler);
+
+  /* Create the loopback porter */
+  if (priv->jid != NULL)
+    create_loopback_porter (self);
 }
 
 static void
@@ -1447,6 +1513,9 @@ wocky_meta_porter_set_jid (WockyMetaPorter *self,
 
   g_free (priv->jid);
   priv->jid = g_strdup (jid);
+
+  /* now we can do this */
+  create_loopback_porter (self);
 }
 
 static void
