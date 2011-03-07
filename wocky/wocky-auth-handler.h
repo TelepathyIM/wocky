@@ -20,14 +20,21 @@ typedef struct _WockyAuthHandler WockyAuthHandler;
 
 /**
  * WockyAuthInitialResponseFunc:
+ * @handler: a #WockyAuthHandler object
+ * @initial_data: a #GString location to fill with the initial data, or %NULL to ignre
+ * @error: an optional location for a #GError to fill, or %NULL
  *
- * Called when authentication begins, if the mechanism allows a response to
- * an implicit challenge during AUTH initiation (which, in XMPP,
- * corresponds to sending the <auth/> stanza to the server).
+ * Called when authentication begins, if the mechanism allows a
+ * response to an implicit challenge during AUTH initiation (which, in
+ * XMPP, corresponds to sending the &amp;lt;auth/&amp;gt; stanza to
+ * the server).
  *
- * The function should return TRUE on success and optionally set the
- * initial_data to a string (allocated using g_malloc) if there is initial data
- * to send. On error it should return FALSE and set the error
+ * The function should return %TRUE on success and optionally set the
+ * @initial_data to a string (allocated using g_malloc()) if there is
+ * initial data to send. On error it should return %FALSE and set the
+ * error
+ *
+ * Returns: %TRUE on success, otherwise %FALSE
  **/
 typedef gboolean (*WockyAuthInitialResponseFunc) (WockyAuthHandler *handler,
     GString **initial_data,
@@ -35,14 +42,21 @@ typedef gboolean (*WockyAuthInitialResponseFunc) (WockyAuthHandler *handler,
 
 /**
  * WockyAuthChallengeFunc:
+ * @handler: a #WockyAuthHandler object
+ * @data: the challange string
+ * @response: a location to fill with a challenge response in a #GString
+ * @error: an optional location for a #GError to fill, or %NULL
  *
- * Called During authentication, when a <challenge/> stanza or a <success />
- * with data is received. The handler should put response data in response
- * (allocate using g_malloc) if appropriate. The handler is responsible for
+ * Called During authentication, when a &amp;lt;challenge/&amp;gt;
+ * stanza or a &amp;lt;success /&amp;gt; with data is received. The
+ * handler should put response data in response (allocate using
+ * g_malloc()) if appropriate. The handler is responsible for
  * Base64-encoding responses if appropriate.
  *
- * On success the handler should return TRUE and on failure it should return
- * FALSE and must set the error passed via @error.
+ * On success the handler should return %TRUE and on failure it should
+ * return %FALSE and must set the error passed via @error.
+ *
+ * Returns: %TRUE On success, otherwise %FALSE
  **/
 typedef gboolean (*WockyAuthAuthDataFunc) (
     WockyAuthHandler *handler,
@@ -52,11 +66,16 @@ typedef gboolean (*WockyAuthAuthDataFunc) (
 
 /**
  * WockyAuthSuccessFunc:
+ * @handler: a #WockyAuthHandler object
+ * @error: an optional location for a #GError to fill, or %NULL
  *
- * Called when a <success/> stanza is received during authentication. If no
- * error is returned, then authentication is considered finished. (Typically,
- * an error is only raised if the <success/> stanza was received earlier than
+ * Called when a &amp;lt;success /&amp;gt; stanza is received during
+ * authentication. If no error is returned, then authentication is
+ * considered finished. (Typically, an error is only raised if the
+ * &amp;lt;success /&amp;gt; stanza was received earlier than
  * expected)
+ *
+ * Returns: %TRUE on success, otherwise %FALSE
  **/
 typedef gboolean (*WockyAuthSuccessFunc) (
     WockyAuthHandler *handler,
@@ -100,10 +119,11 @@ typedef struct _WockyAuthHandlerIface WockyAuthHandlerIface;
  *    for.
  * @plain: Whether the mechanism this handler handles sends secrets in
  *    plaintext.
- * @initial_response_func: Called when the initial <auth/> stanza is generated
+ * @initial_response_func: Called when the initial &amp;lt;auth /&amp;gt; stanza
+      is generated
  * @auth_data_func: Called when any authentication data from the server
  *                  is received
- * @success_func: Called when a <success/> stanza is received.
+ * @success_func: Called when a &amp;lt;success /&amp;gt; stanza is received.
  **/
 struct _WockyAuthHandlerIface
 {
