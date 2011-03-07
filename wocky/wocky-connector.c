@@ -2148,8 +2148,8 @@ connector_propagate_jid_and_sid (WockyConnector *self,
  * wocky_connector_connect_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_connect_async() callback).
- * @jid: (%NULL to ignore): the user JID from the server is stored here.
- * @sid: (%NULL to ignore): the Session ID is stored here.
+ * @jid: (%NULL to ignore) the user JID from the server is stored here.
+ * @sid: (%NULL to ignore) the Session ID is stored here.
  * @error: (%NULL to ignore) the #GError (if any) is sored here.
  *
  * Called by the callback passed to wocky_connector_connect_async().
