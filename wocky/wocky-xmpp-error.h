@@ -160,6 +160,7 @@ GError *wocky_xmpp_stream_error_from_node (WockyNode *node);
 
 WockyNode *wocky_stanza_error_to_node (const GError *error,
     WockyNode *parent_node);
+const gchar *wocky_xmpp_stanza_error_to_string (GError *error);
 
 void wocky_xmpp_error_extract (WockyNode *error,
     WockyXmppErrorType *type,

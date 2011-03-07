@@ -289,6 +289,39 @@ xmpp_error_find_domain (GQuark domain)
   return NULL;
 }
 
+/**
+ * wocky_xmpp_stanza_error_to_string:
+ * @error: an error in the domain %WOCKY_XMPP_ERROR, or another domain
+ *  registered with wocky_xmpp_error_register_domain() (such as
+ *  %WOCKY_JINGLE_ERROR).
+ *
+ * Returns the name of the XMPP stanza error element represented by @error.
+ * This is intended for use in debugging messages, with %GErrors returned by
+ * wocky_stanza_extract_errors().
+ *
+ * Returns: the error code as a string, or %NULL if
+ *  <code>error-&gt;domain</code> is not known to Wocky.
+ */
+const gchar *
+wocky_xmpp_stanza_error_to_string (GError *error)
+{
+  g_return_val_if_fail (error != NULL, NULL);
+
+  if (error->domain == WOCKY_XMPP_ERROR)
+    {
+      return wocky_enum_to_nick (WOCKY_TYPE_XMPP_ERROR, error->code);
+    }
+  else
+    {
+      WockyXmppErrorDomain *domain = xmpp_error_find_domain (error->domain);
+
+      if (domain != NULL)
+        return wocky_enum_to_nick (domain->enum_type, error->code);
+      else
+        return NULL;
+    }
+}
+
 /* Static, but bears documenting.
  *
  * xmpp_error_from_node_for_ns:
