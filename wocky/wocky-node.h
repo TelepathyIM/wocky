@@ -27,6 +27,18 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyNodeBuildTag:
+ * @WOCKY_NODE_START: Start of a node (less-than sign)
+ * @WOCKY_NODE_TEXT: Text content of a node
+ * @WOCKY_NODE_END: End of a node (greater-than sign)
+ * @WOCKY_NODE_ATTRIBUTE: A node attribute
+ * @WOCKY_NODE_XMLNS: A node XML namespace
+ * @WOCKY_NODE_ASSIGN_TO: a #WockyNode to assign
+ *
+ * Tags for building a stanza using wocky_stanza_build() or
+ * wocky_node_add_build().
+ */
 typedef enum
 {
   WOCKY_NODE_START = '(',
@@ -39,11 +51,19 @@ typedef enum
 
 typedef struct _WockyNode WockyNode;
 
+/**
+ * WockyNode:
+ * @name: name of the node
+ * @content: content of the node
+ *
+ * A single #WockyNode structure that relates to an element in an XMPP
+ * stanza.
+ */
 struct _WockyNode {
   gchar *name;
   gchar *content;
 
-  /* Private */
+  /*< private >*/
   gchar *language;
   GQuark ns;
   GSList *attributes;
@@ -187,7 +207,15 @@ gboolean wocky_node_equal (WockyNode *node0,
 gboolean wocky_node_is_superset (WockyNode *node,
     WockyNode *subset);
 
-/* Iterate over a nodes children */
+/**
+ * WockyNodeIter:
+ * @pending: the list of children to still iterate over
+ * @name: name of the node to iterate over
+ * @ns: #GQuark of the namespace of the node to iterate over
+ *
+ * Iterate over a node's children. This struct should not be accessed
+ * directly -- see wocky_node_iter_init() for more details.
+ */
 typedef struct {
   GSList *pending;
   const gchar *name;
