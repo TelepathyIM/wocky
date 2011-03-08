@@ -63,17 +63,17 @@ GType wocky_stanza_get_type (void);
 /**
  * WockyStanzaType:
  * @WOCKY_STANZA_TYPE_NONE: no stanza type
- * @WOCKY_STANZA_TYPE_MESSAGE: <message/> stanza
- * @WOCKY_STANZA_TYPE_PRESENCE: <presence/> stanza
- * @WOCKY_STANZA_TYPE_IQ: <iq/> stanza
- * @WOCKY_STANZA_TYPE_STREAM: <stream/> stanza
- * @WOCKY_STANZA_TYPE_STREAM_FEATURES: <stream:features/> stanza
- * @WOCKY_STANZA_TYPE_AUTH: <auth/> stanza
- * @WOCKY_STANZA_TYPE_CHALLENGE: <challenge/> stanza
- * @WOCKY_STANZA_TYPE_RESPONSE: <response/> stanza
- * @WOCKY_STANZA_TYPE_SUCCESS: <success/> stanza
- * @WOCKY_STANZA_TYPE_FAILURE: <failure/> stanza
- * @WOCKY_STANZA_TYPE_STREAM_ERROR: <stream:error/> stanza
+ * @WOCKY_STANZA_TYPE_MESSAGE: <code>&lt;message/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_PRESENCE: <code>&lt;presence/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_IQ: <code>&lt;iq/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_STREAM: <code>&lt;stream/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_STREAM_FEATURES: <code>&lt;stream:features/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_AUTH: <code>&lt;auth/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_CHALLENGE: <code>&lt;challenge/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_RESPONSE: <code>&lt;response/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_SUCCESS: <code>&lt;success/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_FAILURE: <code>&lt;failure/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_STREAM_ERROR: <code>&lt;stream:error/&gt;</code> stanza
  * @WOCKY_STANZA_TYPE_UNKNOWN: unknown stanza type
  *
  * XMPP stanza types.

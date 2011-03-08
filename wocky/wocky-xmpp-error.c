@@ -483,10 +483,11 @@ wocky_xmpp_error_extract (WockyNode *error,
  *         wocky_xmpp_error_register_domain()
  * @parent_node: the node to which to add an error (such as an IQ error)
  *
- * Adds an <error/> node to a stanza corresponding to the error described by
- * @error. If @error is in a domain other than #WOCKY_XMPP_ERROR, both the
- * application-specific error name and the error from #WOCKY_XMPP_ERROR will be
- * created. See RFC 3902 (XMPP Core) §9.3, “Stanza Errors”.
+ * Adds an <code>&lt;error/&gt;</code> node to a stanza corresponding
+ * to the error described by @error. If @error is in a domain other
+ * than #WOCKY_XMPP_ERROR, both the application-specific error name
+ * and the error from #WOCKY_XMPP_ERROR will be created. See RFC 3902
+ * (XMPP Core) §9.3, “Stanza Errors”.
  *
  * There is currently no way to override the type='' of an XMPP Core stanza
  * error without creating an application-specific error code which does so.
