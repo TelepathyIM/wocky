@@ -69,11 +69,12 @@ typedef enum
  *
  * A single data form field option.
  */
-typedef struct
+typedef struct _WockyDataFormFieldOption WockyDataFormFieldOption;
+struct _WockyDataFormFieldOption
 {
   gchar *label;
   gchar *value;
-} WockyDataFormFieldOption;
+};
 
 /**
  * WockyDataFormField:
@@ -90,7 +91,8 @@ typedef struct
  *
  * Details about a single data form field in a #WockyDataForm.
  */
-typedef struct
+typedef struct _WockyDataFormField WockyDataFormField;
+struct _WockyDataFormField
 {
   WockyDataFormFieldType type;
   gchar *var;
@@ -102,7 +104,7 @@ typedef struct
   /* for LIST_MULTI and LIST_SINGLE only.
    * List of (WockyDataFormFieldOption *)*/
   GSList *options;
-} WockyDataFormField;
+};
 
 /**
  * WockyDataForm:
