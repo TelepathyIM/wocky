@@ -37,8 +37,8 @@
                                    WOCKY_TYPE_TLS_CONNECTION, \
                                    WockyTLSConnection))
 
-typedef struct OPAQUE_TYPE__WockyTLSConnection WockyTLSConnection;
-typedef struct OPAQUE_TYPE__WockyTLSSession WockyTLSSession;
+typedef struct _WockyTLSConnection WockyTLSConnection;
+typedef struct _WockyTLSSession WockyTLSSession;
 
 typedef enum
 {

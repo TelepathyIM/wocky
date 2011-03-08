@@ -174,7 +174,7 @@ static gnutls_dh_params_t dh_2048 = NULL;
 static gnutls_dh_params_t dh_3072 = NULL;
 static gnutls_dh_params_t dh_4096 = NULL;
 
-struct OPAQUE_TYPE__WockyTLSSession
+struct _WockyTLSSession
 {
   GObject parent;
 
@@ -216,7 +216,7 @@ typedef struct
   WockyTLSSession *session;
 } WockyTLSOutputStream;
 
-struct OPAQUE_TYPE__WockyTLSConnection
+struct _WockyTLSConnection
 {
   GIOStream parent;
 
