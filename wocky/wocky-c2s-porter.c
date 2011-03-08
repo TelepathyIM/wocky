@@ -1428,7 +1428,7 @@ wocky_c2s_porter_register_handler_from_anyone_by_stanza (
  *  passed to this function, as per wocky_node_is_superset().
  *
  * A <type>va_list</type> version of
- * wocky_porter_register_handler_from_server(); see that function for more
+ * wocky_c2s_porter_register_handler_from_server(); see that function for more
  * details.
  *
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
@@ -1480,7 +1480,7 @@ wocky_c2s_porter_register_handler_from_server_va (
  *  function, as per wocky_node_is_superset().
  *
  * A #WockyStanza version of
- * wocky_porter_register_handler_from_server(); see that function for more
+ * wocky_c2s_porter_register_handler_from_server(); see that function for more
  * details.
  *
  * Returns: a non-zero ID for use with wocky_porter_unregister_handler().
