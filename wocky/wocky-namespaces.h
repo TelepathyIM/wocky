@@ -23,10 +23,10 @@
 #define WOCKY_XMPP_NS_SASL_AUTH \
   "urn:ietf:params:xml:ns:xmpp-sasl"
 
-#define NS_DISCO_INFO \
+#define WOCKY_NS_DISCO_INFO \
   "http://jabber.org/protocol/disco#info"
 
-#define NS_DISCO_ITEMS \
+#define WOCKY_NS_DISCO_ITEMS \
   "http://jabber.org/protocol/disco#items"
 
 #define WOCKY_XMPP_NS_XHTML_IM \
