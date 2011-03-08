@@ -814,7 +814,7 @@ wocky_porter_send_iq_finish (WockyPorter *self,
  * Force the #WockyPorter to close the TCP connection of the underlying
  * #WockyXmppConnection.
  * If a close operation is pending, it will be completed with the
- * %WOCKY_PORTER_ERROR_FORCE_CLOSING error.
+ * %WOCKY_PORTER_ERROR_FORCIBLY_CLOSED error.
  * When the connection has been closed, @callback will be called.
  * You can then call wocky_porter_force_close_finish() to get the result of
  * the operation.
