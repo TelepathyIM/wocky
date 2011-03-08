@@ -27,6 +27,25 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyDataFormFieldType:
+ * @WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED: Unspecified field type
+ * @WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN: Boolean field type
+ * @WOCKY_DATA_FORM_FIELD_TYPE_FIXED: Fixed description field type
+ * @WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN: Hidden field type
+ * @WOCKY_DATA_FORM_FIELD_TYPE_JID_MULTI: A list of multiple JIDs
+ * @WOCKY_DATA_FORM_FIELD_TYPE_JID_SINGLE: A single JID
+ * @WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI: Many options to choose one
+ *   or more from
+ * @WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE: Many options to choose one
+ *   from
+ * @WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI: Multiple lines of text
+ * @WOCKY_DATA_FORM_FIELD_TYPE_TEXT_PRIVATE: A single line of text
+ *   that should be obscured (by, say, asterisks)
+ * @WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE: A single line of text
+ *
+ * Data form field types, as documented in XEP-0004 §3.3.
+ */
 /*< prefix=WOCKY_DATA_FORM_FIELD_TYPE >*/
 typedef enum
 {
@@ -43,12 +62,34 @@ typedef enum
   WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE
 } WockyDataFormFieldType;
 
+/**
+ * WockyDataFormFieldOption:
+ * @label: the option label
+ * @value: the option value
+ *
+ * A single data form field option.
+ */
 typedef struct
 {
   gchar *label;
   gchar *value;
 } WockyDataFormFieldOption;
 
+/**
+ * WockyDataFormField:
+ * @type: the type of the field
+ * @var: the field name
+ * @label: the label of the field
+ * @desc: the description of the field
+ * @required: %TRUE if the field is required, otherwise %FALSE
+ * @default_value: the default of the field
+ * @value: the field value
+ * @options: a #GSList of #WockyDataFormFieldOption<!-- -->s if @type
+ *   if %WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI or
+ *   %WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE
+ *
+ * Details about a single data form field in a #WockyDataForm.
+ */
 typedef struct
 {
   WockyDataFormFieldType type;
@@ -67,6 +108,13 @@ typedef struct _WockyDataForm WockyDataForm;
 typedef struct _WockyDataFormClass WockyDataFormClass;
 typedef struct _WockyDataFormPrivate WockyDataFormPrivate;
 
+/**
+ * WockyDataFormError:
+ * @WOCKY_DATA_FORM_ERROR_NOT_FORM: Node is not a data form
+ * @WOCKY_DATA_FORM_ERROR_WRONG_TYPE: Data form is of the wrong type
+ *
+ * #WockyDataForm specific errors.
+ */
 typedef enum {
   WOCKY_DATA_FORM_ERROR_NOT_FORM,
   WOCKY_DATA_FORM_ERROR_WRONG_TYPE,
