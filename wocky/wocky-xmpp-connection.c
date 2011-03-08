@@ -1058,7 +1058,7 @@ wocky_xmpp_connection_reset (WockyXmppConnection *connection)
 
 /**
  * wocky_xmpp_connection_new_id:
- * @connection: a #WockyXmppConnection.
+ * @self: a #WockyXmppConnection.
  *
  * Returns: A short unique string for usage as the id attribute on a stanza
  * (free after usage).
