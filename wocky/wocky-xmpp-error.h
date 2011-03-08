@@ -156,7 +156,7 @@ GQuark wocky_xmpp_stream_error_quark (void);
 const gchar *wocky_xmpp_error_string (WockyXmppError error);
 const gchar *wocky_xmpp_error_description (WockyXmppError error);
 
-GError *wocky_xmpp_stream_error_from_node (WockyNode *node);
+GError *wocky_xmpp_stream_error_from_node (WockyNode *error);
 
 WockyNode *wocky_stanza_error_to_node (const GError *error,
     WockyNode *parent_node);
