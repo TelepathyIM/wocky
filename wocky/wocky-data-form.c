@@ -265,7 +265,7 @@ type_to_str (WockyDataFormFieldType type)
   return wocky_enum_to_nick (WOCKY_TYPE_DATA_FORM_FIELD_TYPE, type);
 }
 
-/**
+/*
  * extract_options_list:
  * @node: a <field/> node
  *
@@ -302,7 +302,7 @@ extract_options_list (WockyNode *node)
   return result;
 }
 
-/**
+/*
  * extract_value_list:
  * @node: a <field/> element
  *
