@@ -155,21 +155,57 @@ typedef enum {
 GQuark wocky_xmpp_error_quark (void);
 #define WOCKY_XMPP_ERROR (wocky_xmpp_error_quark ())
 
-typedef struct {
-    const gchar *description;
-    WockyXmppError specializes;
-    gboolean override_type;
-    WockyXmppErrorType type;
+/**
+ * WockyXmppErrorSpecialization:
+ * @description: description of the error
+ * @specializes: which #WockyXmppError this error specializes
+ * @override_type: %TRUE whether this error should override the error
+ *   in @specializes, or %FALSE
+ * @type: the XMPP error type
+ *
+ * A struct to represent a specialization of an existing
+ * #WockyXmppError member.
+ */
+typedef struct
+{
+  const gchar *description;
+  WockyXmppError specializes;
+  gboolean override_type;
+  WockyXmppErrorType type;
 } WockyXmppErrorSpecialization;
 
-typedef struct {
-    GQuark domain;
-    GType enum_type;
-    WockyXmppErrorSpecialization *codes;
+/**
+ * WockyXmppErrorDomain:
+ * @domain: a #GQuark of the error domain
+ * @enum_type: the #GType of the error enum
+ * @codes: a %NULL-terminated array of of #WockyXmppErrorSpecialization<!--
+ *   -->s
+ *
+ * A struct to represent extra XMPP error domains added.
+ */
+typedef struct
+{
+  GQuark domain;
+  GType enum_type;
+  WockyXmppErrorSpecialization *codes;
 } WockyXmppErrorDomain;
 
 void wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain);
 
+/**
+ * WockyJingleError:
+ * @WOCKY_JINGLE_ERROR_OUT_OF_ORDER: the request cannot occur at this
+ *   point in the state machine
+ * @WOCKY_JINGLE_ERROR_TIE_BREAK: the request is rejected because it
+ *   was sent while the initiator was awaiting a reply on a similar
+ *   request
+ * @WOCKY_JINGLE_ERROR_UNKNOWN_SESSION: the 'sid' attribute specifies
+ *   a session that is unknown to the recipient
+ * @WOCKY_JINGLE_ERROR_UNSUPPORTED_INFO: the recipient does not
+ *   support the informational payload of a session-info action.
+ *
+ * Jingle specific errors.
+ */
 /*< prefix=WOCKY_JINGLE_ERROR >*/
 typedef enum {
     WOCKY_JINGLE_ERROR_OUT_OF_ORDER,
@@ -181,6 +217,15 @@ typedef enum {
 GQuark wocky_jingle_error_quark (void);
 #define WOCKY_JINGLE_ERROR (wocky_jingle_error_quark ())
 
+/**
+ * WockySIError:
+ * @WOCKY_SI_ERROR_NO_VALID_STREAMS: none of the available streams are
+ *   acceptable
+ * @WOCKY_SI_ERROR_BAD_PROFILE: the profile is not understood or
+ *   invalid
+ *
+ * SI specific errors.
+ */
 /*< prefix=WOCKY_SI_ERROR >*/
 typedef enum {
     WOCKY_SI_ERROR_NO_VALID_STREAMS,
