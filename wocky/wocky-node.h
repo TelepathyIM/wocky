@@ -43,7 +43,7 @@ typedef enum
 {
   WOCKY_NODE_START = '(',
   WOCKY_NODE_TEXT = '$',
-  WOCKY_NODE_END = ')',
+  WOCKY_NODE_END = 41, /* this is actually ')', but gtk-doc is broken */
   WOCKY_NODE_ATTRIBUTE = '@',
   WOCKY_NODE_XMLNS = ':',
   WOCKY_NODE_ASSIGN_TO = '*'
