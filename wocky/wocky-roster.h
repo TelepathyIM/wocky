@@ -62,6 +62,24 @@ GType wocky_roster_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_ROSTER, \
    WockyRosterClass))
 
+/**
+ * WockyRosterSubscriptionFlags:
+ * @WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE: the user does not have a
+ *   subscription to the contact's presence information, and the
+ *   contact does not have a subscription to the user's presence
+ *   information
+ * @WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO: the user has a subscription to
+ *   the contact's presence information, but the contact does not have
+ *   a subscription to the user's presence information
+ * @WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM: the contact has a
+ *   subscription to the user's presence information, but the user
+ *   does not have a subscription to the contact's presence
+ *   information
+ * @WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH: both the user and the contact
+ * have subscriptions to each other's presence information
+ *
+ * Flags to document the subscription information between contacts.
+ */
 typedef enum
 {
   WOCKY_ROSTER_SUBSCRIPTION_TYPE_NONE = 0,
@@ -69,6 +87,7 @@ typedef enum
   WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM = 1 << 1,
   WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH =
     WOCKY_ROSTER_SUBSCRIPTION_TYPE_TO | WOCKY_ROSTER_SUBSCRIPTION_TYPE_FROM,
+  /*< private >*/
   LAST_WOCKY_ROSTER_SUBSCRIPTION_TYPE = WOCKY_ROSTER_SUBSCRIPTION_TYPE_BOTH
 } WockyRosterSubscriptionFlags;
 
