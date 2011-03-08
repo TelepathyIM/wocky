@@ -49,6 +49,7 @@
     <xi:include href="xml/wocky-stanza.xml"/>
     <xi:include href="xml/wocky-tls-connector.xml"/>
     <xi:include href="xml/wocky-tls.xml"/>
+    <xi:include href="xml/wocky-tls-handler.xml"/>
     <xi:include href="xml/wocky-utils.xml"/>
     <xi:include href="xml/wocky-xmpp-connection.xml"/>
     <xi:include href="xml/wocky-xmpp-error.xml"/>
