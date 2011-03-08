@@ -7,7 +7,7 @@
 
 #ifdef ENABLE_DEBUG
 
-static DebugFlags flags = 0;
+static WockyDebugFlags flags = 0;
 static gboolean initialized = FALSE;
 
 static GDebugKey keys[] = {
@@ -50,19 +50,19 @@ void wocky_debug_set_flags_from_env ()
   initialized = TRUE;
 }
 
-void wocky_debug_set_flags (DebugFlags new_flags)
+void wocky_debug_set_flags (WockyDebugFlags new_flags)
 {
   flags |= new_flags;
   initialized = TRUE;
 }
 
 gboolean
-wocky_debug_flag_is_set (DebugFlags flag)
+wocky_debug_flag_is_set (WockyDebugFlags flag)
 {
   return flag & flags;
 }
 
-void wocky_debug (DebugFlags flag,
+void wocky_debug (WockyDebugFlags flag,
                    const gchar *format,
                    ...)
 {
@@ -72,7 +72,7 @@ void wocky_debug (DebugFlags flag,
   va_end (args);
 }
 
-void wocky_debug_valist (DebugFlags flag,
+void wocky_debug_valist (WockyDebugFlags flag,
     const gchar *format,
     va_list args)
 {
@@ -84,7 +84,7 @@ void wocky_debug_valist (DebugFlags flag,
 }
 
 static void
-wocky_debug_node_tree_va (DebugFlags flag,
+wocky_debug_node_tree_va (WockyDebugFlags flag,
     WockyNodeTree *tree,
     const gchar *format,
     va_list args)
@@ -108,7 +108,7 @@ wocky_debug_node_tree_va (DebugFlags flag,
 }
 
 void
-wocky_debug_node_tree (DebugFlags flag,
+wocky_debug_node_tree (WockyDebugFlags flag,
     WockyNodeTree *tree,
     const gchar *format,
     ...)
@@ -121,7 +121,7 @@ wocky_debug_node_tree (DebugFlags flag,
 }
 
 void
-wocky_debug_stanza (DebugFlags flag,
+wocky_debug_stanza (WockyDebugFlags flag,
     WockyStanza *stanza,
     const gchar *format,
     ...)
