@@ -559,12 +559,6 @@ wocky_stanza_error_to_node (const GError *error,
 }
 
 /**
- * WockyXmppStreamError:
- *
- * Possible XMPP stream errors, as defined by RFC 3920 §4.7.
- */
-
-/**
  * wocky_xmpp_stream_error_quark
  *
  * Get the error quark used for stream errors
