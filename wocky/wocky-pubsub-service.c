@@ -763,7 +763,7 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
 /**
  * wocky_pubsub_service_handle_create_node_reply:
  * @self: a pubsub service
- * @create_node: the &lt;create/&gt; tree from the reply to an attempt to
+ * @create_tree: the &lt;create/&gt; tree from the reply to an attempt to
  *               create a node, or %NULL if none was present in the reply.
  * @requested_name: the name we asked the server to use for the node, or %NULL
  *                  if we requested an instant node
