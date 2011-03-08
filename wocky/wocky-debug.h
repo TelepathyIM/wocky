@@ -14,6 +14,7 @@ G_BEGIN_DECLS
 
 typedef enum
 {
+  /*< private > */
   DEBUG_TRANSPORT         = 1 << 0,
   DEBUG_NET               = 1 << 1,
   DEBUG_XMPP_READER       = 1 << 2,
