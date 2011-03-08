@@ -166,13 +166,14 @@ GQuark wocky_xmpp_error_quark (void);
  * A struct to represent a specialization of an existing
  * #WockyXmppError member.
  */
-typedef struct
+typedef struct _WockyXmppErrorSpecialization WockyXmppErrorSpecialization;
+struct _WockyXmppErrorSpecialization
 {
   const gchar *description;
   WockyXmppError specializes;
   gboolean override_type;
   WockyXmppErrorType type;
-} WockyXmppErrorSpecialization;
+};
 
 /**
  * WockyXmppErrorDomain:
@@ -183,12 +184,13 @@ typedef struct
  *
  * A struct to represent extra XMPP error domains added.
  */
-typedef struct
+typedef struct _WockyXmppErrorDomain WockyXmppErrorDomain;
+struct _WockyXmppErrorDomain
 {
   GQuark domain;
   GType enum_type;
   WockyXmppErrorSpecialization *codes;
-} WockyXmppErrorDomain;
+};
 
 void wocky_xmpp_error_register_domain (WockyXmppErrorDomain *domain);
 
