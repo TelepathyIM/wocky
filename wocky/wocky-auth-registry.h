@@ -94,11 +94,11 @@ typedef struct _WockyAuthRegistry WockyAuthRegistry;
 /**
  * WockyAuthRegistryClass:
  * @start_auth_async_func: a function to call to start an asynchronous
- *   start auth operation; see wocky_auth_registry_start_async() for
+ *   start auth operation; see wocky_auth_registry_start_auth_async() for
  *   more details.
  * @start_auth_finish_func: a function to call to finish an
  *   asynchronous start auth operation; see
- *   wocky_auth_registry_start_finish() for more details.
+ *   wocky_auth_registry_start_auth_finish() for more details.
  * @challenge_async_func: a function to call to start an asynchronous
  *   challenge operation; see wocky_auth_registry_challenge_async() for
  *   more details.
