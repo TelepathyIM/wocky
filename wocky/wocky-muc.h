@@ -28,6 +28,12 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyMuc WockyMuc;
+
+/**
+ * WockyMucClass:
+ *
+ * The class of a #WockyMuc.
+ */
 typedef struct _WockyMucClass WockyMucClass;
 typedef struct _WockyMucPrivate WockyMucPrivate;
 
@@ -239,10 +245,12 @@ typedef struct {
 GType wocky_muc_get_type (void);
 
 struct _WockyMucClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyMuc {
+    /*<private>*/
     GObject parent;
     WockyMucPrivate *priv;
 };

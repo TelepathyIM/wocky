@@ -104,7 +104,24 @@ typedef struct
   GSList *options;
 } WockyDataFormField;
 
+/**
+ * WockyDataForm:
+ * @fields: a #GHashTable of strings to #WockyDataFormField<!-- -->s
+ * @fields_list: a list of #WockyDataFormField<!-- -->s in the order
+ *   they have been presented in the form
+ * @results: a list of #GSList<!-- -->s of #WockyDataFormField<!-- -->s
+ *   representing one or more sets of result.
+ *
+ * An object that represents an XMPP data form as described in
+ * XEP-0004.
+ */
 typedef struct _WockyDataForm WockyDataForm;
+
+/**
+ * WockyDataFormClass:
+ *
+ * The class of a #WockyDataForm.
+ */
 typedef struct _WockyDataFormClass WockyDataFormClass;
 typedef struct _WockyDataFormPrivate WockyDataFormPrivate;
 
@@ -125,11 +142,15 @@ GQuark wocky_data_form_error_quark (void);
 #define WOCKY_DATA_FORM_ERROR (wocky_data_form_error_quark ())
 
 struct _WockyDataFormClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyDataForm {
+  /*<private>*/
   GObject parent;
+
+  /*<public>*/
 
   /* (gchar *) owned by the WockyDataFormField =>
    * borrowed (WockyDataFormField *) */
@@ -142,6 +163,7 @@ struct _WockyDataForm {
    * of results */
   GSList *results;
 
+  /*<private>*/
   WockyDataFormPrivate *priv;
 };
 

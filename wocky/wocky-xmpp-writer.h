@@ -29,15 +29,23 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyXmppWriter WockyXmppWriter;
+
+/**
+ * WockyXmppWriterClass:
+ *
+ * The class of a #WockyXmppWriter.
+ */
 typedef struct _WockyXmppWriterClass WockyXmppWriterClass;
 typedef struct _WockyXmppWriterPrivate WockyXmppWriterPrivate;
 
 
 struct _WockyXmppWriterClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyXmppWriter {
+    /*<private>*/
     GObject parent;
 
     WockyXmppWriterPrivate *priv;

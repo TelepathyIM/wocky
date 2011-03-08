@@ -30,14 +30,21 @@
 
 G_BEGIN_DECLS
 
-typedef struct _WockyNodeTreePrivate WockyNodeTreePrivate;
+/**
+ * WockyNodeTreeClass:
+ *
+ * The class of a #WockyNodeTree.
+ */
 typedef struct _WockyNodeTreeClass WockyNodeTreeClass;
+typedef struct _WockyNodeTreePrivate WockyNodeTreePrivate;
 
 struct _WockyNodeTreeClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyNodeTree {
+    /*<private>*/
     GObject parent;
 
     WockyNodeTreePrivate *priv;

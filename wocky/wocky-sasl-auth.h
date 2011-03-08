@@ -30,15 +30,23 @@
 G_BEGIN_DECLS
 
 typedef struct _WockySaslAuth WockySaslAuth;
+
+/**
+ * WockySaslAuthClass:
+ *
+ * The class of a #WockySaslAuth.
+ */
 typedef struct _WockySaslAuthClass WockySaslAuthClass;
 typedef struct _WockySaslAuthPrivate WockySaslAuthPrivate;
 
 
 struct _WockySaslAuthClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockySaslAuth {
+    /*<private>*/
     GObject parent;
 
     WockySaslAuthPrivate *priv;

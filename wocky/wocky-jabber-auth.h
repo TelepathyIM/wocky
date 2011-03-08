@@ -29,15 +29,23 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyJabberAuth WockyJabberAuth;
+
+/**
+ * WockyJabberAuthClass:
+ *
+ * The class of a #WockyJabberAuth.
+ */
 typedef struct _WockyJabberAuthClass WockyJabberAuthClass;
 typedef struct _WockyJabberAuthPrivate WockyJabberAuthPrivate;
 
 
 struct _WockyJabberAuthClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyJabberAuth {
+    /*<private>*/
     GObject parent;
 
     WockyJabberAuthPrivate *priv;

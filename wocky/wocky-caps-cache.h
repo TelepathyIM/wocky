@@ -32,6 +32,12 @@ G_BEGIN_DECLS
  * An object providing a permanent cache for capabilities.
  */
 typedef struct _WockyCapsCache WockyCapsCache;
+
+/**
+ * WockyCapsCacheClass:
+ *
+ * The class of a #WockyCapsCache.
+ */
 typedef struct _WockyCapsCacheClass WockyCapsCacheClass;
 typedef struct _WockyCapsCachePrivate WockyCapsCachePrivate;
 
@@ -52,12 +58,14 @@ typedef struct _WockyCapsCachePrivate WockyCapsCachePrivate;
 
 struct _WockyCapsCache
 {
+  /*<private>*/
   GObject parent;
   WockyCapsCachePrivate *priv;
 };
 
 struct _WockyCapsCacheClass
 {
+  /*<private>*/
   GObjectClass parent_class;
 };
 

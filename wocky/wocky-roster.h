@@ -29,16 +29,24 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyRoster WockyRoster;
+
+/**
+ * WockyRosterClass:
+ *
+ * The class of a #WockyRoster.
+ */
 typedef struct _WockyRosterClass WockyRosterClass;
 typedef struct _WockyRosterPrivate WockyRosterPrivate;
 
 GQuark wocky_roster_error_quark (void);
 
 struct _WockyRosterClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyRoster {
+  /*<private>*/
   GObject parent;
 
   WockyRosterPrivate *priv;

@@ -29,14 +29,22 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyTLSConnector WockyTLSConnector;
+
+/**
+ * WockyTLSConnectorClass:
+ *
+ * The class of a #WockyTLSConnector.
+ */
 typedef struct _WockyTLSConnectorClass WockyTLSConnectorClass;
 typedef struct _WockyTLSConnectorPrivate WockyTLSConnectorPrivate;
 
 struct _WockyTLSConnectorClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyTLSConnector {
+  /*<private>*/
   GObject parent;
   WockyTLSConnectorPrivate *priv;
 };

@@ -90,6 +90,32 @@ typedef struct {
   WOCKY_TYPE_AUTH_REGISTRY, WockyAuthRegistryClass))
 
 typedef struct _WockyAuthRegistry WockyAuthRegistry;
+
+/**
+ * WockyAuthRegistryClass:
+ * @start_auth_async_func: a function to call to start an asynchronous
+ *   start auth operation; see wocky_auth_registry_start_async() for
+ *   more details.
+ * @start_auth_finish_func: a function to call to finish an
+ *   asynchronous start auth operation; see
+ *   wocky_auth_registry_start_finish() for more details.
+ * @challenge_async_func: a function to call to start an asynchronous
+ *   challenge operation; see wocky_auth_registry_challenge_async() for
+ *   more details.
+ * @challenge_finish_func: a function to call to finish an asynchronous
+ *   challenge operation; see wocky_auth_registry_challenge_finish() for
+ *   more details.
+ * @success_async_func: a function to call to start an asynchronous
+ *   success operation; see wocky_auth_registry_success_async() for
+ *   more details.
+ * @success_finish_func: a function to call to finish an asynchronous
+ *   success operation; see wocky_auth_registry_success_finish() for
+ *   more details.
+ * @failure_func: a function to call on failure; see
+ *   wocky_auth_registry_failure() for more details.
+ *
+ * The class of a #WockyAuthRegistry.
+ */
 typedef struct _WockyAuthRegistryClass WockyAuthRegistryClass;
 typedef struct _WockyAuthRegistryPrivate WockyAuthRegistryPrivate;
 
@@ -221,6 +247,7 @@ typedef void (*WockyAuthRegistryFailureFunc) (WockyAuthRegistry *self,
 
 struct _WockyAuthRegistry
 {
+  /*<private>*/
   GObject parent;
 
   WockyAuthRegistryPrivate *priv;
@@ -228,8 +255,10 @@ struct _WockyAuthRegistry
 
 struct _WockyAuthRegistryClass
 {
+  /*<private>*/
   GObjectClass parent_class;
 
+  /*<public>*/
   WockyAuthRegistryStartAuthAsyncFunc start_auth_async_func;
   WockyAuthRegistryStartAuthFinishFunc start_auth_finish_func;
 

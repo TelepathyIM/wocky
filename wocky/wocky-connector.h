@@ -34,6 +34,12 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyConnector WockyConnector;
+
+/**
+ * WockyConnectorClass:
+ *
+ * The class of a #WockyConnector.
+ */
 typedef struct _WockyConnectorClass WockyConnectorClass;
 typedef struct _WockyConnectorPrivate WockyConnectorPrivate;
 
@@ -119,10 +125,12 @@ GQuark wocky_connector_error_quark (void);
 #define WOCKY_CONNECTOR_ERROR (wocky_connector_error_quark ())
 
 struct _WockyConnectorClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyConnector {
+    /*<private>*/
     GObject parent;
     WockyConnectorPrivate *priv;
 };

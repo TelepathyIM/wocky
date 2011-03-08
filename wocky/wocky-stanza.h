@@ -29,15 +29,23 @@
 
 G_BEGIN_DECLS
 
-typedef struct _WockyStanzaPrivate WockyStanzaPrivate;
 typedef struct _WockyStanza WockyStanza;
+
+/**
+ * WockyStanzaClass:
+ *
+ * The class of a #WockyStanza.
+ */
 typedef struct _WockyStanzaClass WockyStanzaClass;
+typedef struct _WockyStanzaPrivate WockyStanzaPrivate;
 
 struct _WockyStanzaClass {
+    /*<private>*/
     WockyNodeTreeClass parent_class;
 };
 
 struct _WockyStanza {
+    /*<private>*/
     WockyNodeTree parent;
 
     WockyStanzaPrivate *priv;

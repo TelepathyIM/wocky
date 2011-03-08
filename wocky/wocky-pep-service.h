@@ -28,15 +28,23 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyPepService WockyPepService;
+
+/**
+ * WockyPepServiceClass:
+ *
+ * The class of a #WockyPepService.
+ */
 typedef struct _WockyPepServiceClass WockyPepServiceClass;
 typedef struct _WockyPepServicePrivate WockyPepServicePrivate;
 
 
 struct _WockyPepServiceClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyPepService {
+  /*<private>*/
   GObject parent;
 
   WockyPepServicePrivate *priv;
