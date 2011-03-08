@@ -23,9 +23,9 @@
 
 #include <glib-object.h>
 
-#include "wocky-types.h"
-
 G_BEGIN_DECLS
+
+typedef struct _WockyContact WockyContact;
 
 /**
  * WockyContactClass:
