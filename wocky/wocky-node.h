@@ -209,14 +209,12 @@ gboolean wocky_node_is_superset (WockyNode *node,
 
 /**
  * WockyNodeIter:
- * @pending: the list of children to still iterate over
- * @name: name of the node to iterate over
- * @ns: #GQuark of the namespace of the node to iterate over
  *
- * Iterate over a node's children. This struct should not be accessed
- * directly -- see wocky_node_iter_init() for more details.
+ * Iterate over a node's children. See wocky_node_iter_init() for more
+ * details.
  */
 typedef struct {
+  /*<private>*/
   GSList *pending;
   const gchar *name;
   GQuark ns;
