@@ -159,8 +159,8 @@ GQuark wocky_xmpp_error_quark (void);
  * WockyXmppErrorSpecialization:
  * @description: description of the error
  * @specializes: which #WockyXmppError this error specializes
- * @override_type: %TRUE whether this error should override the error
- *   in @specializes, or %FALSE
+ * @override_type: %TRUE if @type should be used, or %FALSE if the
+ *   default error type for @specializes should be used
  * @type: the XMPP error type
  *
  * A struct to represent a specialization of an existing
