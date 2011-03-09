@@ -17,6 +17,15 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-pep-service
+ * @title: WockyPepService
+ * @short_description: Object to represent a single PEP service
+ * @include: wocky/wocky-pep-service.h
+ *
+ * Object to aid with looking up PEP nodes and listening for changes.
+ */
+
 #include "wocky-pep-service.h"
 
 #include "wocky-pubsub-helpers.h"
@@ -173,27 +182,55 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
   object_class->finalize = wocky_pep_service_finalize;
   object_class->constructed = wocky_pep_service_constructed;
 
+  /**
+   * WockyPepService:node:
+   *
+   * Namespace of the PEP node.
+   */
   param_spec = g_param_spec_string ("node", "node",
       "namespace of the pep node",
       NULL,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_NODE, param_spec);
 
+  /**
+   * WockyPepService:subscribe:
+   *
+   * %TRUE if Wocky is to subscribe to the notifications of the node.
+   */
   param_spec = g_param_spec_boolean ("subscribe", "subscribe",
       "if TRUE, Wocky will subscribe to the notifications of the node",
       FALSE,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_SUBSCRIBE, param_spec);
 
+  /**
+   * WockyPepService::changed:
+   * @self: a #WockyPepService object
+   * @contact: the #WockyBareContact who changed the node
+   * @stanza: the #WockyStanza
+   *
+   * Emitted when the node value changes.
+   */
   signals[CHANGED] = g_signal_new ("changed",
       G_OBJECT_CLASS_TYPE (wocky_pep_service_class),
       G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
       0,
       NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_OBJECT,
-      G_TYPE_NONE, 2, G_TYPE_OBJECT, G_TYPE_OBJECT);
+      G_TYPE_NONE, 2, WOCKY_TYPE_BARE_CONTACT, WOCKY_TYPE_STANZA);
 }
 
+/**
+ * wocky_pep_service_new:
+ * @node: the namespace of the PEP node
+ * @subscribe: %TRUE if Wocky is to subscribe to the notifications of
+ *   the node, otherwise %FALSE
+ *
+ * A convenience function to create a new #WockyPepService object.
+ *
+ * Returns: a new #WockyPepService
+ */
 WockyPepService *
 wocky_pep_service_new (const gchar *node,
     gboolean subscribe)
@@ -241,6 +278,14 @@ msg_event_cb (WockyPorter *porter,
   return TRUE;
 }
 
+/**
+ * wocky_pep_service_start:
+ * @self: a #WockyPepService object
+ * @session: a #WockySession object
+ *
+ * Start listening to the PEP node @node and signal changes by using
+ * #WockyPepService::changed.
+ */
 void
 wocky_pep_service_start (WockyPepService *self,
     WockySession *session)
@@ -296,6 +341,20 @@ send_query_cb (GObject *source,
   g_object_unref (result);
 }
 
+/**
+ * wocky_pep_service_get_async:
+ * @self: a #WockyPepService object
+ * @contact: a #WockyBareContact object
+ * @cancellable: an optional #GCancellable object, or %NULL
+ * @callback: a function to call when the node is retrieved
+ * @user_data: user data for @callback
+ *
+ * Starts an asynchronous operation to get the PEP node,
+ * #WockyPepService:node.
+ *
+ * When the operation is complete, @callback will be called and the
+ * function should call wocky_pep_service_get_finish().
+ */
 void
 wocky_pep_service_get_async (WockyPepService *self,
     WockyBareContact *contact,
@@ -337,6 +396,18 @@ wocky_pep_service_get_async (WockyPepService *self,
   g_object_unref (msg);
 }
 
+/**
+ * wocky_pep_service_get_finish:
+ * @self: a #WockyPepService object
+ * @result: a #GAsyncResult
+ * @error: a location to store a #GError if an error occurs
+ *
+ * Finishes an asynchronous operation to get the PEP node,
+ * #WockyPepService:node. For more details, see
+ * wocky_pep_service_get_async().
+ *
+ * Returns: the #WockyStanza retrieved from getting the PEP node.
+ */
 WockyStanza *
 wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
@@ -353,6 +424,15 @@ wocky_pep_service_get_finish (WockyPepService *self,
   return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
 }
 
+/**
+ * wocky_pep_service_make_publish_stanza:
+ * @self: a #WockyPepService
+ * @item: a location to store the item #WockyNode, or %NULL
+ *
+ * Generates a new IQ type='set' PEP publish stanza.
+ *
+ * Returns: a new #WockyStanza PEP publish stanza; free with g_object_unref()
+ */
 WockyStanza *
 wocky_pep_service_make_publish_stanza (WockyPepService *self,
     WockyNode **item)
