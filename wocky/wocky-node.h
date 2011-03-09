@@ -29,9 +29,9 @@ G_BEGIN_DECLS
 
 /**
  * WockyNodeBuildTag:
- * @WOCKY_NODE_START: Start of a node (less-than sign)
+ * @WOCKY_NODE_START: Start of a node
  * @WOCKY_NODE_TEXT: Text content of a node
- * @WOCKY_NODE_END: End of a node (greater-than sign)
+ * @WOCKY_NODE_END: End of a node
  * @WOCKY_NODE_ATTRIBUTE: A node attribute
  * @WOCKY_NODE_XMLNS: A node XML namespace
  * @WOCKY_NODE_ASSIGN_TO: a #WockyNode to assign
