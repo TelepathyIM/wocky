@@ -271,6 +271,22 @@ WockyStanza * wocky_porter_send_iq_finish (
     GAsyncResult *result,
     GError **error) G_GNUC_WARN_UNUSED_RESULT;
 
+void wocky_porter_acknowledge_iq (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    ...) G_GNUC_NULL_TERMINATED;
+
+void wocky_porter_send_iq_error (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    WockyXmppError error_code,
+    const gchar *message);
+
+void wocky_porter_send_iq_gerror (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    const GError *error);
+
 void wocky_porter_force_close_async (WockyPorter *porter,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,

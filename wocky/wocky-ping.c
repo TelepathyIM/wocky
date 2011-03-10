@@ -233,14 +233,9 @@ ping_iq_cb (WockyPorter *porter, WockyStanza *stanza, gpointer data)
 #ifdef ENABLE_DEBUG
   const gchar *from = wocky_stanza_get_from (stanza);
 #endif
-  WockyStanza *reply;
 
   DEBUG ("replying to ping from %s", from ? from : "<null>");
-
-  reply = wocky_stanza_build_iq_result (stanza, NULL);
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
-
+  wocky_porter_acknowledge_iq (porter, stanza, NULL);
   return TRUE;
 }
 

@@ -425,7 +425,9 @@ create_iq_reply (WockyStanza *iq,
   from = wocky_node_get_attribute (node, "from");
   to = wocky_node_get_attribute (node, "to");
   id = wocky_node_get_attribute (node, "id");
-  g_return_val_if_fail (id != NULL, NULL);
+
+  if (id == NULL)
+    return NULL;
 
   reply = wocky_stanza_build_va (WOCKY_STANZA_TYPE_IQ,
       sub_type_reply, to, from, ap);
@@ -449,17 +451,90 @@ wocky_stanza_build_iq_result (WockyStanza *iq,
 }
 
 WockyStanza *
+wocky_stanza_build_iq_result_va (
+    WockyStanza *iq,
+    va_list ap)
+{
+  return create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_RESULT, ap);
+}
+
+/**
+ * wocky_stanza_build_iq_error:
+ * @iq: a stanza of type #WOCKY_STANZA_TYPE_IQ and sub-type either
+ *      #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @Varargs: a wocky_stanza_build() specification
+ *
+ * Builds an error reply to @iq containing the given body. This function also
+ * adds the child element of @iq to the reply, as recommended by <ulink
+ * url='http://xmpp.org/rfcs/rfc3920.html#stanzas-semantics-iq'>RFC3920 §9.2.3
+ * ‘IQ Semantics’</ulink>.
+ *
+ * No <code>&lt;error/&gt;</code> element is added to the reply. To add a
+ * standard stanza error, plus message, consider using
+ * wocky_stanza_error_to_node(). To add a more complicated error with an
+ * application-specific condition, specify it when calling this function. For
+ * example:
+ *
+ * |[
+ * WockyStanza *reply = wocky_stanza_build_iq_error (iq,
+ *    '(', "error",
+ *      '@', "type", "cancel",
+ *      '(', "feature-not-implemented", ':', WOCKY_XMPP_NS_STANZAS, ')',
+ *      '(', "unsupported", ':', WOCKY_XMPP_NS_PUBSUB_ERRORS,
+ *        '@', "feature", "subscribe",
+ *      ')',
+ *    ')', NULL);
+ * ]|
+ *
+ * Returns: an error reply for @iq
+ */
+WockyStanza *
 wocky_stanza_build_iq_error (WockyStanza *iq,
     ...)
 {
   WockyStanza *reply;
+  WockyNode *query;
   va_list ap;
 
   va_start (ap, iq);
   reply = create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, ap);
   va_end (ap);
 
+  /* RFC3920 §9.2.3 dictates:
+   *    5. An IQ stanza of type "get" or "set" MUST contain one and only one
+   *       child element that specifies the semantics of the particular request
+   *       or response.
+   *    …
+   *    7. An IQ stanza of type "error" SHOULD include the child element
+   *       contained in the associated "get" or "set" and MUST include an
+   *       <error/> child; for details, see Stanza Errors.
+   *
+   * So here we take the first child out of the stanza we're replying to, and
+   * include it in the error reply. If @iq has more than one child, it
+   * was illegal, so we're within our rights to ignore everything after the
+   * first. If @iq has no children, it was also illegal, so there's no way we
+   * can comply with the SHOULD.
+   */
+  query = wocky_node_get_first_child (wocky_stanza_get_top_node (iq));
+
+  if (reply != NULL && query != NULL)
+    {
+      WockyNodeTree *query_tree = wocky_node_tree_new_from_node (query);
+
+      wocky_node_prepend_node_tree (wocky_stanza_get_top_node (reply),
+          query_tree);
+      g_object_unref (query_tree);
+    }
+
   return reply;
+}
+
+WockyStanza *
+wocky_stanza_build_iq_error_va (
+    WockyStanza *iq,
+    va_list ap)
+{
+  return create_iq_reply (iq, WOCKY_STANZA_SUB_TYPE_ERROR, ap);
 }
 
 /**

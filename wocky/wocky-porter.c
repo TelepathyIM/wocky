@@ -805,6 +805,140 @@ wocky_porter_send_iq_finish (WockyPorter *self,
 }
 
 /**
+ * wocky_porter_acknowledge_iq:
+ * @porter: a #WockyPorter
+ * @stanza: a stanza of type #WOCKY_STANZA_TYPE_IQ and sub-type either
+ *          #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @Varargs: a wocky_stanza_build() specification; pass %NULL to include no
+ *           body in the reply.
+ *
+ * Sends an acknowledgement for @stanza back to the sender, as a shorthand for
+ * calling wocky_stanza_build_iq_result() and wocky_porter_send().
+ */
+void
+wocky_porter_acknowledge_iq (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    ...)
+{
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyStanza *result;
+  va_list ap;
+
+  g_return_if_fail (WOCKY_IS_PORTER (porter));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
+  g_return_if_fail (type == WOCKY_STANZA_TYPE_IQ);
+  g_return_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+      sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  va_start (ap, stanza);
+  result = wocky_stanza_build_iq_result_va (stanza, ap);
+  va_end (ap);
+
+  if (result != NULL)
+    {
+      wocky_porter_send (porter, result);
+      g_object_unref (result);
+    }
+}
+
+/**
+ * wocky_porter_send_iq_error:
+ * @porter: the porter whence @stanza came
+ * @stanza: a stanza of type %WOCKY_STANZA_TYPE_IQ and sub-type either
+ *          #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @error_code: an XMPP Core stanza error code
+ * @message: (allow-none): an optional error message to include with the reply.
+ *
+ * Sends an error reply for @stanza back to its sender, with the given
+ * @error_code and @message, and including the child element from the original
+ * stanza.
+ *
+ * To send error replies with more detailed error elements, see
+ * wocky_porter_send_iq_gerror(), or use wocky_stanza_build_iq_error() and
+ * wocky_porter_send() directly, possibly using wocky_stanza_error_to_node() to
+ * construct the error element.
+ */
+void
+wocky_porter_send_iq_error (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    WockyXmppError error_code,
+    const gchar *message)
+{
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  GError *error;
+
+  g_return_if_fail (WOCKY_IS_PORTER (porter));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
+  g_return_if_fail (type == WOCKY_STANZA_TYPE_IQ);
+  g_return_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+      sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  g_return_if_fail (error_code < NUM_WOCKY_XMPP_ERRORS);
+
+  error = g_error_new_literal (WOCKY_XMPP_ERROR, error_code,
+      message != NULL ? message : "");
+  wocky_porter_send_iq_gerror (porter, stanza, error);
+  g_clear_error (&error);
+}
+
+/**
+ * wocky_porter_send_iq_gerror:
+ * @porter: the porter whence @stanza came
+ * @stanza: a stanza of type %WOCKY_STANZA_TYPE_IQ and sub-type either
+ *          #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
+ * @error: an error whose domain is either %WOCKY_XMPP_ERROR, some other stanza
+ *         error domain supplied with Wocky (such as %WOCKY_JINGLE_ERROR or
+ *         %WOCKY_SI_ERROR), or a custom domain registered with
+ *         wocky_xmpp_error_register_domain()
+ *
+ * Sends an error reply for @stanza back to its sender, building the
+ * <code>&lt;error/&gt;</code> element from the given @error. To send error
+ * replies with simple XMPP Core stanza errors in the %WOCKY_XMPP_ERROR domain,
+ * wocky_porter_send_iq_error() may be more convenient to use.
+ */
+void
+wocky_porter_send_iq_gerror (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    const GError *error)
+{
+  WockyStanzaType type;
+  WockyStanzaSubType sub_type;
+  WockyStanza *result;
+  WockyNode *result_node;
+
+  g_return_if_fail (WOCKY_IS_PORTER (porter));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+  g_return_if_fail (error != NULL);
+
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
+  g_return_if_fail (type == WOCKY_STANZA_TYPE_IQ);
+  g_return_if_fail (sub_type == WOCKY_STANZA_SUB_TYPE_GET ||
+      sub_type == WOCKY_STANZA_SUB_TYPE_SET);
+
+  result = wocky_stanza_build_iq_error (stanza, '*', &result_node, NULL);
+
+  if (result != NULL)
+    {
+      /* RFC3920 §9.2.3 dictates:
+       *    An IQ stanza of type "error" … MUST include an <error/> child.
+       */
+      wocky_stanza_error_to_node (error, result_node);
+
+      wocky_porter_send (porter, result);
+      g_object_unref (result);
+    }
+}
+
+/**
  * wocky_porter_force_close_async:
  * @porter: a #WockyPorter
  * @cancellable: optional #GCancellable object, %NULL to ignore

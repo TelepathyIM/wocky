@@ -210,6 +210,9 @@ void wocky_node_add_build_va (WockyNode *node,
     va_list va);
 
 void wocky_node_add_node_tree (WockyNode *node, WockyNodeTree *tree);
+void wocky_node_prepend_node_tree (
+    WockyNode *node,
+    WockyNodeTree *tree);
 
 void wocky_node_init (void);
 void wocky_node_deinit (void);

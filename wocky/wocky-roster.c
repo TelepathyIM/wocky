@@ -537,8 +537,11 @@ roster_iq_handler_set_cb (WockyPorter *porter,
       reply = wocky_stanza_build_iq_result (stanza, NULL);
     }
 
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  if (reply != NULL)
+    {
+      wocky_porter_send (porter, reply);
+      g_object_unref (reply);
+    }
 
   return TRUE;
 }
