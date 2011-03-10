@@ -439,19 +439,20 @@ wocky_xmpp_error_extract (WockyNode *error,
                   child->name, &core_code);
             }
         }
-      else if (specialized_domain == 0)
+      else if (specialized_node_tmp == NULL)
         {
+          WockyXmppErrorDomain *domain;
+
+          specialized_node_tmp = child;
+
           /* This could be a specialized error; let's check if it's in a
            * namespace we know about, and if so that it's an element name we
            * know.
            */
-          WockyXmppErrorDomain *domain = xmpp_error_find_domain (child->ns);
-
+          domain = xmpp_error_find_domain (child->ns);
           if (domain != NULL)
             {
-              specialized_node_tmp = child;
               specialized_domain = child->ns;
-
               if (wocky_enum_from_nick (domain->enum_type, child->name,
                     &specialized_code))
                 {

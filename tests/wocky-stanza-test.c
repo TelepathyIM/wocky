@@ -402,12 +402,14 @@ test_extract_errors_application_specific_unknown (void)
 
   g_assert_no_error (specialized);
 
-  /* This is questionable: maybe wocky_xmpp_error_extract() should assume that
-   * a child of <error/> in a NS it doesn't understand is a specialized error,
-   * rather than requiring the ns to be registered with
-   * wocky_xmpp_error_register_domain().
+  /* The namespace is not registered, @specialized is not set. However we
+   * assume that any other namespace element is a specialized error, and it
+   * should get returned in @specialized_node
    */
-  g_assert (specialized_node == NULL);
+  g_assert (specialized_node);
+  g_assert_cmpstr (specialized_node->name, ==, "buy-a-private-cloud");
+  g_assert_cmpstr (wocky_node_get_ns (specialized_node), ==,
+      "http://example.com/angry-cloud");
 
   g_object_unref (stanza);
 }
@@ -459,6 +461,57 @@ test_extract_errors_jingle_error (void)
 
   /* With the same stanza, let's try ignoring all out params: */
   wocky_stanza_extract_errors (stanza, NULL, NULL, NULL, NULL);
+
+  g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_extra_application_specific (void)
+{
+  WockyStanza *stanza;
+  const gchar *description = "I am a sentence.";
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
+
+  /* Jingle error! + Bogus extra app specific error, which should be ignored */
+  stanza = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_ERROR,
+      "from", "to",
+        '(', "error",
+          '@', "type", "cancel",
+          '(', "tie-break",
+            ':', WOCKY_XMPP_NS_JINGLE_ERRORS,
+          ')',
+          '(', "out-of-order",
+            ':', WOCKY_XMPP_NS_JINGLE_ERRORS,
+          ')',
+          '(', "text",
+            ':', WOCKY_XMPP_NS_STANZAS,
+            '$', description,
+          ')',
+          '(', "conflict",
+            ':', WOCKY_XMPP_NS_STANZAS,
+          ')',
+        ')',
+      NULL);
+
+  wocky_stanza_extract_errors (stanza, &type, &core, &specialized,
+      &specialized_node);
+
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_CANCEL);
+
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_CONFLICT);
+  g_assert_cmpstr (core->message, ==, description);
+  g_clear_error (&core);
+
+  g_assert_error (specialized, WOCKY_JINGLE_ERROR,
+      WOCKY_JINGLE_ERROR_TIE_BREAK);
+  g_assert_cmpstr (specialized->message, ==, description);
+  g_clear_error (&specialized);
+
+  g_assert (specialized_node != NULL);
+  g_assert_cmpstr (specialized_node->name, ==, "tie-break");
 
   g_object_unref (stanza);
 }
@@ -531,7 +584,8 @@ test_extract_errors_no_sense (void)
   g_clear_error (&core);
 
   g_assert_no_error (specialized);
-  g_assert (specialized_node == NULL);
+  g_assert (specialized_node != NULL);
+  g_assert_cmpstr (specialized_node->name, ==, "hoobily-lala-whee");
 
   g_object_unref (stanza);
 }
@@ -697,6 +751,8 @@ main (int argc, char **argv)
       test_extract_errors_application_specific_unknown);
   g_test_add_func ("/xmpp-stanza/errors/jingle-error",
       test_extract_errors_jingle_error);
+  g_test_add_func ("/xmpp-stanza/errors/extra-application-specific",
+      test_extract_errors_extra_application_specific);
   g_test_add_func ("/xmpp-stanza/errors/legacy-code",
       test_extract_errors_legacy_code);
   g_test_add_func ("/xmpp-stanza/errors/no-sense",
