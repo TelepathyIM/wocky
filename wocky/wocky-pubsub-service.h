@@ -131,6 +131,7 @@ typedef enum {
 } WockyPubsubSubscriptionState;
 
 typedef struct {
+    /*< public >*/
     WockyPubsubNode *node;
     gchar *jid;
     WockyPubsubSubscriptionState state;

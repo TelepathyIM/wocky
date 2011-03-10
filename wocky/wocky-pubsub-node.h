@@ -131,6 +131,7 @@ typedef enum {
 
 typedef struct _WockyPubsubAffiliation WockyPubsubAffiliation;
 struct _WockyPubsubAffiliation {
+    /*< public >*/
     WockyPubsubNode *node;
     gchar *jid;
     WockyPubsubAffiliationState state;
