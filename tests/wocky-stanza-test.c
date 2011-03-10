@@ -12,7 +12,7 @@
 #include "wocky-test-helper.h"
 
 static void
-test_build_iq_result (void)
+test_build_iq_result_simple_ack (void)
 {
   WockyStanza *iq, *reply, *expected;
 
@@ -37,6 +37,20 @@ test_build_iq_result (void)
 
   g_object_unref (reply);
   g_object_unref (expected);
+}
+
+static void
+test_build_iq_result_complex_reply (void)
+{
+  WockyStanza *iq, *reply, *expected;
+
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    '@', "id", "one",
+      '(', "query",
+        ':', "http://jabber.org/protocol/disco#items",
+      ')',
+    NULL);
 
   /* Send a more complex reply */
   expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -67,6 +81,12 @@ test_build_iq_result (void)
   g_object_unref (reply);
   g_object_unref (expected);
   g_object_unref (iq);
+}
+
+static void
+test_build_iq_result_no_to_attr (void)
+{
+  WockyStanza *iq, *reply, *expected;
 
   /* Send a reply to an IQ with no "to" attribute. */
   iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -94,7 +114,7 @@ test_build_iq_result (void)
 }
 
 static void
-test_build_iq_error (void)
+test_build_iq_error_simple_error (void)
 {
   WockyStanza *iq, *reply, *expected;
 
@@ -119,6 +139,20 @@ test_build_iq_error (void)
 
   g_object_unref (reply);
   g_object_unref (expected);
+}
+
+static void
+test_build_iq_error_complex (void)
+{
+  WockyStanza *iq, *reply, *expected;
+
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+    WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+    '@', "id", "one",
+      '(', "query",
+        ':', "http://jabber.org/protocol/disco#items",
+      ')',
+    NULL);
 
   /* Send a more complex reply */
   expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -227,10 +261,9 @@ test_extract_stanza_error (void)
 }
 
 static void
-test_extract_errors (void)
+test_extract_errors_not_error (void)
 {
   WockyStanza *stanza;
-  const gchar *description = "I am a sentence.";
   WockyXmppErrorType type;
   GError *core = NULL, *specialized = NULL;
   WockyNode *specialized_node = NULL;
@@ -253,6 +286,16 @@ test_extract_errors (void)
   g_assert (specialized_node == NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_without_description (void)
+{
+  WockyStanza *stanza;
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
+  gboolean ret;
 
   /* Test a boring error with no description */
   stanza = wocky_stanza_build (
@@ -280,6 +323,16 @@ test_extract_errors (void)
   g_assert (specialized_node == NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_with_text (void)
+{
+  WockyStanza *stanza;
+  const gchar *description = "I am a sentence.";
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
 
   /* Now a different error with some text */
   stanza = wocky_stanza_build (
@@ -310,6 +363,15 @@ test_extract_errors (void)
   g_assert (specialized_node == NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_application_specific_unknown (void)
+{
+  WockyStanza *stanza;
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
 
   /* Another error, with an application-specific element we don't understand */
   stanza = wocky_stanza_build (
@@ -346,6 +408,16 @@ test_extract_errors (void)
   g_assert (specialized_node == NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_jingle_error (void)
+{
+  WockyStanza *stanza;
+  const gchar *description = "I am a sentence.";
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
 
   /* A Jingle error! With the child nodes in an erratic order */
   stanza = wocky_stanza_build (
@@ -387,6 +459,15 @@ test_extract_errors (void)
   wocky_stanza_extract_errors (stanza, NULL, NULL, NULL, NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_legacy_code (void)
+{
+  WockyStanza *stanza;
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
 
   /* How about a legacy error code? */
   stanza = wocky_stanza_build (
@@ -414,6 +495,15 @@ test_extract_errors (void)
   g_assert (specialized_node == NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_no_sense (void)
+{
+  WockyStanza *stanza;
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
 
   /* An error that makes no sense */
   stanza = wocky_stanza_build (
@@ -442,6 +532,15 @@ test_extract_errors (void)
   g_assert (specialized_node == NULL);
 
   g_object_unref (stanza);
+}
+
+static void
+test_extract_errors_not_really (void)
+{
+  WockyStanza *stanza;
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
 
   /* And finally, a stanza with type='error' but no <error/> at all... */
   stanza = wocky_stanza_build (
@@ -469,7 +568,7 @@ test_extract_errors (void)
   } G_STMT_END
 
 static void
-test_stanza_error_to_node (void)
+test_stanza_error_to_node_core (void)
 {
   GError *e = NULL;
   GError *core = NULL, *specialized = NULL;
@@ -514,6 +613,15 @@ test_stanza_error_to_node (void)
   g_object_unref (expected);
   g_clear_error (&e);
   g_clear_error (&core);
+}
+
+static void
+test_stanza_error_to_node_jingle (void)
+{
+  GError *e = NULL;
+  GError *core = NULL, *specialized = NULL;
+  const gchar *description = "bzzzt";
+  WockyStanza *stanza, *expected;
 
   /* How about a nice game of Jingle? */
   g_set_error_literal (&e, WOCKY_JINGLE_ERROR,
@@ -565,13 +673,38 @@ main (int argc, char **argv)
   int result;
 
   test_init (argc, argv);
-  g_test_add_func ("/xmpp-stanza/build-iq-result", test_build_iq_result);
-  g_test_add_func ("/xmpp-stanza/build-iq-error", test_build_iq_error);
-  g_test_add_func ("/xmpp-stanza/extract-stanza-error",
+  g_test_add_func ("/xmpp-stanza/iq-result/build-simple-ack",
+      test_build_iq_result_simple_ack);
+  g_test_add_func ("/xmpp-stanza/iq-result/build-complex-reply",
+      test_build_iq_result_complex_reply);
+  g_test_add_func ("/xmpp-stanza/iq-result/build-no-to-attr",
+      test_build_iq_result_no_to_attr);
+  g_test_add_func ("/xmpp-stanza/errors/build-simple",
+      test_build_iq_error_simple_error);
+  g_test_add_func ("/xmpp-stanza/errors/build-complex",
+      test_build_iq_error_complex);
+  g_test_add_func ("/xmpp-stanza/errors/extract-stanza",
       test_extract_stanza_error);
-  g_test_add_func ("/xmpp-stanza/extract-errors", test_extract_errors);
-  g_test_add_func ("/xmpp-stanza/stanza-error-to-node",
-      test_stanza_error_to_node);
+  g_test_add_func ("/xmpp-stanza/errors/not-error",
+      test_extract_errors_not_error);
+  g_test_add_func ("/xmpp-stanza/errors/without-description",
+      test_extract_errors_without_description);
+  g_test_add_func ("/xmpp-stanza/errors/with-text",
+      test_extract_errors_with_text);
+  g_test_add_func ("/xmpp-stanza/errors/application-specific-unknown",
+      test_extract_errors_application_specific_unknown);
+  g_test_add_func ("/xmpp-stanza/errors/jingle-error",
+      test_extract_errors_jingle_error);
+  g_test_add_func ("/xmpp-stanza/errors/legacy-code",
+      test_extract_errors_legacy_code);
+  g_test_add_func ("/xmpp-stanza/errors/no-sense",
+      test_extract_errors_no_sense);
+  g_test_add_func ("/xmpp-stanza/errors/not-really",
+      test_extract_errors_not_really);
+  g_test_add_func ("/xmpp-stanza/errors/stanza-to-node",
+      test_stanza_error_to_node_core);
+  g_test_add_func ("/xmpp-stanza/errors/stanza-to-node-jingle",
+      test_stanza_error_to_node_jingle);
 
   result =  g_test_run ();
   test_deinit ();
