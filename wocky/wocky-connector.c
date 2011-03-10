@@ -2148,8 +2148,8 @@ connector_propagate_jid_and_sid (WockyConnector *self,
  * wocky_connector_connect_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_connect_async() callback).
- * @jid: (%NULL to ignore): the user JID from the server is stored here.
- * @sid: (%NULL to ignore): the Session ID is stored here.
+ * @jid: (%NULL to ignore) the user JID from the server is stored here.
+ * @sid: (%NULL to ignore) the Session ID is stored here.
  * @error: (%NULL to ignore) the #GError (if any) is sored here.
  *
  * Called by the callback passed to wocky_connector_connect_async().
@@ -2330,6 +2330,7 @@ connector_connect_async (WockyConnector *self,
 /**
  * wocky_connector_connect_async:
  * @self: a #WockyConnector instance.
+ * @cancellable: an #GCancellable, or %NULL
  * @cb: a #GAsyncReadyCallback to call when the operation completes.
  * @user_data: a #gpointer to pass to the callback.
  *
@@ -2350,6 +2351,7 @@ wocky_connector_connect_async (WockyConnector *self,
 /**
  * wocky_connector_unregister_async:
  * @self: a #WockyConnector instance.
+ * @cancellable: an #GCancellable, or %NULL
  * @cb: a #GAsyncReadyCallback to call when the operation completes.
  * @user_data: a #gpointer to pass to the callback @cb.
  *
@@ -2373,6 +2375,7 @@ wocky_connector_unregister_async (WockyConnector *self,
 /**
  * wocky_connector_register_async:
  * @self: a #WockyConnector instance.
+ * @cancellable: an #GCancellable, or %NULL
  * @cb: a #GAsyncReadyCallback to call when the operation completes.
  * @user_data: a #gpointer to pass to the callback @cb.
  *
@@ -2398,6 +2401,8 @@ wocky_connector_register_async (WockyConnector *self,
  * @jid: a JID (user AT domain).
  * @pass: the password.
  * @resource: the resource (sans '/'), or NULL to autogenerate one.
+ * @auth_registry: a #WockyAuthRegistry, or %NULL
+ * @tls_handler: a #WockyTLSHandler, or %NULL
  *
  * Connect to the account/server specified by @self.
  * To set other #WockyConnector properties, use g_object_new() instead.

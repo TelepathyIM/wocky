@@ -28,6 +28,12 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyXmppConnection WockyXmppConnection;
+
+/**
+ * WockyXmppConnectionClass:
+ *
+ * The class of a #WockyXmppConnection.
+ */
 typedef struct _WockyXmppConnectionClass WockyXmppConnectionClass;
 typedef struct _WockyXmppConnectionPrivate WockyXmppConnectionPrivate;
 
@@ -64,10 +70,12 @@ GQuark wocky_xmpp_connection_error_quark (void);
 #define WOCKY_XMPP_CONNECTION_ERROR (wocky_xmpp_connection_error_quark ())
 
 struct _WockyXmppConnectionClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyXmppConnection {
+    /*<private>*/
     GObject parent;
 
     WockyXmppConnectionPrivate *priv;

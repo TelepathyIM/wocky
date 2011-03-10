@@ -31,12 +31,14 @@ typedef struct _WockyJabberAuthDigestPrivate WockyJabberAuthDigestPrivate;
 
 typedef struct
 {
+  /*<private>*/
   GObject parent;
   WockyJabberAuthDigestPrivate *priv;
 } WockyJabberAuthDigest;
 
 typedef struct
 {
+  /*<private>*/
   GObjectClass parent_class;
 } WockyJabberAuthDigestClass;
 

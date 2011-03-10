@@ -27,15 +27,23 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyXmppReader WockyXmppReader;
+
+/**
+ * WockyXmppReaderClass:
+ *
+ * The class of a #WockyXmppReader.
+ */
 typedef struct _WockyXmppReaderClass WockyXmppReaderClass;
 typedef struct _WockyXmppReaderPrivate WockyXmppReaderPrivate;
 
 
 struct _WockyXmppReaderClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyXmppReader {
+    /*<private>*/
     GObject parent;
     WockyXmppReaderPrivate *priv;
 };

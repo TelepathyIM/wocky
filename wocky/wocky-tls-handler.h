@@ -28,6 +28,18 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyTLSHandler WockyTLSHandler;
+
+/**
+ * WockyTLSHandlerClass:
+ * @verify_async_func: a function to call to start an asychronous
+ *   verify operation; see wocky_tls_handler_verify_async() for more
+ *   details
+ * @verify_finish_func: a function to call to finish an asychronous
+ *   verify operation; see wocky_tls_handler_verify_finish() for more
+ *   details
+ *
+ * The class of a #WockyTLSHandler.
+ */
 typedef struct _WockyTLSHandlerClass WockyTLSHandlerClass;
 typedef struct _WockyTLSHandlerPrivate WockyTLSHandlerPrivate;
 
@@ -42,13 +54,16 @@ typedef gboolean (*WockyTLSHandlerVerifyFinishFunc) (WockyTLSHandler *self,
     GError **error);
 
 struct _WockyTLSHandlerClass {
+  /*<private>*/
   GObjectClass parent_class;
 
+  /*<public>*/
   WockyTLSHandlerVerifyAsyncFunc verify_async_func;
   WockyTLSHandlerVerifyFinishFunc verify_finish_func;
 };
 
 struct _WockyTLSHandler {
+  /*<private>*/
   GObject parent;
 
   WockyTLSHandlerPrivate *priv;

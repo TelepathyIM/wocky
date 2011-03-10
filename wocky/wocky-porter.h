@@ -103,6 +103,45 @@ typedef gboolean (* WockyPorterHandlerFunc) (
     WockyStanza *stanza,
     gpointer user_data);
 
+/**
+ * WockyPorterInterface:
+ * @parent_iface: Fields shared with #GTypeInterface.
+ * @get_full_jid: Return the full JID of the user according to the
+ *   porter; see wocky_porter_get_full_jid() for more details.
+ * @get_bare_jid: Return the bare JID of the user according to the
+ *   porter; see wocky_porter_get_full_jid() for more details.
+ * @get_resource: Return the resource of the user according to the
+ *   porter; see wocky_porter_get_full_jid() for more details.
+ * @start: Start the porter; see wocky_porter_start() for more
+ *   details.
+ * @send_async: Start an asynchronous stanza send operation; see
+ *   wocky_porter_send_async() for more details.
+ * @send_finish: Finish an asynchronous stanza send operation; see
+ *   wocky_porter_send_finish() for more details.
+ * @register_handler_from_by_stanza: Register a stanza handler from a
+ *   specific contact; see
+ *   wocky_porter_register_handler_from_by_stanza() for more details.
+ * @register_handler_from_anyone_by_stanza: Register a stanza hander
+ *   from any contact; see
+ *   wocky_porter_register_handler_from_anyone_by_stanza() for more
+ *   details.
+ * @unregister_handler: Unregister a stanza handler; see
+ *   wocky_porter_unregister_handler() for more details.
+ * @close_async: Start an asynchronous porter close operation; see
+ *   wocky_porter_close_async() for more details.
+ * @close_finish: Finish an asynchronous porter close operation; see
+ *   wocky_porter_close_finish() for more details.
+ * @send_iq_async: Start an asynchronous IQ stanza send operation; see
+ *   wocky_porter_send_iq_async() for more details.
+ * @send_iq_finish: Finish an asynchronous IQ stanza send operation;
+ *   see wocky_porter_send_iq_finish() for more details.
+ * @force_close_async: Start an asynchronous porter force close
+ *   operation; see wocky_porter_force_close_async() for more details.
+ * @force_close_finish: Finish an asynchronous porter force close
+ *   operation; see wocky_porter_force_close_finish() for more details.
+ *
+ * The vtable for a porter implementation.
+ */
 struct _WockyPorterInterface
 {
   GTypeInterface parent_iface;
@@ -162,7 +201,7 @@ struct _WockyPorterInterface
 
   WockyStanza * (*send_iq_finish) (WockyPorter *porter,
       GAsyncResult *result,
-      GError **error) G_GNUC_WARN_UNUSED_RESULT;
+      GError **error);
 
   void (*force_close_async) (WockyPorter *porter,
       GCancellable *cancellable,

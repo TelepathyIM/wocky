@@ -34,6 +34,12 @@ typedef struct _WockyPubsubService WockyPubsubService;
 typedef struct _WockyPubsubServiceClass WockyPubsubServiceClass;
 typedef struct _WockyPubsubServicePrivate WockyPubsubServicePrivate;
 
+/**
+ * WockyPubsubServiceError:
+ * @WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY: A wrong reply was received
+ *
+ * #WockyPubsubService specific errors.
+ */
 typedef enum {
   WOCKY_PUBSUB_SERVICE_ERROR_WRONG_REPLY,
 } WockyPubsubServiceError;

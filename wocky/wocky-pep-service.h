@@ -27,16 +27,29 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyPepService:
+ *
+ * Object to aid with looking up PEP nodes and listening for changes.
+ */
 typedef struct _WockyPepService WockyPepService;
+
+/**
+ * WockyPepServiceClass:
+ *
+ * The class of a #WockyPepService.
+ */
 typedef struct _WockyPepServiceClass WockyPepServiceClass;
 typedef struct _WockyPepServicePrivate WockyPepServicePrivate;
 
 
 struct _WockyPepServiceClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyPepService {
+  /*<private>*/
   GObject parent;
 
   WockyPepServicePrivate *priv;
@@ -63,20 +76,20 @@ GType wocky_pep_service_get_type (void);
 WockyPepService * wocky_pep_service_new (const gchar *node,
     gboolean subscribe);
 
-void wocky_pep_service_start (WockyPepService *pep_service,
+void wocky_pep_service_start (WockyPepService *self,
     WockySession *session);
 
-void wocky_pep_service_get_async (WockyPepService *pep,
+void wocky_pep_service_get_async (WockyPepService *self,
     WockyBareContact *contact,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-WockyStanza * wocky_pep_service_get_finish (WockyPepService *pep,
+WockyStanza * wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
     GError **error);
 
-WockyStanza * wocky_pep_service_make_publish_stanza (WockyPepService *pep,
+WockyStanza * wocky_pep_service_make_publish_stanza (WockyPepService *self,
     WockyNode **item);
 
 G_END_DECLS

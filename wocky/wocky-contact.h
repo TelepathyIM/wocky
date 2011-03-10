@@ -23,18 +23,25 @@
 
 #include <glib-object.h>
 
-#include "wocky-types.h"
-
 G_BEGIN_DECLS
 
+typedef struct _WockyContact WockyContact;
+
+/**
+ * WockyContactClass:
+ *
+ * The class of a #WockyContact.
+ */
 typedef struct _WockyContactClass WockyContactClass;
 typedef struct _WockyContactPrivate WockyContactPrivate;
 
 struct _WockyContactClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyContact {
+  /*<private>*/
   GObject parent;
 
   WockyContactPrivate *priv;

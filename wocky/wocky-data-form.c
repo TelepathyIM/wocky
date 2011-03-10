@@ -18,6 +18,16 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-data-form
+ * @title: WockyDataForm
+ * @short_description: An object to represent an XMPP data form
+ * @include: wocky/wocky-data-form.h
+ *
+ * An object that represents an XMPP data form as described in
+ * XEP-0004.
+ */
+
 #include "wocky-data-form.h"
 
 #include "wocky-data-form-enumtypes.h"
@@ -265,7 +275,7 @@ type_to_str (WockyDataFormFieldType type)
   return wocky_enum_to_nick (WOCKY_TYPE_DATA_FORM_FIELD_TYPE, type);
 }
 
-/**
+/*
  * extract_options_list:
  * @node: a <field/> node
  *
@@ -302,7 +312,7 @@ extract_options_list (WockyNode *node)
   return result;
 }
 
-/**
+/*
  * extract_value_list:
  * @node: a <field/> element
  *

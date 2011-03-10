@@ -29,16 +29,24 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyPing WockyPing;
+
+/**
+ * WockyPingClass:
+ *
+ * The class of a #WockyPing.
+ */
 typedef struct _WockyPingClass WockyPingClass;
 typedef struct _WockyPingPrivate WockyPingPrivate;
 
 GQuark wocky_ping_error_quark (void);
 
 struct _WockyPingClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyPing {
+  /*<private>*/
   GObject parent;
 
   WockyPingPrivate *priv;

@@ -141,6 +141,11 @@ wocky_tls_connector_class_init (WockyTLSConnectorClass *klass)
   oclass->set_property = wocky_tls_connector_set_property;
   oclass->finalize = wocky_tls_connector_finalize;
 
+  /**
+   * WockyTLSConnector:tls-handler:
+   *
+   * The #WockyTLSHandler object used for the TLS handshake.
+   */
   pspec = g_param_spec_object ("tls-handler",
       "TLS Handler", "Handler for the TLS handshake",
       WOCKY_TYPE_TLS_HANDLER,

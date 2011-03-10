@@ -29,15 +29,23 @@
 
 G_BEGIN_DECLS
 
-typedef struct _WockyStanzaPrivate WockyStanzaPrivate;
 typedef struct _WockyStanza WockyStanza;
+
+/**
+ * WockyStanzaClass:
+ *
+ * The class of a #WockyStanza.
+ */
 typedef struct _WockyStanzaClass WockyStanzaClass;
+typedef struct _WockyStanzaPrivate WockyStanzaPrivate;
 
 struct _WockyStanzaClass {
+    /*<private>*/
     WockyNodeTreeClass parent_class;
 };
 
 struct _WockyStanza {
+    /*<private>*/
     WockyNodeTree parent;
 
     WockyStanzaPrivate *priv;
@@ -60,6 +68,24 @@ GType wocky_stanza_get_type (void);
 #define WOCKY_STANZA_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_STANZA, WockyStanzaClass))
 
+/**
+ * WockyStanzaType:
+ * @WOCKY_STANZA_TYPE_NONE: no stanza type
+ * @WOCKY_STANZA_TYPE_MESSAGE: <code>&lt;message/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_PRESENCE: <code>&lt;presence/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_IQ: <code>&lt;iq/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_STREAM: <code>&lt;stream/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_STREAM_FEATURES: <code>&lt;stream:features/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_AUTH: <code>&lt;auth/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_CHALLENGE: <code>&lt;challenge/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_RESPONSE: <code>&lt;response/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_SUCCESS: <code>&lt;success/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_FAILURE: <code>&lt;failure/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_STREAM_ERROR: <code>&lt;stream:error/&gt;</code> stanza
+ * @WOCKY_STANZA_TYPE_UNKNOWN: unknown stanza type
+ *
+ * XMPP stanza types.
+ */
 typedef enum
 {
   WOCKY_STANZA_TYPE_NONE,
@@ -75,9 +101,32 @@ typedef enum
   WOCKY_STANZA_TYPE_FAILURE,
   WOCKY_STANZA_TYPE_STREAM_ERROR,
   WOCKY_STANZA_TYPE_UNKNOWN,
+  /*< private >*/
   NUM_WOCKY_STANZA_TYPE
 } WockyStanzaType;
 
+/**
+ * WockyStanzaSubType:
+ * @WOCKY_STANZA_SUB_TYPE_NONE: no sub type
+ * @WOCKY_STANZA_SUB_TYPE_AVAILABLE: "available" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_NORMAL: "normal" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_CHAT: "chat" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_GROUPCHAT: "groupchat" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_HEADLINE: "headline" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_UNAVAILABLE: "unavailable" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_PROBE: "probe" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_SUBSCRIBE: "subscribe" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBE: "unsubscribe" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_SUBSCRIBED: "subscribed" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_UNSUBSCRIBED: "unsubscribed" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_GET: "get" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_SET: "set" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_RESULT: "result" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_ERROR: "error" stanza sub type
+ * @WOCKY_STANZA_SUB_TYPE_UNKNOWN: unknown stanza sub type
+ *
+ * XMPP stanza sub types.
+ */
 typedef enum
 {
   WOCKY_STANZA_SUB_TYPE_NONE,
@@ -97,6 +146,7 @@ typedef enum
   WOCKY_STANZA_SUB_TYPE_RESULT,
   WOCKY_STANZA_SUB_TYPE_ERROR,
   WOCKY_STANZA_SUB_TYPE_UNKNOWN,
+  /*< private >*/
   NUM_WOCKY_STANZA_SUB_TYPE
 } WockyStanzaSubType;
 

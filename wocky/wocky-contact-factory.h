@@ -29,14 +29,22 @@
 G_BEGIN_DECLS
 
 typedef struct _WockyContactFactory WockyContactFactory;
+
+/**
+ * WockyContactFactoryClass:
+ *
+ * The class of a #WockyContactFactory.
+ */
 typedef struct _WockyContactFactoryClass WockyContactFactoryClass;
 typedef struct _WockyContactFactoryPrivate WockyContactFactoryPrivate;
 
 struct _WockyContactFactoryClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockyContactFactory {
+  /*<private>*/
   GObject parent;
   WockyContactFactoryPrivate *priv;
 };

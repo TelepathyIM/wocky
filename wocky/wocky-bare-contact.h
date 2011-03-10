@@ -29,14 +29,21 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyBareContactClass:
+ *
+ * The class of a #WockyBareContact.
+ */
 typedef struct _WockyBareContactClass WockyBareContactClass;
 typedef struct _WockyBareContactPrivate WockyBareContactPrivate;
 
 struct _WockyBareContactClass {
+  /*<private>*/
   WockyContactClass parent_class;
 };
 
 struct _WockyBareContact {
+  /*<private>*/
   WockyContact parent;
 
   WockyBareContactPrivate *priv;

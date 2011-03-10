@@ -36,14 +36,22 @@ G_BEGIN_DECLS
  * send and receive stanzas.
  */
 typedef struct _WockyC2SPorter WockyC2SPorter;
+
+/**
+ * WockyC2SPorterClass:
+ *
+ * The class of a #WockyC2SPorter.
+ */
 typedef struct _WockyC2SPorterClass WockyC2SPorterClass;
 typedef struct _WockyC2SPorterPrivate WockyC2SPorterPrivate;
 
 struct _WockyC2SPorterClass {
+    /*<private>*/
     GObjectClass parent_class;
 };
 
 struct _WockyC2SPorter {
+    /*<private>*/
     GObject parent;
     WockyC2SPorterPrivate *priv;
 };

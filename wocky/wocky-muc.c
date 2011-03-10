@@ -690,7 +690,7 @@ muc_disco_info (GObject *source,
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
         query = wocky_node_get_child_ns (
-          wocky_stanza_get_top_node (iq), "query", NS_DISCO_INFO);
+          wocky_stanza_get_top_node (iq), "query", WOCKY_NS_DISCO_INFO);
 
         if (query == NULL)
           {
@@ -780,7 +780,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       priv->user,
       priv->jid,
       '(', "query",
-      ':', NS_DISCO_INFO,
+      ':', WOCKY_NS_DISCO_INFO,
       ')',
       NULL);
 

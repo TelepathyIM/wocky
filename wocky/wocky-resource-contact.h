@@ -30,15 +30,22 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockyResourceContactClass:
+ *
+ * The class of a #WockyResourceContact.
+ */
 typedef struct _WockyResourceContactClass WockyResourceContactClass;
 typedef struct _WockyResourceContactPrivate WockyResourceContactPrivate;
 
 
 struct _WockyResourceContactClass {
+  /*<private>*/
   WockyContactClass parent_class;
 };
 
 struct _WockyResourceContact {
+  /*<private>*/
   WockyContact parent;
 
   WockyResourceContactPrivate *priv;

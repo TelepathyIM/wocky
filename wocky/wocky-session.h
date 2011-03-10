@@ -30,15 +30,22 @@
 
 G_BEGIN_DECLS
 
+/**
+ * WockySessionClass:
+ *
+ * The class of a #WockySession.
+ */
 typedef struct _WockySessionClass WockySessionClass;
 typedef struct _WockySessionPrivate WockySessionPrivate;
 
 
 struct _WockySessionClass {
+  /*<private>*/
   GObjectClass parent_class;
 };
 
 struct _WockySession {
+  /*<private>*/
   GObject parent;
 
   WockySessionPrivate *priv;
