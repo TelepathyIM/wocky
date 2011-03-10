@@ -37,6 +37,7 @@ test_build_iq_result_simple_ack (void)
 
   g_object_unref (reply);
   g_object_unref (expected);
+  g_object_unref (iq);
 }
 
 static void
@@ -139,6 +140,7 @@ test_build_iq_error_simple_error (void)
 
   g_object_unref (reply);
   g_object_unref (expected);
+  g_object_unref (iq);
 }
 
 static void
