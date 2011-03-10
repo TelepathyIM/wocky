@@ -871,7 +871,7 @@ wocky_porter_send_iq_error (
 {
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
-  GError *error;
+  GError *error = NULL;
 
   g_return_if_fail (WOCKY_IS_PORTER (porter));
   g_return_if_fail (WOCKY_IS_STANZA (stanza));
