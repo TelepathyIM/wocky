@@ -139,7 +139,7 @@ typedef GObjectClass WockyTLSSessionClass;
 typedef GInputStreamClass WockyTLSInputStreamClass;
 typedef GOutputStreamClass WockyTLSOutputStreamClass;
 
-struct OPAQUE_TYPE__WockyTLSSession
+struct _WockyTLSSession
 {
   GObject parent;
 
@@ -182,7 +182,7 @@ typedef struct
   WockyTLSSession *session;
 } WockyTLSOutputStream;
 
-struct OPAQUE_TYPE__WockyTLSConnection
+struct _WockyTLSConnection
 {
   GIOStream parent;
 
