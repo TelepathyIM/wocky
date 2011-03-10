@@ -429,6 +429,7 @@ wocky_xmpp_error_extract (WockyNode *error,
   gint core_code = WOCKY_XMPP_ERROR_UNDEFINED_CONDITION;
   GQuark specialized_domain = 0;
   gint specialized_code;
+  gboolean have_specialized = FALSE;
   WockyNode *specialized_node_tmp = NULL;
   const gchar *message = NULL;
   GSList *l;
@@ -471,20 +472,25 @@ wocky_xmpp_error_extract (WockyNode *error,
                   child->name, &core_code);
             }
         }
-      else if (specialized_domain == 0)
+      else if (specialized_node_tmp == NULL)
         {
+          WockyXmppErrorDomain *domain;
+
+          specialized_node_tmp = child;
+
           /* This could be a specialized error; let's check if it's in a
            * namespace we know about, and if so that it's an element name we
            * know.
            */
-          WockyXmppErrorDomain *domain = xmpp_error_find_domain (child->ns);
-
-          if (domain != NULL &&
-              wocky_enum_from_nick (domain->enum_type, child->name,
-                  &specialized_code))
+          domain = xmpp_error_find_domain (child->ns);
+          if (domain != NULL)
             {
               specialized_domain = child->ns;
-              specialized_node_tmp = child;
+              if (wocky_enum_from_nick (domain->enum_type, child->name,
+                    &specialized_code))
+                {
+                  have_specialized = TRUE;
+                }
             }
         }
     }
@@ -501,7 +507,7 @@ wocky_xmpp_error_extract (WockyNode *error,
 
   g_set_error_literal (core, WOCKY_XMPP_ERROR, core_code, message);
 
-  if (specialized_domain != 0)
+  if (have_specialized)
     g_set_error_literal (specialized, specialized_domain, specialized_code,
         message);
 
