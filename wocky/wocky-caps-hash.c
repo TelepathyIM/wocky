@@ -152,6 +152,30 @@ wocky_caps_hash_compute_from_lists (
 
   checksum = g_checksum_new (G_CHECKSUM_SHA1);
 
+  /* make sure we don't have multiple data forms with the same
+   * FORM_TYPE value */
+  for (i = 0; i < dataforms_sorted->len; i++)
+    {
+      WockyDataForm *one = g_ptr_array_index (dataforms_sorted, i);
+      const gchar *one_type = g_hash_table_lookup (one->fields, "FORM_TYPE");
+      guint j;
+
+      for (j = (i + 1); j < dataforms_sorted->len; j++)
+        {
+          WockyDataForm *two = g_ptr_array_index (dataforms_sorted, j);
+          const gchar *two_type = g_hash_table_lookup (
+              two->fields, "FORM_TYPE");
+
+          if (!wocky_strdiff (one_type, two_type))
+            {
+              DEBUG ("error: there are multiple data forms with the "
+                  "same form type: %s", one_type);
+              goto cleanup;
+            }
+        }
+    }
+
+  /* okay go and actually create this caps hash */
   for (i = 0 ; i < identities_sorted->len ; i++)
     {
       const WockyDiscoIdentity *identity = g_ptr_array_index (identities_sorted, i);

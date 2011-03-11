@@ -370,6 +370,89 @@ test_dataforms_invalid (void)
   g_assert (out == NULL);
 }
 
+static void
+test_dataforms_same_type (void)
+{
+  gchar *out;
+  /* stanza has two data forms both with the same FORM_TYPE value */
+  WockyStanza *stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/caps", ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "ip_version",
+          '(', "value", '$', "ipv4", ')',
+          '(', "value", '$', "ipv6", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os",
+          '(', "value", '$', "Mac", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os_version",
+          '(', "value", '$', "10.5.1", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software",
+          '(', "value", '$', "Psi", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software_version",
+          '(', "value", '$', "0.11", ')',
+        ')',
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "ip_version",
+          '(', "value", '$', "ipv4", ')',
+          '(', "value", '$', "ipv6", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os",
+          '(', "value", '$', "Mac", ')',
+        ')',
+        '(', "field",
+          '@', "var", "os_version",
+          '(', "value", '$', "10.5.1", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software",
+          '(', "value", '$', "Psi", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software_version",
+          '(', "value", '$', "0.11", ')',
+        ')',
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert (out == NULL);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -381,6 +464,7 @@ main (int argc, char **argv)
   g_test_add_func ("/caps-hash/sorting/simple", test_sorting_simple);
   g_test_add_func ("/caps-hash/sorting/complex", test_sorting_complex);
   g_test_add_func ("/caps-hash/dataforms/invalid", test_dataforms_invalid);
+  g_test_add_func ("/caps-hash/dataforms/same-type", test_dataforms_same_type);
 
   result = g_test_run ();
   test_deinit ();
