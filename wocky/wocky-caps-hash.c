@@ -258,6 +258,7 @@ wocky_caps_hash_compute_from_lists (
   g_checksum_get_digest (checksum, sha1, &sha1_buffer_size);
 
   encoded = g_base64_encode (sha1, sha1_buffer_size);
+  g_free (sha1);
 
   g_checksum_free (checksum);
 
