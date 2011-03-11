@@ -229,8 +229,18 @@ wocky_caps_hash_compute_from_lists (
             {
               case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
                 {
-                  gboolean value = g_value_get_boolean (field->default_value);
-                  gchar *b = value ? "1" : "0";
+                  gboolean value;
+                  gchar *b;
+
+                  if (field->default_value == NULL)
+                    {
+                      DEBUG ("could not get boolean field value");
+                      g_slist_free (fields);
+                      goto cleanup;
+                    }
+
+                  value = g_value_get_boolean (field->default_value);
+                  b = value ? "1" : "0";
 
                   g_checksum_update (checksum, (guchar *) b, 1);
                   g_checksum_update (checksum, (guchar *) "<", 1);
@@ -244,8 +254,19 @@ wocky_caps_hash_compute_from_lists (
               case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE:
               case WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE:
                 {
-                  g_checksum_update (checksum,
-                      (guchar *) g_value_get_string (field->default_value), -1);
+                  const gchar *s = NULL;
+
+                  if (field->default_value != NULL)
+                    s = g_value_get_string (field->default_value);
+
+                  if (s == NULL)
+                    {
+                      DEBUG ("could not get text field value");
+                      g_slist_free (fields);
+                      goto cleanup;
+                    }
+
+                  g_checksum_update (checksum, (guchar *) s, -1);
                   g_checksum_update (checksum, (guchar *) "<", 1);
                 }
                 break;
@@ -254,8 +275,18 @@ wocky_caps_hash_compute_from_lists (
               case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI:
               case WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI:
                 {
-                  GStrv values = g_strdupv (g_value_get_boxed (field->default_value));
+                  GStrv values = NULL;
                   GStrv tmp;
+
+                  if (field->default_value != NULL)
+                    values = g_strdupv (g_value_get_boxed (field->default_value));
+
+                  if (values == NULL)
+                    {
+                      DEBUG ("could not get multi text field value");
+                      g_slist_free (fields);
+                      goto cleanup;
+                    }
 
                   qsort (values, g_strv_length (values),
                       sizeof (gchar*), cmpstringp);

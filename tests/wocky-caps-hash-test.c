@@ -368,6 +368,99 @@ test_dataforms_invalid (void)
   g_object_unref (stanza);
 
   g_assert (out == NULL);
+
+  /* now with <field var='blah'><value/></field> but fine otherwise;
+   * this will fail because we have everything about the field but the
+   * actual value */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "lol_version",
+          '(', "value", ')',
+        ')',
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert (out == NULL);
+
+  /* now with <field var='blah' /> but fine otherwise; this will fail
+   * because we have everything about the field but the actual
+   * value */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "lol_version",
+        ')',
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert (out == NULL);
+
+  /* now with <field /> but fine otherwise; the data form parser will
+   * ignore fields with no var='' attribute so this will succeed */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+        ')',
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert_cmpstr (out, ==, "wMFSetHbIiscGZgVgx4CZMaYIBQ=");
+  g_free (out);
 }
 
 static void
