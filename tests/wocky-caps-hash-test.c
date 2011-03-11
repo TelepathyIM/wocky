@@ -320,7 +320,8 @@ static void
 test_dataforms_invalid (void)
 {
   gchar *out;
-  WockyStanza *  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+  /* this stanza has a bad data form type */
+  WockyStanza *stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
       '(', "identity",
         '@', "category", "client",
@@ -340,6 +341,32 @@ test_dataforms_invalid (void)
 
   /* should have failed, so no output. of course if the test fails
    * then the string won't be freed! oh no!  */
+  g_assert (out == NULL);
+
+  /* now with no FORM_TYPE field but fine otherwise */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "ip_version",
+          '(', "value", '$', "ipv4", ')',
+          '(', "value", '$', "ipv6", ')',
+        ')',
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
   g_assert (out == NULL);
 }
 
