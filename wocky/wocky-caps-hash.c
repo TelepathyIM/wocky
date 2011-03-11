@@ -185,25 +185,46 @@ wocky_caps_hash_compute_from_lists (
           g_checksum_update (checksum, (guchar *) field->var, -1);
           g_checksum_update (checksum, (guchar *) "<", 1);
 
-          if (field->type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE)
+          switch (field->type)
             {
-              g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
-              g_checksum_update (checksum, (guchar *) "<", 1);
-            }
-          else if (field->type == WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI)
-            {
-              GStrv values = g_value_get_boxed (field->default_value);
-              GStrv tmp;
-
-              for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
+              case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
                 {
-                  g_checksum_update (checksum, (guchar *) *tmp, -1);
+                  /* TODO */
+                }
+                break;
+
+              case WOCKY_DATA_FORM_FIELD_TYPE_FIXED:
+              case WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN:
+              case WOCKY_DATA_FORM_FIELD_TYPE_JID_SINGLE:
+              case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_PRIVATE:
+              case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE:
+              case WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE:
+                {
+                  g_checksum_update (checksum,
+                      (guchar *) g_value_get_string (field->default_value), -1);
                   g_checksum_update (checksum, (guchar *) "<", 1);
                 }
-            }
-          else
-            {
-              DEBUG ("Unknown data field type (WockyDataFormFieldType ID %u)", field->type);
+                break;
+
+              case WOCKY_DATA_FORM_FIELD_TYPE_JID_MULTI:
+              case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI:
+              case WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI:
+                {
+                  GStrv values = g_value_get_boxed (field->default_value);
+                  GStrv tmp;
+
+                  for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
+                    {
+                      g_checksum_update (checksum, (guchar *) *tmp, -1);
+                      g_checksum_update (checksum, (guchar *) "<", 1);
+                    }
+                }
+                break;
+
+              default:
+                DEBUG ("Unknown data field type (WockyDataFormFieldType ID %u)",
+                    field->type);
+                break;
             }
         }
 
