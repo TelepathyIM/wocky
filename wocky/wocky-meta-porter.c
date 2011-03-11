@@ -76,6 +76,8 @@ typedef struct
   WockyContact *contact;
   /* owned */
   WockyPorter *porter;
+  /* also owned, for convenience */
+  gchar *jid;
   guint refcount;
   guint timeout_id;
 } PorterData;
@@ -136,6 +138,8 @@ porter_data_free (gpointer data)
   if (p->timeout_id > 0)
     g_source_remove (p->timeout_id);
 
+  g_free (p->jid);
+
   g_slice_free (PorterData, data);
 }
 
@@ -155,7 +159,7 @@ porter_closed_cb (GObject *source_object,
     }
   else
     {
-      DEBUG ("Closed porter");
+      DEBUG ("Closed porter to '%s'", data->jid);
     }
 
   porter_data_free (data);
@@ -189,7 +193,7 @@ static void
 porter_closing_cb (WockyPorter *porter,
     PorterData *data)
 {
-  DEBUG ("porter closing, remove it from our records");
+  DEBUG ("porter to '%s' closing, remove it from our records", data->jid);
 
   if (data->timeout_id > 0)
     g_source_remove (data->timeout_id);
@@ -249,6 +253,7 @@ create_porter (WockyMetaPorter *self,
 
       data->self = self;
       data->contact = contact; /* already will be reffed as the key */
+      data->jid = wocky_contact_dup_jid (contact);
       data->porter = wocky_c2s_porter_new (connection, priv->jid);
       data->refcount = 0;
       data->timeout_id = 0;
@@ -306,6 +311,7 @@ wocky_meta_porter_ref (WockyMetaPorter *self,
       data = g_slice_new0 (PorterData);
       data->self = self;
       data->contact = contact;
+      data->jid = wocky_contact_dup_jid (contact);
       data->porter = NULL;
       data->refcount = 0;
       data->timeout_id = 0;
@@ -313,7 +319,7 @@ wocky_meta_porter_ref (WockyMetaPorter *self,
       g_hash_table_insert (priv->porters, g_object_ref (contact), data);
     }
 
-  DEBUG ("Porter %p refcount %u --> %u", data->porter,
+  DEBUG ("Porter to '%s' refcount %u --> %u", data->jid,
       data->refcount, data->refcount + 1);
 
   data->refcount++;
@@ -351,7 +357,7 @@ wocky_meta_porter_unref (WockyMetaPorter *self,
   if (data == NULL)
     return;
 
-  DEBUG ("Porter %p refcount %u --> %u", data->porter,
+  DEBUG ("Porter to '%s' refcount %u --> %u", data->jid,
       data->refcount, data->refcount - 1);
 
   data->refcount--;
