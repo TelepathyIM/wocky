@@ -129,7 +129,7 @@ wocky_caps_hash_compute_from_lists (
   GChecksum *checksum;
   guint8 *sha1;
   guint i;
-  gchar *encoded;
+  gchar *encoded = NULL;
   gsize sha1_buffer_size;
 
   GPtrArray *features_sorted, *identities_sorted, *dataforms_sorted;
@@ -179,7 +179,7 @@ wocky_caps_hash_compute_from_lists (
       field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
 
       if (field == NULL)
-        continue;
+        goto cleanup;
 
       g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
@@ -260,6 +260,7 @@ wocky_caps_hash_compute_from_lists (
   encoded = g_base64_encode (sha1, sha1_buffer_size);
   g_free (sha1);
 
+cleanup:
   g_checksum_free (checksum);
 
   g_ptr_array_free (identities_sorted, TRUE);
