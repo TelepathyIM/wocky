@@ -221,6 +221,11 @@ test_sorting_complex (void)
           '@', "var", "wheeeeee",
           '(', "value", '$', "I'm on a rollercoster", ')',
         ')',
+        '(', "field",
+          '@', "var", "loldongz",
+          '@', "type", "boolean",
+          '(', "value", '$', "1", ')',
+        ')',
       ')',
       NULL);
 
@@ -242,6 +247,11 @@ test_sorting_complex (void)
         '(', "field",
           '@', "var", "wheeeeee",
           '(', "value", '$', "I'm on a rollercoster", ')',
+        ')',
+        '(', "field",
+          '@', "var", "loldongz",
+          '@', "type", "boolean",
+          '(', "value", '$', "1", ')',
         ')',
         '(', "field",
           '@', "var", "foo",
