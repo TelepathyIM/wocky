@@ -179,7 +179,10 @@ wocky_caps_hash_compute_from_lists (
       field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
 
       if (field == NULL)
-        goto cleanup;
+        {
+          DEBUG ("Data form is missing FORM_TYPE field");
+          goto cleanup;
+        }
 
       g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
