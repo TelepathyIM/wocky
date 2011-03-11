@@ -105,7 +105,7 @@ cmpstringp (const void *p1,
      pointers to char", but strcmp(3) arguments are "pointers
      to char", hence the following cast plus dereference */
 
-  return strcmp(* (char * const *) p1, * (char * const *) p2);
+  return strcmp (* (char * const *) p1, * (char * const *) p2);
 }
 
 /**
@@ -289,7 +289,7 @@ wocky_caps_hash_compute_from_lists (
                     }
 
                   qsort (values, g_strv_length (values),
-                      sizeof (gchar*), cmpstringp);
+                      sizeof (gchar *), cmpstringp);
 
                   for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
                     {
