@@ -32,6 +32,7 @@
 #include "wocky-caps-hash.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "wocky-disco-identity.h"
 #include "wocky-utils.h"
@@ -93,6 +94,18 @@ ptr_array_copy (GPtrArray *old)
     g_ptr_array_add (new, g_ptr_array_index (old, i));
 
   return new;
+}
+
+/* see qsort(3) */
+static int
+cmpstringp (const void *p1,
+    const void *p2)
+{
+  /* The actual arguments to this function are "pointers to
+     pointers to char", but strcmp(3) arguments are "pointers
+     to char", hence the following cast plus dereference */
+
+  return strcmp(* (char * const *) p1, * (char * const *) p2);
 }
 
 /**
@@ -210,14 +223,19 @@ wocky_caps_hash_compute_from_lists (
               case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI:
               case WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI:
                 {
-                  GStrv values = g_value_get_boxed (field->default_value);
+                  GStrv values = g_strdupv (g_value_get_boxed (field->default_value));
                   GStrv tmp;
+
+                  qsort (values, g_strv_length (values),
+                      sizeof (gchar*), cmpstringp);
 
                   for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
                     {
                       g_checksum_update (checksum, (guchar *) *tmp, -1);
                       g_checksum_update (checksum, (guchar *) "<", 1);
                     }
+
+                  g_strfreev (values);
                 }
                 break;
 
