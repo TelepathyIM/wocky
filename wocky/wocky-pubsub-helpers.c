@@ -23,6 +23,56 @@
 #include "wocky-namespaces.h"
 #include "wocky-pubsub-service.h"
 
+
+/**
+ * wocky_pubsub_make_event_stanza:
+ * @node: the the name of the pubsub node; may not be %NULL
+ * @from: a JID to use as the 'from' attribute, or %NULL
+ * @item_out: a location to store the <code>item</code> #WockyNode, or %NULL
+ *
+ * Generates a new message stanza to send to other contacts about an
+ * updated PEP node.
+ *
+ * Note that this should only be used in link-local
+ * connections. Regular pubsub consists of making a publish stanza
+ * with wocky_pubsub_make_publish_stanza() and sending it to your own
+ * server. The server will then send the event stanza on to your
+ * contacts who have the appropriate capability.
+ *
+ * Returns: a new #WockyStanza pubsub event stanza; free with g_object_unref()
+ */
+WockyStanza *
+wocky_pubsub_make_event_stanza (const gchar *node,
+    const gchar *from,
+    WockyNode **item_out)
+{
+  WockyStanza *stanza;
+  WockyNode *message, *event, *items, *item;
+
+  g_return_val_if_fail (node != NULL, NULL);
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_HEADLINE, from, NULL,
+      '(', "event",
+        ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+        '(', "items",
+          ':', node,
+            '(', "item",
+            ')',
+        ')',
+      ')', NULL);
+
+  message = wocky_stanza_get_top_node (stanza);
+  event = wocky_node_get_first_child (message);
+  items = wocky_node_get_first_child (event);
+  item = wocky_node_get_first_child (items);
+
+  if (item_out != NULL)
+    *item_out = item;
+
+  return stanza;
+}
+
 /**
  * wocky_pubsub_make_publish_stanza:
  * @service: the JID of a PubSub service, or %NULL

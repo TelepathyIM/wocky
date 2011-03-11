@@ -25,6 +25,11 @@
 
 #include "wocky-stanza.h"
 
+WockyStanza * wocky_pubsub_make_event_stanza (
+    const gchar *node,
+    const gchar *from,
+    WockyNode **item_out);
+
 WockyStanza *wocky_pubsub_make_stanza (
     const gchar *service,
     WockyStanzaSubType sub_type,
