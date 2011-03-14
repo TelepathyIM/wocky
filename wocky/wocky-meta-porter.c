@@ -399,7 +399,7 @@ new_connection_connect_cb (GObject *source,
   WockyLLContact *contact = NULL;
   gchar *from;
 
-  connection = wocky_ll_connector_connect_finish (connector, result,
+  connection = wocky_ll_connector_finish (connector, result,
       &from, &error);
 
   if (connection == NULL)
@@ -444,11 +444,11 @@ new_connection_connect_cb (GObject *source,
       DEBUG ("Failed to find contact for new connection, let it close");
     }
 
+  g_object_unref (connection);
+
 out:
   g_object_unref (data->addr);
   g_slice_free (NewConnectionData, data);
-
-  g_object_unref (connector);
 }
 
 static gboolean
@@ -458,7 +458,6 @@ _new_connection (GSocketService *service,
     gpointer user_data)
 {
   WockyMetaPorter *self = user_data;
-  WockyLLConnector *connector;
   NewConnectionData *data;
   GSocketAddress *socket_address;
 
@@ -472,10 +471,8 @@ _new_connection (GSocketService *service,
   data->addr = g_object_ref (g_inet_socket_address_get_address (
           G_INET_SOCKET_ADDRESS (socket_address)));
 
-  connector = wocky_ll_connector_new (G_IO_STREAM (socket));
-
-  wocky_ll_connector_connect_async (connector, NULL, NULL,
-      new_connection_connect_cb, data);
+  wocky_ll_connector_incoming_async (G_IO_STREAM (socket),
+      NULL, new_connection_connect_cb, data);
 
   g_object_unref (socket_address);
 
@@ -795,7 +792,7 @@ made_connection_connect_cb (GObject *source_object,
   OpenPorterData *data = user_data;
   WockyPorter *porter;
 
-  connection = wocky_ll_connector_connect_finish (connector,
+  connection = wocky_ll_connector_finish (connector,
       result, NULL, &error);
 
   if (connection == NULL)
@@ -814,11 +811,11 @@ made_connection_connect_cb (GObject *source_object,
   data->callback (data->self, porter, data->cancellable, NULL,
       data->user_data1, data->user_data2);
 
+  g_object_unref (connection);
+
 out:
   g_object_unref (data->contact);
   g_slice_free (OpenPorterData, data);
-
-  g_object_unref (connector);
 }
 
 static void
@@ -829,7 +826,6 @@ make_connection_cb (GObject *source_object,
   WockyLLConnectionFactory *factory = WOCKY_LL_CONNECTION_FACTORY (source_object);
   WockyXmppConnection *connection;
   GError *error = NULL;
-  WockyLLConnector *connector;
   OpenPorterData *data = user_data;
   WockyMetaPorterPrivate *priv = data->self->priv;
   gchar *jid;
@@ -846,12 +842,10 @@ make_connection_cb (GObject *source_object,
       return;
     }
 
-  connector = wocky_ll_connector_new_from_connection (connection, priv->jid);
-
   jid = wocky_contact_dup_jid (WOCKY_CONTACT (data->contact));
 
-  wocky_ll_connector_connect_async (connector, jid, data->cancellable,
-      made_connection_connect_cb, data);
+  wocky_ll_connector_outgoing_async (connection, priv->jid,
+      jid, data->cancellable, made_connection_connect_cb, data);
 
   g_free (jid);
 }

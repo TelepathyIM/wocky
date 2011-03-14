@@ -69,19 +69,21 @@ GType wocky_ll_connector_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_LL_CONNECTOR, \
    WockyLLConnectorClass))
 
-WockyLLConnector * wocky_ll_connector_new (GIOStream *stream);
-
-WockyLLConnector * wocky_ll_connector_new_from_connection (
-    WockyXmppConnection *connection,
-    const gchar *jid);
-
-void wocky_ll_connector_connect_async (WockyLLConnector *connector,
-    const gchar *remote_jid,
+void wocky_ll_connector_incoming_async (
+    GIOStream *stream,
     GCancellable *cancellable,
-    GAsyncReadyCallback cb,
+    GAsyncReadyCallback callback,
     gpointer user_data);
 
-WockyXmppConnection * wocky_ll_connector_connect_finish (
+void wocky_ll_connector_outgoing_async (
+    WockyXmppConnection *connection,
+    const gchar *local_jid,
+    const gchar *remote_jid,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+WockyXmppConnection * wocky_ll_connector_finish (
     WockyLLConnector *connector,
     GAsyncResult *result,
     gchar **from,

@@ -21,6 +21,8 @@
 #include "config.h"
 #endif
 
+#include <gio/gio.h>
+
 #include "wocky-ll-connector.h"
 
 #include "wocky-utils.h"
@@ -29,13 +31,17 @@
 #define DEBUG_FLAG DEBUG_CONNECTOR
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE (WockyLLConnector, wocky_ll_connector, G_TYPE_OBJECT)
+static void initable_iface_init (gpointer, gpointer);
+
+G_DEFINE_TYPE_WITH_CODE (WockyLLConnector, wocky_ll_connector, G_TYPE_OBJECT,
+    G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, initable_iface_init))
 
 enum
 {
   PROP_STREAM = 1,
   PROP_CONNECTION,
-  PROP_JID,
+  PROP_LOCAL_JID,
+  PROP_REMOTE_JID,
   PROP_INCOMING,
 };
 
@@ -44,7 +50,8 @@ struct _WockyLLConnectorPrivate
 {
   GIOStream *stream;
   WockyXmppConnection *connection;
-  gchar *jid;
+  gchar *local_jid;
+  gchar *remote_jid;
   gboolean incoming;
 
   gchar *from;
@@ -92,8 +99,11 @@ wocky_ll_connector_set_property (GObject *object,
       case PROP_CONNECTION:
        priv->connection = g_value_get_object (value);
         break;
-      case PROP_JID:
-        priv->jid = g_value_dup_string (value);
+      case PROP_LOCAL_JID:
+        priv->local_jid = g_value_dup_string (value);
+        break;
+      case PROP_REMOTE_JID:
+        priv->remote_jid = g_value_dup_string (value);
         break;
       case PROP_INCOMING:
         priv->incoming = g_value_get_boolean (value);
@@ -121,8 +131,11 @@ wocky_ll_connector_get_property (GObject *object,
       case PROP_CONNECTION:
         g_value_set_object (value, priv->connection);
         break;
-      case PROP_JID:
-        g_value_set_string (value, priv->jid);
+      case PROP_LOCAL_JID:
+        g_value_set_string (value, priv->local_jid);
+        break;
+      case PROP_REMOTE_JID:
+        g_value_set_string (value, priv->remote_jid);
         break;
       case PROP_INCOMING:
         g_value_set_boolean (value, priv->incoming);
@@ -139,11 +152,16 @@ wocky_ll_connector_dispose (GObject *object)
   WockyLLConnector *self = WOCKY_LL_CONNECTOR (object);
   WockyLLConnectorPrivate *priv = self->priv;
 
+  DEBUG ("dispose called");
+
   g_object_unref (priv->connection);
   priv->connection = NULL;
 
-  g_free (priv->jid);
-  priv->jid = NULL;
+  g_free (priv->local_jid);
+  priv->local_jid = NULL;
+
+  g_free (priv->remote_jid);
+  priv->remote_jid = NULL;
 
   g_free (priv->from);
   priv->from = NULL;
@@ -192,11 +210,17 @@ wocky_ll_connector_class_init (
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_CONNECTION, spec);
 
-  spec = g_param_spec_string ("jid", "JID",
-      "XMPP JID",
+  spec = g_param_spec_string ("local-jid", "User's JID",
+      "Local user's XMPP JID",
       "",
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
-  g_object_class_install_property (object_class, PROP_JID, spec);
+  g_object_class_install_property (object_class, PROP_LOCAL_JID, spec);
+
+  spec = g_param_spec_string ("remote-jid", "Contact's JID",
+      "Remote contact's XMPP JID",
+      "",
+      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (object_class, PROP_REMOTE_JID, spec);
 
   spec = g_param_spec_boolean ("incoming", "Incoming",
       "Whether the connection is incoming",
@@ -209,56 +233,67 @@ wocky_ll_connector_class_init (
 }
 
 /**
- * wocky_ll_connector_new:
+ * wocky_ll_connector_incoming_async:
  * @stream: a #GIOStream
+ * @cancellable: an optional #GCancellable, or %NULL
+ * @callback: a function to call when the operation is complete
+ * @user_data: data to pass to @callback
  *
- * Creates a new #WockyLLConnector object.
- *
- * This function should be called if the connection is incoming and
- * the identity of the other side is unknown. For outgoing
- * connections, wocky_ll_connector_new_from_connection() should be
- * used.
+ * Start an asychronous connect operation with an incoming link-local
+ * connection by negotiating the stream open stanzas and sending
+ * stream features.
  *
  * The ownership of @stream is taken by the connector.
  *
- * The caller should call wocky_ll_connector_connect_async() with the
- * result of this function.
- *
- * Returns: a new #WockyLLConnector object
+ * When the operation is complete, @callback will be called and it
+ * should call wocky_ll_connector_finish().
  */
-WockyLLConnector *
-wocky_ll_connector_new (GIOStream *stream)
+void
+wocky_ll_connector_incoming_async (
+    GIOStream *stream,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
 {
-  return g_object_new (WOCKY_TYPE_LL_CONNECTOR,
+  g_async_initable_new_async (WOCKY_TYPE_LL_CONNECTOR,
+      G_PRIORITY_DEFAULT, cancellable, callback, user_data,
       "stream", stream,
       "incoming", TRUE,
       NULL);
 }
 
 /**
- * wocky_ll_connector_new_from_connection:
- * @stream: a #GIOStream
- * @jid: the JID of the local user
+ * wocky_ll_connector_outgoing_async:
+ * @connection: a #WockyXmppConnection
+ * @local_jid: the JID of the local user
+ * @remote_jid: the JID of the remote contact
+ * @cancellable: an optional #GCancellable, or %NULL
+ * @callback: a function to call when the operation is complete
+ * @user_data: data to pass to @callback
  *
- * Creates a new #WockyLLConnector object.
- *
- * This function should be called if the connection is outgoing. For
- * incoming connections, wocky_ll_connector_new() should be used.
+ * Start an asychronous connect operation with an outgoing link-local
+ * connection by negotiating the stream open stanzas and sending
+ * stream features.
  *
  * The ownership of @connection is taken by the connector.
  *
- * The caller should call wocky_ll_connector_connect_async() with the
- * result of this function.
- *
- * Returns: a new #WockyLLConnector object
+ * When the operation is complete, @callback will be called and it
+ * should call wocky_ll_connector_finish().
  */
-WockyLLConnector *
-wocky_ll_connector_new_from_connection (WockyXmppConnection *connection,
-    const gchar *jid)
+void
+wocky_ll_connector_outgoing_async (
+    WockyXmppConnection *connection,
+    const gchar *local_jid,
+    const gchar *remote_jid,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
 {
-  return g_object_new (WOCKY_TYPE_LL_CONNECTOR,
+  g_async_initable_new_async (WOCKY_TYPE_LL_CONNECTOR,
+      G_PRIORITY_DEFAULT, cancellable, callback, user_data,
       "connection", connection,
-      "jid", jid,
+      "local-jid", local_jid,
+      "remote-jid", remote_jid,
       "incoming", FALSE,
       NULL);
 }
@@ -286,6 +321,7 @@ features_sent_cb (GObject *source_object,
     }
 
   g_simple_async_result_complete (priv->simple);
+  g_object_unref (self);
 }
 
 static void send_open_cb (GObject *source_object,
@@ -311,9 +347,9 @@ recv_open_cb (GObject *source_object,
       g_clear_error (&error);
 
       DEBUG ("%s", err->message);
-
       g_simple_async_result_take_error (priv->simple, err);
       g_simple_async_result_complete (priv->simple);
+      g_object_unref (self);
       return;
     }
 
@@ -335,7 +371,7 @@ recv_open_cb (GObject *source_object,
           from != NULL ? from : "<no from attribute>");
 
       wocky_xmpp_connection_send_open_async (connection, from,
-          priv->jid, "1.0", NULL, NULL, priv->cancellable,
+          priv->local_jid, "1.0", NULL, NULL, priv->cancellable,
           send_open_cb, self);
     }
 
@@ -363,6 +399,7 @@ send_open_cb (GObject *source_object,
 
       g_simple_async_result_take_error (priv->simple, err);
       g_simple_async_result_complete (priv->simple);
+      g_object_unref (self);
       return;
     }
 
@@ -388,36 +425,49 @@ send_open_cb (GObject *source_object,
 }
 
 /**
- * wocky_ll_connector_connect_async:
- * @connector: the #WockyLLConnector
- * @remote_jid: the JID of the remote user, or %NULL in the incoming case
- * @cancellable: an optional #GCancellable, or %NULL
- * @callback: a #GAsyncReadyCallback
- * @user_data: some user data to pass to @callback
+ * wocky_ll_connector_finish:
+ * @connector: a #WockyLLConnector
+ * @result: a #GAsyncResult
+ * @from: a location to store the remote user's JID, or %NULL
+ * @error: a location to save errors to, or %NULL to ignore
  *
- * Requests an asynchronous connect using the stream or connection
- * passed to wocky_ll_connector_new() or
- * wocky_ll_connector_new_from_connection().
+ * Gets the result of the asynchronous connect request.
  *
- * When the connection has been opened, @callback will be called.
+ * Returns: the connected #WockyXmppConnection which should be freed
+ *   using g_object_unref(), or %NULL on error
  */
-void
-wocky_ll_connector_connect_async (WockyLLConnector *self,
-    const gchar *remote_jid,
+WockyXmppConnection *
+wocky_ll_connector_finish (WockyLLConnector *self,
+    GAsyncResult *result,
+    gchar **from,
+    GError **error)
+{
+  WockyLLConnectorPrivate *priv = self->priv;
+
+  if (g_async_initable_new_finish (G_ASYNC_INITABLE (self),
+          result, error) == NULL)
+    return NULL;
+
+  if (from != NULL)
+    *from = g_strdup (priv->from);
+
+  return g_object_ref (priv->connection);
+}
+
+static void
+wocky_ll_connector_init_async (GAsyncInitable *initable,
+    int io_priority,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  WockyLLConnectorPrivate *priv;
-
-  g_return_if_fail (WOCKY_IS_LL_CONNECTOR (self));
-
-  priv = self->priv;
+  WockyLLConnector *self = WOCKY_LL_CONNECTOR (initable);
+  WockyLLConnectorPrivate *priv = self->priv;
 
   g_return_if_fail (priv->simple == NULL);
 
   priv->simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_ll_connector_connect_async);
+      callback, user_data, wocky_ll_connector_init_async);
 
   if (cancellable != NULL)
     priv->cancellable = g_object_ref (cancellable);
@@ -432,50 +482,37 @@ wocky_ll_connector_connect_async (WockyLLConnector *self,
     {
       /* we need to send stream open first */
       wocky_xmpp_connection_send_open_async (priv->connection,
-          remote_jid, priv->jid, "1.0", NULL, NULL, priv->cancellable,
+          priv->remote_jid, priv->local_jid, "1.0", NULL, NULL, priv->cancellable,
           send_open_cb, self);
     }
 }
 
-/**
- * wocky_ll_connector_connect_finish:
- * @connector: the #WockyLLConnector
- * @result: a #GAsyncResult
- * @from: a location to store the remote user's JID, or %NULL
- * @error: a location to save errors to, or %NULL to ignore
- *
- * Gets the result of the asynchronous connect request.
- *
- * After this function is called, @connector can be freed using
- * g_object_unref(). Note that the connection returned from this
- * function must be reffed using g_object_ref() before freeing the
- * connector otherwise the connection will be disposed and will close.
- *
- * Returns: the connected #WockyXmppConnection, or %NULL on error
- */
-WockyXmppConnection *
-wocky_ll_connector_connect_finish (WockyLLConnector *self,
+static gboolean
+wocky_ll_connector_init_finish (GAsyncInitable *initable,
     GAsyncResult *result,
-    gchar **from,
     GError **error)
 {
+  WockyLLConnector *self = WOCKY_LL_CONNECTOR (initable);
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
-  WockyLLConnectorPrivate *priv;
+  WockyLLConnectorPrivate *priv = self->priv;
 
-  g_return_val_if_fail (WOCKY_IS_LL_CONNECTOR (self), NULL);
-
-  priv = self->priv;
-
-  g_return_val_if_fail (priv->simple == simple, NULL);
+  g_return_val_if_fail (priv->simple == simple, FALSE);
 
   if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
+    return FALSE;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_ll_connector_connect_async), NULL);
+          G_OBJECT (self), wocky_ll_connector_init_async), FALSE);
 
-  if (from != NULL)
-    *from = g_strdup (priv->from);
+  return TRUE;
+}
 
-  return priv->connection;
+static void
+initable_iface_init (gpointer g_iface,
+    gpointer data)
+{
+  GAsyncInitableIface *iface = g_iface;
+
+  iface->init_async = wocky_ll_connector_init_async;
+  iface->init_finish = wocky_ll_connector_init_finish;
 }
