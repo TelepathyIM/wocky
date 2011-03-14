@@ -150,7 +150,7 @@ wocky_ll_contact_class_init (WockyLLContactClass *wocky_ll_contact_class)
   /**
    * WockyLLContact:jid:
    *
-   * The contact's ll JID.
+   * The contact's link-local JID.
    */
   spec = g_param_spec_string ("jid", "Contact JID",
       "Contact JID",
