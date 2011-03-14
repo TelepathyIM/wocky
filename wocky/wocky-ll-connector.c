@@ -164,11 +164,11 @@ wocky_ll_connector_constructed (GObject *object)
   WockyLLConnector *self = WOCKY_LL_CONNECTOR (object);
   WockyLLConnectorPrivate *priv = self->priv;
 
-  if (priv->connection == NULL)
-    priv->connection = wocky_xmpp_connection_new (priv->stream);
-
   if (G_OBJECT_CLASS (wocky_ll_connector_parent_class)->constructed)
     G_OBJECT_CLASS (wocky_ll_connector_parent_class)->constructed (object);
+
+  if (priv->connection == NULL)
+    priv->connection = wocky_xmpp_connection_new (priv->stream);
 }
 static void
 wocky_ll_connector_class_init (
