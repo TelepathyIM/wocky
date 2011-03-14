@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "wocky-connection-factory.h"
+#include "wocky-ll-connection-factory.h"
 #include "wocky-contact-factory.h"
 #include "wocky-c2s-porter.h"
 #include "wocky-utils.h"
@@ -55,7 +55,7 @@ struct _WockyMetaPorterPrivate
 {
   gchar *jid;
   WockyContactFactory *contact_factory;
-  WockyConnectionFactory *connection_factory;
+  WockyLLConnectionFactory *connection_factory;
 
   /* owned (gchar *) jid => owned (PorterData *) */
   GHashTable *porters;
@@ -583,7 +583,7 @@ wocky_meta_porter_constructed (GObject *obj)
 
   priv->next_handler_id = 1;
 
-  priv->connection_factory = wocky_connection_factory_new ();
+  priv->connection_factory = wocky_ll_connection_factory_new ();
 
   priv->porters = g_hash_table_new_full (g_direct_hash, g_direct_equal,
       g_object_unref, porter_data_free);
@@ -826,7 +826,7 @@ make_connection_cb (GObject *source_object,
     GAsyncResult *result,
     gpointer user_data)
 {
-  WockyConnectionFactory *factory = WOCKY_CONNECTION_FACTORY (source_object);
+  WockyLLConnectionFactory *factory = WOCKY_LL_CONNECTION_FACTORY (source_object);
   WockyXmppConnection *connection;
   GError *error = NULL;
   WockyLLConnector *connector;
@@ -834,7 +834,7 @@ make_connection_cb (GObject *source_object,
   WockyMetaPorterPrivate *priv = data->self->priv;
   gchar *jid;
 
-  connection = wocky_connection_factory_make_connection_finish (factory, result, &error);
+  connection = wocky_ll_connection_factory_make_connection_finish (factory, result, &error);
 
   if (connection == NULL)
     {
@@ -884,7 +884,7 @@ open_porter_if_necessary (WockyMetaPorter *self,
   data->user_data1 = user_data1;
   data->user_data2 = user_data2;
 
-  wocky_connection_factory_make_connection_async (priv->connection_factory,
+  wocky_ll_connection_factory_make_connection_async (priv->connection_factory,
       contact, cancellable, make_connection_cb, data);
 }
 

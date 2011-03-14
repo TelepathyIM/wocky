@@ -1,5 +1,5 @@
 /*
- * wocky-connection-factory.c - Source for WockyConnectionFactory
+ * wocky-ll-connection-factory.c - Source for WockyLLConnectionFactory
  * Copyright (C) 2011 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -21,86 +21,86 @@
 #include "config.h"
 #endif
 
-#include "wocky-connection-factory.h"
+#include "wocky-ll-connection-factory.h"
 
 #include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_CONNECTION_FACTORY
 #include "wocky-debug.h"
 
-G_DEFINE_TYPE (WockyConnectionFactory, wocky_connection_factory, G_TYPE_OBJECT)
+G_DEFINE_TYPE (WockyLLConnectionFactory, wocky_ll_connection_factory, G_TYPE_OBJECT)
 
 /* private structure */
-struct _WockyConnectionFactoryPrivate
+struct _WockyLLConnectionFactoryPrivate
 {
   GSocketClient *client;
 };
 
 GQuark
-wocky_connection_factory_error_quark (void)
+wocky_ll_connection_factory_error_quark (void)
 {
   static GQuark quark = 0;
 
   if (!quark)
     quark = g_quark_from_static_string (
-        "wocky_connection_factory_error");
+        "wocky_ll_connection_factory_error");
 
   return quark;
 }
 
 static void
-wocky_connection_factory_init (WockyConnectionFactory *self)
+wocky_ll_connection_factory_init (WockyLLConnectionFactory *self)
 {
-  WockyConnectionFactoryPrivate *priv;
+  WockyLLConnectionFactoryPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_CONNECTION_FACTORY,
-      WockyConnectionFactoryPrivate);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LL_CONNECTION_FACTORY,
+      WockyLLConnectionFactoryPrivate);
   priv = self->priv;
 
   priv->client = g_socket_client_new ();
 }
 
 static void
-wocky_connection_factory_dispose (GObject *object)
+wocky_ll_connection_factory_dispose (GObject *object)
 {
-  WockyConnectionFactory *self = WOCKY_CONNECTION_FACTORY (object);
+  WockyLLConnectionFactory *self = WOCKY_LL_CONNECTION_FACTORY (object);
 
   g_object_unref (self->priv->client);
 
-  if (G_OBJECT_CLASS (wocky_connection_factory_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_connection_factory_parent_class)->dispose (object);
+  if (G_OBJECT_CLASS (wocky_ll_connection_factory_parent_class)->dispose)
+    G_OBJECT_CLASS (wocky_ll_connection_factory_parent_class)->dispose (object);
 }
 
 static void
-wocky_connection_factory_class_init (
-    WockyConnectionFactoryClass *wocky_connection_factory_class)
+wocky_ll_connection_factory_class_init (
+    WockyLLConnectionFactoryClass *wocky_ll_connection_factory_class)
 {
-  GObjectClass *object_class = G_OBJECT_CLASS (wocky_connection_factory_class);
+  GObjectClass *object_class = G_OBJECT_CLASS (wocky_ll_connection_factory_class);
 
-  object_class->dispose = wocky_connection_factory_dispose;
+  object_class->dispose = wocky_ll_connection_factory_dispose;
 
-  g_type_class_add_private (wocky_connection_factory_class,
-      sizeof (WockyConnectionFactoryPrivate));
+  g_type_class_add_private (wocky_ll_connection_factory_class,
+      sizeof (WockyLLConnectionFactoryPrivate));
 }
 
 /**
- * wocky_connection_factory_new:
+ * wocky_ll_connection_factory_new:
  *
- * Convenience function to create a new #WockyConnectionFactory object.
+ * Convenience function to create a new #WockyLLConnectionFactory object.
  *
- * Returns: a newly created instance of #WockyConnectionFactory
+ * Returns: a newly created instance of #WockyLLConnectionFactory
  */
-WockyConnectionFactory *
-wocky_connection_factory_new (void)
+WockyLLConnectionFactory *
+wocky_ll_connection_factory_new (void)
 {
-  return g_object_new (WOCKY_TYPE_CONNECTION_FACTORY,
+  return g_object_new (WOCKY_TYPE_LL_CONNECTION_FACTORY,
       NULL);
 }
 
 typedef struct
 {
   /* the simple async result will hold a ref to this */
-  WockyConnectionFactory *self;
+  WockyLLConnectionFactory *self;
 
   GSimpleAsyncResult *simple;
   GCancellable *cancellable;
@@ -166,8 +166,8 @@ process_one_address (NewConnectionData *data)
   /* check we haven't gotten to the end of the list */
   if (data->addr_ptr == NULL)
     {
-      GError *error = g_error_new (WOCKY_CONNECTION_FACTORY_ERROR,
-          WOCKY_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESS_CAN_BE_CONNECTED_TO,
+      GError *error = g_error_new (WOCKY_LL_CONNECTION_FACTORY_ERROR,
+          WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESS_CAN_BE_CONNECTED_TO,
           "Failed to connect to any of the contact's addresses");
       g_simple_async_result_take_error (data->simple, error);
       g_simple_async_result_complete (data->simple);
@@ -190,8 +190,8 @@ process_one_address (NewConnectionData *data)
 }
 
 /**
- * wocky_connection_factory_make_connection_async:
- * @factory: a #WockyConnectionFactory
+ * wocky_ll_connection_factory_make_connection_async:
+ * @factory: a #WockyLLConnectionFactory
  * @contact: the #WockyLLStanza to connect to
  * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
@@ -199,12 +199,12 @@ process_one_address (NewConnectionData *data)
  *
  * Request a connection to @contact.  When the connection has been
  * made, @callback will be called and the caller can then call
- * #wocky_connection_factorymake_connection_finish to get the
+ * #wocky_ll_connection_factorymake_connection_finish to get the
  * connection.
  */
 void
-wocky_connection_factory_make_connection_async (
-    WockyConnectionFactory *self,
+wocky_ll_connection_factory_make_connection_async (
+    WockyLLConnectionFactory *self,
     WockyLLContact *contact,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -212,7 +212,7 @@ wocky_connection_factory_make_connection_async (
 {
   NewConnectionData *data;
 
-  g_return_if_fail (WOCKY_IS_CONNECTION_FACTORY (self));
+  g_return_if_fail (WOCKY_IS_LL_CONNECTION_FACTORY (self));
   g_return_if_fail (WOCKY_IS_LL_CONTACT (contact));
   g_return_if_fail (callback != NULL);
 
@@ -223,14 +223,14 @@ wocky_connection_factory_make_connection_async (
     data->cancellable = g_object_ref (cancellable);
 
   data->simple = g_simple_async_result_new (G_OBJECT (self), callback,
-      user_data, wocky_connection_factory_make_connection_async);
+      user_data, wocky_ll_connection_factory_make_connection_async);
 
   data->addresses = wocky_ll_contact_get_addresses (contact);
 
   if (data->addresses == NULL)
     {
-      GError *error = g_error_new (WOCKY_CONNECTION_FACTORY_ERROR,
-          WOCKY_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESSES,
+      GError *error = g_error_new (WOCKY_LL_CONNECTION_FACTORY_ERROR,
+          WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESSES,
           "No addresses available for contact");
       g_simple_async_result_take_error (data->simple, error);
       g_simple_async_result_complete (data->simple);
@@ -245,8 +245,8 @@ wocky_connection_factory_make_connection_async (
 }
 
 /**
- * wocky_connection_factory_make_connection_finish:
- * @factory: a #WockyConnectionFactory
+ * wocky_ll_connection_factory_make_connection_finish:
+ * @factory: a #WockyLLConnectionFactory
  * @result: a #GAsyncResult
  * @error: a #GError location to store the error occuring, or %NULL to ignore
  *
@@ -255,12 +255,12 @@ wocky_connection_factory_make_connection_async (
  * Returns: the new #WockyXmppConnection on success, %NULL on error
  */
 WockyXmppConnection *
-wocky_connection_factory_make_connection_finish (
-    WockyConnectionFactory *self,
+wocky_ll_connection_factory_make_connection_finish (
+    WockyLLConnectionFactory *self,
     GAsyncResult *result,
     GError **error)
 {
   wocky_implement_finish_return_pointer (self,
-      wocky_connection_factory_make_connection_async);
+      wocky_ll_connection_factory_make_connection_async);
 }
 
