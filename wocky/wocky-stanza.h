@@ -140,9 +140,12 @@ gboolean wocky_stanza_extract_errors (WockyStanza *stanza,
 gboolean wocky_stanza_extract_stream_error (WockyStanza *stanza,
     GError **stream_error);
 
-WockyContact * wocky_stanza_get_contact (WockyStanza *self);
+WockyContact * wocky_stanza_get_to_contact (WockyStanza *self);
+WockyContact * wocky_stanza_get_from_contact (WockyStanza *self);
 
-void wocky_stanza_set_contact (WockyStanza *self,
+void wocky_stanza_set_to_contact (WockyStanza *self,
+    WockyContact *contact);
+void wocky_stanza_set_from_contact (WockyStanza *self,
     WockyContact *contact);
 
 G_END_DECLS

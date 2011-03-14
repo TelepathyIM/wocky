@@ -944,7 +944,7 @@ wocky_meta_porter_send_async (WockyPorter *porter,
   simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
       wocky_meta_porter_send_async);
 
-  to = wocky_stanza_get_contact (stanza);
+  to = wocky_stanza_get_to_contact (stanza);
 
   g_return_if_fail (WOCKY_IS_LL_CONTACT (to));
 
@@ -1044,7 +1044,7 @@ porter_handler_cb (WockyPorter *porter,
   contact = wocky_contact_factory_ensure_ll_contact (
       priv->contact_factory, from);
 
-  wocky_stanza_set_contact (stanza, WOCKY_CONTACT (contact));
+  wocky_stanza_set_from_contact (stanza, WOCKY_CONTACT (contact));
   g_object_unref (contact);
 
   return handler->callback (WOCKY_PORTER (handler->self),
@@ -1393,7 +1393,7 @@ send_iq (WockyMetaPorter *self,
   WockyStanza *stanza = user_data2;
   WockyContact *contact;
 
-  contact = wocky_stanza_get_contact (stanza);
+  contact = wocky_stanza_get_to_contact (stanza);
 
   if (error != NULL)
     {
@@ -1429,7 +1429,7 @@ wocky_meta_porter_send_iq_async (WockyPorter *porter,
   GSimpleAsyncResult *simple;
   WockyContact *to;
 
-  to = wocky_stanza_get_contact (stanza);
+  to = wocky_stanza_get_to_contact (stanza);
 
   g_return_if_fail (WOCKY_IS_LL_CONTACT (to));
 
