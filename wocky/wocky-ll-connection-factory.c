@@ -163,6 +163,16 @@ process_one_address (NewConnectionData *data)
   GInetSocketAddress *addr;
   gchar *host;
 
+  if (g_cancellable_is_cancelled (data->cancellable))
+    {
+      GError *error = g_error_new (G_IO_ERROR,
+          G_IO_ERROR_CANCELLED, "Operation cancelled");
+      g_simple_async_result_take_error (data->simple, error);
+      g_simple_async_result_complete (data->simple);
+      free_new_connection_data (data);
+      return;
+    }
+
   /* check we haven't gotten to the end of the list */
   if (data->addr_ptr == NULL)
     {
