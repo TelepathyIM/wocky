@@ -79,8 +79,8 @@ WockyPorter * wocky_meta_porter_new (const gchar *jid,
 
 guint16 wocky_meta_porter_get_port (WockyMetaPorter *porter);
 
-void wocky_meta_porter_ref (WockyMetaPorter *porter, WockyContact *contact);
-void wocky_meta_porter_unref (WockyMetaPorter *porter, WockyContact *contact);
+void wocky_meta_porter_hold (WockyMetaPorter *porter, WockyContact *contact);
+void wocky_meta_porter_unhold (WockyMetaPorter *porter, WockyContact *contact);
 
 void wocky_meta_porter_set_jid (WockyMetaPorter *porter, const gchar *jid);
 

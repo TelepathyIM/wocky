@@ -282,7 +282,7 @@ create_porter (WockyMetaPorter *self,
 }
 
 /**
- * wocky_meta_porter_ref:
+ * wocky_meta_porter_hold:
  * @porter: a #WockyMetaPorter
  * @contact: a #WockyContact
  *
@@ -293,10 +293,10 @@ create_porter (WockyMetaPorter *self,
  * count on a contact survives across connections.
  *
  * To decrement the reference count of the porter to @contact, one
- * must call wocky_meta_porter_unref().
+ * must call wocky_meta_porter_unhold().
  */
 void
-wocky_meta_porter_ref (WockyMetaPorter *self,
+wocky_meta_porter_hold (WockyMetaPorter *self,
     WockyContact *contact)
 {
   WockyMetaPorterPrivate *priv = self->priv;
@@ -332,7 +332,7 @@ wocky_meta_porter_ref (WockyMetaPorter *self,
 }
 
 /**
- * wocky_meta_porter_unref:
+ * wocky_meta_porter_unhold:
  * @porter: a #WockyMetaPorter
  * @contact: a #WockyContact
  *
@@ -342,7 +342,7 @@ wocky_meta_porter_ref (WockyMetaPorter *self,
  * started.
  */
 void
-wocky_meta_porter_unref (WockyMetaPorter *self,
+wocky_meta_porter_unhold (WockyMetaPorter *self,
     WockyContact *contact)
 {
   WockyMetaPorterPrivate *priv;
@@ -530,7 +530,7 @@ loopback_recv_open_cb (GObject *source_object,
   /* the ref, the porter and the connection will all be freed when the
    * meta porter is freed */
   create_porter (self, connection, WOCKY_CONTACT (contact));
-  wocky_meta_porter_ref (self, WOCKY_CONTACT (contact));
+  wocky_meta_porter_hold (self, WOCKY_CONTACT (contact));
 
   g_object_unref (contact);
   g_object_unref (connection);
@@ -1375,7 +1375,7 @@ _send_iq_async_cb (GObject *source_object,
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
 
-  wocky_meta_porter_unref (data->self, data->contact);
+  wocky_meta_porter_unhold (data->self, data->contact);
 
   g_object_unref (data->contact);
   g_slice_free (SendIQData, data);
@@ -1401,7 +1401,7 @@ send_iq (WockyMetaPorter *self,
       g_simple_async_result_complete (simple);
 
       g_object_unref (simple);
-      wocky_meta_porter_unref (self, contact);
+      wocky_meta_porter_unhold (self, contact);
     }
   else
     {
@@ -1436,7 +1436,7 @@ wocky_meta_porter_send_iq_async (WockyPorter *porter,
   simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
       wocky_meta_porter_send_iq_async);
 
-  wocky_meta_porter_ref (self, to);
+  wocky_meta_porter_hold (self, to);
 
   /* stamp on from if there is none */
   if (wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
@@ -1538,7 +1538,7 @@ open_porter (WockyMetaPorter *self,
   if (error != NULL)
     {
       g_simple_async_result_set_from_error (simple, error);
-      wocky_meta_porter_unref (self, contact);
+      wocky_meta_porter_unhold (self, contact);
     }
 
   g_simple_async_result_complete (simple);
@@ -1558,7 +1558,7 @@ open_porter (WockyMetaPorter *self,
  * Make an asynchronous request to open a connection to @contact if
  * one is not already open. The reference count of the porter to
  * @contact will be incrememented and so after completion
- * wocky_meta_porter_unref() should be called on contact to release
+ * wocky_meta_porter_unhold() should be called on contact to release
  * the reference.
  *
  * When the request is complete, @callback will be called and the user
@@ -1580,7 +1580,7 @@ wocky_meta_porter_open_async (WockyMetaPorter *self,
   simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
       wocky_meta_porter_open_async);
 
-  wocky_meta_porter_ref (self, contact);
+  wocky_meta_porter_hold (self, contact);
 
   open_porter_if_necessary (self, WOCKY_LL_CONTACT (contact),
       cancellable, open_porter, simple, g_object_ref (contact));
