@@ -375,9 +375,15 @@ send_open_cb (GObject *source_object,
     }
   else
     {
-      DEBUG ("successfully sent stream open, connection now open");
+      WockyStanza *features;
 
-      g_simple_async_result_complete (priv->simple);
+      DEBUG ("connected, sending stream features but not "
+          "expecting anything back");
+
+      features = wocky_stanza_new ("features", WOCKY_XMPP_NS_STREAM);
+      wocky_xmpp_connection_send_stanza_async (connection,
+          features, NULL, features_sent_cb, self);
+      g_object_unref (features);
     }
 }
 
