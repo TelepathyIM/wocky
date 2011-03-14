@@ -390,7 +390,8 @@ send_open_cb (GObject *source_object,
  * @user_data: some user data to pass to @callback
  *
  * Requests an asynchronous connect using the stream or connection
- * passed to one of the new functions.
+ * passed to wocky_ll_connector_new() or
+ * wocky_ll_connector_new_from_connection().
  *
  * When the connection has been opened, @callback will be called.
  */
