@@ -225,10 +225,11 @@ wocky_ll_contact_equal (WockyLLContact *a,
  * wocky_ll_contact_get_addresses:
  * @self: a #WockyLLContact
  *
- * Returns a #GList of #GInetSocketAddress<!-- -->es which relate to
- * @self. Note that the #GInetSocketAddresses should be unreffed by
- * calling g_object_unref() on each list member and the list freed
- * using g_list_free() when the caller is finished.
+ * Returns a #GList of #GInetSocketAddress<!-- -->es which are
+ * advertised by the contact @self as addresses to connect on. Note
+ * that the #GInetSocketAddresses should be unreffed by calling
+ * g_object_unref() on each list member and the list freed using
+ * g_list_free() when the caller is finished.
  *
  * Returns: (element-type GInetSocketAddress) (transfer full): a new
  *   #GList of #GInetSocketAddress<!-- -->es.
