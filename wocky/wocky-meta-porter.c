@@ -29,7 +29,7 @@
 #include "wocky-utils.h"
 #include "wocky-ll-contact.h"
 #include "wocky-ll-connector.h"
-#include "wocky-loopback-connection.h"
+#include "wocky-loopback-stream.h"
 
 #define DEBUG_FLAG DEBUG_PORTER
 #include "wocky-debug.h"
@@ -561,7 +561,7 @@ create_loopback_porter (WockyMetaPorter *self)
   if (priv->jid == NULL)
     return;
 
-  stream = wocky_loopback_connection_new ();
+  stream = wocky_loopback_stream_new ();
   connection = wocky_xmpp_connection_new (stream);
 
   /* really simple connector */

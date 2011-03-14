@@ -1,5 +1,5 @@
 #include <wocky/wocky-c2s-porter.h>
-#include <wocky/wocky-loopback-connection.h>
+#include <wocky/wocky-loopback-stream.h>
 
 #include "wocky-test-helper.h"
 
@@ -33,7 +33,7 @@ setup (void)
   test->data.timeout_id = g_timeout_add_seconds (10, test_timeout, NULL);
   test->data.expected_stanzas = g_queue_new ();
 
-  test->stream = wocky_loopback_connection_new ();
+  test->stream = wocky_loopback_stream_new ();
 
   test->conn = wocky_xmpp_connection_new (test->stream);
 

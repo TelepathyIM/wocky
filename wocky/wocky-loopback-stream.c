@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "wocky-loopback-connection.h"
+#include "wocky-loopback-stream.h"
 
 enum {
   PROP_IO_INPUT_STREAM = 1,
@@ -31,7 +31,7 @@ enum {
 static GType wocky_loopback_input_stream_get_type (void);
 static GType wocky_loopback_output_stream_get_type (void);
 
-struct _WockyLoopbackConnectionPrivate
+struct _WockyLoopbackStreamPrivate
 {
   GInputStream *input;
   GOutputStream *output;
@@ -71,7 +71,7 @@ typedef struct
 } WockyLoopbackInputStreamClass;
 
 
-G_DEFINE_TYPE (WockyLoopbackConnection, wocky_loopback_connection,
+G_DEFINE_TYPE (WockyLoopbackStream, wocky_loopback_stream,
     G_TYPE_IO_STREAM);
 G_DEFINE_TYPE (WockyLoopbackInputStream, wocky_loopback_input_stream,
   G_TYPE_INPUT_STREAM);
@@ -100,12 +100,12 @@ output_data_written_cb (GOutputStream *output,
 
 /* connection */
 static void
-wocky_loopback_connection_init (WockyLoopbackConnection *self)
+wocky_loopback_stream_init (WockyLoopbackStream *self)
 {
-  WockyLoopbackConnectionPrivate *priv;
+  WockyLoopbackStreamPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LOOPBACK_CONNECTION,
-      WockyLoopbackConnectionPrivate);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LOOPBACK_STREAM,
+      WockyLoopbackStreamPrivate);
   priv = self->priv;
 
   priv->output = g_object_new (WOCKY_TYPE_LOOPBACK_OUTPUT_STREAM, NULL);
@@ -120,13 +120,13 @@ wocky_loopback_connection_init (WockyLoopbackConnection *self)
 }
 
 static void
-wocky_loopback_connection_get_property (GObject *object,
+wocky_loopback_stream_get_property (GObject *object,
     guint property_id,
     GValue *value,
     GParamSpec *pspec)
 {
-  WockyLoopbackConnection *self = WOCKY_LOOPBACK_CONNECTION (object);
-  WockyLoopbackConnectionPrivate *priv = self->priv;
+  WockyLoopbackStream *self = WOCKY_LOOPBACK_STREAM (object);
+  WockyLoopbackStreamPrivate *priv = self->priv;
 
   switch (property_id)
     {
@@ -143,46 +143,46 @@ wocky_loopback_connection_get_property (GObject *object,
 }
 
 static void
-wocky_loopback_connection_dispose (GObject *object)
+wocky_loopback_stream_dispose (GObject *object)
 {
-  WockyLoopbackConnection *self = WOCKY_LOOPBACK_CONNECTION (object);
-  WockyLoopbackConnectionPrivate *priv = self->priv;
+  WockyLoopbackStream *self = WOCKY_LOOPBACK_STREAM (object);
+  WockyLoopbackStreamPrivate *priv = self->priv;
 
-  if (G_OBJECT_CLASS (wocky_loopback_connection_parent_class)->dispose)
-    G_OBJECT_CLASS (wocky_loopback_connection_parent_class)->dispose (object);
+  if (G_OBJECT_CLASS (wocky_loopback_stream_parent_class)->dispose)
+    G_OBJECT_CLASS (wocky_loopback_stream_parent_class)->dispose (object);
 
   g_object_unref (priv->input);
   g_object_unref (priv->output);
 }
 
 static GInputStream *
-wocky_loopback_connection_get_input_stream (GIOStream *stream)
+wocky_loopback_stream_get_input_stream (GIOStream *stream)
 {
-  return WOCKY_LOOPBACK_CONNECTION (stream)->priv->input;
+  return WOCKY_LOOPBACK_STREAM (stream)->priv->input;
 }
 
 static GOutputStream *
-wocky_loopback_connection_get_output_stream (GIOStream *stream)
+wocky_loopback_stream_get_output_stream (GIOStream *stream)
 {
-  return WOCKY_LOOPBACK_CONNECTION (stream)->priv->output;
+  return WOCKY_LOOPBACK_STREAM (stream)->priv->output;
 }
 
 static void
-wocky_loopback_connection_class_init (
-    WockyLoopbackConnectionClass *wocky_loopback_connection_class)
+wocky_loopback_stream_class_init (
+    WockyLoopbackStreamClass *wocky_loopback_stream_class)
 {
-  GObjectClass *obj_class = G_OBJECT_CLASS (wocky_loopback_connection_class);
+  GObjectClass *obj_class = G_OBJECT_CLASS (wocky_loopback_stream_class);
   GIOStreamClass *stream_class = G_IO_STREAM_CLASS (
-      wocky_loopback_connection_class);
+      wocky_loopback_stream_class);
 
-  g_type_class_add_private (wocky_loopback_connection_class,
-      sizeof (WockyLoopbackConnectionPrivate));
+  g_type_class_add_private (wocky_loopback_stream_class,
+      sizeof (WockyLoopbackStreamPrivate));
 
-  obj_class->dispose = wocky_loopback_connection_dispose;
-  obj_class->get_property = wocky_loopback_connection_get_property;
+  obj_class->dispose = wocky_loopback_stream_dispose;
+  obj_class->get_property = wocky_loopback_stream_get_property;
 
-  stream_class->get_input_stream = wocky_loopback_connection_get_input_stream;
-  stream_class->get_output_stream = wocky_loopback_connection_get_output_stream;
+  stream_class->get_input_stream = wocky_loopback_stream_get_input_stream;
+  stream_class->get_output_stream = wocky_loopback_stream_get_output_stream;
 
   g_object_class_install_property (obj_class, PROP_IO_INPUT_STREAM,
     g_param_spec_object ("input-stream", "Input stream",
@@ -197,9 +197,9 @@ wocky_loopback_connection_class_init (
 }
 
 GIOStream *
-wocky_loopback_connection_new (void)
+wocky_loopback_stream_new (void)
 {
-  return g_object_new (WOCKY_TYPE_LOOPBACK_CONNECTION, NULL);
+  return g_object_new (WOCKY_TYPE_LOOPBACK_STREAM, NULL);
 }
 
 /* Input stream */
