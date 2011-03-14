@@ -230,7 +230,8 @@ wocky_ll_contact_equal (WockyLLContact *a,
  * calling g_object_unref() on each list member and the list freed
  * using g_list_free() when the caller is finished.
  *
- * Returns: a new #GList of #GInetSocketAddress<!-- -->es.
+ * Returns: (element-type GInetSocketAddress) (transfer full): a new
+ *   #GList of #GInetSocketAddress<!-- -->es.
  */
 GList *
 wocky_ll_contact_get_addresses (WockyLLContact *self)
