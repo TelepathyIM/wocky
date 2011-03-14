@@ -105,15 +105,14 @@ typedef struct
   GSimpleAsyncResult *simple;
   GCancellable *cancellable;
 
-  GList *addresses;
-  GList *addr_ptr;
+  GQueue *addresses;
 } NewConnectionData;
 
 static void
 free_new_connection_data (NewConnectionData *data)
 {
-  g_list_foreach (data->addresses, (GFunc) g_object_unref, NULL);
-  g_list_free (data->addresses);
+  g_queue_foreach (data->addresses, (GFunc) g_object_unref, NULL);
+  g_queue_free (data->addresses);
 
   if (data->cancellable != NULL)
     g_object_unref (data->cancellable);
@@ -143,7 +142,6 @@ connect_to_host_cb (GObject *source_object,
       g_clear_error (&error);
 
       /* shame, well let's move on */
-      data->addr_ptr = data->addr_ptr->next;
       process_one_address (data);
       return;
     }
@@ -173,8 +171,10 @@ process_one_address (NewConnectionData *data)
       return;
     }
 
+  addr = g_queue_pop_head (data->addresses);
+
   /* check we haven't gotten to the end of the list */
-  if (data->addr_ptr == NULL)
+  if (addr == NULL)
     {
       GError *error = g_error_new (WOCKY_LL_CONNECTION_FACTORY_ERROR,
           WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESS_CAN_BE_CONNECTED_TO,
@@ -184,8 +184,6 @@ process_one_address (NewConnectionData *data)
       free_new_connection_data (data);
       return;
     }
-
-  addr = data->addr_ptr->data;
 
   host = g_inet_address_to_string (g_inet_socket_address_get_address (addr));
 
@@ -197,6 +195,17 @@ process_one_address (NewConnectionData *data)
       data->cancellable, connect_to_host_cb, data);
 
   g_free (host);
+
+  g_object_unref (addr);
+}
+
+static void
+add_to_queue (gpointer data,
+    gpointer user_data)
+{
+  GQueue *queue = user_data;
+
+  g_queue_push_tail (queue, data);
 }
 
 /**
@@ -221,6 +230,7 @@ wocky_ll_connection_factory_make_connection_async (
     gpointer user_data)
 {
   NewConnectionData *data;
+  GList *addr;
 
   g_return_if_fail (WOCKY_IS_LL_CONNECTION_FACTORY (self));
   g_return_if_fail (WOCKY_IS_LL_CONTACT (contact));
@@ -235,7 +245,11 @@ wocky_ll_connection_factory_make_connection_async (
   data->simple = g_simple_async_result_new (G_OBJECT (self), callback,
       user_data, wocky_ll_connection_factory_make_connection_async);
 
-  data->addresses = wocky_ll_contact_get_addresses (contact);
+  data->addresses = g_queue_new ();
+
+  addr = wocky_ll_contact_get_addresses (contact);
+  g_list_foreach (addr, add_to_queue, data->addresses);
+  g_list_free (addr);
 
   if (data->addresses == NULL)
     {
@@ -247,8 +261,6 @@ wocky_ll_connection_factory_make_connection_async (
       free_new_connection_data (data);
       return;
     }
-
-  data->addr_ptr = data->addresses;
 
   /* go go go */
   process_one_address (data);
