@@ -375,23 +375,8 @@ roster_update (WockyRoster *self,
     GError **error)
 {
   WockyRosterPrivate *priv = self->priv;
-  gboolean google_roster = FALSE;
   WockyNode *query_node;
   GSList *j;
-
-  /* Check for google roster support */
-  if (FALSE /* FIXME: can support google */)
-    {
-      const gchar *gr_ext;
-
-      /* FIXME: this is wrong, we should use _get_attribute_ns instead of
-       * assuming the prefix */
-      gr_ext = wocky_node_get_attribute (
-          wocky_stanza_get_top_node (stanza), "gr:ext");
-
-      if (!wocky_strdiff (gr_ext, GOOGLE_ROSTER_VERSION))
-        google_roster = TRUE;
-    }
 
   /* Check stanza contains query node. */
   query_node = wocky_node_get_child_ns (
