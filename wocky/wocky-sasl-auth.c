@@ -332,27 +332,20 @@ wocky_sasl_auth_new (const gchar *server,
       NULL);
 }
 
-static gboolean
-each_mechanism (WockyNode *node, gpointer user_data)
-{
-  GSList **list = (GSList **)user_data;
-  if (wocky_strdiff (node->name, "mechanism"))
-    {
-      return TRUE;
-    }
-  *list = g_slist_append (*list, g_strdup (node->content));
-  return TRUE;
-}
-
 static GSList *
 wocky_sasl_auth_mechanisms_to_list (WockyNode *mechanisms)
 {
   GSList *result = NULL;
+  WockyNode *mechanism;
+  WockyNodeIter iter;
 
   if (mechanisms == NULL)
     return NULL;
 
-  wocky_node_each_child (mechanisms, each_mechanism, &result);
+  wocky_node_iter_init (&iter, mechanisms, "mechanism", NULL);
+  while (wocky_node_iter_next (&iter, &mechanism))
+    result = g_slist_append (result, g_strdup (mechanism->content));
+
   return result;
 }
 
