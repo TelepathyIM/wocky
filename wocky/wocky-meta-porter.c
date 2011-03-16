@@ -114,26 +114,12 @@ static void register_porter_handlers (WockyMetaPorter *self,
     WockyPorter *porter, WockyContact *contact);
 
 static void
-porter_disposed (gpointer user_data,
-    GObject *obj)
-{
-  PorterData *data = user_data;
-
-  data->porter = NULL;
-}
-
-static void
 porter_data_free (gpointer data)
 {
   PorterData *p = data;
 
   if (p->porter != NULL)
-    {
-      g_object_weak_unref (G_OBJECT (p->porter),
-          porter_disposed, data);
-
-      g_object_unref (p->porter);
-    }
+    g_object_unref (p->porter);
 
   if (p->timeout_id > 0)
     g_source_remove (p->timeout_id);
@@ -260,8 +246,6 @@ create_porter (WockyMetaPorter *self,
 
       g_hash_table_insert (priv->porters, g_object_ref (contact), data);
     }
-
-  g_object_weak_ref (G_OBJECT (data->porter), porter_disposed, data);
 
   g_signal_connect (data->porter, "closing", G_CALLBACK (porter_closing_cb),
       data);
