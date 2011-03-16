@@ -1597,9 +1597,8 @@ wocky_meta_porter_open_async (WockyMetaPorter *self,
  * @result: the #GAsyncResult
  * @error: an optional #GError location to store an error message
  *
- * Finishes an asynchronous request to open a connection to @contact
- * if one is not already open. See wocky_meta_porter_open_async() for
- * more details.
+ * Finishes an asynchronous request to open a connection if one is not
+ * already open. See wocky_meta_porter_open_async() for more details.
  *
  * Returns: %TRUE if the operation was a success, otherwise %FALSE
  */
