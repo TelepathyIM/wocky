@@ -759,8 +759,8 @@ typedef void (*OpenPorterIfNecessaryFunc) (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    gpointer user_data1,
-    gpointer user_data2);
+    GSimpleAsyncResult *simple,
+    gpointer user_data);
 
 typedef struct
 {
@@ -768,8 +768,8 @@ typedef struct
   WockyLLContact *contact;
   OpenPorterIfNecessaryFunc callback;
   GCancellable *cancellable;
-  gpointer user_data1;
-  gpointer user_data2;
+  GSimpleAsyncResult *simple;
+  gpointer user_data;
 } OpenPorterData;
 
 static void
@@ -790,7 +790,7 @@ made_connection_connect_cb (GObject *source_object,
     {
       DEBUG ("failed to connect: %s", error->message);
       data->callback (data->self, NULL, NULL, error,
-          data->user_data1, data->user_data2);
+          data->simple, data->user_data);
       g_clear_error (&error);
       goto out;
     }
@@ -800,7 +800,7 @@ made_connection_connect_cb (GObject *source_object,
   porter = create_porter (data->self, connection, WOCKY_CONTACT (data->contact));
 
   data->callback (data->self, porter, data->cancellable, NULL,
-      data->user_data1, data->user_data2);
+      data->simple, data->user_data);
 
   g_object_unref (connection);
 
@@ -825,7 +825,11 @@ make_connection_cb (GObject *source_object,
 
   if (connection == NULL)
     {
-      DEBUG ("sending open failed: %s", error->message);
+      DEBUG ("making connection failed: %s", error->message);
+
+      data->callback (data->self, NULL, NULL, error,
+          data->simple, data->user_data);
+
       g_clear_error (&error);
 
       g_object_unref (data->contact);
@@ -842,14 +846,14 @@ make_connection_cb (GObject *source_object,
 }
 
 /* Convenience function to call @callback with a porter and do all the
- * handling the creating a porter if necessary. Also, omg two user datas! */
+ * handling the creating a porter if necessary. */
 static void
 open_porter_if_necessary (WockyMetaPorter *self,
     WockyLLContact *contact,
     GCancellable *cancellable,
     OpenPorterIfNecessaryFunc callback,
-    gpointer user_data1,
-    gpointer user_data2)
+    GSimpleAsyncResult *simple,
+    gpointer user_data)
 {
   WockyMetaPorterPrivate *priv = self->priv;
   PorterData *porter = g_hash_table_lookup (priv->porters, contact);
@@ -857,7 +861,7 @@ open_porter_if_necessary (WockyMetaPorter *self,
 
   if (porter != NULL && porter->porter != NULL)
     {
-      callback (self, porter->porter, cancellable, NULL, user_data1, user_data2);
+      callback (self, porter->porter, cancellable, NULL, simple, user_data);
       return;
     }
 
@@ -866,8 +870,8 @@ open_porter_if_necessary (WockyMetaPorter *self,
   data->contact = g_object_ref (contact);
   data->callback = callback;
   data->cancellable = cancellable;
-  data->user_data1 = user_data1;
-  data->user_data2 = user_data2;
+  data->simple = simple;
+  data->user_data = user_data;
 
   wocky_ll_connection_factory_make_connection_async (priv->connection_factory,
       contact, cancellable, make_connection_cb, data);
@@ -893,11 +897,10 @@ send (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    gpointer user_data1,
-    gpointer user_data2)
+    GSimpleAsyncResult *simple,
+    gpointer user_data)
 {
-  GSimpleAsyncResult *simple = user_data1;
-  WockyStanza *stanza = user_data2;
+  WockyStanza *stanza = user_data;
 
   if (error != NULL)
     {
@@ -1372,11 +1375,10 @@ send_iq (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    gpointer user_data1,
-    gpointer user_data2)
+    GSimpleAsyncResult *simple,
+    gpointer user_data)
 {
-  GSimpleAsyncResult *simple = user_data1;
-  WockyStanza *stanza = user_data2;
+  WockyStanza *stanza = user_data;
   WockyContact *contact;
 
   contact = wocky_stanza_get_to_contact (stanza);
@@ -1523,11 +1525,10 @@ open_porter (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    gpointer user_data1,
-    gpointer user_data2)
+    GSimpleAsyncResult *simple,
+    gpointer user_data)
 {
-  GSimpleAsyncResult *simple = user_data1;
-  WockyContact *contact = user_data2;
+  WockyContact *contact = user_data;
 
   if (error != NULL)
     {
