@@ -856,12 +856,12 @@ open_porter_if_necessary (WockyMetaPorter *self,
     gpointer user_data)
 {
   WockyMetaPorterPrivate *priv = self->priv;
-  PorterData *porter = g_hash_table_lookup (priv->porters, contact);
+  PorterData *porter_data = g_hash_table_lookup (priv->porters, contact);
   OpenPorterData *data;
 
-  if (porter != NULL && porter->porter != NULL)
+  if (porter_data != NULL && porter_data->porter != NULL)
     {
-      callback (self, porter->porter, cancellable, NULL, simple, user_data);
+      callback (self, porter_data->porter, cancellable, NULL, simple, user_data);
       return;
     }
 
