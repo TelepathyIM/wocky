@@ -154,7 +154,7 @@ porter_closed_cb (GObject *source_object,
 
   if (!wocky_porter_close_finish (porter, result, &error))
     {
-      DEBUG ("Failed to close porter: %s", error->message);
+      DEBUG ("Failed to close porter to '%s': %s", data->jid, error->message);
       g_clear_error (&error);
     }
   else
