@@ -878,7 +878,7 @@ open_porter_if_necessary (WockyMetaPorter *self,
 }
 
 static void
-_send_async_cb (GObject *source_object,
+meta_porter_send_cb (GObject *source_object,
     GAsyncResult *result,
     gpointer user_data)
 {
@@ -893,7 +893,7 @@ _send_async_cb (GObject *source_object,
 }
 
 static void
-send (WockyMetaPorter *self,
+meta_porter_send_got_porter_cb (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
@@ -911,7 +911,7 @@ send (WockyMetaPorter *self,
   else
     {
       wocky_porter_send_async (porter, stanza, cancellable,
-          _send_async_cb, simple);
+          meta_porter_send_cb, simple);
     }
 
   g_object_unref (stanza);
@@ -943,8 +943,8 @@ wocky_meta_porter_send_async (WockyPorter *porter,
           "from", priv->jid);
     }
 
-  open_porter_if_necessary (self, WOCKY_LL_CONTACT (to), cancellable, send,
-      simple, g_object_ref (stanza));
+  open_porter_if_necessary (self, WOCKY_LL_CONTACT (to), cancellable,
+      meta_porter_send_got_porter_cb, simple, g_object_ref (stanza));
 }
 
 static gboolean
@@ -1343,7 +1343,7 @@ typedef struct
 } SendIQData;
 
 static void
-_send_iq_async_cb (GObject *source_object,
+meta_porter_send_iq_cb (GObject *source_object,
     GAsyncResult *result,
     gpointer user_data)
 {
@@ -1370,7 +1370,7 @@ _send_iq_async_cb (GObject *source_object,
 }
 
 static void
-send_iq (WockyMetaPorter *self,
+meta_porter_send_iq_got_porter_cb (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
@@ -1398,7 +1398,7 @@ send_iq (WockyMetaPorter *self,
       data->contact = g_object_ref (contact);
 
       wocky_porter_send_iq_async (porter, stanza, cancellable,
-          _send_iq_async_cb, data);
+          meta_porter_send_iq_cb, data);
     }
 
   g_object_unref (stanza);
@@ -1433,8 +1433,8 @@ wocky_meta_porter_send_iq_async (WockyPorter *porter,
           "from", priv->jid);
     }
 
-  open_porter_if_necessary (self, WOCKY_LL_CONTACT (to), cancellable, send_iq,
-      simple, g_object_ref (stanza));
+  open_porter_if_necessary (self, WOCKY_LL_CONTACT (to), cancellable,
+      meta_porter_send_iq_got_porter_cb, simple, g_object_ref (stanza));
 }
 
 static WockyStanza *
@@ -1520,7 +1520,7 @@ wocky_meta_porter_set_jid (WockyMetaPorter *self,
 }
 
 static void
-open_porter (WockyMetaPorter *self,
+meta_porter_open_got_porter_cb (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
@@ -1577,7 +1577,8 @@ wocky_meta_porter_open_async (WockyMetaPorter *self,
   wocky_meta_porter_hold (self, contact);
 
   open_porter_if_necessary (self, WOCKY_LL_CONTACT (contact),
-      cancellable, open_porter, simple, g_object_ref (contact));
+      cancellable, meta_porter_open_got_porter_cb, simple,
+      g_object_ref (contact));
 }
 
 /**
