@@ -106,7 +106,6 @@ tests/tardis
 # tests/certs/cas/*
 # tests/certs/crl/*
 
-examples/wocky-connect
 examples/wocky-register
 examples/wocky-send-message
 examples/wocky-unregister
