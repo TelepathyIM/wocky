@@ -1026,7 +1026,7 @@ porter_handler_cb (WockyPorter *porter,
   WockyLLContact *contact;
   const gchar *from;
 
-  from = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza), "from");
+  from = wocky_stanza_get_from (stanza);
 
   contact = wocky_contact_factory_ensure_ll_contact (
       priv->contact_factory, from);
