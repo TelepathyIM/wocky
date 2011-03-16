@@ -463,7 +463,7 @@ _new_connection (GSocketService *service,
   return TRUE;
 }
 
-static void porter_disposed_cb (gpointer data, GObject *porter);
+static void stanza_handler_porter_disposed_cb (gpointer data, GObject *porter);
 
 static void
 free_handler (gpointer data)
@@ -481,7 +481,7 @@ free_handler (gpointer data)
       wocky_porter_unregister_handler (porter, id);
 
       g_object_weak_unref (G_OBJECT (porter),
-          porter_disposed_cb, handler);
+          stanza_handler_porter_disposed_cb, handler);
     }
 
   g_hash_table_destroy (handler->porters);
@@ -1030,7 +1030,7 @@ porter_handler_cb (WockyPorter *porter,
 }
 
 static void
-porter_disposed_cb (gpointer data,
+stanza_handler_porter_disposed_cb (gpointer data,
     GObject *porter)
 {
   StanzaHandler *handler = data;
@@ -1067,7 +1067,8 @@ register_porter_handler (StanzaHandler *handler,
 
   g_hash_table_insert (handler->porters, porter, GUINT_TO_POINTER (id));
 
-  g_object_weak_ref (G_OBJECT (porter), porter_disposed_cb, handler);
+  g_object_weak_ref (G_OBJECT (porter),
+      stanza_handler_porter_disposed_cb, handler);
 }
 
 static void
