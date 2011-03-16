@@ -217,6 +217,16 @@ porter_remote_closed_cb (WockyPorter *porter,
   data->porter = NULL;
 }
 
+static void
+maybe_start_timeout (PorterData *data)
+{
+  if (data->refcount == 0)
+    {
+      DEBUG ("Started porter timeout...");
+      data->timeout_id = g_timeout_add_seconds (5, porter_timeout_cb, data);
+    }
+}
+
 static WockyPorter *
 create_porter (WockyMetaPorter *self,
     WockyXmppConnection *connection,
@@ -256,11 +266,7 @@ create_porter (WockyMetaPorter *self,
   wocky_porter_start (data->porter);
 
   /* maybe start the timeout */
-  if (data->refcount == 0)
-    {
-      DEBUG ("Started porter timeout...");
-      data->timeout_id = g_timeout_add_seconds (5, porter_timeout_cb, data);
-    }
+  maybe_start_timeout (data);
 
   return data->porter;
 }
@@ -346,11 +352,7 @@ wocky_meta_porter_unhold (WockyMetaPorter *self,
 
   data->refcount--;
 
-  if (data->refcount == 0)
-    {
-      DEBUG ("Starting porter timeout...");
-      data->timeout_id = g_timeout_add_seconds (5, porter_timeout_cb, data);
-    }
+  maybe_start_timeout (data);
 }
 
 static void
