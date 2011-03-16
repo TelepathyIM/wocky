@@ -85,13 +85,13 @@ void wocky_meta_porter_unhold (WockyMetaPorter *porter, WockyContact *contact);
 void wocky_meta_porter_set_jid (WockyMetaPorter *porter, const gchar *jid);
 
 void wocky_meta_porter_open_async (WockyMetaPorter *porter,
-    WockyContact *contact, GCancellable *cancellable,
+    WockyLLContact *contact, GCancellable *cancellable,
     GAsyncReadyCallback callback, gpointer user_data);
 
 gboolean wocky_meta_porter_open_finish (WockyMetaPorter *porter,
     GAsyncResult *result, GError **error);
 
 GSocketConnection * wocky_meta_porter_borrow_connection (WockyMetaPorter *porter,
-    WockyContact *contact);
+    WockyLLContact *contact);
 
 #endif /* #ifndef __WOCKY_META_PORTER_H__*/

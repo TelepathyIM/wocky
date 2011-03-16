@@ -1570,7 +1570,7 @@ meta_porter_open_got_porter_cb (WockyMetaPorter *self,
  */
 void
 wocky_meta_porter_open_async (WockyMetaPorter *self,
-    WockyContact *contact,
+    WockyLLContact *contact,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -1584,9 +1584,9 @@ wocky_meta_porter_open_async (WockyMetaPorter *self,
   simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
       wocky_meta_porter_open_async);
 
-  wocky_meta_porter_hold (self, contact);
+  wocky_meta_porter_hold (self, WOCKY_CONTACT (contact));
 
-  open_porter_if_necessary (self, WOCKY_LL_CONTACT (contact),
+  open_porter_if_necessary (self, contact,
       cancellable, meta_porter_open_got_porter_cb, simple,
       g_object_ref (contact));
 }
@@ -1625,7 +1625,7 @@ wocky_meta_porter_open_finish (WockyMetaPorter *self,
  */
 GSocketConnection *
 wocky_meta_porter_borrow_connection (WockyMetaPorter *self,
-    WockyContact *contact)
+    WockyLLContact *contact)
 {
   WockyMetaPorterPrivate *priv;
   PorterData *porter_data;
