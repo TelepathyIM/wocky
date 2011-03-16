@@ -1616,9 +1616,13 @@ wocky_meta_porter_open_finish (WockyMetaPorter *self,
  * @contact: the #WockyContact
  *
  * Borrow the #GSocketConnection of the porter to @contact, if one
- * exists otherwise %NULL will be returned. Note that the connection
- * returned is not reffed and should not be kept as it still is owned
- * and operated on by the underlying #WockyXmppConnection object.
+ * exists, otherwise %NULL will be returned.
+
+ * Note that the connection returned should be reffed using
+ * g_object_ref() if it needs to be kept. However, it will still be
+ * operated on by the underlying #WockyXmppConnection object so can
+ * close spontaneously unless wocky_meta_porter_hold() is called with
+ * @contact.
  *
  * Returns: the #GSocketConnection or %NULL if no connection is open
  */
