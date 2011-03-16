@@ -1497,7 +1497,10 @@ wocky_meta_porter_get_port (WockyMetaPorter *self)
  * @porter: a #WockyMetaPorter
  * @jid: a new JID
  *
- * Changes the local JID according to @porter.
+ * Changes the local JID according to @porter. Note that this function
+ * can only be called once, and only if %NULL was passed to
+ * wocky_meta_porter_new() when creating @porter. Calling it again
+ * will be a no-op.
  */
 void
 wocky_meta_porter_set_jid (WockyMetaPorter *self,
@@ -1507,11 +1510,16 @@ wocky_meta_porter_set_jid (WockyMetaPorter *self,
 
   g_return_if_fail (WOCKY_IS_META_PORTER (self));
 
-  /* don't try and change existing porter's JIDs */
-
   priv = self->priv;
 
-  g_free (priv->jid);
+  if (priv->jid != NULL)
+    {
+      DEBUG ("You cannot set the meta porter JID again");
+      return;
+    }
+
+  /* don't try and change existing porter's JIDs */
+
   priv->jid = g_strdup (jid);
 
   /* now we can do this */
