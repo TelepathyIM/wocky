@@ -286,13 +286,13 @@ create_porter (WockyMetaPorter *self,
  * @porter: a #WockyMetaPorter
  * @contact: a #WockyContact
  *
- * Increases the reference count of the porter to @contact by
+ * Increases the hold count of the porter to @contact by
  * one. This means that if there is a connection open to @contact then
  * it will not disconnected after a timeout. Note that calling this
- * function does not mean a connection will be opened. The reference
+ * function does not mean a connection will be opened. The hold
  * count on a contact survives across connections.
  *
- * To decrement the reference count of the porter to @contact, one
+ * To decrement the hold count of the porter to @contact, one
  * must call wocky_meta_porter_unhold().
  */
 void
@@ -336,9 +336,9 @@ wocky_meta_porter_hold (WockyMetaPorter *self,
  * @porter: a #WockyMetaPorter
  * @contact: a #WockyContact
  *
- * Decreases the reference count of the porter to @contact by
+ * Decreases the hold count of the porter to @contact by
  * one. This means that if there is a connection open to @contact and
- * the reference count is zero, a connection timeout will be
+ * the hold count is zero, a connection timeout will be
  * started.
  */
 void
@@ -1550,10 +1550,10 @@ open_porter (WockyMetaPorter *self,
  * @user_data: data for @callback
  *
  * Make an asynchronous request to open a connection to @contact if
- * one is not already open. The reference count of the porter to
+ * one is not already open. The hold count of the porter to
  * @contact will be incrememented and so after completion
  * wocky_meta_porter_unhold() should be called on contact to release
- * the reference.
+ * the hold.
  *
  * When the request is complete, @callback will be called and the user
  * should call wocky_meta_porter_open_finish() to finish the request.
