@@ -495,10 +495,16 @@ loopback_recv_open_cb (GObject *source_object,
   WockyMetaPorter *self = user_data;
   WockyMetaPorterPrivate *priv = self->priv;
   WockyLLContact *contact;
+  GError *error = NULL;
 
   if (!wocky_xmpp_connection_recv_open_finish (connection, result,
-          NULL, NULL, NULL, NULL, NULL, NULL))
-    return;
+          NULL, NULL, NULL, NULL, NULL, &error))
+    {
+      DEBUG ("Failed to receive stream open from loopback stream: %s", error->message);
+      g_clear_error (&error);
+      g_object_unref (connection);
+      return;
+    }
 
   contact = wocky_contact_factory_ensure_ll_contact (
       priv->contact_factory, priv->jid);
@@ -519,9 +525,15 @@ loopback_sent_open_cb (GObject *source_object,
 {
   WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source_object);
   WockyMetaPorter *self = user_data;
+  GError *error = NULL;
 
-  if (!wocky_xmpp_connection_send_open_finish (connection, result, NULL))
-    return;
+  if (!wocky_xmpp_connection_send_open_finish (connection, result, &error))
+    {
+      DEBUG ("Failed to send stream open to loopback stream: %s", error->message);
+      g_clear_error (&error);
+      g_object_unref (connection);
+      return;
+    }
 
   wocky_xmpp_connection_recv_open_async (connection, NULL,
       loopback_recv_open_cb, self);
