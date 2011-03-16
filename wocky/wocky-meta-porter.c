@@ -1101,6 +1101,21 @@ register_porter_handlers (WockyMetaPorter *self,
   g_list_free (handlers);
 }
 
+static StanzaHandler *
+stanza_handler_new (WockyMetaPorter *self,
+    WockyLLContact *contact)
+{
+  StanzaHandler *out = g_slice_new0 (StanzaHandler);
+
+  out->self = self;
+  out->porters = g_hash_table_new (NULL, NULL);
+
+  if (contact != NULL)
+    out->contact = g_object_ref (contact);
+
+  return out;
+}
+
 static guint
 wocky_meta_porter_register_handler_from_by_stanza (WockyPorter *porter,
     WockyStanzaType type,
@@ -1125,10 +1140,7 @@ wocky_meta_porter_register_handler_from_by_stanza (WockyPorter *porter,
 
   g_return_val_if_fail (WOCKY_IS_LL_CONTACT (from), 0);
 
-  handler = g_slice_new0 (StanzaHandler);
-  handler->self = self;
-  handler->contact = g_object_ref (from);
-  handler->porters = g_hash_table_new (g_direct_hash, g_direct_equal);
+  handler = stanza_handler_new (self, from);
 
   handler->type = type;
   handler->sub_type = sub_type;
@@ -1164,9 +1176,7 @@ wocky_meta_porter_register_handler_from_anyone_by_stanza (WockyPorter *porter,
   StanzaHandler *handler;
   GList *porters, *l;
 
-  handler = g_slice_new0 (StanzaHandler);
-  handler->self = self;
-  handler->porters = g_hash_table_new (g_direct_hash, g_direct_equal);
+  handler = stanza_handler_new (self, NULL);
 
   handler->type = type;
   handler->sub_type = sub_type;
