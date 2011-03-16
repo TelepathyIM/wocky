@@ -937,8 +937,7 @@ wocky_meta_porter_send_async (WockyPorter *porter,
   g_return_if_fail (WOCKY_IS_LL_CONTACT (to));
 
   /* stamp on from if there is none */
-  if (wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
-          "from") == NULL)
+  if (wocky_stanza_get_from (stanza) == NULL)
     {
       wocky_node_set_attribute (wocky_stanza_get_top_node (stanza),
           "from", priv->jid);
