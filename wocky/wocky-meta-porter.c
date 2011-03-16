@@ -364,12 +364,6 @@ wocky_meta_porter_init (WockyMetaPorter *self)
   self->priv = priv;
 }
 
-typedef struct
-{
-  WockyMetaPorter *self;
-  GInetAddress *addr;
-} NewConnectionData;
-
 static void
 new_connection_connect_cb (GObject *source,
     GAsyncResult *result,
@@ -378,8 +372,7 @@ new_connection_connect_cb (GObject *source,
   WockyLLConnector *connector = WOCKY_LL_CONNECTOR (source);
   WockyXmppConnection *connection;
   GError *error = NULL;
-  NewConnectionData *data = user_data;
-  WockyMetaPorter *self = data->self;
+  WockyMetaPorter *self = user_data;
   WockyMetaPorterPrivate *priv = self->priv;
   GList *contacts, *l;
   WockyLLContact *contact = NULL;
@@ -392,7 +385,7 @@ new_connection_connect_cb (GObject *source,
     {
       DEBUG ("connection error: %s", error->message);
       g_clear_error (&error);
-      goto out;
+      return;
     }
 
   if (from != NULL)
@@ -403,7 +396,21 @@ new_connection_connect_cb (GObject *source,
 
   if (contact == NULL)
     {
+      GSocketConnection *socket_connection;
+      GSocketAddress *socket_address;
+      GInetAddress *addr;
+
       /* we didn't get a from attribute in the stream open */
+
+      g_object_get (connection,
+          "stream", &socket_connection,
+          NULL);
+
+      socket_address = g_socket_connection_get_remote_address (
+          socket_connection, NULL);
+
+      addr = g_inet_socket_address_get_address (
+          G_INET_SOCKET_ADDRESS (socket_address));
 
       contacts = wocky_contact_factory_get_ll_contacts (priv->contact_factory);
 
@@ -411,7 +418,7 @@ new_connection_connect_cb (GObject *source,
         {
           WockyLLContact *c = l->data;
 
-          if (wocky_ll_contact_has_address (c, data->addr))
+          if (wocky_ll_contact_has_address (c, addr))
             {
               contact = g_object_ref (c);
               break;
@@ -419,6 +426,8 @@ new_connection_connect_cb (GObject *source,
         }
 
       g_list_free (contacts);
+      g_object_unref (socket_address);
+      g_object_unref (socket_connection);
     }
 
   if (contact != NULL)
@@ -431,10 +440,6 @@ new_connection_connect_cb (GObject *source,
     }
 
   g_object_unref (connection);
-
-out:
-  g_object_unref (data->addr);
-  g_slice_free (NewConnectionData, data);
 }
 
 static gboolean
@@ -444,23 +449,11 @@ _new_connection (GSocketService *service,
     gpointer user_data)
 {
   WockyMetaPorter *self = user_data;
-  NewConnectionData *data;
-  GSocketAddress *socket_address;
 
   DEBUG ("new connection!");
 
-  socket_address = g_socket_connection_get_remote_address (socket, NULL);
-
-  data = g_slice_new0 (NewConnectionData);
-  data->self = self;
-  /* we need this if we get a stream open without a from attribute */
-  data->addr = g_object_ref (g_inet_socket_address_get_address (
-          G_INET_SOCKET_ADDRESS (socket_address)));
-
   wocky_ll_connector_incoming_async (G_IO_STREAM (socket),
-      NULL, new_connection_connect_cb, data);
-
-  g_object_unref (socket_address);
+      NULL, new_connection_connect_cb, self);
 
   return TRUE;
 }
