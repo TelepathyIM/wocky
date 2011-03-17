@@ -3185,6 +3185,107 @@ close_from_send_callback (void)
   teardown_test (test);
 }
 
+/* Callbacks used in send_from_send_callback() */
+static gboolean
+message_received_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  g_print ("%s\n", G_STRFUNC);
+  test_expected_stanza_received (test, stanza);
+  return TRUE;
+}
+
+static void
+sent_second_or_third_stanza_cb (
+    GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+  GError *error = NULL;
+
+  g_print ("%s\n", G_STRFUNC);
+  wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
+  g_assert_no_error (error);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+sent_first_stanza_cb (
+    GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+  WockyStanza *third_stanza;
+  GError *error = NULL;
+
+  wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
+  g_assert_no_error (error);
+
+  g_print ("%s\n", G_STRFUNC);
+
+  third_stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+      '(', "body", '$', "I am made of dur butter.", ')', NULL);
+  wocky_porter_send_async (test->sched_in, third_stanza, NULL,
+      sent_second_or_third_stanza_cb, test);
+  g_queue_push_tail (test->expected_stanzas, third_stanza);
+  /* One for the callback; one for the receiving end. */
+  test->outstanding += 2;
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+send_from_send_callback (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *stanza;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+  wocky_porter_start (test->sched_out);
+
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
+      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, message_received_cb, test,
+      '(', "body", ')', NULL);
+
+  /* Send a stanza; in the callback for this stanza, we'll send another stanza.
+   */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+      '(', "body", '$', "I am made of chalk.", ')', NULL);
+  wocky_porter_send_async (test->sched_in, stanza, NULL,
+      sent_first_stanza_cb, test);
+  g_queue_push_tail (test->expected_stanzas, stanza);
+  /* One for the callback; one for the receiving end. */
+  test->outstanding += 2;
+
+  /* But before we've had a chance to send that one, send a second. */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+      '(', "body", '$', "I am made of jelly.", ')', NULL);
+  wocky_porter_send_async (test->sched_in, stanza, NULL,
+      sent_second_or_third_stanza_cb, test);
+  g_queue_push_tail (test->expected_stanzas, stanza);
+  /* One for the callback; one for the receiving end. */
+  test->outstanding += 2;
+
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -3245,6 +3346,8 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/handler-from-anyone", handler_from_anyone);
   g_test_add_func ("/xmpp-porter/close-from-send-callback",
       close_from_send_callback);
+  g_test_add_func ("/xmpp-porter/send-from-send-callback",
+      send_from_send_callback);
 
   result = g_test_run ();
   test_deinit ();
