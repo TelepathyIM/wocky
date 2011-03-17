@@ -3194,7 +3194,6 @@ message_received_cb (
 {
   test_data_t *test = user_data;
 
-  g_print ("%s\n", G_STRFUNC);
   test_expected_stanza_received (test, stanza);
   return TRUE;
 }
@@ -3208,7 +3207,6 @@ sent_second_or_third_stanza_cb (
   test_data_t *test = user_data;
   GError *error = NULL;
 
-  g_print ("%s\n", G_STRFUNC);
   wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
   g_assert_no_error (error);
 
@@ -3228,8 +3226,6 @@ sent_first_stanza_cb (
 
   wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
   g_assert_no_error (error);
-
-  g_print ("%s\n", G_STRFUNC);
 
   third_stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
