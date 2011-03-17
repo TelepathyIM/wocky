@@ -97,6 +97,12 @@ struct _WockyC2SPorterPrivate
    * This key is the ID of the IQ */
   GHashTable *iq_reply_handlers;
 
+  gboolean power_saving_mode;
+  /* Queue of (owned WockyStanza *) */
+  GQueue *unimportant_queue;
+  /* List of (owned WockyStanza *) */
+  GList *queueable_stanza_patterns;
+
   WockyXmppConnection *connection;
 };
 
@@ -328,6 +334,9 @@ wocky_c2s_porter_init (WockyC2SPorter *self)
   /* these are guints, reserve 0 for "not a valid handler" */
   priv->next_handler_id = 1;
   priv->handlers = NULL;
+  priv->power_saving_mode = FALSE;
+  priv->unimportant_queue = g_queue_new ();
+  priv->queueable_stanza_patterns = NULL;
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
       NULL, (GDestroyNotify) stanza_iq_handler_free);
@@ -555,6 +564,11 @@ wocky_c2s_porter_finalize (GObject *object)
   g_hash_table_destroy (priv->handlers_by_id);
   g_list_free (priv->handlers);
   g_hash_table_destroy (priv->iq_reply_handlers);
+
+  g_queue_free (priv->unimportant_queue);
+
+  g_list_foreach (priv->queueable_stanza_patterns, (GFunc) g_object_unref, NULL);
+  g_list_free (priv->queueable_stanza_patterns);
 
   g_free (priv->full_jid);
   g_free (priv->bare_jid);
@@ -969,6 +983,103 @@ out:
   g_free (resource);
 }
 
+/* immediately handle any queued stanzas */
+static void
+flush_unimportant_queue (WockyC2SPorter *self)
+{
+  WockyC2SPorterPrivate *priv = self->priv;
+
+  while (!g_queue_is_empty (priv->unimportant_queue))
+    {
+      WockyStanza *stanza = g_queue_pop_head (priv->unimportant_queue);
+      handle_stanza (self, stanza);
+      g_object_unref (stanza);
+    }
+}
+
+/* create a list of patterns of stanzas that can be safely queued */
+static void
+build_queueable_stanza_patterns (WockyC2SPorter *self)
+{
+  WockyC2SPorterPrivate *priv = self->priv;
+  WockyStanza *pattern;
+
+  if (priv->queueable_stanza_patterns != NULL)
+    return;
+
+  /* all PEP updates are queueable */
+  pattern = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+      '(', "event",
+        ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+      ')',
+      NULL);
+
+  priv->queueable_stanza_patterns = g_list_prepend (
+      priv->queueable_stanza_patterns, pattern);
+}
+
+static gboolean
+is_stanza_important (WockyC2SPorter *self,
+    WockyStanza *stanza)
+{
+  WockyC2SPorterPrivate *priv = self->priv;
+  WockyNode *node = wocky_stanza_get_top_node (stanza);
+  WockyStanzaType type;
+  GList *l;
+
+  wocky_stanza_get_type_info (stanza, &type, NULL);
+
+  /* <presence/> and <presence type="unavailable"/> are queueable */
+  if (type == WOCKY_STANZA_TYPE_PRESENCE)
+    {
+      const gchar *ptype = wocky_node_get_attribute (node, "type");
+      /* presence type is either missing or "unavailable" */
+      if ((ptype == NULL) || !wocky_strdiff (ptype, "unavailable"))
+        {
+          return FALSE;
+        }
+    }
+
+  if (priv->queueable_stanza_patterns == NULL)
+    build_queueable_stanza_patterns (self);
+
+  /* check whether stanza matches any of the queueable patterns */
+  for (l = priv->queueable_stanza_patterns; l != NULL; l = l->next)
+    {
+      if (wocky_node_is_superset (node, wocky_stanza_get_top_node (
+          WOCKY_STANZA (l->data))))
+        return FALSE;
+    }
+
+  /* everything else is important */
+  return TRUE;
+}
+
+static void
+queue_or_handle_stanza (WockyC2SPorter *self,
+    WockyStanza *stanza)
+{
+  WockyC2SPorterPrivate *priv = self->priv;
+
+  if (priv->power_saving_mode)
+    {
+      if (is_stanza_important (self, stanza))
+        {
+          flush_unimportant_queue (self);
+          handle_stanza (self, stanza);
+        }
+      else
+        {
+          g_queue_push_tail (priv->unimportant_queue, g_object_ref (stanza));
+        }
+    }
+  else
+    {
+      handle_stanza (self, stanza);
+    }
+}
+
 static void
 abort_pending_iqs (WockyC2SPorter *self,
     GError *error)
@@ -1153,7 +1264,7 @@ stanza_received_cb (GObject *source,
    * threat the stanza. */
   g_object_ref (self);
 
-  handle_stanza (self, stanza);
+  queue_or_handle_stanza (self, stanza);
   g_object_unref (stanza);
 
   if (!priv->remote_closed)
@@ -1579,6 +1690,41 @@ wocky_c2s_porter_unregister_handler (WockyPorter *porter,
 
   priv->handlers = g_list_remove (priv->handlers, handler);
   g_hash_table_remove (priv->handlers_by_id, GUINT_TO_POINTER (id));
+}
+
+/**
+ * wocky_c2s_porter_enable_power_saving_mode:
+ * @porter: a #WockyC2SPorter
+ * @enable: A boolean specifying whether power saving mode should be used
+ *
+ * Enable or disable power saving. In power saving mode, Wocky will
+ * attempt to queue "uninteresting" stanza until it is either manually
+ * flushed, until important stanza arrives, or until the power saving
+ * mode is disabled.
+ *
+ * Queueable stanzas are:
+ *  - <presence/> and <presence type="unavailable"/>
+ *  - all PEP updates
+ *
+ * Whenever stanza is handled, all previously queued stanzas
+ * (if any) are handled as well, in the order they arrived. This preserves
+ * stanza ordering.
+ *
+ * Note that exiting the power saving mode will immediately handle any
+ * queued stanzas.
+ */
+void
+wocky_c2s_porter_enable_power_saving_mode (WockyC2SPorter *porter,
+    gboolean enable)
+{
+  WockyC2SPorterPrivate *priv = porter->priv;
+
+  if (priv->power_saving_mode && !enable)
+    {
+      flush_unimportant_queue (porter);
+    }
+
+  priv->power_saving_mode = enable;
 }
 
 static void
