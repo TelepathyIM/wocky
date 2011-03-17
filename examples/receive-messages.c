@@ -152,8 +152,10 @@ connected_cb (
        * with a status message. */
       stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_PRESENCE,
           WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+          '(', "show",
+            '$', "chat",
+          ')',
           '(', "status",
-            '@', "show", "chat",
             '$', "talk to me! (or tell me to “sign out”)",
           ')', NULL);
 
