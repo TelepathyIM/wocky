@@ -301,7 +301,6 @@ struct _WockyConnectorPrivate
 static char *
 state_message (WockyConnectorPrivate *priv, const char *str)
 {
-  GString *msg = g_string_new ("");
   const char *state = NULL;
 
   if (priv->authed)
@@ -318,8 +317,7 @@ state_message (WockyConnectorPrivate *priv, const char *str)
   else
     state = "Connecting... ";
 
-  g_string_printf (msg, "%s: %s", state, str);
-  return g_string_free (msg, FALSE);
+  return g_strdup_printf ("%s: %s", state, str);
 }
 
 static void
