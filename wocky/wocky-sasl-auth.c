@@ -290,6 +290,7 @@ static gboolean
 stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 {
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  WockySaslAuthPrivate *priv = self->priv;
 
   if (stanza == NULL)
     {
@@ -310,6 +311,14 @@ stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 
       g_error_free (error);
 
+      return TRUE;
+    }
+
+  if (g_cancellable_is_cancelled (priv->cancel))
+    {
+      /* We got disconnected but we still had this stanza to process. Don't
+       * bother with it. */
+      auth_failed (sasl, WOCKY_AUTH_ERROR_CONNRESET, "Disconnected");
       return TRUE;
     }
 
