@@ -290,7 +290,7 @@ static gboolean
 stream_error (WockySaslAuth *sasl, WockyStanza *stanza)
 {
   WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
-  WockySaslAuthPrivate *priv = self->priv;
+  WockySaslAuthPrivate *priv = sasl->priv;
 
   if (stanza == NULL)
     {
