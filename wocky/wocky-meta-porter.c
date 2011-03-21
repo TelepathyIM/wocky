@@ -1103,7 +1103,13 @@ register_porter_handlers (WockyMetaPorter *self,
 
 static StanzaHandler *
 stanza_handler_new (WockyMetaPorter *self,
-    WockyLLContact *contact)
+    WockyLLContact *contact,
+    WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    guint priority,
+    WockyPorterHandlerFunc callback,
+    gpointer user_data,
+    WockyStanza *stanza)
 {
   StanzaHandler *out = g_slice_new0 (StanzaHandler);
 
@@ -1112,6 +1118,13 @@ stanza_handler_new (WockyMetaPorter *self,
 
   if (contact != NULL)
     out->contact = g_object_ref (contact);
+
+  out->type = type;
+  out->sub_type = sub_type;
+  out->priority = priority;
+  out->callback = callback;
+  out->user_data = user_data;
+  out->stanza = g_object_ref (stanza);
 
   return out;
 }
@@ -1140,14 +1153,8 @@ wocky_meta_porter_register_handler_from_by_stanza (WockyPorter *porter,
 
   g_return_val_if_fail (WOCKY_IS_LL_CONTACT (from), 0);
 
-  handler = stanza_handler_new (self, from);
-
-  handler->type = type;
-  handler->sub_type = sub_type;
-  handler->priority = priority;
-  handler->callback = callback;
-  handler->user_data = user_data;
-  handler->stanza = g_object_ref (stanza);
+  handler = stanza_handler_new (self, from, type, sub_type, priority,
+      callback, user_data, stanza);
 
   id = priv->next_handler_id++;
 
@@ -1176,14 +1183,8 @@ wocky_meta_porter_register_handler_from_anyone_by_stanza (WockyPorter *porter,
   StanzaHandler *handler;
   GList *porters, *l;
 
-  handler = stanza_handler_new (self, NULL);
-
-  handler->type = type;
-  handler->sub_type = sub_type;
-  handler->priority = priority;
-  handler->callback = callback;
-  handler->user_data = user_data;
-  handler->stanza = g_object_ref (stanza);
+  handler = stanza_handler_new (self, NULL, type, sub_type, priority,
+      callback, user_data, stanza);
 
   id = priv->next_handler_id++;
 
