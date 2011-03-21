@@ -1301,8 +1301,6 @@ close_all_porters (WockyMetaPorter *self,
   data->remaining = num;
   data->simple = simple;
 
-  porters = g_hash_table_get_values (priv->porters);
-
   for (l = porters; l != NULL; l = l->next)
     {
       PorterData *porter_data = l->data;
