@@ -1366,7 +1366,7 @@ meta_porter_send_iq_cb (GObject *source_object,
   if (stanza == NULL)
     g_simple_async_result_take_error (simple, error);
   else
-    g_simple_async_result_set_op_res_gpointer (simple, stanza, NULL);
+    g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
@@ -1450,7 +1450,8 @@ wocky_meta_porter_send_iq_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_return_pointer (self, wocky_meta_porter_send_iq_async);
+  wocky_implement_finish_return_copy_pointer (self, wocky_meta_porter_send_iq_async,
+      g_object_ref);
 }
 
 static void
