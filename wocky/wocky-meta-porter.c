@@ -1006,6 +1006,7 @@ wocky_meta_porter_start (WockyPorter *porter)
     {
       DEBUG ("Failed to listen: %s", error->message);
       g_clear_error (&error);
+      return;
     }
 
   DEBUG ("listening on port %u", port);
