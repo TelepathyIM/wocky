@@ -1515,11 +1515,8 @@ wocky_meta_porter_set_jid (WockyMetaPorter *self,
 
   priv = self->priv;
 
-  if (priv->jid != NULL)
-    {
-      DEBUG ("You cannot set the meta porter JID again");
-      return;
-    }
+  /* You cannot set the meta porter JID again */
+  g_return_if_fail (priv->jid == NULL);
 
   /* don't try and change existing porter's JIDs */
 
