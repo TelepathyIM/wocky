@@ -1282,7 +1282,6 @@ close_all_porters (WockyMetaPorter *self,
   WockyMetaPorterPrivate *priv = self->priv;
   GSimpleAsyncResult *simple;
   GList *porters, *l;
-  ClosePorterData *data;
   guint num;
 
   porters = g_hash_table_get_values (priv->porters);
@@ -1293,27 +1292,26 @@ close_all_porters (WockyMetaPorter *self,
 
   g_signal_emit_by_name (self, "closing");
 
-  if (num == 0)
-    goto out;
-
-  data = g_slice_new0 (ClosePorterData);
-  data->close_finish = close_finish_func;
-  data->remaining = num;
-  data->simple = simple;
-
-  for (l = porters; l != NULL; l = l->next)
+  if (num > 0)
     {
-      PorterData *porter_data = l->data;
+      ClosePorterData *data = g_slice_new0 (ClosePorterData);
+      data->close_finish = close_finish_func;
+      data->remaining = num;
+      data->simple = simple;
 
-      /* NULL if there's a refcount but no porter */
-      if (porter_data->porter == NULL)
-        continue;
+      for (l = porters; l != NULL; l = l->next)
+        {
+          PorterData *porter_data = l->data;
 
-      close_async_func (porter_data->porter, cancellable,
-          porter_close_cb, data);
+          /* NULL if there's a refcount but no porter */
+          if (porter_data->porter == NULL)
+            continue;
+
+          close_async_func (porter_data->porter, cancellable,
+              porter_close_cb, data);
+        }
     }
 
-out:
   g_list_free (porters);
 
   /* there were no porters to close anyway */
