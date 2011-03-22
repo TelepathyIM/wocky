@@ -1282,21 +1282,19 @@ close_all_porters (WockyMetaPorter *self,
   WockyMetaPorterPrivate *priv = self->priv;
   GSimpleAsyncResult *simple;
   GList *porters, *l;
-  guint num;
 
   porters = g_hash_table_get_values (priv->porters);
-  num = g_list_length (porters);
 
   simple = g_simple_async_result_new (G_OBJECT (self), callback,
       user_data, source_tag);
 
   g_signal_emit_by_name (self, "closing");
 
-  if (num > 0)
+  if (porters != NULL)
     {
       ClosePorterData *data = g_slice_new0 (ClosePorterData);
       data->close_finish = close_finish_func;
-      data->remaining = num;
+      data->remaining = 0;
       data->simple = simple;
 
       for (l = porters; l != NULL; l = l->next)
@@ -1307,19 +1305,20 @@ close_all_porters (WockyMetaPorter *self,
           if (porter_data->porter == NULL)
             continue;
 
+          data->remaining++;
+
           close_async_func (porter_data->porter, cancellable,
               porter_close_cb, data);
         }
     }
-
-  g_list_free (porters);
-
-  /* there were no porters to close anyway */
-  if (num == 0)
+  else
     {
+      /* there were no porters to close anyway */
       g_simple_async_result_complete (simple);
       g_object_unref (simple);
     }
+
+  g_list_free (porters);
 }
 
 static void
