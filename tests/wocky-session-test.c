@@ -19,7 +19,7 @@ test_instantiation (void)
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
 
-  session = wocky_session_new (connection, "example.com");
+  session = wocky_session_new_with_connection (connection, "example.com");
   g_assert (session != NULL);
   g_assert (WOCKY_IS_SESSION (session));
 
@@ -35,7 +35,7 @@ test_get_porter (void)
   WockySession *session;
   WockyPorter *porter;
 
-  session = wocky_session_new (test->in, "example.com");
+  session = wocky_session_new_with_connection (test->in, "example.com");
 
   porter = wocky_session_get_porter (session);
   g_assert (WOCKY_IS_PORTER (porter));
@@ -51,7 +51,7 @@ test_get_contact_factory (void)
   WockySession *session;
   WockyContactFactory *factory;
 
-  session = wocky_session_new (test->in, "example.com");
+  session = wocky_session_new_with_connection (test->in, "example.com");
 
   factory = wocky_session_get_contact_factory (session);
   g_assert (WOCKY_IS_CONTACT_FACTORY (factory));

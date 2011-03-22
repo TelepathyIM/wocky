@@ -35,9 +35,13 @@ typedef struct _WockyContact WockyContact;
 typedef struct _WockyContactClass WockyContactClass;
 typedef struct _WockyContactPrivate WockyContactPrivate;
 
+typedef gchar * (*WockyContactDupJidImpl) (WockyContact *self);
+
 struct _WockyContactClass {
   /*<private>*/
   GObjectClass parent_class;
+
+  WockyContactDupJidImpl dup_jid;
 };
 
 struct _WockyContact {
@@ -64,6 +68,8 @@ GType wocky_contact_get_type (void);
 #define WOCKY_CONTACT_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_CONTACT, \
    WockyContactClass))
+
+gchar * wocky_contact_dup_jid (WockyContact *self) G_GNUC_WARN_UNUSED_RESULT;
 
 G_END_DECLS
 

@@ -26,7 +26,7 @@ test_instantiation (void)
 
   stream = g_object_new (WOCKY_TYPE_TEST_STREAM, NULL);
   connection = wocky_xmpp_connection_new (stream->stream0);
-  session = wocky_session_new (connection, "example.com");
+  session = wocky_session_new_with_connection (connection, "example.com");
 
   roster = wocky_roster_new (session);
 

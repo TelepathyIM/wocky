@@ -51,6 +51,7 @@ handwritten_headers = \
   wocky-bare-contact.h \
   wocky-c2s-porter.h \
   wocky-caps-cache.h \
+  wocky-ll-connection-factory.h \
   wocky-connector.h \
   wocky-contact.h \
   wocky-contact-factory.h \
@@ -60,6 +61,10 @@ handwritten_headers = \
   wocky-jabber-auth.h \
   wocky-jabber-auth-digest.h \
   wocky-jabber-auth-password.h \
+  wocky-ll-connector.h \
+  wocky-ll-contact.h \
+  wocky-loopback-stream.h \
+  wocky-meta-porter.h \
   wocky-muc.h \
   wocky-namespaces.h \
   wocky-node.h \
@@ -99,6 +104,7 @@ handwritten_sources = \
   wocky-bare-contact.c \
   wocky-c2s-porter.c \
   wocky-caps-cache.c \
+  wocky-ll-connection-factory.c \
   wocky-connector.c \
   wocky-contact.c \
   wocky-contact-factory.c \
@@ -108,6 +114,10 @@ handwritten_sources = \
   wocky-jabber-auth.c \
   wocky-jabber-auth-digest.c \
   wocky-jabber-auth-password.c \
+  wocky-ll-connector.c \
+  wocky-ll-contact.c \
+  wocky-loopback-stream.c \
+  wocky-meta-porter.c \
   wocky-muc.c \
   wocky-node.c \
   wocky-node-tree.c \

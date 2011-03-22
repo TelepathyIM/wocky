@@ -109,7 +109,7 @@ AC_C_BIGENDIAN
 
 dnl Check for Glib
 PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.16, gobject-2.0 >= 2.16, gthread-2.0 >=
-2.4, gio-2.0 >= 2.21])
+2.4, gio-2.0 >= 2.28])
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)

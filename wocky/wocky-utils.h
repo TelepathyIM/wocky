@@ -129,6 +129,18 @@ void wocky_g_string_free (GString *str);
       return NULL; \
     } G_STMT_END
 
+#define wocky_implement_finish_return_pointer(source, tag) \
+    G_STMT_START { \
+      GSimpleAsyncResult *_simple; \
+      _simple = (GSimpleAsyncResult *) result; \
+      if (g_simple_async_result_propagate_error (_simple, error)) \
+        return NULL; \
+      g_return_val_if_fail (g_simple_async_result_is_valid (result, \
+              G_OBJECT (source), tag), \
+          NULL); \
+      return g_simple_async_result_get_op_res_gpointer (_simple); \
+    } G_STMT_END
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_UTILS_H__ */

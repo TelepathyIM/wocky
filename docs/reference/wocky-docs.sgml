@@ -31,6 +31,7 @@
     <xi:include href="xml/wocky-jabber-auth.xml"/>
     <xi:include href="xml/wocky-jabber-auth-digest.xml"/>
     <xi:include href="xml/wocky-jabber-auth-password.xml"/>
+    <xi:include href="xml/wocky-meta-porter.xml"/>
     <xi:include href="xml/wocky-muc-enumtypes.xml"/>
     <xi:include href="xml/wocky-muc.xml"/>
     <xi:include href="xml/wocky-namespaces.xml"/>

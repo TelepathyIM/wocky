@@ -33,6 +33,9 @@ G_DEFINE_TYPE(WockyStanza, wocky_stanza, WOCKY_TYPE_NODE_TREE)
 /* private structure */
 struct _WockyStanzaPrivate
 {
+  WockyContact *from_contact;
+  WockyContact *to_contact;
+
   gboolean dispose_has_run;
 };
 
@@ -122,6 +125,9 @@ wocky_stanza_init (WockyStanza *self)
 {
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_STANZA,
       WockyStanzaPrivate);
+
+  self->priv->from_contact = NULL;
+  self->priv->to_contact = NULL;
 }
 
 static void wocky_stanza_dispose (GObject *object);
@@ -136,10 +142,9 @@ wocky_stanza_class_init (WockyStanzaClass *wocky_stanza_class)
 
   object_class->dispose = wocky_stanza_dispose;
   object_class->finalize = wocky_stanza_finalize;
-
 }
 
-void
+static void
 wocky_stanza_dispose (GObject *object)
 {
   WockyStanza *self = WOCKY_STANZA (object);
@@ -155,14 +160,29 @@ wocky_stanza_dispose (GObject *object)
     G_OBJECT_CLASS (wocky_stanza_parent_class)->dispose (object);
 }
 
-void
+static void
 wocky_stanza_finalize (GObject *object)
 {
+  WockyStanza *self = WOCKY_STANZA (object);
+
+  if (self->priv->from_contact != NULL)
+    {
+      g_object_unref (self->priv->from_contact);
+      self->priv->from_contact = NULL;
+    }
+
+  if (self->priv->to_contact != NULL)
+    {
+      g_object_unref (self->priv->to_contact);
+      self->priv->to_contact = NULL;
+    }
+
   G_OBJECT_CLASS (wocky_stanza_parent_class)->finalize (object);
 }
 
 WockyStanza *
-wocky_stanza_new (const gchar *name, const gchar *ns)
+wocky_stanza_new (const gchar *name,
+    const gchar *ns)
 {
   WockyStanza *result;
 
@@ -208,7 +228,7 @@ get_sub_type_name (WockyStanzaSubType sub_type)
 
 static gboolean
 check_sub_type (WockyStanzaType type,
-                WockyStanzaSubType sub_type)
+    WockyStanzaSubType sub_type)
 {
   WockyStanzaType expected_type;
 
@@ -233,7 +253,7 @@ check_sub_type (WockyStanzaType type,
 
 static WockyStanza *
 wocky_stanza_new_with_sub_type (WockyStanzaType type,
-                                      WockyStanzaSubType sub_type)
+    WockyStanzaSubType sub_type)
 {
   WockyStanza *stanza = NULL;
   const gchar *sub_type_name;
@@ -309,10 +329,10 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  */
 WockyStanza *
 wocky_stanza_build (WockyStanzaType type,
-                          WockyStanzaSubType sub_type,
-                          const gchar *from,
-                          const gchar *to,
-                          ...)
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    const gchar *to,
+    ...)
 
 {
   WockyStanza *stanza;
@@ -321,6 +341,32 @@ wocky_stanza_build (WockyStanzaType type,
   va_start (ap, to);
   stanza = wocky_stanza_build_va (type, sub_type, from, to, ap);
   va_end (ap);
+
+  return stanza;
+}
+
+WockyStanza *
+wocky_stanza_build_to_contact (WockyStanzaType type,
+    WockyStanzaSubType sub_type,
+    const gchar *from,
+    WockyContact *to,
+    ...)
+
+{
+  WockyStanza *stanza;
+  va_list ap;
+  gchar *to_jid = NULL;
+
+  if (to != NULL)
+    to_jid = wocky_contact_dup_jid (to);
+
+  va_start (ap, to);
+  stanza = wocky_stanza_build_va (type, sub_type, from, to_jid, ap);
+  va_end (ap);
+
+  g_free (to_jid);
+
+  stanza->priv->to_contact = g_object_ref (to);
 
   return stanza;
 }
@@ -398,8 +444,8 @@ get_sub_type_from_name (const gchar *name)
 
 void
 wocky_stanza_get_type_info (WockyStanza *stanza,
-                                  WockyStanzaType *type,
-                                  WockyStanzaSubType *sub_type)
+    WockyStanzaType *type,
+    WockyStanzaSubType *sub_type)
 {
   g_return_if_fail (stanza != NULL);
   g_assert (wocky_stanza_get_top_node (stanza) != NULL);
@@ -422,6 +468,7 @@ create_iq_reply (WockyStanza *iq,
   WockyNode *node;
   WockyStanzaSubType sub_type;
   const gchar *from, *to, *id;
+  WockyContact *contact;
 
   g_return_val_if_fail (iq != NULL, NULL);
 
@@ -442,6 +489,11 @@ create_iq_reply (WockyStanza *iq,
       sub_type_reply, to, from, ap);
 
   wocky_node_set_attribute (wocky_stanza_get_top_node (reply), "id", id);
+
+  contact = wocky_stanza_get_from_contact (iq);
+  if (contact != NULL)
+    wocky_stanza_set_to_contact (reply, contact);
+
   return reply;
 }
 
@@ -676,4 +728,50 @@ wocky_stanza_get_to (WockyStanza *self)
   g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
 
   return wocky_node_get_attribute (wocky_stanza_get_top_node (self), "to");
+}
+
+WockyContact *
+wocky_stanza_get_to_contact (WockyStanza *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
+
+  return self->priv->to_contact;
+}
+
+WockyContact *
+wocky_stanza_get_from_contact (WockyStanza *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (WOCKY_IS_STANZA (self), NULL);
+
+  return self->priv->from_contact;
+}
+
+void
+wocky_stanza_set_to_contact (WockyStanza *self,
+    WockyContact *contact)
+{
+  g_return_if_fail (self != NULL);
+  g_return_if_fail (WOCKY_IS_STANZA (self));
+  g_return_if_fail (WOCKY_IS_CONTACT (contact));
+
+  if (self->priv->to_contact != NULL)
+    g_object_unref (self->priv->to_contact);
+
+  self->priv->to_contact = g_object_ref (contact);
+}
+
+void
+wocky_stanza_set_from_contact (WockyStanza *self,
+    WockyContact *contact)
+{
+  g_return_if_fail (self != NULL);
+  g_return_if_fail (WOCKY_IS_STANZA (self));
+  g_return_if_fail (WOCKY_IS_CONTACT (contact));
+
+  if (self->priv->from_contact != NULL)
+    g_object_unref (self->priv->from_contact);
+
+  self->priv->from_contact = g_object_ref (contact);
 }
