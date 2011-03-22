@@ -1282,6 +1282,7 @@ close_all_porters (WockyMetaPorter *self,
   WockyMetaPorterPrivate *priv = self->priv;
   GSimpleAsyncResult *simple;
   GList *porters, *l;
+  gboolean close_called = FALSE;
 
   porters = g_hash_table_get_values (priv->porters);
 
@@ -1306,12 +1307,18 @@ close_all_porters (WockyMetaPorter *self,
             continue;
 
           data->remaining++;
+          close_called = TRUE;
 
           close_async_func (porter_data->porter, cancellable,
               porter_close_cb, data);
         }
+
+      /* Actually, none of the PorterData structs had C2S porters */
+      if (!close_called)
+        g_slice_free (ClosePorterData, data);
     }
-  else
+
+  if (!close_called)
     {
       /* there were no porters to close anyway */
       g_simple_async_result_complete (simple);
