@@ -119,7 +119,7 @@ connected_cb (
     }
   else
     {
-      WockySession *session = wocky_session_new (connection, jid);
+      WockySession *session = wocky_session_new_with_connection (connection, jid);
       WockyPorter *porter = wocky_session_get_porter (session);
       WockyStanza *stanza;
 
