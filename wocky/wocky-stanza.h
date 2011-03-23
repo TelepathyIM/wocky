@@ -153,6 +153,8 @@ typedef enum
 
 WockyStanza * wocky_stanza_new (const gchar *name, const gchar *ns);
 
+WockyStanza * wocky_stanza_copy (WockyStanza *old);
+
 WockyNode *wocky_stanza_get_top_node (WockyStanza *self);
 
 WockyStanza * wocky_stanza_build (WockyStanzaType type,

@@ -28,6 +28,8 @@
 #include "wocky-namespaces.h"
 #include "wocky-debug.h"
 
+#include "wocky-node-private.h"
+
 G_DEFINE_TYPE(WockyStanza, wocky_stanza, WOCKY_TYPE_NODE_TREE)
 
 /* private structure */
@@ -191,6 +193,18 @@ wocky_stanza_new (const gchar *name,
     NULL));
 
   return result;
+}
+
+WockyStanza *
+wocky_stanza_copy (WockyStanza *old)
+{
+  WockyNode *top;
+
+  top = _wocky_node_copy (wocky_stanza_get_top_node (old));
+
+  return g_object_new (WOCKY_TYPE_STANZA,
+      "top-node", top,
+      NULL);
 }
 
 static const gchar *

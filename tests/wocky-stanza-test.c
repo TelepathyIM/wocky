@@ -12,6 +12,39 @@
 #include "wocky-test-helper.h"
 
 static void
+test_copy (void)
+{
+  WockyStanza *iq, *copy, *expected;
+
+  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '@', "id", "one",
+        '(', "query",
+          ':', "http://jabber.org/protocol/disco#items",
+        ')',
+      NULL);
+
+  /* just to make sure */
+  expected = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, "juliet@example.com", "romeo@example.net",
+      '@', "id", "one",
+        '(', "query",
+          ':', "http://jabber.org/protocol/disco#items",
+        ')',
+      NULL);
+
+  copy = wocky_stanza_copy (iq);
+  g_assert (copy != NULL);
+
+  test_assert_stanzas_equal (iq, copy);
+  test_assert_stanzas_equal (expected, copy);
+
+  g_object_unref (iq);
+  g_object_unref (copy);
+  g_object_unref (expected);
+}
+
+static void
 test_build_iq_result_simple_ack (void)
 {
   WockyStanza *iq, *reply, *expected;
@@ -729,6 +762,7 @@ main (int argc, char **argv)
   int result;
 
   test_init (argc, argv);
+  g_test_add_func ("/xmpp-stanza/copy", test_copy);
   g_test_add_func ("/xmpp-stanza/iq-result/build-simple-ack",
       test_build_iq_result_simple_ack);
   g_test_add_func ("/xmpp-stanza/iq-result/build-complex-reply",
