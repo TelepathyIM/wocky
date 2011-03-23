@@ -163,9 +163,8 @@ process_one_address (NewConnectionData *data)
 
   if (g_cancellable_is_cancelled (data->cancellable))
     {
-      GError *error = g_error_new (G_IO_ERROR,
+      g_simple_async_result_set_error (data->simple, G_IO_ERROR,
           G_IO_ERROR_CANCELLED, "Operation cancelled");
-      g_simple_async_result_take_error (data->simple, error);
       g_simple_async_result_complete (data->simple);
       free_new_connection_data (data);
       return;
@@ -176,10 +175,10 @@ process_one_address (NewConnectionData *data)
   /* check we haven't gotten to the end of the list */
   if (addr == NULL)
     {
-      GError *error = g_error_new (WOCKY_LL_CONNECTION_FACTORY_ERROR,
+      g_simple_async_result_set_error (data->simple,
+          WOCKY_LL_CONNECTION_FACTORY_ERROR,
           WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESS_CAN_BE_CONNECTED_TO,
           "Failed to connect to any of the contact's addresses");
-      g_simple_async_result_take_error (data->simple, error);
       g_simple_async_result_complete (data->simple);
       free_new_connection_data (data);
       return;
@@ -253,10 +252,10 @@ wocky_ll_connection_factory_make_connection_async (
 
   if (data->addresses == NULL)
     {
-      GError *error = g_error_new (WOCKY_LL_CONNECTION_FACTORY_ERROR,
+      g_simple_async_result_set_error (data->simple,
+          WOCKY_LL_CONNECTION_FACTORY_ERROR,
           WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESSES,
           "No addresses available for contact");
-      g_simple_async_result_take_error (data->simple, error);
       g_simple_async_result_complete (data->simple);
       free_new_connection_data (data);
       return;

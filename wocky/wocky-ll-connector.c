@@ -310,14 +310,12 @@ features_sent_cb (GObject *source_object,
 
   if (!wocky_xmpp_connection_send_stanza_finish (connection, result, &error))
     {
-      GError *err = g_error_new (WOCKY_LL_CONNECTOR_ERROR,
+      DEBUG ("Failed to send stream features: %s", error->message);
+
+      g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_SEND_STANZA,
           "Failed to send stream features: %s", error->message);
       g_clear_error (&error);
-
-      DEBUG ("%s", err->message);
-
-      g_simple_async_result_take_error (priv->simple, err);
     }
 
   g_simple_async_result_complete (priv->simple);
@@ -341,14 +339,13 @@ recv_open_cb (GObject *source_object,
   if (!wocky_xmpp_connection_recv_open_finish (connection, result,
           NULL, &from, NULL, NULL, NULL, &error))
     {
-      GError *err = g_error_new (WOCKY_LL_CONNECTOR_ERROR,
+      DEBUG ("Failed to receive stream open: %s", error->message);
+
+      g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_RECEIVE_STANZA,
           "Failed to receive stream open: %s", error->message);
-      g_clear_error (&error);
-
-      DEBUG ("%s", err->message);
-      g_simple_async_result_take_error (priv->simple, err);
       g_simple_async_result_complete (priv->simple);
+      g_clear_error (&error);
       g_object_unref (self);
       return;
     }
@@ -390,15 +387,13 @@ send_open_cb (GObject *source_object,
 
   if (!wocky_xmpp_connection_send_open_finish (connection, result, &error))
     {
-      GError *err = g_error_new (WOCKY_LL_CONNECTOR_ERROR,
+      DEBUG ("Failed to send stream open: %s", error->message);
+
+      g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_SEND_STANZA,
           "Failed to send stream open: %s", error->message);
-      g_clear_error (&error);
-
-      DEBUG ("%s", err->message);
-
-      g_simple_async_result_take_error (priv->simple, err);
       g_simple_async_result_complete (priv->simple);
+      g_clear_error (&error);
       g_object_unref (self);
       return;
     }

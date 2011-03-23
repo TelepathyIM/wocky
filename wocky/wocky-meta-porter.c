@@ -886,7 +886,10 @@ meta_porter_send_cb (GObject *source_object,
   GError *error = NULL;
 
   if (!wocky_porter_send_finish (WOCKY_PORTER (source_object), result, &error))
-    g_simple_async_result_take_error (simple, error);
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
 
   g_simple_async_result_complete (simple);
   g_object_unref (simple);
@@ -1257,11 +1260,9 @@ porter_close_cb (GObject *source_object,
 
   if (data->failed)
     {
-      GError *err = g_error_new (WOCKY_META_PORTER_ERROR,
+      g_simple_async_result_set_error (data->simple, WOCKY_META_PORTER_ERROR,
           WOCKY_META_PORTER_ERROR_FAILED_TO_CLOSE,
           "Failed to close at least one porter");
-
-      g_simple_async_result_take_error (data->simple, err);
     }
 
   g_simple_async_result_complete (data->simple);
@@ -1370,7 +1371,10 @@ meta_porter_send_iq_cb (GObject *source_object,
       result, &error);
 
   if (stanza == NULL)
-    g_simple_async_result_take_error (simple, error);
+    {
+      g_simple_async_result_set_from_error (simple, error);
+      g_clear_error (&error);
+    }
   else
     g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
 
