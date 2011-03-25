@@ -166,8 +166,11 @@ wocky_ll_connector_dispose (GObject *object)
   g_free (priv->from);
   priv->from = NULL;
 
-  g_object_unref (priv->cancellable);
-  priv->cancellable = NULL;
+  if (priv->cancellable != NULL)
+    {
+      g_object_unref (priv->cancellable);
+      priv->cancellable = NULL;
+    }
 
   if (G_OBJECT_CLASS (wocky_ll_connector_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_ll_connector_parent_class)->dispose (object);
