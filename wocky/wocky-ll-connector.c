@@ -166,9 +166,6 @@ wocky_ll_connector_dispose (GObject *object)
   g_free (priv->from);
   priv->from = NULL;
 
-  g_object_unref (priv->simple);
-  priv->simple = NULL;
-
   g_object_unref (priv->cancellable);
   priv->cancellable = NULL;
 
@@ -319,6 +316,9 @@ features_sent_cb (GObject *source_object,
     }
 
   g_simple_async_result_complete (priv->simple);
+  g_object_unref (priv->simple);
+  priv->simple = NULL;
+
   g_object_unref (self);
 }
 
@@ -344,8 +344,12 @@ recv_open_cb (GObject *source_object,
       g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_RECEIVE_STANZA,
           "Failed to receive stream open: %s", error->message);
-      g_simple_async_result_complete (priv->simple);
       g_clear_error (&error);
+
+      g_simple_async_result_complete (priv->simple);
+      g_object_unref (priv->simple);
+      priv->simple = NULL;
+
       g_object_unref (self);
       return;
     }
@@ -392,8 +396,12 @@ send_open_cb (GObject *source_object,
       g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_SEND_STANZA,
           "Failed to send stream open: %s", error->message);
-      g_simple_async_result_complete (priv->simple);
       g_clear_error (&error);
+
+      g_simple_async_result_complete (priv->simple);
+      g_object_unref (priv->simple);
+      priv->simple = NULL;
+
       g_object_unref (self);
       return;
     }
