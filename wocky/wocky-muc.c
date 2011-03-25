@@ -562,8 +562,6 @@ wocky_muc_get_property (GObject *object,
     }
 }
 
-/* ************************************************************************ */
-/* status code mapping */
 static guint
 status_code_to_muc_flag (guint code)
 {
@@ -592,8 +590,6 @@ status_code_to_muc_flag (guint code)
   return WOCKY_MUC_CODE_UNKNOWN;
 }
 
-/* ************************************************************************ */
-/* check MUC exists/disco MUC info */
 static gboolean
 store_muc_disco_info_x (WockyNode *field, gpointer data)
 {
@@ -793,8 +789,6 @@ wocky_muc_disco_info_async (WockyMuc *muc,
 
 /* ask for MUC member list */
 
-/* ************************************************************************ */
-/* send presence to MUC */
 WockyStanza *
 wocky_muc_create_presence (WockyMuc *muc,
     WockyStanzaSubType type,
@@ -827,9 +821,7 @@ wocky_muc_create_presence (WockyMuc *muc,
   return stanza;
 }
 
-/* ************************************************************************ */
-/* register presence handler for MUC */
-static guint
+static void
 register_presence_handler (WockyMuc *muc)
 {
   WockyMucPrivate *priv = muc->priv;
@@ -842,13 +834,9 @@ register_presence_handler (WockyMuc *muc)
         WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
         handle_presence, muc,
         NULL);
-
-  return priv->pres_handler;
 }
 
-/* ************************************************************************ */
-/* register message handler for MUC */
-static guint
+static void
 register_message_handler (WockyMuc *muc)
 {
   WockyMucPrivate *priv = muc->priv;
@@ -861,12 +849,8 @@ register_message_handler (WockyMuc *muc)
         WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
         handle_message, muc,
         NULL);
-
-    return priv->mesg_handler;
 }
 
-/* ************************************************************************ */
-/* handle presence from MUC */
 static gboolean
 presence_code (WockyNode *node, gpointer data)
 {
@@ -1352,9 +1336,6 @@ handle_presence (WockyPorter *porter,
   return handled;
 }
 
-/* ************************************************************************ */
-/* handle message from MUC */
-
 /* Looks up the sender of a message. If they're not currently a MUC member,
  * then a temporary structure is created, and @member_is_temporary is set to
  * %TRUE; the caller needs to free the returned value when they're done with
@@ -1546,8 +1527,6 @@ handle_message (WockyPorter *porter,
   return TRUE;
 }
 
-/* ************************************************************************ */
-/* join MUC */
 void
 wocky_muc_join (WockyMuc *muc,
     GCancellable *cancel)
