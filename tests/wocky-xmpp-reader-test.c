@@ -78,7 +78,8 @@
 #define WHITESPACE_PADDED_BODY "  The Wench is Dead!  "
 
 #define MESSAGE_WITH_WHITESPACE_PADDED_BODY \
-"  <message to='morse@met.police.uk' from='lewis@met.police.uk'> " \
+"  <message to='morse@thamesvalley.police.uk' " \
+"           from='lewis@thamesvalley.police.uk'> " \
 "    <body>" WHITESPACE_PADDED_BODY "</body>" \
 "  </message>"
 
@@ -86,7 +87,8 @@
 #define WHITESPACE_ONLY_BODY "    "
 
 #define MESSAGE_WITH_WHITESPACE_ONLY_BODY \
-"  <message to='morse@met.police.uk' from='lewis@met.police.uk'> " \
+"  <message to='morse@thamesvalley.police.uk' " \
+"           from='lewis@thamesvalley.police.uk'> " \
 "    <body>" WHITESPACE_ONLY_BODY "</body>" \
 "  </message>"
 
