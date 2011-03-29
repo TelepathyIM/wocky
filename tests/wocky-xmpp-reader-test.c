@@ -75,6 +75,22 @@
 " </branch>                                                " \
 "</iq>                                                     "
 
+#define WHITESPACE_PADDED_BODY "  The Wench is Dead!  "
+
+#define MESSAGE_WITH_WHITESPACE_PADDED_BODY \
+"  <message to='morse@thamesvalley.police.uk' " \
+"           from='lewis@thamesvalley.police.uk'> " \
+"    <body>" WHITESPACE_PADDED_BODY "</body>" \
+"  </message>"
+
+
+#define WHITESPACE_ONLY_BODY "    "
+
+#define MESSAGE_WITH_WHITESPACE_ONLY_BODY \
+"  <message to='morse@thamesvalley.police.uk' " \
+"           from='lewis@thamesvalley.police.uk'> " \
+"    <body>" WHITESPACE_ONLY_BODY "</body>" \
+"  </message>"
 
 static void
 test_stream_no_stanzas (void)
@@ -306,6 +322,44 @@ test_invalid_namespace (void)
   g_object_unref (reader);
 }
 
+/* Helper function for the whitespace body tests */
+static void
+test_body (
+    const gchar *xml,
+    const gchar *expected_body_text)
+{
+  WockyXmppReader *reader = wocky_xmpp_reader_new_no_stream ();
+  WockyStanza *stanza;
+  WockyNode *body;
+
+  wocky_xmpp_reader_push (reader, (guint8 *) xml, strlen (xml));
+
+  stanza = wocky_xmpp_reader_pop_stanza (reader);
+  g_assert (stanza != NULL);
+
+  body = wocky_node_get_child (wocky_stanza_get_top_node (stanza), "body");
+  g_assert (body != NULL);
+
+  g_assert_cmpstr (body->content, ==, expected_body_text);
+
+  g_object_unref (stanza);
+  g_object_unref (reader);
+}
+
+/* Test that whitespace around the text contents of a message isn't ignored */
+static void
+test_whitespace_padding (void)
+{
+  test_body (MESSAGE_WITH_WHITESPACE_PADDED_BODY, WHITESPACE_PADDED_BODY);
+}
+
+/* Test that a message body consisting entirely of whitespace isn't ignored */
+static void
+test_whitespace_only (void)
+{
+  test_body (MESSAGE_WITH_WHITESPACE_ONLY_BODY, WHITESPACE_ONLY_BODY);
+}
+
 int
 main (int argc,
     char **argv)
@@ -323,6 +377,8 @@ main (int argc,
   g_test_add_func ("/xmpp-reader/no-stream-resetting", test_no_stream_reset);
   g_test_add_func ("/xmpp-reader/vcard-namespace", test_vcard_namespace);
   g_test_add_func ("/xmpp-reader/invalid-namespace", test_invalid_namespace);
+  g_test_add_func ("/xmpp-reader/whitespace-padding", test_whitespace_padding);
+  g_test_add_func ("/xmpp-reader/whitespace-only", test_whitespace_only);
 
   result = g_test_run ();
   test_deinit ();
