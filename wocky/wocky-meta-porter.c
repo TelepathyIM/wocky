@@ -119,7 +119,10 @@ porter_data_free (gpointer data)
   PorterData *p = data;
 
   if (p->porter != NULL)
-    g_object_unref (p->porter);
+    {
+      wocky_porter_close_async (p->porter, NULL, NULL, NULL);
+      g_object_unref (p->porter);
+    }
 
   if (p->timeout_id > 0)
     g_source_remove (p->timeout_id);
