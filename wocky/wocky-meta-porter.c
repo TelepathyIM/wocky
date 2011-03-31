@@ -1405,8 +1405,11 @@ meta_porter_send_iq_got_porter_cb (WockyMetaPorter *self,
       g_simple_async_result_set_from_error (simple, error);
       g_simple_async_result_complete (simple);
 
-      g_object_unref (simple);
       wocky_meta_porter_unhold (self, contact);
+
+      /* unref simple here as we depend on it potentially holding the
+       * last ref to self */
+      g_object_unref (simple);
     }
   else
     {
