@@ -50,6 +50,9 @@ enum
   PROP_RESOURCE,
 };
 
+#define PORTER_JID_QUARK \
+  (g_quark_from_static_string ("wocky-meta-porter-c2s-jid"))
+
 /* private structure */
 struct _WockyMetaPorterPrivate
 {
@@ -259,6 +262,13 @@ create_porter (WockyMetaPorter *self,
 
       g_hash_table_insert (priv->porters, g_object_ref (contact), data);
     }
+
+  /* we need to set this so when we get a stanza in from a porter with
+   * no from attribute we can find the real originating contact. The
+   * StanzaHandler struct doesn't reference the PorterData struct, so
+   * we simply store its jid here now. */
+  g_object_set_qdata_full (G_OBJECT (data->porter), PORTER_JID_QUARK,
+      g_strdup (data->jid), g_free);
 
   g_signal_connect (data->porter, "closing", G_CALLBACK (porter_closing_cb),
       data);
@@ -1043,7 +1053,12 @@ porter_handler_cb (WockyPorter *porter,
   WockyLLContact *contact;
   const gchar *from;
 
+  /* prefer the from attribute over ignoring it and using the porter
+   * JID */
   from = wocky_stanza_get_from (stanza);
+
+  if (from == NULL)
+    from = g_object_get_qdata (G_OBJECT (porter), PORTER_JID_QUARK);
 
   contact = wocky_contact_factory_ensure_ll_contact (
       priv->contact_factory, from);
