@@ -397,6 +397,8 @@ wocky_contact_factory_ensure_ll_contact (WockyContactFactory *self,
   WockyContactFactoryPrivate *priv = self->priv;
   WockyLLContact *contact;
 
+  g_return_val_if_fail (jid != NULL, NULL);
+
   contact = g_hash_table_lookup (priv->ll_contacts, jid);
   if (contact != NULL)
     return g_object_ref (contact);
