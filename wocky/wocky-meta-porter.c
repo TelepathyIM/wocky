@@ -50,6 +50,9 @@ enum
   PROP_RESOURCE,
 };
 
+#define PORTER_JID_QUARK \
+  (g_quark_from_static_string ("wocky-meta-porter-c2s-jid"))
+
 /* private structure */
 struct _WockyMetaPorterPrivate
 {
@@ -119,7 +122,10 @@ porter_data_free (gpointer data)
   PorterData *p = data;
 
   if (p->porter != NULL)
-    g_object_unref (p->porter);
+    {
+      wocky_porter_close_async (p->porter, NULL, NULL, NULL);
+      g_object_unref (p->porter);
+    }
 
   if (p->timeout_id > 0)
     g_source_remove (p->timeout_id);
@@ -257,6 +263,13 @@ create_porter (WockyMetaPorter *self,
       g_hash_table_insert (priv->porters, g_object_ref (contact), data);
     }
 
+  /* we need to set this so when we get a stanza in from a porter with
+   * no from attribute we can find the real originating contact. The
+   * StanzaHandler struct doesn't reference the PorterData struct, so
+   * we simply store its jid here now. */
+  g_object_set_qdata_full (G_OBJECT (data->porter), PORTER_JID_QUARK,
+      g_strdup (data->jid), g_free);
+
   g_signal_connect (data->porter, "closing", G_CALLBACK (porter_closing_cb),
       data);
   g_signal_connect (data->porter, "remote-closed",
@@ -385,7 +398,7 @@ new_connection_connect_cb (GObject *source,
     {
       DEBUG ("connection error: %s", error->message);
       g_clear_error (&error);
-      return;
+      goto out;
     }
 
   if (from != NULL)
@@ -403,7 +416,7 @@ new_connection_connect_cb (GObject *source,
       /* we didn't get a from attribute in the stream open */
 
       g_object_get (connection,
-          "stream", &socket_connection,
+          "base-stream", &socket_connection,
           NULL);
 
       socket_address = g_socket_connection_get_remote_address (
@@ -440,20 +453,31 @@ new_connection_connect_cb (GObject *source,
     }
 
   g_object_unref (connection);
+
+out:
+  g_object_unref (self);
 }
 
 static gboolean
 _new_connection (GSocketService *service,
-    GSocketConnection *socket,
+    GSocketConnection *socket_connection,
     GObject *source_object,
     gpointer user_data)
 {
   WockyMetaPorter *self = user_data;
+  GSocketAddress *addr = g_socket_connection_get_remote_address (
+      socket_connection, NULL);
+  GInetAddress *inet_address = g_inet_socket_address_get_address (
+      G_INET_SOCKET_ADDRESS (addr));
+  gchar *str = g_inet_address_to_string (inet_address);
 
-  DEBUG ("new connection!");
+  DEBUG ("new connection from %s!", str);
 
-  wocky_ll_connector_incoming_async (G_IO_STREAM (socket),
-      NULL, new_connection_connect_cb, self);
+  wocky_ll_connector_incoming_async (G_IO_STREAM (socket_connection),
+      NULL, new_connection_connect_cb, g_object_ref (self));
+
+  g_free (str);
+  g_object_unref (addr);
 
   return TRUE;
 }
@@ -984,8 +1008,7 @@ wocky_meta_porter_listen (WockyMetaPorter *self,
           return 0;
         }
 
-      g_error_free (e);
-      e = NULL;
+      g_clear_error (&e);
     }
 
   if (port < 5300)
@@ -1030,7 +1053,12 @@ porter_handler_cb (WockyPorter *porter,
   WockyLLContact *contact;
   const gchar *from;
 
+  /* prefer the from attribute over ignoring it and using the porter
+   * JID */
   from = wocky_stanza_get_from (stanza);
+
+  if (from == NULL)
+    from = g_object_get_qdata (G_OBJECT (porter), PORTER_JID_QUARK);
 
   contact = wocky_contact_factory_ensure_ll_contact (
       priv->contact_factory, from);
@@ -1379,10 +1407,12 @@ meta_porter_send_iq_cb (GObject *source_object,
     g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
 
   g_simple_async_result_complete (simple);
-  g_object_unref (simple);
 
   wocky_meta_porter_unhold (data->self, data->contact);
 
+  /* unref simple here as we depend on it holding potentially the last
+   * ref on self */
+  g_object_unref (data->simple);
   g_object_unref (data->contact);
   g_slice_free (SendIQData, data);
 }
@@ -1405,8 +1435,11 @@ meta_porter_send_iq_got_porter_cb (WockyMetaPorter *self,
       g_simple_async_result_set_from_error (simple, error);
       g_simple_async_result_complete (simple);
 
-      g_object_unref (simple);
       wocky_meta_porter_unhold (self, contact);
+
+      /* unref simple here as we depend on it potentially holding the
+       * last ref to self */
+      g_object_unref (simple);
     }
   else
     {
