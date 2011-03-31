@@ -403,7 +403,7 @@ new_connection_connect_cb (GObject *source,
       /* we didn't get a from attribute in the stream open */
 
       g_object_get (connection,
-          "stream", &socket_connection,
+          "base-stream", &socket_connection,
           NULL);
 
       socket_address = g_socket_connection_get_remote_address (
