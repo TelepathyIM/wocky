@@ -1407,10 +1407,12 @@ meta_porter_send_iq_cb (GObject *source_object,
     g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
 
   g_simple_async_result_complete (simple);
-  g_object_unref (simple);
 
   wocky_meta_porter_unhold (data->self, data->contact);
 
+  /* unref simple here as we depend on it holding potentially the last
+   * ref on self */
+  g_object_unref (data->simple);
   g_object_unref (data->contact);
   g_slice_free (SendIQData, data);
 }
