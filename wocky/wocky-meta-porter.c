@@ -385,7 +385,7 @@ new_connection_connect_cb (GObject *source,
     {
       DEBUG ("connection error: %s", error->message);
       g_clear_error (&error);
-      return;
+      goto out;
     }
 
   if (from != NULL)
@@ -440,6 +440,9 @@ new_connection_connect_cb (GObject *source,
     }
 
   g_object_unref (connection);
+
+out:
+  g_object_unref (self);
 }
 
 static gboolean
@@ -458,7 +461,7 @@ _new_connection (GSocketService *service,
   DEBUG ("new connection from %s!", str);
 
   wocky_ll_connector_incoming_async (G_IO_STREAM (socket_connection),
-      NULL, new_connection_connect_cb, self);
+      NULL, new_connection_connect_cb, g_object_ref (self));
 
   g_free (str);
   g_object_unref (addr);
