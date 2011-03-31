@@ -444,16 +444,24 @@ new_connection_connect_cb (GObject *source,
 
 static gboolean
 _new_connection (GSocketService *service,
-    GSocketConnection *socket,
+    GSocketConnection *socket_connection,
     GObject *source_object,
     gpointer user_data)
 {
   WockyMetaPorter *self = user_data;
+  GSocketAddress *addr = g_socket_connection_get_remote_address (
+      socket_connection, NULL);
+  GInetAddress *inet_address = g_inet_socket_address_get_address (
+      G_INET_SOCKET_ADDRESS (addr));
+  gchar *str = g_inet_address_to_string (inet_address);
 
-  DEBUG ("new connection!");
+  DEBUG ("new connection from %s!", str);
 
-  wocky_ll_connector_incoming_async (G_IO_STREAM (socket),
+  wocky_ll_connector_incoming_async (G_IO_STREAM (socket_connection),
       NULL, new_connection_connect_cb, self);
+
+  g_free (str);
+  g_object_unref (addr);
 
   return TRUE;
 }
