@@ -998,8 +998,7 @@ wocky_meta_porter_listen (WockyMetaPorter *self,
           return 0;
         }
 
-      g_error_free (e);
-      e = NULL;
+      g_clear_error (&e);
     }
 
   if (port < 5300)
