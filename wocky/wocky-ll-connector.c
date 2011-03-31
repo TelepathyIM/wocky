@@ -353,7 +353,6 @@ recv_open_cb (GObject *source_object,
       g_object_unref (priv->simple);
       priv->simple = NULL;
 
-      g_object_unref (self);
       return;
     }
 
@@ -404,8 +403,6 @@ send_open_cb (GObject *source_object,
       g_simple_async_result_complete (priv->simple);
       g_object_unref (priv->simple);
       priv->simple = NULL;
-
-      g_object_unref (self);
       return;
     }
 
