@@ -1417,7 +1417,10 @@ meta_porter_send_iq_cb (GObject *source_object,
       g_clear_error (&error);
     }
   else
-    g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
+    {
+      wocky_stanza_set_from_contact (stanza, data->contact);
+      g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
+    }
 
   g_simple_async_result_complete (simple);
 
