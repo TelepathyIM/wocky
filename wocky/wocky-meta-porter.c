@@ -256,9 +256,20 @@ create_porter (WockyMetaPorter *self,
 
   if (data != NULL)
     {
-      g_assert (data->porter == NULL);
-
-      data->porter = wocky_c2s_porter_new (connection, priv->jid);
+      if (data->porter != NULL)
+        {
+          /* close the new one; this function is meant to have stolen
+           * a reference to the connection so we don't need to unref
+           * it. It will ref itself for the duration of this close
+           * call.  */
+          wocky_xmpp_connection_send_close_async (connection,
+              NULL, NULL, NULL);
+          return data->porter;
+        }
+      else
+        {
+          data->porter = wocky_c2s_porter_new (connection, priv->jid);
+        }
     }
   else
     {
