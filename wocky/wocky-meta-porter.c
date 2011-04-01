@@ -224,6 +224,17 @@ porter_remote_closed_cb (WockyPorter *porter,
 }
 
 static void
+porter_remote_error_cb (WockyPorter *porter,
+    GQuark domain,
+    gint code,
+    const gchar *msg,
+    PorterData *data)
+{
+  wocky_porter_force_close_async (porter, NULL, NULL, NULL);
+  porter_remote_closed_cb (porter, data);
+}
+
+static void
 maybe_start_timeout (PorterData *data)
 {
   if (data->refcount == 0)
@@ -274,6 +285,8 @@ create_porter (WockyMetaPorter *self,
       data);
   g_signal_connect (data->porter, "remote-closed",
       G_CALLBACK (porter_remote_closed_cb), data);
+  g_signal_connect (data->porter, "remote-error",
+      G_CALLBACK (porter_remote_error_cb), data);
 
   register_porter_handlers (self, data->porter, contact);
   wocky_porter_start (data->porter);
