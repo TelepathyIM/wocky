@@ -131,6 +131,7 @@ wocky_caps_hash_compute_from_lists (
   guint i;
   gchar *encoded = NULL;
   gsize sha1_buffer_size;
+  GHashTable *form_names;
 
   GPtrArray *features_sorted, *identities_sorted, *dataforms_sorted;
 
@@ -152,28 +153,7 @@ wocky_caps_hash_compute_from_lists (
 
   checksum = g_checksum_new (G_CHECKSUM_SHA1);
 
-  /* make sure we don't have multiple data forms with the same
-   * FORM_TYPE value */
-  for (i = 0; i < dataforms_sorted->len; i++)
-    {
-      WockyDataForm *one = g_ptr_array_index (dataforms_sorted, i);
-      const gchar *one_type = g_hash_table_lookup (one->fields, "FORM_TYPE");
-      guint j;
-
-      for (j = (i + 1); j < dataforms_sorted->len; j++)
-        {
-          WockyDataForm *two = g_ptr_array_index (dataforms_sorted, j);
-          const gchar *two_type = g_hash_table_lookup (
-              two->fields, "FORM_TYPE");
-
-          if (!wocky_strdiff (one_type, two_type))
-            {
-              DEBUG ("error: there are multiple data forms with the "
-                  "same form type: %s", one_type);
-              goto cleanup;
-            }
-        }
-    }
+  form_names = g_hash_table_new (g_str_hash, g_str_equal);
 
   /* okay go and actually create this caps hash */
   for (i = 0 ; i < identities_sorted->len ; i++)
@@ -199,6 +179,7 @@ wocky_caps_hash_compute_from_lists (
       WockyDataForm *dataform = g_ptr_array_index (dataforms_sorted, i);
       WockyDataFormField *field;
       GSList *fields, *l;
+      const gchar *form_name;
 
       field = g_hash_table_lookup (dataform->fields, "FORM_TYPE");
 
@@ -208,7 +189,19 @@ wocky_caps_hash_compute_from_lists (
           goto cleanup;
         }
 
-      g_checksum_update (checksum, (guchar *) g_value_get_string (field->default_value), -1);
+      form_name = g_value_get_string (field->default_value);
+
+      if (g_hash_table_lookup (form_names, form_name) != NULL)
+        {
+          DEBUG ("error: there are multiple data forms with the "
+              "same form type: %s", form_name);
+          goto cleanup;
+        }
+
+      g_hash_table_insert (form_names,
+          (gpointer) form_name, (gpointer) form_name);
+
+      g_checksum_update (checksum, (guchar *) form_name, -1);
       g_checksum_update (checksum, (guchar *) "<", 1);
 
       /* we need to make a shallow copy to sort the fields */
@@ -320,6 +313,8 @@ wocky_caps_hash_compute_from_lists (
 
 cleanup:
   g_checksum_free (checksum);
+
+  g_hash_table_destroy (form_names);
 
   g_ptr_array_free (identities_sorted, TRUE);
   g_ptr_array_free (features_sorted, TRUE);
