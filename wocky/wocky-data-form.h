@@ -57,6 +57,9 @@ typedef struct
   gchar *desc;
   gboolean required;
   GValue *default_value;
+  /* for BOOLEAN the actual value string
+   * e.g. 1,0,true,false,TRUE,FALSE,etc. */
+  gchar *default_value_str;
   GValue *value;
   /* for LIST_MULTI and LIST_SINGLE only.
    * List of (WockyDataFormFieldOption *)*/

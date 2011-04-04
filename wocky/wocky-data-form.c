@@ -83,7 +83,8 @@ wocky_data_form_field_option_free (WockyDataFormFieldOption *option)
   g_slice_free (WockyDataFormFieldOption, option);
 }
 
-/* pass ownership of the default_value, the value and the options list */
+/* pass ownership of the default_value, default_value_str, the value
+ * and the options list */
 static WockyDataFormField *
 wocky_data_form_field_new (
   WockyDataFormFieldType type,
@@ -92,6 +93,7 @@ wocky_data_form_field_new (
   const gchar *desc,
   gboolean required,
   GValue *default_value,
+  gchar *default_value_str,
   GValue *value,
   GSList *options)
 {
@@ -104,6 +106,7 @@ wocky_data_form_field_new (
   field->desc = g_strdup (desc);
   field->required = required;
   field->default_value = default_value;
+  field->default_value_str = default_value_str;
   field->value = value;
   field->options = options;
   return field;
@@ -118,6 +121,7 @@ wocky_data_form_field_free (WockyDataFormField *field)
   g_free (field->var);
   g_free (field->label);
   g_free (field->desc);
+  g_free (field->default_value_str);
 
   if (field->default_value != NULL)
     wocky_g_value_slice_free (field->default_value);
@@ -335,10 +339,12 @@ extract_value_list (WockyNode *node)
 static GValue *
 get_field_value (
     WockyDataFormFieldType type,
-    WockyNode *field)
+    WockyNode *field,
+    gchar **default_value_str)
 {
   WockyNode *node;
   const gchar *value;
+  GValue *ret = NULL;
 
   if (type == WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
     {
@@ -360,11 +366,22 @@ get_field_value (
     {
       case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
         if (!wocky_strdiff (value, "true") || !wocky_strdiff (value, "1"))
-          return wocky_g_value_slice_new_boolean (TRUE);
+          ret = wocky_g_value_slice_new_boolean (TRUE);
         else if (!wocky_strdiff (value, "false") || !wocky_strdiff (value, "0"))
-          return wocky_g_value_slice_new_boolean (FALSE);
+          ret = wocky_g_value_slice_new_boolean (FALSE);
         else
           DEBUG ("Invalid boolean value: %s", value);
+
+        /* We parsed a boolean result nicely, so let's also set
+         * default_value_str to a new string */
+        if (ret != NULL)
+          {
+            if (default_value_str != NULL)
+              *default_value_str = g_strdup (value);
+
+            return ret;
+          }
+
         break;
 
       case WOCKY_DATA_FORM_FIELD_TYPE_FIXED:
@@ -399,6 +416,7 @@ create_field (WockyNode *field_node,
   GValue *default_value = NULL;
   GSList *options = NULL;
   WockyDataFormField *field;
+  gchar *default_value_str = NULL;
 
   if (type == WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI ||
       type == WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE)
@@ -413,10 +431,10 @@ create_field (WockyNode *field_node,
     }
 
   /* get default value (if any) */
-  default_value = get_field_value (type, field_node);
+  default_value = get_field_value (type, field_node, &default_value_str);
 
   field = wocky_data_form_field_new (type, var, label, desc, required,
-      default_value, NULL, options);
+      default_value, default_value_str, NULL, options);
 
   return field;
 }
@@ -619,7 +637,7 @@ wocky_data_form_set_type (WockyDataForm *self,
     }
 
   field = wocky_data_form_field_new (WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN,
-      "FORM_TYPE", NULL, NULL, FALSE, NULL,
+      "FORM_TYPE", NULL, NULL, FALSE, NULL, NULL,
       wocky_g_value_slice_new_string (form_type),
       NULL);
   data_form_add_field (self, field, FALSE);
@@ -657,7 +675,7 @@ data_form_set_value (WockyDataForm *self,
         {
           field = wocky_data_form_field_new (
               WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED, field_name, NULL, NULL,
-              FALSE, NULL, NULL, NULL);
+              FALSE, NULL, NULL, NULL, NULL);
           data_form_add_field (self, field, FALSE);
         }
       else
@@ -819,7 +837,7 @@ data_form_parse_reported (WockyDataForm *self,
         continue;
 
       field = wocky_data_form_field_new (type, var, label, NULL, FALSE, NULL,
-          NULL, NULL);
+          NULL, NULL, NULL);
 
       DEBUG ("Add '%s'", field->var);
       g_hash_table_insert (priv->reported, field->var, field);
@@ -841,6 +859,7 @@ data_form_parse_item (WockyDataForm *self,
       const gchar *var;
       WockyDataFormField *field, *result;
       GValue *value;
+      gchar *value_str = NULL;
 
       var = wocky_node_get_attribute (field_node, "var");
       if (var == NULL)
@@ -853,12 +872,13 @@ data_form_parse_item (WockyDataForm *self,
           continue;
         }
 
-      value = get_field_value (field->type, field_node);
+      value = get_field_value (field->type, field_node, &value_str);
       if (value == NULL)
         continue;
 
       result = wocky_data_form_field_new (field->type, var, field->label,
-          field->desc, field->required, field->default_value, value, NULL);
+          field->desc, field->required, field->default_value,
+          field->default_value_str, value, NULL);
 
       item = g_slist_prepend (item, result);
     }
@@ -880,16 +900,17 @@ parse_unique_result (WockyDataForm *self,
       WockyDataFormFieldType type;
       WockyDataFormField *result;
       GValue *value;
+      gchar *value_str = NULL;
 
       if (!extract_var_type_label (node, &var, &type, NULL))
         continue;
 
-      value = get_field_value (type, node);
+      value = get_field_value (type, node, &value_str);
       if (value == NULL)
         continue;
 
       result = wocky_data_form_field_new (type, var, NULL,
-          NULL, FALSE, NULL, value, NULL);
+          NULL, FALSE, NULL, NULL, value, NULL);
 
       item = g_slist_prepend (item, result);
     }
