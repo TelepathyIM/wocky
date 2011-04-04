@@ -222,20 +222,15 @@ wocky_caps_hash_compute_from_lists (
             {
               case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
                 {
-                  gboolean value;
-                  gchar *b;
-
-                  if (field->default_value == NULL)
+                  if (field->default_value_str == NULL)
                     {
                       DEBUG ("could not get boolean field value");
                       g_slist_free (fields);
                       goto cleanup;
                     }
 
-                  value = g_value_get_boolean (field->default_value);
-                  b = value ? "1" : "0";
-
-                  g_checksum_update (checksum, (guchar *) b, 1);
+                  g_checksum_update (checksum,
+                      (guchar *) field->default_value_str, -1);
                   g_checksum_update (checksum, (guchar *) "<", 1);
                 }
                 break;

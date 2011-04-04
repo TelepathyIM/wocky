@@ -546,6 +546,78 @@ test_dataforms_same_type (void)
   g_assert (out == NULL);
 }
 
+static void
+test_dataforms_boolean_values (void)
+{
+  WockyStanza *stanza;
+  gchar *one, *two;
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Ψ 0.11",
+        '@', "type", "pc",
+        '#', "el",
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/disco#info", ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software",
+          '@', "type", "boolean",
+          '(', "value", '$', "1", ')',
+        ')',
+      ')',
+      NULL);
+
+  one = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Ψ 0.11",
+        '@', "type", "pc",
+        '#', "el",
+      ')',
+      '(', "feature", '@', "var", "http://jabber.org/protocol/disco#info", ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "var", "software",
+          '@', "type", "boolean",
+          '(', "value", '$', "true", ')',
+        ')',
+      ')',
+      NULL);
+
+  two = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert (one != NULL);
+  g_assert (two != NULL);
+  g_assert_cmpstr (one, !=, two);
+
+  g_free (one);
+  g_free (two);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -558,6 +630,8 @@ main (int argc, char **argv)
   g_test_add_func ("/caps-hash/sorting/complex", test_sorting_complex);
   g_test_add_func ("/caps-hash/dataforms/invalid", test_dataforms_invalid);
   g_test_add_func ("/caps-hash/dataforms/same-type", test_dataforms_same_type);
+  g_test_add_func ("/caps-hash/dataforms/boolean-values",
+      test_dataforms_boolean_values);
 
   result = g_test_run ();
   test_deinit ();
