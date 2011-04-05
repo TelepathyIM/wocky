@@ -239,6 +239,11 @@ maybe_start_timeout (PorterData *data)
 {
   if (data->refcount == 0)
     {
+      /* if we've already got a timeout going let's cancel it and get
+       * a new one going instead of having two. */
+      if (data->timeout_id > 0)
+        g_source_remove (data->timeout_id);
+
       DEBUG ("Started porter timeout...");
       data->timeout_id = g_timeout_add_seconds (5, porter_timeout_cb, data);
     }
