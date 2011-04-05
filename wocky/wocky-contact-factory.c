@@ -456,7 +456,7 @@ wocky_contact_factory_add_ll_contact (WockyContactFactory *self,
   g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
       priv->ll_contacts);
   g_hash_table_insert (priv->ll_contacts,
-      g_strdup (wocky_contact_dup_jid (WOCKY_CONTACT (contact))),
+      wocky_contact_dup_jid (WOCKY_CONTACT (contact)),
       contact);
 
   g_signal_emit (self, signals[LL_CONTACT_ADDED], 0, contact);
