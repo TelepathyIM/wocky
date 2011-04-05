@@ -1,6 +1,7 @@
 .*.swo
 .*.swp
 *~
+.#*
 core
 tags
 TAGS
