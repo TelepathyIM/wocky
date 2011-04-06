@@ -179,7 +179,22 @@ porter_timeout_cb (gpointer d)
   return FALSE;
 }
 
+static void porter_closing_cb (WockyPorter *porter, PorterData *data);
 static void porter_remote_closed_cb (WockyPorter *porter, PorterData *data);
+static void porter_remote_error_cb (WockyPorter *porter, GQuark domain,
+    gint code, const gchar *msg, PorterData *data);
+
+static void
+disconnect_porter_signal_handlers (WockyPorter *porter,
+    PorterData *data)
+{
+  g_signal_handlers_disconnect_by_func (porter,
+      porter_remote_closed_cb, data);
+  g_signal_handlers_disconnect_by_func (porter,
+      porter_closing_cb, data);
+  g_signal_handlers_disconnect_by_func (porter,
+      porter_remote_error_cb, data);
+}
 
 static void
 porter_closing_cb (WockyPorter *porter,
@@ -187,15 +202,11 @@ porter_closing_cb (WockyPorter *porter,
 {
   DEBUG ("porter to '%s' closing, remove it from our records", data->jid);
 
-  if (data->timeout_id > 0)
-    g_source_remove (data->timeout_id);
+  /* Don't stop the porter timeout here because that means if a
+   * connection is never opened to the contact again the PorterData
+   * struct will stick around until the meta porter is disposed. */
 
-  data->timeout_id = 0;
-
-  g_signal_handlers_disconnect_by_func (porter,
-      porter_remote_closed_cb, data);
-  g_signal_handlers_disconnect_by_func (porter,
-      porter_closing_cb, data);
+  disconnect_porter_signal_handlers (porter, data);
 
   if (data->porter != NULL)
     g_object_unref (data->porter);
@@ -207,20 +218,7 @@ porter_remote_closed_cb (WockyPorter *porter,
     PorterData *data)
 {
   DEBUG ("porter closed by remote, remove it from our records");
-
-  if (data->timeout_id > 0)
-    g_source_remove (data->timeout_id);
-
-  data->timeout_id = 0;
-
-  g_signal_handlers_disconnect_by_func (porter,
-      porter_remote_closed_cb, data);
-  g_signal_handlers_disconnect_by_func (porter,
-      porter_closing_cb, data);
-
-  if (data->porter != NULL)
-    g_object_unref (data->porter);
-  data->porter = NULL;
+  porter_closing_cb (porter, data);
 }
 
 static void
@@ -230,8 +228,9 @@ porter_remote_error_cb (WockyPorter *porter,
     const gchar *msg,
     PorterData *data)
 {
+  DEBUG ("remote error in porter, close it");
   wocky_porter_force_close_async (porter, NULL, NULL, NULL);
-  porter_remote_closed_cb (porter, data);
+  porter_closing_cb (porter, data);
 }
 
 static void
