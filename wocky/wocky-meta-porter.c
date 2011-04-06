@@ -115,6 +115,8 @@ wocky_meta_porter_error_quark (void)
 
 static void register_porter_handlers (WockyMetaPorter *self,
     WockyPorter *porter, WockyContact *contact);
+static void disconnect_porter_signal_handlers (WockyPorter *porter,
+    PorterData *data);
 
 static void
 porter_data_free (gpointer data)
@@ -123,6 +125,10 @@ porter_data_free (gpointer data)
 
   if (p->porter != NULL)
     {
+      /* We have to make sure we disconnect the handlers or ::closing
+       * will be fired by close_async, then the callback will unref
+       * p->porter before we have a chance to do it outselves. */
+      disconnect_porter_signal_handlers (p->porter, p);
       wocky_porter_close_async (p->porter, NULL, NULL, NULL);
       g_object_unref (p->porter);
     }
