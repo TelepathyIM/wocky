@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 #include "wocky-ll-connection-factory.h"
 #include "wocky-contact-factory.h"
 #include "wocky-c2s-porter.h"
@@ -412,6 +415,45 @@ wocky_meta_porter_init (WockyMetaPorter *self)
 }
 
 static void
+normalize_sockaddr (struct sockaddr_storage *addr)
+{
+  struct sockaddr_in *s4 = (struct sockaddr_in *) addr;
+  struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) addr;
+
+  if (s6->sin6_family == AF_INET6 && IN6_IS_ADDR_V4MAPPED (&(s6->sin6_addr)))
+    {
+      /* Normalize to ipv4 address */
+      u_int32_t addr_big_endian;
+      u_int16_t port;
+
+      memcpy (&addr_big_endian, s6->sin6_addr.s6_addr + 12, 4);
+      port = s6->sin6_port;
+
+      s4->sin_family = AF_INET;
+      s4->sin_addr.s_addr = addr_big_endian;
+      s4->sin_port = port;
+    }
+}
+
+static GSocketAddress *
+normalize_address (GSocketAddress *addr)
+{
+  struct sockaddr_storage ss;
+
+  if (g_socket_address_get_family (addr) != G_SOCKET_FAMILY_IPV6)
+    return addr;
+
+  if (!g_socket_address_to_native (addr, &ss, sizeof (ss), NULL))
+    return addr;
+
+  g_object_unref (addr);
+
+  normalize_sockaddr (&ss);
+
+  return g_socket_address_new_from_native (&ss, sizeof (ss));
+}
+
+static void
 new_connection_connect_cb (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
@@ -455,6 +497,8 @@ new_connection_connect_cb (GObject *source,
 
       socket_address = g_socket_connection_get_remote_address (
           socket_connection, NULL);
+
+      socket_address = normalize_address (socket_address);
 
       addr = g_inet_socket_address_get_address (
           G_INET_SOCKET_ADDRESS (socket_address));
@@ -501,9 +545,15 @@ _new_connection (GSocketService *service,
   WockyMetaPorter *self = user_data;
   GSocketAddress *addr = g_socket_connection_get_remote_address (
       socket_connection, NULL);
-  GInetAddress *inet_address = g_inet_socket_address_get_address (
+  GInetAddress *inet_address;
+  gchar *str;
+
+  addr = normalize_address (addr);
+
+  inet_address = g_inet_socket_address_get_address (
       G_INET_SOCKET_ADDRESS (addr));
-  gchar *str = g_inet_address_to_string (inet_address);
+
+  str = g_inet_address_to_string (inet_address);
 
   DEBUG ("new connection from %s!", str);
 
