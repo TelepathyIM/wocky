@@ -447,17 +447,24 @@ wocky_contact_factory_add_ll_contact (WockyContactFactory *self,
     WockyLLContact *contact)
 {
   WockyContactFactoryPrivate *priv = self->priv;
+  gchar *jid = wocky_contact_dup_jid (WOCKY_CONTACT (contact));
+  WockyLLContact *old_contact = g_hash_table_lookup (priv->ll_contacts, jid);
 
-  if (g_hash_table_lookup (priv->ll_contacts,
-          wocky_contact_dup_jid (WOCKY_CONTACT (contact)))
-      == contact)
-    return;
+  if (old_contact == contact)
+    {
+      g_free (jid);
+      return;
+    }
+
+  if (old_contact != NULL)
+    {
+      g_object_weak_unref (G_OBJECT (old_contact), contact_disposed_cb,
+          priv->ll_contacts);
+    }
 
   g_object_weak_ref (G_OBJECT (contact), contact_disposed_cb,
       priv->ll_contacts);
-  g_hash_table_insert (priv->ll_contacts,
-      wocky_contact_dup_jid (WOCKY_CONTACT (contact)),
-      contact);
+  g_hash_table_insert (priv->ll_contacts, jid, contact);
 
   g_signal_emit (self, signals[LL_CONTACT_ADDED], 0, contact);
 }
