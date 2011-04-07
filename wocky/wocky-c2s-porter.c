@@ -274,7 +274,10 @@ stanza_iq_handler_remove_cancellable (StanzaIqHandler *handler)
     {
       /* FIXME: we should use g_cancellable_disconnect but it raises a dead
        * lock (#587300) */
-      g_signal_handler_disconnect (handler->cancellable, handler->cancelled_sig_id);
+      /* We might have already have disconnected the signal handler
+       * from send_head_stanza(), so check whether it's still connected. */
+      if (handler->cancelled_sig_id > 0)
+        g_signal_handler_disconnect (handler->cancellable, handler->cancelled_sig_id);
       g_object_unref (handler->cancellable);
       handler->cancelled_sig_id = 0;
       handler->cancellable = NULL;
