@@ -414,6 +414,8 @@ wocky_meta_porter_init (WockyMetaPorter *self)
   self->priv = priv;
 }
 
+/* FIXME: these two functions are a hack until we get the
+ * normalization of v6-in-v4 addresses in GLib. See bgo#646082 */
 static void
 normalize_sockaddr (struct sockaddr_storage *addr)
 {
