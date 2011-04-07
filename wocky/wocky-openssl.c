@@ -165,7 +165,7 @@ struct _WockyTLSSession
   /* openssl structures */
   BIO *rbio;
   BIO *wbio;
-  SSL_METHOD *method;
+  const SSL_METHOD *method;
   SSL_CTX *ctx;
   SSL *ssl;
 };
@@ -890,7 +890,7 @@ check_peer_name (const char *target, X509 *cert)
       {
         X509_EXTENSION *ext = sk_X509_EXTENSION_value (ci->extensions, i);
         ASN1_OBJECT *obj = X509_EXTENSION_get_object (ext);
-        X509V3_EXT_METHOD *convert = NULL;
+        const X509V3_EXT_METHOD *convert = NULL;
         long ni = OBJ_obj2nid (obj);
         const guchar *p;
         char *value = NULL;
