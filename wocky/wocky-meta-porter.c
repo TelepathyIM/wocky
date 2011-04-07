@@ -416,43 +416,48 @@ wocky_meta_porter_init (WockyMetaPorter *self)
 
 /* FIXME: these two functions are a hack until we get the
  * normalization of v6-in-v4 addresses in GLib. See bgo#646082 */
-static void
-normalize_sockaddr (struct sockaddr_storage *addr)
+union BigSockAddr
 {
-  struct sockaddr_in *s4 = (struct sockaddr_in *) addr;
-  struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) addr;
+  struct sockaddr_in s4;
+  struct sockaddr_in6 s6;
+  struct sockaddr_storage storage;
+};
 
-  if (s6->sin6_family == AF_INET6 && IN6_IS_ADDR_V4MAPPED (&(s6->sin6_addr)))
+static void
+normalize_sockaddr (union BigSockAddr *addr)
+{
+  if (addr->s6.sin6_family == AF_INET6 && IN6_IS_ADDR_V4MAPPED (&(addr->s6.sin6_addr)))
     {
       /* Normalize to ipv4 address */
       u_int32_t addr_big_endian;
       u_int16_t port;
 
-      memcpy (&addr_big_endian, s6->sin6_addr.s6_addr + 12, 4);
-      port = s6->sin6_port;
+      memcpy (&addr_big_endian, addr->s6.sin6_addr.s6_addr + 12, 4);
+      port = addr->s6.sin6_port;
 
-      s4->sin_family = AF_INET;
-      s4->sin_addr.s_addr = addr_big_endian;
-      s4->sin_port = port;
+      addr->s4.sin_family = AF_INET;
+      addr->s4.sin_addr.s_addr = addr_big_endian;
+      addr->s4.sin_port = port;
     }
 }
 
 static GSocketAddress *
 normalize_address (GSocketAddress *addr)
 {
-  struct sockaddr_storage ss;
+  union BigSockAddr ss;
 
   if (g_socket_address_get_family (addr) != G_SOCKET_FAMILY_IPV6)
     return addr;
 
-  if (!g_socket_address_to_native (addr, &ss, sizeof (ss), NULL))
+  if (!g_socket_address_to_native (addr, &(ss.storage),
+          sizeof (ss.storage), NULL))
     return addr;
 
   g_object_unref (addr);
 
   normalize_sockaddr (&ss);
 
-  return g_socket_address_new_from_native (&ss, sizeof (ss));
+  return g_socket_address_new_from_native (&(ss.storage), sizeof (ss.storage));
 }
 
 static void
