@@ -210,6 +210,9 @@ wocky_caps_hash_compute_from_lists (
 
       for (l = fields; l != NULL; l = l->next)
         {
+          GStrv values = NULL;
+          GStrv tmp;
+
           field = l->data;
 
           if (!wocky_strdiff (field->var, "FORM_TYPE"))
@@ -218,82 +221,27 @@ wocky_caps_hash_compute_from_lists (
           g_checksum_update (checksum, (guchar *) field->var, -1);
           g_checksum_update (checksum, (guchar *) "<", 1);
 
-          switch (field->type)
+          if (field->default_value_str == NULL
+              || field->default_value_str[0] == NULL)
             {
-              case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
-                {
-                  if (field->default_value_str == NULL)
-                    {
-                      DEBUG ("could not get boolean field value");
-                      g_slist_free (fields);
-                      goto cleanup;
-                    }
-
-                  g_checksum_update (checksum,
-                      (guchar *) field->default_value_str, -1);
-                  g_checksum_update (checksum, (guchar *) "<", 1);
-                }
-                break;
-
-              case WOCKY_DATA_FORM_FIELD_TYPE_FIXED:
-              case WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN:
-              case WOCKY_DATA_FORM_FIELD_TYPE_JID_SINGLE:
-              case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_PRIVATE:
-              case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE:
-              case WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE:
-                {
-                  const gchar *s = NULL;
-
-                  if (field->default_value != NULL)
-                    s = g_value_get_string (field->default_value);
-
-                  if (s == NULL)
-                    {
-                      DEBUG ("could not get text field value");
-                      g_slist_free (fields);
-                      goto cleanup;
-                    }
-
-                  g_checksum_update (checksum, (guchar *) s, -1);
-                  g_checksum_update (checksum, (guchar *) "<", 1);
-                }
-                break;
-
-              case WOCKY_DATA_FORM_FIELD_TYPE_JID_MULTI:
-              case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI:
-              case WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI:
-                {
-                  GStrv values = NULL;
-                  GStrv tmp;
-
-                  if (field->default_value != NULL)
-                    values = g_strdupv (g_value_get_boxed (field->default_value));
-
-                  if (values == NULL)
-                    {
-                      DEBUG ("could not get multi text field value");
-                      g_slist_free (fields);
-                      goto cleanup;
-                    }
-
-                  qsort (values, g_strv_length (values),
-                      sizeof (gchar *), cmpstringp);
-
-                  for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
-                    {
-                      g_checksum_update (checksum, (guchar *) *tmp, -1);
-                      g_checksum_update (checksum, (guchar *) "<", 1);
-                    }
-
-                  g_strfreev (values);
-                }
-                break;
-
-              default:
-                DEBUG ("Unknown data field type (WockyDataFormFieldType ID %u)",
-                    field->type);
-                break;
+              DEBUG ("could not get field %s value", field->var);
+              g_slist_free (fields);
+              goto cleanup;
             }
+
+          /* make a copy so we can sort it */
+          values = g_strdupv (field->default_value_str);
+
+          qsort (values, g_strv_length (values),
+              sizeof (gchar *), cmpstringp);
+
+          for (tmp = values; tmp != NULL && *tmp != NULL; tmp++)
+            {
+              g_checksum_update (checksum, (guchar *) *tmp, -1);
+              g_checksum_update (checksum, (guchar *) "<", 1);
+            }
+
+          g_strfreev (values);
         }
 
       g_slist_free (fields);

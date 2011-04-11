@@ -93,7 +93,7 @@ wocky_data_form_field_new (
   const gchar *desc,
   gboolean required,
   GValue *default_value,
-  gchar *default_value_str,
+  gchar **default_value_str,
   GValue *value,
   GSList *options)
 {
@@ -121,7 +121,7 @@ wocky_data_form_field_free (WockyDataFormField *field)
   g_free (field->var);
   g_free (field->label);
   g_free (field->desc);
-  g_free (field->default_value_str);
+  g_strfreev (field->default_value_str);
 
   if (field->default_value != NULL)
     wocky_g_value_slice_free (field->default_value);
@@ -340,7 +340,7 @@ static GValue *
 get_field_value (
     WockyDataFormFieldType type,
     WockyNode *field,
-    gchar **default_value_str)
+    gchar ***default_value_str)
 {
   WockyNode *node;
   const gchar *value;
@@ -365,23 +365,24 @@ get_field_value (
   switch (type)
     {
       case WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN:
-        if (!wocky_strdiff (value, "true") || !wocky_strdiff (value, "1"))
-          ret = wocky_g_value_slice_new_boolean (TRUE);
-        else if (!wocky_strdiff (value, "false") || !wocky_strdiff (value, "0"))
-          ret = wocky_g_value_slice_new_boolean (FALSE);
-        else
-          DEBUG ("Invalid boolean value: %s", value);
+        {
+          if (!wocky_strdiff (value, "true") || !wocky_strdiff (value, "1"))
+            ret = wocky_g_value_slice_new_boolean (TRUE);
+          else if (!wocky_strdiff (value, "false") || !wocky_strdiff (value, "0"))
+            ret = wocky_g_value_slice_new_boolean (FALSE);
+          else
+            DEBUG ("Invalid boolean value: %s", value);
 
-        /* We parsed a boolean result nicely, so let's also set
-         * default_value_str to a new string */
-        if (ret != NULL)
-          {
-            if (default_value_str != NULL)
-              *default_value_str = g_strdup (value);
+          if (ret != NULL)
+            {
+              const gchar const *value_str[] = { value, NULL };
 
-            return ret;
-          }
+              if (default_value_str != NULL)
+                *default_value_str = g_strdupv ((GStrv) value_str);
 
+              return ret;
+            }
+        }
         break;
 
       case WOCKY_DATA_FORM_FIELD_TYPE_FIXED:
@@ -390,13 +391,27 @@ get_field_value (
       case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_PRIVATE:
       case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE:
       case WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE:
-        return wocky_g_value_slice_new_string (value);
+        {
+          const gchar const *value_str[] = { value, NULL };
+
+          if (default_value_str != NULL)
+            *default_value_str = g_strdupv ((GStrv) value_str);
+
+          return wocky_g_value_slice_new_string (value);
+        }
 
       case WOCKY_DATA_FORM_FIELD_TYPE_JID_MULTI:
       case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI:
       case WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI:
-        return wocky_g_value_slice_new_take_boxed (G_TYPE_STRV,
-            extract_value_list (field));
+        {
+          gchar **value_str = extract_value_list (field);
+
+          if (default_value_str != NULL)
+            *default_value_str = g_strdupv (value_str);
+
+          return wocky_g_value_slice_new_take_boxed (G_TYPE_STRV,
+              value_str);
+        }
 
       default:
         g_assert_not_reached ();
@@ -416,7 +431,7 @@ create_field (WockyNode *field_node,
   GValue *default_value = NULL;
   GSList *options = NULL;
   WockyDataFormField *field;
-  gchar *default_value_str = NULL;
+  gchar **default_value_str = NULL;
 
   if (type == WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI ||
       type == WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE)
@@ -859,7 +874,6 @@ data_form_parse_item (WockyDataForm *self,
       const gchar *var;
       WockyDataFormField *field, *result;
       GValue *value;
-      gchar *value_str = NULL;
 
       var = wocky_node_get_attribute (field_node, "var");
       if (var == NULL)
@@ -872,7 +886,7 @@ data_form_parse_item (WockyDataForm *self,
           continue;
         }
 
-      value = get_field_value (field->type, field_node, &value_str);
+      value = get_field_value (field->type, field_node, NULL);
       if (value == NULL)
         continue;
 
@@ -900,12 +914,11 @@ parse_unique_result (WockyDataForm *self,
       WockyDataFormFieldType type;
       WockyDataFormField *result;
       GValue *value;
-      gchar *value_str = NULL;
 
       if (!extract_var_type_label (node, &var, &type, NULL))
         continue;
 
-      value = get_field_value (type, node, &value_str);
+      value = get_field_value (type, node, NULL);
       if (value == NULL)
         continue;
 
