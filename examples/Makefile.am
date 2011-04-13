@@ -1,11 +1,18 @@
 EXAMPLES =
 
+if ! USING_OPENSSL
+EXAMPLES += wocky-dump-certificates
+endif
+
 EXAMPLES += wocky-send-message
 EXAMPLES += wocky-receive-messages
 EXAMPLES += wocky-register
 EXAMPLES += wocky-unregister
 
 INCLUDES := -I$(top_builddir)/wocky
+
+wocky_dump_certificates_SOURCES = dump-certificates.c
+wocky_dump_certificates_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 
 wocky_send_message_SOURCES = send-message.c
 wocky_send_message_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
