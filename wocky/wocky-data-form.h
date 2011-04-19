@@ -59,7 +59,7 @@ typedef struct
   GValue *default_value;
   /* a GStrv of actual values so can be {"1", NULL} or {"false", NULL}
    * for BOOLEAN or {"hi", "there", NULL} TEXT_MULTI, for example. */
-  gchar **default_value_str;
+  gchar **raw_value_contents;
   GValue *value;
   /* for LIST_MULTI and LIST_SINGLE only.
    * List of (WockyDataFormFieldOption *)*/

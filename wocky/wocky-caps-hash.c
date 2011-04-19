@@ -221,8 +221,8 @@ wocky_caps_hash_compute_from_lists (
           g_checksum_update (checksum, (guchar *) field->var, -1);
           g_checksum_update (checksum, (guchar *) "<", 1);
 
-          if (field->default_value_str == NULL
-              || field->default_value_str[0] == NULL)
+          if (field->raw_value_contents == NULL
+              || field->raw_value_contents[0] == NULL)
             {
               DEBUG ("could not get field %s value", field->var);
               g_slist_free (fields);
@@ -230,7 +230,7 @@ wocky_caps_hash_compute_from_lists (
             }
 
           /* make a copy so we can sort it */
-          values = g_strdupv (field->default_value_str);
+          values = g_strdupv (field->raw_value_contents);
 
           qsort (values, g_strv_length (values),
               sizeof (gchar *), cmpstringp);
