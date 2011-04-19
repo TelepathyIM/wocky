@@ -94,6 +94,7 @@ handwritten_headers = \
   wocky-tls-connector.h \
   wocky-types.h \
   wocky-utils.h \
+  wocky-xep-0115-capabilities.h \
   wocky-xmpp-connection.h \
   wocky-xmpp-error.h \
   wocky-xmpp-reader.h \
@@ -143,6 +144,7 @@ handwritten_sources = \
   wocky-utils.c \
   wocky-tls-handler.c \
   wocky-tls-connector.c \
+  wocky-xep-0115-capabilities.c \
   wocky-xmpp-connection.c \
   wocky-xmpp-error.c \
   wocky-xmpp-reader.c \
