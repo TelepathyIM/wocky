@@ -100,6 +100,9 @@ struct _WockyDataFormField
   gchar *desc;
   gboolean required;
   GValue *default_value;
+  /* a GStrv of actual values so can be {"1", NULL} or {"false", NULL}
+   * for BOOLEAN or {"hi", "there", NULL} TEXT_MULTI, for example. */
+  gchar **raw_value_contents;
   GValue *value;
   /* for LIST_MULTI and LIST_SINGLE only.
    * List of (WockyDataFormFieldOption *)*/
@@ -190,6 +193,9 @@ GType wocky_data_form_get_type (void);
 WockyDataForm * wocky_data_form_new_from_form (WockyNode *node,
     GError **error);
 
+WockyDataForm * wocky_data_form_new_from_node (WockyNode *x,
+    GError **error);
+
 gboolean wocky_data_form_set_type (WockyDataForm *self,
     const gchar *form_type);
 
@@ -218,6 +224,9 @@ gboolean wocky_data_form_parse_result (WockyDataForm *self,
 const gchar *wocky_data_form_get_title (WockyDataForm *self);
 
 const gchar *wocky_data_form_get_instructions (WockyDataForm *self);
+
+gint wocky_data_form_field_cmp (const WockyDataFormField *left,
+    const WockyDataFormField *right);
 
 G_END_DECLS
 

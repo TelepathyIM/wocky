@@ -61,8 +61,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-jid-validation-test \
   wocky-sasl-utils-test \
   wocky-utils-test \
-  wocky-scram-sha1-test
-
+  wocky-scram-sha1-test \
+  wocky-caps-hash-test
 
 wocky_tls_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_tls_test_SOURCES = \
@@ -232,6 +232,11 @@ wocky_scram_sha1_test_SOURCES = wocky-scram-sha1-test.c \
 
 wocky_http_proxy_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_http_proxy_test_SOURCES = wocky-http-proxy-test.c \
+  wocky-test-helper.c wocky-test-helper.h \
+  wocky-test-stream.c wocky-test-stream.h
+
+wocky_caps_hash_test_DEPENDENCIES = $(LIBWOCKY)
+wocky_caps_hash_test_SOURCES = wocky-caps-hash-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 

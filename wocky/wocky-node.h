@@ -46,7 +46,8 @@ typedef enum
   WOCKY_NODE_END = 41, /* this is actually ')', but gtk-doc is broken: bgo#644291 */
   WOCKY_NODE_ATTRIBUTE = '@',
   WOCKY_NODE_XMLNS = ':',
-  WOCKY_NODE_ASSIGN_TO = '*'
+  WOCKY_NODE_ASSIGN_TO = '*',
+  WOCKY_NODE_LANGUAGE = '#'
 } WockyNodeBuildTag;
 
 typedef struct _WockyNode WockyNode;
