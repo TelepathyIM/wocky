@@ -1039,6 +1039,19 @@ add_field_to_node_using_default (WockyDataFormField *field,
     wocky_node_add_child_with_content (field_node, "value", *s);
 }
 
+/**
+ * wocky_data_form_add_to_node:
+ * @self: the #WockyDataForm object
+ * @node: a node to which to add the form
+ *
+ * Adds a node tree with default values of @self based on the defaults
+ * set on each field when first created.
+ *
+ * This function is for adding a data form to an existing node, like
+ * the query node of a disco response. wocky_data_form_submit(), in
+ * contrast, is for adding a node tree which submits the data form
+ * based on the current values set on its fields.
+ */
 void
 wocky_data_form_add_to_node (WockyDataForm *self,
     WockyNode *node)
