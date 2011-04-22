@@ -291,3 +291,11 @@ wocky_session_set_jid (WockySession *self,
           priv->full_jid);
     }
 }
+
+const gchar *
+wocky_session_get_jid (WockySession *self)
+{
+  WockySessionPrivate *priv = self->priv;
+
+  return priv->full_jid;
+}

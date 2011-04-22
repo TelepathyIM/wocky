@@ -82,6 +82,8 @@ WockyContactFactory * wocky_session_get_contact_factory (WockySession *session);
 
 void wocky_session_set_jid (WockySession *session, const gchar *jid);
 
+const gchar *wocky_session_get_jid (WockySession *session);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_SESSION_H__*/
