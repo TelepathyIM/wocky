@@ -228,6 +228,8 @@ const gchar *wocky_data_form_get_instructions (WockyDataForm *self);
 gint wocky_data_form_field_cmp (const WockyDataFormField *left,
     const WockyDataFormField *right);
 
+void wocky_data_form_add_to_node (WockyDataForm *self, WockyNode *node);
+
 G_END_DECLS
 
 #endif /* WOCKY_DATA_FORM_H */

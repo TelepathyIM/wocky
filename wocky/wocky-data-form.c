@@ -1016,3 +1016,38 @@ wocky_data_form_field_cmp (const WockyDataFormField *left,
 {
   return strcmp (left->var, right->var);
 }
+
+static void
+add_field_to_node_using_default (WockyDataFormField *field,
+    WockyNode *node)
+{
+  WockyNode *field_node;
+  GStrv s;
+
+  /* Skip anonymous fields, which are used for instructions to the user. */
+  if (field->var == NULL)
+    return;
+
+  field_node = wocky_node_add_child (node, "field");
+  wocky_node_set_attribute (field_node, "var", field->var);
+
+  if (field->type != WOCKY_DATA_FORM_FIELD_TYPE_UNSPECIFIED)
+    wocky_node_set_attribute (field_node, "type",
+        type_to_str (field->type));
+
+  for (s = field->raw_value_contents; *s != NULL; s++)
+    wocky_node_add_child_with_content (field_node, "value", *s);
+}
+
+void
+wocky_data_form_add_to_node (WockyDataForm *self,
+    WockyNode *node)
+{
+  WockyNode *x;
+
+  x = wocky_node_add_child_ns (node, "x", WOCKY_XMPP_NS_DATA);
+  wocky_node_set_attribute (x, "type", "result");
+
+  g_slist_foreach (self->fields_list,
+      (GFunc) add_field_to_node_using_default, x);
+}
