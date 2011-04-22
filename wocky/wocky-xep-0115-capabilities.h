@@ -55,6 +55,7 @@ const GPtrArray * wocky_xep_0115_capabilities_get_data_forms (
 struct _WockyXep0115CapabilitiesInterface {
     GTypeInterface parent;
 
+    /* TODO: features and identites! */
     WockyXep0115CapabilitiesGetDataFormsFunc get_data_forms;
 };
 
