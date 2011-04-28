@@ -439,7 +439,9 @@ handle_stream_open (
        */
       const gchar *attr_name = (const gchar *) attributes[i];
       const gchar *attr_prefix = (const gchar *) attributes[i+1];
+#ifdef ENABLE_DEBUG
       const gchar *attr_uri = (const gchar *) attributes[i+2];
+#endif
       gsize value_len = attributes[i+4] - attributes[i+3];
       gchar *attr_value = g_strndup (
           (const gchar *) attributes[i+3], value_len);
