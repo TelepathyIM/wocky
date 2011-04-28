@@ -165,7 +165,7 @@ struct _WockyTLSSession
   /* openssl structures */
   BIO *rbio;
   BIO *wbio;
-  const SSL_METHOD *method;
+  SSL_METHOD *method;
   SSL_CTX *ctx;
   SSL *ssl;
 };
@@ -890,7 +890,7 @@ check_peer_name (const char *target, X509 *cert)
       {
         X509_EXTENSION *ext = sk_X509_EXTENSION_value (ci->extensions, i);
         ASN1_OBJECT *obj = X509_EXTENSION_get_object (ext);
-        const X509V3_EXT_METHOD *convert = NULL;
+        X509V3_EXT_METHOD *convert = NULL;
         long ni = OBJ_obj2nid (obj);
         const guchar *p;
         char *value = NULL;
@@ -900,7 +900,10 @@ check_peer_name (const char *target, X509 *cert)
         if (ni != NID_subject_alt_name)
           continue;
 
-        if ((convert = X509V3_EXT_get (ext)) == NULL)
+        /* OpenSSL >= 1.0 returns a const here, but we need to be also   *
+         * compatible with older versions that return a non-const value, *
+         * hence the cast                                                */
+        if ((convert = (X509V3_EXT_METHOD *) X509V3_EXT_get (ext)) == NULL)
           continue;
 
         p = ext->value->data;
@@ -1678,12 +1681,15 @@ wocky_tls_session_constructed (GObject *object)
   if (session->server)
     {
       DEBUG ("I'm a server; using TLSv1_server_method");
-      session->method = TLSv1_server_method ();
+      /* OpenSSL >= 1.0 returns a const here, but we need to be also   *
+       * compatible with older versions that return a non-const value, *
+       * hence the cast                                                */
+      session->method = (SSL_METHOD *) TLSv1_server_method ();
     }
   else
     {
       DEBUG ("I'm a client; using TLSv1_client_method");
-      session->method = TLSv1_client_method ();
+      session->method = (SSL_METHOD *) TLSv1_client_method ();
     }
 
   session->ctx = SSL_CTX_new (session->method);
