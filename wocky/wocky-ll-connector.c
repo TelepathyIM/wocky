@@ -75,11 +75,8 @@ wocky_ll_connector_error_quark (void)
 static void
 wocky_ll_connector_init (WockyLLConnector *self)
 {
-  WockyLLConnectorPrivate *priv;
-
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LL_CONNECTOR,
       WockyLLConnectorPrivate);
-  priv = self->priv;
 }
 
 static void
