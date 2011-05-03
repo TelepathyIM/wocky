@@ -680,6 +680,9 @@ wocky_meta_porter_constructed (GObject *obj)
   WockyMetaPorter *self = WOCKY_META_PORTER (obj);
   WockyMetaPorterPrivate *priv = self->priv;
 
+  if (G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->constructed)
+    G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->constructed (obj);
+
   priv->listener = g_socket_service_new ();
   g_signal_connect (priv->listener, "incoming",
       G_CALLBACK (_new_connection), self);

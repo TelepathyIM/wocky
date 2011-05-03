@@ -448,6 +448,9 @@ wocky_c2s_porter_constructed (GObject *object)
   WockyC2SPorter *self = WOCKY_C2S_PORTER (object);
   WockyC2SPorterPrivate *priv = self->priv;
 
+  if (G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->constructed)
+    G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->constructed (object);
+
   g_assert (priv->connection != NULL);
 
   /* Register the IQ reply handler */
