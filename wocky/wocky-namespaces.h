@@ -68,8 +68,11 @@
 #define WOCKY_XMPP_NS_STANZAS \
   "urn:ietf:params:xml:ns:xmpp-stanzas"
 
-#define WOCKY_XMPP_NS_OOB \
+#define WOCKY_XMPP_NS_IQ_OOB \
   "jabber:iq:oob"
+
+#define WOCKY_XMPP_NS_X_OOB \
+  "jabber:x:oob"
 
 
 #define WOCKY_TELEPATHY_NS_CLIQUE \
