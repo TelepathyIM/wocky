@@ -64,28 +64,64 @@ wocky_heartbeat_source_degrade (WockyHeartbeatSource *self)
     }
 }
 
+static guint
+recommended_intervals[] = {
+    IPHB_GS_WAIT_10_HOURS,
+    IPHB_GS_WAIT_2_HOURS,
+    IPHB_GS_WAIT_1_HOUR,
+    IPHB_GS_WAIT_30_MINS,
+    IPHB_GS_WAIT_10_MINS * 2, /* It aligns with the 1 hour slot. */
+    IPHB_GS_WAIT_10_MINS,
+    IPHB_GS_WAIT_5_MINS,
+    IPHB_GS_WAIT_2_5_MINS,
+    IPHB_GS_WAIT_30_SEC};
+
+static guint
+get_system_sync_interval (guint max_interval)
+{
+  guint i;
+
+  for (i = 0; i < G_N_ELEMENTS (recommended_intervals); i++)
+    {
+      if (recommended_intervals[i] <= max_interval)
+        return recommended_intervals[i];
+    }
+
+  return max_interval;
+}
+
 static void
 wocky_heartbeat_source_wait (
     WockyHeartbeatSource *self,
-    guint min_interval,
     guint max_interval)
 {
+  guint interval;
   int ret;
-
-  g_return_if_fail (max_interval == 0 || min_interval < max_interval);
 
   if (self->heartbeat == NULL)
     return;
 
   if (max_interval > 0)
-    ret = iphb_wait (self->heartbeat, min_interval, max_interval, 0);
+    {
+      /* Passing the same minimum and maximum interval to iphb_wait() means
+       * that the iphb daemon will wake us up when its internal time is a
+       * multiple of the interval.
+       * By using recommended intervals across the platform we can get
+       * multiple processes waken up at the same time. */
+      interval = get_system_sync_interval (max_interval);
+      DEBUG ("requested %u as maximum interval; using the recommended %u "
+          "interval", max_interval, interval);
+      ret = iphb_wait (self->heartbeat, interval, interval, 0);
+    }
   else
-    ret = iphb_I_woke_up (self->heartbeat);
+    {
+      ret = iphb_I_woke_up (self->heartbeat);
+    }
 
   if (ret == -1)
     {
-      DEBUG ("waiting (%u, %u) failed: %s; falling back to internal timeouts",
-          min_interval, max_interval, g_strerror (errno));
+      DEBUG ("waiting %u failed: %s; falling back to internal timeouts",
+          max_interval, g_strerror (errno));
       wocky_heartbeat_source_degrade (self);
     }
 }
@@ -217,8 +253,7 @@ wocky_heartbeat_source_dispatch (
   ((WockyHeartbeatCallback) callback) (user_data);
 
 #if HAVE_IPHB
-  wocky_heartbeat_source_wait (self, get_min_interval (self),
-      self->max_interval);
+  wocky_heartbeat_source_wait (self, self->max_interval);
 #endif
 
   /* Record the time we next want to wake up. */
@@ -269,11 +304,7 @@ connect_to_heartbeat (
   self->fd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
   g_source_add_poll (source, &self->fd);
 
-  /* We initially wait for anywhere between (0, max_interval) rather than
-   * (min_interval, max_interval) to fall into step with other connections,
-   * which may have started waiting at slightly different times.
-   */
-  wocky_heartbeat_source_wait (self, 0, self->max_interval);
+  wocky_heartbeat_source_wait (self, self->max_interval);
 }
 #endif
 
@@ -359,7 +390,7 @@ wocky_heartbeat_source_update_interval (
    * slightly different times.
    */
   if (self->max_interval == 0 || max_interval == 0)
-    wocky_heartbeat_source_wait (self, 0, max_interval);
+    wocky_heartbeat_source_wait (self, max_interval);
 #endif
 
   /* If we were previously disabled, we need to re-initialize next_wakeup, not
