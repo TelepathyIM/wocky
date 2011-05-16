@@ -175,7 +175,7 @@ AC_SUBST(LIBSASL2_LIBS)
 AC_SUBST(LIBSASL2_CFLAGS)
 AM_CONDITIONAL(HAVE_LIBSASL2, test "x$HAVE_LIBSASL2" = "xyes")
 
-PKG_CHECK_MODULES(LIBIPHB, [libiphb],
+PKG_CHECK_MODULES(LIBIPHB, [libiphb >= 0.61.31],
     [AC_DEFINE(HAVE_IPHB, 1, [libiphb is available])
      have_iphb=yes
     ],
