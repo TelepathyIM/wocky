@@ -851,38 +851,43 @@ register_message_handler (WockyMuc *muc)
         NULL);
 }
 
-static gboolean
-presence_code (WockyNode *node, gpointer data)
+static GHashTable *
+extract_status_codes (WockyNode *x)
 {
-  const gchar *code = NULL;
-  GHashTable *status = data;
-  WockyMucStatusCode cnum;
+  GHashTable *status = g_hash_table_new (g_direct_hash, NULL);
+  WockyNodeIter iter;
+  WockyNode *node;
 
-  if (wocky_strdiff (node->name, "status"))
-    return TRUE;
+  wocky_node_iter_init (&iter, x, "status", NULL);
+  while (wocky_node_iter_next (&iter, &node))
+    {
+      const gchar *code;
+      WockyMucStatusCode cnum;
 
-  code = wocky_node_get_attribute (node, "code");
+      code = wocky_node_get_attribute (node, "code");
 
-  if (code == NULL)    return TRUE;
+      if (code == NULL)
+        continue;
 
-  cnum = status_code_to_muc_flag (g_ascii_strtoull (code, NULL, 10));
-  g_hash_table_insert (status, (gpointer)cnum, (gpointer)cnum);
+      cnum = status_code_to_muc_flag (g_ascii_strtoull (code, NULL, 10));
+      g_hash_table_insert (status, (gpointer)cnum, (gpointer)cnum);
 
-  /* OWN_PRESENCE  is a SHOULD       *
-   * CHANGE_FORCED is a MUST   which *
-   * implies OWN_PRESENCE            */
-  /* 201 (NEW_ROOM) also implies OWN_PRESENCE */
-  if (cnum == WOCKY_MUC_CODE_NICK_CHANGE_FORCED)
-    g_hash_table_insert (status,
-        (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
-        (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
+      /* OWN_PRESENCE  is a SHOULD       *
+       * CHANGE_FORCED is a MUST   which *
+       * implies OWN_PRESENCE            */
+      /* 201 (NEW_ROOM) also implies OWN_PRESENCE */
+      if (cnum == WOCKY_MUC_CODE_NICK_CHANGE_FORCED)
+        g_hash_table_insert (status,
+            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
+            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
 
-  if (cnum == WOCKY_MUC_CODE_NEW_ROOM)
-    g_hash_table_insert (status,
-        (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
-        (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
+      if (cnum == WOCKY_MUC_CODE_NEW_ROOM)
+        g_hash_table_insert (status,
+            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
+            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
+    }
 
-  return TRUE;
+  return status;
 }
 
 static gboolean
@@ -1152,8 +1157,7 @@ handle_presence_standard (WockyMuc *muc,
       if (pnic == NULL)
         pnic = nick;
 
-      code = g_hash_table_new (g_direct_hash, NULL);
-      wocky_node_each_child (x, presence_code, code);
+      code = extract_status_codes (x);
       /* belt and braces: it is possible OWN_PRESENCE is not set, as it is   *
        * only a SHOULD in the RFC: check the 'from' stanza attribute and the *
        * jid item node attribute against the MUC jid and the users full jid  *
