@@ -1074,12 +1074,6 @@ handle_presence_standard (WockyMuc *muc,
   gboolean self_presence = FALSE;
   const gchar *msg = NULL;
 
-  if (from == NULL)
-    {
-      DEBUG ("presence stanza without from attribute, ignoring");
-      return FALSE;
-    }
-
   if (!wocky_decode_jid (from, &room, &serv, &nick))
     {
       ok = FALSE;
@@ -1226,12 +1220,6 @@ handle_presence_error (WockyMuc *muc,
       goto out;
     }
 
-  if (wocky_strdiff (room, priv->room) || wocky_strdiff (serv, priv->service))
-    {
-      DEBUG ("presence error is not from MUC - not handled");
-      goto out;
-    }
-
   wocky_stanza_extract_errors (stanza, NULL, &error, NULL, NULL);
 
   if (priv->state >= WOCKY_MUC_JOINED)
@@ -1259,18 +1247,10 @@ handle_presence (WockyPorter *porter,
     gpointer data)
 {
   WockyMuc *muc = WOCKY_MUC (data);
-  WockyStanzaType type;
   WockyStanzaSubType subtype;
   gboolean handled = FALSE;
 
-  wocky_stanza_get_type_info (stanza, &type, &subtype);
-
-  if (type != WOCKY_STANZA_TYPE_PRESENCE)
-    {
-      g_warning ("presence handler received '%s' stanza",
-          wocky_stanza_get_top_node (stanza)->name);
-      return FALSE;
-    }
+  wocky_stanza_get_type_info (stanza, NULL, &subtype);
 
   switch (subtype)
     {
