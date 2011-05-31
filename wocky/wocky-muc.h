@@ -61,7 +61,9 @@ typedef struct _WockyMucPrivate WockyMucPrivate;
  *   members-only)
  * @WOCKY_MUC_CODE_KICKED_SHUTDOWN: Kicked (shutdown)
  *
- * #WockyMuc specific codes
+ * MUC status codes, as defined by <ulink
+ *    url='http://xmpp.org/extensions/xep-0045.html#registrar-statuscodes'>XEP-0045
+ * §15.6</ulink>.
  */
 typedef enum {
   WOCKY_MUC_CODE_UNKNOWN = 0,
