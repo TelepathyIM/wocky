@@ -563,7 +563,7 @@ wocky_muc_get_property (GObject *object,
 }
 
 static guint
-status_code_to_muc_flag (guint code)
+status_code_to_muc_flag (guint64 code)
 {
   switch (code)
     {
@@ -856,7 +856,7 @@ presence_code (WockyNode *node, gpointer data)
 {
   const gchar *code = NULL;
   GHashTable *status = data;
-  gulong cnum = 0;
+  WockyMucStatusCode cnum;
 
   if (wocky_strdiff (node->name, "status"))
     return TRUE;
@@ -865,13 +865,7 @@ presence_code (WockyNode *node, gpointer data)
 
   if (code == NULL)    return TRUE;
 
-  cnum = (gulong) g_ascii_strtoull (code, NULL, 10);
-
-  if (cnum == 0)
-    return TRUE;
-
-  cnum = status_code_to_muc_flag ((guint) cnum);
-
+  cnum = status_code_to_muc_flag (g_ascii_strtoull (code, NULL, 10));
   g_hash_table_insert (status, (gpointer)cnum, (gpointer)cnum);
 
   /* OWN_PRESENCE  is a SHOULD       *
