@@ -349,27 +349,27 @@ wocky_muc_class_init (WockyMucClass *klass)
 
   signals[SIG_NICK_CHANGE] = g_signal_new ("nick-change", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_POINTER,
+      _wocky_signals_marshal_VOID__POINTER_UINT,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE);
+      WOCKY_TYPE_STANZA, G_TYPE_UINT);
 
   signals[SIG_PRESENCE] = g_signal_new ("presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_BOXED_POINTER,
+      _wocky_signals_marshal_VOID__OBJECT_UINT_POINTER,
       G_TYPE_NONE, 3,
-      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE, G_TYPE_POINTER);
+      WOCKY_TYPE_STANZA, G_TYPE_UINT, G_TYPE_POINTER);
 
   signals[SIG_OWN_PRESENCE] = g_signal_new ("own-presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_BOXED,
+      _wocky_signals_marshal_VOID__OBJECT_UINT,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE);
+      WOCKY_TYPE_STANZA, G_TYPE_UINT);
 
   signals[SIG_JOINED] = g_signal_new ("joined", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_POINTER,
+      _wocky_signals_marshal_VOID__POINTER_UINT,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE);
+      WOCKY_TYPE_STANZA, G_TYPE_UINT);
 
   signals[SIG_PRESENCE_ERROR] = g_signal_new ("error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
@@ -380,27 +380,27 @@ wocky_muc_class_init (WockyMucClass *klass)
   /* These signals convey actor(jid) + reason */
   signals[SIG_PERM_CHANGE] = g_signal_new ("permissions", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__POINTER_POINTER_POINTER_POINTER,
+      _wocky_signals_marshal_VOID__POINTER_UINT_POINTER_POINTER,
       G_TYPE_NONE, 4,
-      WOCKY_TYPE_STANZA, G_TYPE_HASH_TABLE, G_TYPE_STRING, G_TYPE_STRING);
+      WOCKY_TYPE_STANZA, G_TYPE_UINT, G_TYPE_STRING, G_TYPE_STRING);
 
   /* and these two pass on any message as well: */
   signals[SIG_PARTED] = g_signal_new ("parted", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_BOXED_STRING_STRING_STRING,
+      _wocky_signals_marshal_VOID__OBJECT_UINT_STRING_STRING_STRING,
       G_TYPE_NONE, 5,
       WOCKY_TYPE_STANZA,
-      G_TYPE_HASH_TABLE,
+      G_TYPE_UINT,
       G_TYPE_STRING,  /* actor jid */
       G_TYPE_STRING,  /* reason    */
       G_TYPE_STRING); /* message: usually none, but allowed by spec */
 
   signals[SIG_LEFT] = g_signal_new ("left", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_BOXED_POINTER_STRING_STRING_STRING,
+      _wocky_signals_marshal_VOID__OBJECT_UINT_POINTER_STRING_STRING_STRING,
       G_TYPE_NONE, 6,
       WOCKY_TYPE_STANZA,
-      G_TYPE_HASH_TABLE,
+      G_TYPE_UINT,
       G_TYPE_POINTER,  /* member struct   */
       G_TYPE_STRING,   /* actor jid       */
       G_TYPE_STRING,   /* reason          */
@@ -851,10 +851,10 @@ register_message_handler (WockyMuc *muc)
         NULL);
 }
 
-static GHashTable *
+static guint
 extract_status_codes (WockyNode *x)
 {
-  GHashTable *status = g_hash_table_new (g_direct_hash, NULL);
+  guint codes = 0;
   WockyNodeIter iter;
   WockyNode *node;
 
@@ -870,24 +870,20 @@ extract_status_codes (WockyNode *x)
         continue;
 
       cnum = status_code_to_muc_flag (g_ascii_strtoull (code, NULL, 10));
-      g_hash_table_insert (status, (gpointer)cnum, (gpointer)cnum);
+      codes |= cnum;
 
       /* OWN_PRESENCE  is a SHOULD       *
        * CHANGE_FORCED is a MUST   which *
        * implies OWN_PRESENCE            */
       /* 201 (NEW_ROOM) also implies OWN_PRESENCE */
       if (cnum == WOCKY_MUC_CODE_NICK_CHANGE_FORCED)
-        g_hash_table_insert (status,
-            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
-            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
+        codes |= WOCKY_MUC_CODE_OWN_PRESENCE;
 
       if (cnum == WOCKY_MUC_CODE_NEW_ROOM)
-        g_hash_table_insert (status,
-            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
-            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
+        codes |= WOCKY_MUC_CODE_OWN_PRESENCE;
     }
 
-  return status;
+  return codes;
 }
 
 static gboolean
@@ -910,36 +906,23 @@ presence_status (WockyNode *node, gpointer data)
 }
 
 static void
-presence_features (gpointer key,
-    gpointer val,
-    gpointer data)
+presence_features (
+    WockyMucPrivate *priv,
+    guint codes)
 {
-  WockyMucStatusCode code = (WockyMucStatusCode) key;
-  WockyMucPrivate *priv = data;
-
-  switch (code)
+  if ((codes & WOCKY_MUC_CODE_CFG_ONYMOUS) != 0)
     {
-      case WOCKY_MUC_CODE_CFG_SHOW_UNAVAILABLE:
-      case WOCKY_MUC_CODE_CFG_HIDE_UNAVAILABLE:
-      case WOCKY_MUC_CODE_CFG_NONPRIVACY:
-      case WOCKY_MUC_CODE_CFG_LOGGING_ENABLED:
-      case WOCKY_MUC_CODE_CFG_LOGGING_DISABLED:
-        /* unhandled room config change: */
-        break;
-      case WOCKY_MUC_CODE_CFG_ONYMOUS:
-        priv->room_type |= WOCKY_MUC_NONANONYMOUS;
-        priv->room_type &= ~WOCKY_MUC_SEMIANONYMOUS;
-        break;
-      case WOCKY_MUC_CODE_CFG_SEMIONYMOUS:
-        priv->room_type |= WOCKY_MUC_SEMIANONYMOUS;
-        priv->room_type &= ~WOCKY_MUC_NONANONYMOUS;
-        break;
-      case WOCKY_MUC_CODE_CFG_ANONYMOUS:
-        priv->room_type &= ~(WOCKY_MUC_NONANONYMOUS|WOCKY_MUC_SEMIANONYMOUS);
-        break;
-      default:
-        break;
-        /* non config change, don't care */
+      priv->room_type |= WOCKY_MUC_NONANONYMOUS;
+      priv->room_type &= ~WOCKY_MUC_SEMIANONYMOUS;
+    }
+  else if ((codes & WOCKY_MUC_CODE_CFG_SEMIONYMOUS) != 0)
+    {
+      priv->room_type |= WOCKY_MUC_SEMIANONYMOUS;
+      priv->room_type &= ~WOCKY_MUC_NONANONYMOUS;
+    }
+  else if ((codes & WOCKY_MUC_CODE_CFG_ANONYMOUS) != 0)
+    {
+      priv->room_type &= ~(WOCKY_MUC_NONANONYMOUS|WOCKY_MUC_SEMIANONYMOUS);
     }
 }
 
@@ -959,7 +942,7 @@ handle_self_presence (WockyMuc *muc,
     const gchar *actor,
     const gchar *why,
     const gchar *status,
-    GHashTable *code)
+    guint codes)
 {
   gboolean nick_update = FALSE;
   gboolean permission_update = FALSE;
@@ -981,7 +964,7 @@ handle_self_presence (WockyMuc *muc,
   priv->role = role;
   priv->affiliation = aff;
 
-  g_hash_table_foreach (code, presence_features, priv);
+  presence_features (priv, codes);
 
   if (nick_update)
     {
@@ -990,11 +973,11 @@ handle_self_presence (WockyMuc *muc,
 
       g_free (priv->jid);
       priv->jid = new_jid;
-      g_signal_emit (muc, signals[SIG_NICK_CHANGE], 0, stanza, code);
+      g_signal_emit (muc, signals[SIG_NICK_CHANGE], 0, stanza, codes);
     }
 
   if (permission_update)
-    g_signal_emit (muc, signals[SIG_PERM_CHANGE], 0, stanza, code, actor, why);
+    g_signal_emit (muc, signals[SIG_PERM_CHANGE], 0, stanza, codes, actor, why);
 
   return TRUE;
 }
@@ -1010,7 +993,7 @@ handle_user_presence (WockyMuc *muc,
     const gchar *actor,
     const gchar *why,
     const gchar *status,
-    GHashTable *code)
+    guint codes)
 {
   WockyMucPrivate *priv = muc->priv;
   WockyMucMember *member = NULL;
@@ -1045,7 +1028,7 @@ handle_user_presence (WockyMuc *muc,
   member->presence_stanza = g_object_ref (stanza);
 
   if (priv->state >= WOCKY_MUC_JOINED)
-    g_signal_emit (muc, signals[SIG_PRESENCE], 0, stanza, code, member);
+    g_signal_emit (muc, signals[SIG_PRESENCE], 0, stanza, codes, member);
 
   return TRUE;
 }
@@ -1101,7 +1084,7 @@ handle_presence_standard (WockyMuc *muc,
   const gchar *pnic = NULL;
   const gchar *role = NULL;
   const gchar *aff = NULL;
-  GHashTable *code = NULL;
+  guint codes = 0;
   const gchar *ajid = NULL;
   const gchar *why = NULL;
   WockyMucPrivate *priv = muc->priv;
@@ -1157,19 +1140,16 @@ handle_presence_standard (WockyMuc *muc,
       if (pnic == NULL)
         pnic = nick;
 
-      code = extract_status_codes (x);
+      codes = extract_status_codes (x);
       /* belt and braces: it is possible OWN_PRESENCE is not set, as it is   *
        * only a SHOULD in the RFC: check the 'from' stanza attribute and the *
        * jid item node attribute against the MUC jid and the users full jid  *
        * respectively to see if this is our own presence                     */
       if (!wocky_strdiff (priv->jid,  from) ||
           !wocky_strdiff (priv->user, pjid) )
-        g_hash_table_insert (code,
-            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE,
-            (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE);
+        codes |= WOCKY_MUC_CODE_OWN_PRESENCE;
 
-      self_presence = g_hash_table_lookup (code,
-          (gpointer)WOCKY_MUC_CODE_OWN_PRESENCE) != NULL;
+      self_presence = (codes & WOCKY_MUC_CODE_OWN_PRESENCE) != 0;
 
       /* ok, we've extracted all the presence stanza data we should need: *
        * if this was a presence notification, deal with it:               */
@@ -1181,7 +1161,7 @@ handle_presence_standard (WockyMuc *muc,
           if (self_presence)
             {
               ok = handle_self_presence (muc, stanza,
-                  pnic, r, a, ajid, why, msg, code);
+                  pnic, r, a, ajid, why, msg, codes);
 
               if (priv->state < WOCKY_MUC_JOINED)
                 {
@@ -1192,11 +1172,11 @@ handle_presence_standard (WockyMuc *muc,
                       g_object_unref (priv->join_cb);
                       priv->join_cb = NULL;
                     }
-                  g_signal_emit (muc, signals[SIG_JOINED], 0, stanza, code);
+                  g_signal_emit (muc, signals[SIG_JOINED], 0, stanza, codes);
                 }
               else
                 g_signal_emit (muc, signals[SIG_OWN_PRESENCE], 0,
-                  stanza, code);
+                  stanza, codes);
             }
           /* if this is someone else's presence, update internal member list */
           else
@@ -1207,7 +1187,7 @@ handle_presence_standard (WockyMuc *muc,
                     from, /* room@service/nick */
                     pjid, /* jid attr from item */
                     pnic, /* nick attr from item or /res from envelope 'from' */
-                    r, a, ajid, why, msg, code);
+                    r, a, ajid, why, msg, codes);
             }
         }
       else if (type == WOCKY_STANZA_SUB_TYPE_UNAVAILABLE)
@@ -1217,7 +1197,7 @@ handle_presence_standard (WockyMuc *muc,
               priv->state = WOCKY_MUC_ENDED;
               priv->role = WOCKY_MUC_ROLE_NONE;
               g_signal_emit (muc, signals[SIG_PARTED], 0,
-                  stanza, code, ajid, why, msg);
+                  stanza, codes, ajid, why, msg);
               ok = TRUE;
             }
           else
@@ -1232,7 +1212,7 @@ handle_presence_standard (WockyMuc *muc,
                 }
 
               g_signal_emit (muc, signals[SIG_LEFT], 0,
-                  stanza, code, member, ajid, why, msg);
+                  stanza, codes, member, ajid, why, msg);
 
               g_hash_table_remove (priv->members, from);
               ok = TRUE;
@@ -1247,8 +1227,6 @@ handle_presence_standard (WockyMuc *muc,
   g_free (nick);
 
   g_free (msg);
-  if (code != NULL)
-    g_hash_table_unref (code);
   return ok;
 }
 
