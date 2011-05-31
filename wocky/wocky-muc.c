@@ -886,25 +886,6 @@ extract_status_codes (WockyNode *x)
   return codes;
 }
 
-static gboolean
-presence_status (WockyNode *node, gpointer data)
-{
-  GString **status = data;
-
-  if (wocky_strdiff (node->name, "status"))
-    return TRUE;
-
-  if (node->content != NULL)
-    {
-      if (*status == NULL)
-        *status = g_string_new (node->content);
-      else
-        g_string_append (*status, node->content);
-    }
-
-  return TRUE;
-}
-
 static void
 presence_features (
     WockyMucPrivate *priv,
@@ -1091,8 +1072,7 @@ handle_presence_standard (WockyMuc *muc,
   WockyMucRole r = WOCKY_MUC_ROLE_NONE;
   WockyMucAffiliation a = WOCKY_MUC_AFFILIATION_NONE;
   gboolean self_presence = FALSE;
-  GString *status_msg = NULL;
-  gchar *msg = NULL;
+  const gchar *msg = NULL;
 
   if (from == NULL)
     {
@@ -1106,9 +1086,7 @@ handle_presence_standard (WockyMuc *muc,
       goto out;
     }
 
-  wocky_node_each_child (node, presence_status, &status_msg);
-  if (status_msg != NULL)
-    msg = g_string_free (status_msg, FALSE);
+  msg = wocky_node_get_content_from_child (node, "status");
 
   if (x != NULL)
     {
@@ -1226,7 +1204,6 @@ handle_presence_standard (WockyMuc *muc,
   g_free (serv);
   g_free (nick);
 
-  g_free (msg);
   return ok;
 }
 
