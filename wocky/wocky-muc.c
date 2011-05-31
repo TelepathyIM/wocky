@@ -1050,11 +1050,9 @@ string_to_aff (const gchar *aff)
 static gboolean
 handle_presence_standard (WockyMuc *muc,
     WockyStanza *stanza,
-    WockyStanzaSubType type)
+    WockyStanzaSubType type,
+    const gchar *resource)
 {
-  gchar *room = NULL;
-  gchar *serv = NULL;
-  gchar *nick = NULL;
   gboolean ok = FALSE;
   WockyNode *node = wocky_stanza_get_top_node (stanza);
   WockyNode *x = wocky_node_get_child_ns (node,
@@ -1073,12 +1071,6 @@ handle_presence_standard (WockyMuc *muc,
   WockyMucAffiliation a = WOCKY_MUC_AFFILIATION_NONE;
   gboolean self_presence = FALSE;
   const gchar *msg = NULL;
-
-  if (!wocky_decode_jid (from, &room, &serv, &nick))
-    {
-      ok = FALSE;
-      goto out;
-    }
 
   msg = wocky_node_get_content_from_child (node, "status");
 
@@ -1110,7 +1102,7 @@ handle_presence_standard (WockyMuc *muc,
 
       /* if this was not in the item, set it from the envelope: */
       if (pnic == NULL)
-        pnic = nick;
+        pnic = resource;
 
       codes = extract_status_codes (x);
       /* belt and braces: it is possible OWN_PRESENCE is not set, as it is   *
@@ -1194,31 +1186,16 @@ handle_presence_standard (WockyMuc *muc,
     }
 
  out:
-  g_free (room);
-  g_free (serv);
-  g_free (nick);
-
   return ok;
 }
 
 static gboolean
 handle_presence_error (WockyMuc *muc,
-    WockyStanza *stanza,
-    WockyStanzaSubType type)
+    WockyStanza *stanza)
 {
   gboolean ok = FALSE;
-  gchar *room = NULL;
-  gchar *serv = NULL;
-  gchar *nick = NULL;
-  const gchar *from = wocky_stanza_get_from (stanza);
   WockyMucPrivate *priv = muc->priv;
   GError *error = NULL;
-
-  if (!wocky_decode_jid (from, &room, &serv, &nick))
-    {
-      DEBUG ("malformed 'from' attribute in presence error stanza");
-      goto out;
-    }
 
   wocky_stanza_extract_errors (stanza, NULL, &error, NULL, NULL);
 
@@ -1234,10 +1211,6 @@ handle_presence_error (WockyMuc *muc,
       error->message);
   g_clear_error (&error);
 
- out:
-  g_free (room);
-  g_free (serv);
-  g_free (nick);
   return ok;
 }
 
@@ -1256,10 +1229,21 @@ handle_presence (WockyPorter *porter,
     {
       case WOCKY_STANZA_SUB_TYPE_NONE:
       case WOCKY_STANZA_SUB_TYPE_UNAVAILABLE:
-        handled = handle_presence_standard (muc, stanza, subtype);
+      {
+        gchar *resource;
+
+        /* If the JID is unparseable, discard the stanza. The porter shouldn't
+         * even give us such stanzas. */
+        if (!wocky_decode_jid (wocky_stanza_get_from (stanza), NULL, NULL,
+              &resource))
+          return TRUE;
+
+        handled = handle_presence_standard (muc, stanza, subtype, resource);
+        g_free (resource);
         break;
+      }
       case WOCKY_STANZA_SUB_TYPE_ERROR:
-        handled = handle_presence_error (muc, stanza, subtype);
+        handled = handle_presence_error (muc, stanza);
         break;
       default:
         DEBUG ("unexpected stanza sub-type: %d", subtype);
