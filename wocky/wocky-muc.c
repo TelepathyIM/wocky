@@ -1074,115 +1074,115 @@ handle_presence_standard (WockyMuc *muc,
 
   msg = wocky_node_get_content_from_child (node, "status");
 
-  if (x != NULL)
+  if (x == NULL)
+    return FALSE;
+
+  item = wocky_node_get_child (x, "item");
+
+  if (item != NULL)
     {
-      item = wocky_node_get_child (x, "item");
+      WockyNode *actor = NULL;
+      WockyNode *cause = NULL;
 
-      if (item != NULL)
+      pjid = wocky_node_get_attribute (item, "jid");
+      pnic = wocky_node_get_attribute (item, "nick");
+      role = wocky_node_get_attribute (item, "role");
+      aff = wocky_node_get_attribute (item, "affiliation");
+      actor = wocky_node_get_child (item, "actor");
+      cause = wocky_node_get_child (item, "reason");
+
+      r = string_to_role (role);
+      a = string_to_aff (aff);
+
+      if (actor != NULL)
+        ajid = wocky_node_get_attribute (actor, "jid");
+
+      if (cause != NULL)
+        why = cause->content;
+    }
+
+  /* if this was not in the item, set it from the envelope: */
+  if (pnic == NULL)
+    pnic = resource;
+
+  codes = extract_status_codes (x);
+  /* belt and braces: it is possible OWN_PRESENCE is not set, as it is   *
+   * only a SHOULD in the RFC: check the 'from' stanza attribute and the *
+   * jid item node attribute against the MUC jid and the users full jid  *
+   * respectively to see if this is our own presence                     */
+  if (!wocky_strdiff (priv->jid,  from) ||
+      !wocky_strdiff (priv->user, pjid) )
+    codes |= WOCKY_MUC_CODE_OWN_PRESENCE;
+
+  self_presence = (codes & WOCKY_MUC_CODE_OWN_PRESENCE) != 0;
+
+  /* ok, we've extracted all the presence stanza data we should need: *
+   * if this was a presence notification, deal with it:               */
+  if (type == WOCKY_STANZA_SUB_TYPE_NONE)
+    {
+      /* if this was the first time we got our own presence it also means *
+       * we successfully joined the channel, so update our internal state *
+       * and emit the channel-joined signal                               */
+      if (self_presence)
         {
-          WockyNode *actor = NULL;
-          WockyNode *cause = NULL;
+          ok = handle_self_presence (muc, stanza,
+              pnic, r, a, ajid, why, msg, codes);
 
-          pjid = wocky_node_get_attribute (item, "jid");
-          pnic = wocky_node_get_attribute (item, "nick");
-          role = wocky_node_get_attribute (item, "role");
-          aff = wocky_node_get_attribute (item, "affiliation");
-          actor = wocky_node_get_child (item, "actor");
-          cause = wocky_node_get_child (item, "reason");
-
-          r = string_to_role (role);
-          a = string_to_aff (aff);
-
-          if (actor != NULL)
-            ajid = wocky_node_get_attribute (actor, "jid");
-
-          if (cause != NULL)
-            why = cause->content;
-        }
-
-      /* if this was not in the item, set it from the envelope: */
-      if (pnic == NULL)
-        pnic = resource;
-
-      codes = extract_status_codes (x);
-      /* belt and braces: it is possible OWN_PRESENCE is not set, as it is   *
-       * only a SHOULD in the RFC: check the 'from' stanza attribute and the *
-       * jid item node attribute against the MUC jid and the users full jid  *
-       * respectively to see if this is our own presence                     */
-      if (!wocky_strdiff (priv->jid,  from) ||
-          !wocky_strdiff (priv->user, pjid) )
-        codes |= WOCKY_MUC_CODE_OWN_PRESENCE;
-
-      self_presence = (codes & WOCKY_MUC_CODE_OWN_PRESENCE) != 0;
-
-      /* ok, we've extracted all the presence stanza data we should need: *
-       * if this was a presence notification, deal with it:               */
-      if (type == WOCKY_STANZA_SUB_TYPE_NONE)
-        {
-          /* if this was the first time we got our own presence it also means *
-           * we successfully joined the channel, so update our internal state *
-           * and emit the channel-joined signal                               */
-          if (self_presence)
+          if (priv->state < WOCKY_MUC_JOINED)
             {
-              ok = handle_self_presence (muc, stanza,
-                  pnic, r, a, ajid, why, msg, codes);
-
-              if (priv->state < WOCKY_MUC_JOINED)
+              priv->state = WOCKY_MUC_JOINED;
+              if (priv->join_cb != NULL)
                 {
-                  priv->state = WOCKY_MUC_JOINED;
-                  if (priv->join_cb != NULL)
-                    {
-                      g_simple_async_result_complete (priv->join_cb);
-                      g_object_unref (priv->join_cb);
-                      priv->join_cb = NULL;
-                    }
-                  g_signal_emit (muc, signals[SIG_JOINED], 0, stanza, codes);
+                  g_simple_async_result_complete (priv->join_cb);
+                  g_object_unref (priv->join_cb);
+                  priv->join_cb = NULL;
                 }
-              else
-                g_signal_emit (muc, signals[SIG_OWN_PRESENCE], 0,
-                  stanza, codes);
-            }
-          /* if this is someone else's presence, update internal member list */
-          else
-            {
-              ok =
-                handle_user_presence (muc,
-                    stanza,
-                    from, /* room@service/nick */
-                    pjid, /* jid attr from item */
-                    pnic, /* nick attr from item or /res from envelope 'from' */
-                    r, a, ajid, why, msg, codes);
-            }
-        }
-      else if (type == WOCKY_STANZA_SUB_TYPE_UNAVAILABLE)
-        {
-          if (self_presence)
-            {
-              priv->state = WOCKY_MUC_ENDED;
-              priv->role = WOCKY_MUC_ROLE_NONE;
-              g_signal_emit (muc, signals[SIG_PARTED], 0,
-                  stanza, codes, ajid, why, msg);
-              ok = TRUE;
+              g_signal_emit (muc, signals[SIG_JOINED], 0, stanza, codes);
             }
           else
-            {
-              WockyMucMember *member =
-                g_hash_table_lookup (priv->members, from);
-
-              if (member == NULL)
-                {
-                  DEBUG ("Someone not in the muc left!?");
-                  goto out;
-                }
-
-              g_signal_emit (muc, signals[SIG_LEFT], 0,
-                  stanza, codes, member, ajid, why, msg);
-
-              g_hash_table_remove (priv->members, from);
-              ok = TRUE;
-            }
-          goto out;
+            g_signal_emit (muc, signals[SIG_OWN_PRESENCE], 0,
+              stanza, codes);
         }
+      /* if this is someone else's presence, update internal member list */
+      else
+        {
+          ok =
+            handle_user_presence (muc,
+                stanza,
+                from, /* room@service/nick */
+                pjid, /* jid attr from item */
+                pnic, /* nick attr from item or /res from envelope 'from' */
+                r, a, ajid, why, msg, codes);
+        }
+    }
+  else if (type == WOCKY_STANZA_SUB_TYPE_UNAVAILABLE)
+    {
+      if (self_presence)
+        {
+          priv->state = WOCKY_MUC_ENDED;
+          priv->role = WOCKY_MUC_ROLE_NONE;
+          g_signal_emit (muc, signals[SIG_PARTED], 0,
+              stanza, codes, ajid, why, msg);
+          ok = TRUE;
+        }
+      else
+        {
+          WockyMucMember *member =
+            g_hash_table_lookup (priv->members, from);
+
+          if (member == NULL)
+            {
+              DEBUG ("Someone not in the muc left!?");
+              goto out;
+            }
+
+          g_signal_emit (muc, signals[SIG_LEFT], 0,
+              stanza, codes, member, ajid, why, msg);
+
+          g_hash_table_remove (priv->members, from);
+          ok = TRUE;
+        }
+      goto out;
     }
 
  out:
