@@ -914,7 +914,7 @@ presence_features (
       place = g_strdup (val);                   \
     }
 
-static gboolean
+static void
 handle_self_presence (WockyMuc *muc,
     WockyStanza *stanza,
     const gchar *nick,
@@ -959,8 +959,6 @@ handle_self_presence (WockyMuc *muc,
 
   if (permission_update)
     g_signal_emit (muc, signals[SIG_PERM_CHANGE], 0, stanza, codes, actor, why);
-
-  return TRUE;
 }
 
 static gboolean
@@ -1053,7 +1051,6 @@ handle_presence_standard (WockyMuc *muc,
     WockyStanzaSubType type,
     const gchar *resource)
 {
-  gboolean ok = FALSE;
   WockyNode *node = wocky_stanza_get_top_node (stanza);
   WockyNode *x = wocky_node_get_child_ns (node,
       "x", WOCKY_NS_MUC_USER);
@@ -1125,7 +1122,7 @@ handle_presence_standard (WockyMuc *muc,
        * and emit the channel-joined signal                               */
       if (self_presence)
         {
-          ok = handle_self_presence (muc, stanza,
+          handle_self_presence (muc, stanza,
               pnic, r, a, ajid, why, msg, codes);
 
           if (priv->state < WOCKY_MUC_JOINED)
@@ -1142,11 +1139,13 @@ handle_presence_standard (WockyMuc *muc,
           else
             g_signal_emit (muc, signals[SIG_OWN_PRESENCE], 0,
               stanza, codes);
+
+          return TRUE;
         }
       /* if this is someone else's presence, update internal member list */
       else
         {
-          ok =
+          return
             handle_user_presence (muc,
                 stanza,
                 from, /* room@service/nick */
@@ -1163,7 +1162,7 @@ handle_presence_standard (WockyMuc *muc,
           priv->role = WOCKY_MUC_ROLE_NONE;
           g_signal_emit (muc, signals[SIG_PARTED], 0,
               stanza, codes, ajid, why, msg);
-          ok = TRUE;
+          return TRUE;
         }
       else
         {
@@ -1173,20 +1172,18 @@ handle_presence_standard (WockyMuc *muc,
           if (member == NULL)
             {
               DEBUG ("Someone not in the muc left!?");
-              goto out;
+              return FALSE;
             }
 
           g_signal_emit (muc, signals[SIG_LEFT], 0,
               stanza, codes, member, ajid, why, msg);
 
           g_hash_table_remove (priv->members, from);
-          ok = TRUE;
+          return TRUE;
         }
-      goto out;
     }
 
- out:
-  return ok;
+  return FALSE;
 }
 
 static gboolean
