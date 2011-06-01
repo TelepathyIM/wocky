@@ -1140,7 +1140,8 @@ handle_presence_standard (WockyMuc *muc,
             g_signal_emit (muc, signals[SIG_OWN_PRESENCE], 0,
               stanza, codes);
 
-          return TRUE;
+          /* Allow other handlers to run for this stanza. */
+          return FALSE;
         }
       /* if this is someone else's presence, update internal member list */
       else
