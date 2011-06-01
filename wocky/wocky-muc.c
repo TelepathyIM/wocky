@@ -997,7 +997,8 @@ handle_self_presence (WockyMuc *muc,
   if (permission_update)
     g_signal_emit (muc, signals[SIG_PERM_CHANGE], 0, stanza, code, actor, why);
 
-  return TRUE;
+  /* Allow other handlers to run for this stanza */
+  return FALSE;
 }
 
 static gboolean
