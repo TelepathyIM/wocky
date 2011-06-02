@@ -685,7 +685,6 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 
       if (want_write)
         {
-          int ignored;
           gchar *wbuf;
           GOutputStream *out = g_io_stream_get_output_stream (session->stream);
           long wsize = BIO_get_mem_data (session->wbio, &wbuf);
@@ -694,7 +693,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
           if (wsize > 0)
             sent = g_output_stream_write (out, wbuf, wsize, NULL, error);
           DEBUG ("sent %" G_GSSIZE_FORMAT " cipherbytes", sent);
-          ignored = BIO_reset (session->wbio);
+          (void) BIO_reset (session->wbio);
         }
 
       if (want_read)
@@ -1516,8 +1515,6 @@ wocky_tls_session_write_ready (GObject      *object,
   WockyTLSSession *session = WOCKY_TLS_SESSION (user_data);
   gint buffered = BIO_pending (session->wbio);
   gssize written;
-  /* memory BIO ops generally can't fail: suppress compiler/coverity warnings */
-  gint ignore_warning;
 
   if (tls_debug_level >= DEBUG_ASYNC_DETAIL_LEVEL)
     DEBUG ("");
@@ -1528,7 +1525,7 @@ wocky_tls_session_write_ready (GObject      *object,
   if (written == buffered)
     {
       DEBUG ("%d bytes written, clearing write BIO", buffered);
-      ignore_warning = BIO_reset (session->wbio);
+      (void) BIO_reset (session->wbio);
       wocky_tls_session_try_operation (session, WOCKY_TLS_OP_WRITE);
     }
   else
@@ -1542,8 +1539,8 @@ wocky_tls_session_write_ready (GObject      *object,
         {
           gchar *pending = g_memdup (buffer + written, psize);
 
-          ignore_warning = BIO_reset (session->wbio);
-          ignore_warning = BIO_write (session->wbio, pending, psize);
+          (void) BIO_reset (session->wbio);
+          (void) BIO_write (session->wbio, pending, psize);
           g_free (pending);
         }
 
