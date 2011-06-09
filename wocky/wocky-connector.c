@@ -1117,12 +1117,13 @@ xmpp_init_recv_cb (GObject *source,
             "Server not XMPP 1.0 Compliant");
       else
         jabber_request_auth (self);
-      goto out;
     }
-
-  DEBUG ("waiting for feature stanza from server");
-  wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
-      xmpp_features_cb, data);
+  else
+    {
+      DEBUG ("waiting for feature stanza from server");
+      wocky_xmpp_connection_recv_stanza_async (priv->conn, priv->cancellable,
+          xmpp_features_cb, data);
+    }
 
  out:
   g_free (version);
