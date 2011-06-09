@@ -1105,7 +1105,8 @@ xmpp_init_recv_cb (GObject *source,
   priv->session_id = g_strdup (id);
 
   debug = state_message (priv, "");
-  DEBUG ("%s: received XMPP v%s stream open from server", debug, version);
+  DEBUG ("%s: received XMPP version=%s stream open from server", debug,
+      version != NULL ? version : "(unspecified)");
   g_free (debug);
 
   ver = (version != NULL) ? atof (version) : -1;
