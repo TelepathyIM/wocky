@@ -873,20 +873,22 @@ tcp_srv_connected (GObject *source,
       else
         g_clear_error (&error);
 
-      DEBUG ("Falling back to HOST connection");
-
       priv->state = WCON_TCP_CONNECTING;
-
       /* decode a hostname from the JID here: Don't check for an explicit *
        * connect host supplied by the user as we shouldn't even try a SRV *
        * connection in that case, and should therefore never get here     */
       wocky_decode_jid (priv->jid, &node, &host, NULL);
 
       if ((host != NULL) && (*host != '\0'))
-        connect_to_host_async (connector, host, port);
+        {
+          DEBUG ("Falling back to HOST connection to %s", host);
+          connect_to_host_async (connector, host, port);
+        }
       else
-        abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
-            "JID contains no domain: %s", priv->jid);
+        {
+          abort_connect_code (self, WOCKY_CONNECTOR_ERROR_BAD_JID,
+              "JID contains no domain: %s", priv->jid);
+        }
 
       g_free (node);
       g_free (host);
