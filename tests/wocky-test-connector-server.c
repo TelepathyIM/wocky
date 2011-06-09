@@ -520,9 +520,15 @@ iq_get_query_JABBER_AUTH (TestConnectorServer *self,
           NULL, NULL,
           '@', "id", id,
           '(', "error", '@', "type", "modify",
-          '(', "not-acceptable",
-          ':', WOCKY_XMPP_NS_STANZAS,
-          ')',
+            '(', "not-acceptable",
+              ':', WOCKY_XMPP_NS_STANZAS,
+            ')',
+            '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+              '$',
+                "You must include the username in the initial IQ get to work "
+                "around a bug in jabberd 1.4. See "
+                "https://bugs.freedesktop.org/show_bug.cgi?id=24013",
+            ')',
           ')',
           NULL);
     }

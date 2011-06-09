@@ -647,6 +647,11 @@ wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
       NULL, NULL,
       '@', "id", id,
       '(', "query", ':', WOCKY_JABBER_NS_AUTH,
+      /* This is a workaround for
+       * <https://bugs.freedesktop.org/show_bug.cgi?id=24013>: while
+       * <http://xmpp.org/extensions/xep-0078.html#usecases> doesn't require
+       * us to include a username, it seems to be required by jabberd 1.4.
+       */
       '(', "username",
       '$', priv->username,
       ')',
