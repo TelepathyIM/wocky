@@ -3359,6 +3359,105 @@ test_reply_from_domain (void)
   teardown_test (test);
 }
 
+/* Callbacks used in wildcard_handlers() */
+const gchar * const ROMEO = "romeo@montague.lit";
+const gchar * const JULIET = "juliet@montague.lit";
+
+static gboolean
+any_stanza_received_from_romeo_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  g_assert_cmpstr (wocky_stanza_get_from (stanza), ==, ROMEO);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return FALSE;
+}
+
+static gboolean
+any_stanza_received_from_server_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  g_assert_cmpstr (wocky_stanza_get_from (stanza), ==, NULL);
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return FALSE;
+}
+
+static gboolean
+any_stanza_received_from_anyone_cb (
+    WockyPorter *porter,
+    WockyStanza *stanza,
+    gpointer user_data)
+{
+  test_data_t *test = user_data;
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+  return FALSE;
+}
+
+static void
+wildcard_handlers (void)
+{
+  test_data_t *test = setup_test ();
+  WockyStanza *stanza;
+
+  test_open_both_connections (test);
+  wocky_porter_start (test->sched_in);
+  wocky_porter_start (test->sched_out);
+
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_NONE, WOCKY_STANZA_SUB_TYPE_NONE,
+      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
+      any_stanza_received_from_anyone_cb, test,
+      NULL);
+  wocky_porter_register_handler_from (test->sched_out,
+      WOCKY_STANZA_TYPE_NONE, WOCKY_STANZA_SUB_TYPE_NONE,
+      ROMEO,
+      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
+      any_stanza_received_from_romeo_cb, test,
+      NULL);
+  wocky_c2s_porter_register_handler_from_server (
+      WOCKY_C2S_PORTER (test->sched_out),
+      WOCKY_STANZA_TYPE_NONE, WOCKY_STANZA_SUB_TYPE_NONE,
+      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
+      any_stanza_received_from_server_cb, test,
+      NULL);
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
+      WOCKY_STANZA_SUB_TYPE_HEADLINE, ROMEO, NULL, NULL);
+  wocky_porter_send (test->sched_in, stanza);
+  g_object_unref (stanza);
+  test->outstanding += 2;
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_GET, JULIET, NULL, NULL);
+  wocky_porter_send (test->sched_in, stanza);
+  g_object_unref (stanza);
+  test->outstanding += 1;
+
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_FEATURES,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL, NULL);
+  wocky_porter_send (test->sched_in, stanza);
+  g_object_unref (stanza);
+  test->outstanding += 2;
+
+  test_wait_pending (test);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -3424,6 +3523,7 @@ main (int argc, char **argv)
       send_from_send_callback);
   g_test_add_func ("/xmpp-porter/reply-from-domain",
       test_reply_from_domain);
+  g_test_add_func ("/xmpp-porter/wildcard-handlers", wildcard_handlers);
 
   result = g_test_run ();
   test_deinit ();

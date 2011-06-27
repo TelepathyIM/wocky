@@ -197,8 +197,10 @@ stanza_handler_new (
   result->priority = priority;
   result->callback = callback;
   result->user_data = user_data;
-  result->match = g_object_ref (stanza);
   result->sender_match = sender_match;
+
+  if (stanza != NULL)
+    result->match = g_object_ref (stanza);
 
   if (sender_match == MATCH_JID)
     {
@@ -223,7 +225,10 @@ stanza_handler_free (StanzaHandler *handler)
   g_free (handler->node);
   g_free (handler->domain);
   g_free (handler->resource);
-  g_object_unref (handler->match);
+
+  if (handler->match != NULL)
+    g_object_unref (handler->match);
+
   g_slice_free (StanzaHandler, handler);
 }
 
@@ -967,7 +972,8 @@ handle_stanza (WockyC2SPorter *self,
     {
       StanzaHandler *handler = (StanzaHandler *) l->data;
 
-      if (type != handler->type)
+      if (type != handler->type &&
+          handler->type != WOCKY_STANZA_TYPE_NONE)
         continue;
 
       if (sub_type != handler->sub_type &&
@@ -1002,8 +1008,9 @@ handle_stanza (WockyC2SPorter *self,
         }
 
       /* Check if the stanza matches the pattern */
-      if (!wocky_node_is_superset (wocky_stanza_get_top_node (stanza),
-          wocky_stanza_get_top_node (handler->match)))
+      if (handler->match != NULL &&
+          !wocky_node_is_superset (wocky_stanza_get_top_node (stanza),
+              wocky_stanza_get_top_node (handler->match)))
         continue;
 
       if (handler->callback (WOCKY_PORTER (self), stanza, handler->user_data))
@@ -1607,14 +1614,26 @@ wocky_c2s_porter_register_handler_from_server_va (
 
   g_return_val_if_fail (WOCKY_IS_C2S_PORTER (self), 0);
 
-  stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
-      NULL, NULL, ap);
-  g_assert (stanza != NULL);
+  if (type == WOCKY_STANZA_TYPE_NONE)
+    {
+      stanza = NULL;
+      g_return_val_if_fail (
+          (va_arg (ap, WockyNodeBuildTag) == 0) &&
+          "Pattern-matching is not supported when matching stanzas "
+          "of any type", 0);
+    }
+  else
+    {
+      stanza = wocky_stanza_build_va (type, WOCKY_STANZA_SUB_TYPE_NONE,
+          NULL, NULL, ap);
+      g_assert (stanza != NULL);
+    }
 
   ret = wocky_c2s_porter_register_handler_from_server_by_stanza (self, type, sub_type,
       priority, callback, user_data, stanza);
 
-  g_object_unref (stanza);
+  if (stanza != NULL)
+    g_object_unref (stanza);
 
   return ret;
 }
@@ -1655,7 +1674,11 @@ wocky_c2s_porter_register_handler_from_server_by_stanza (
     WockyStanza *stanza)
 {
   g_return_val_if_fail (WOCKY_IS_C2S_PORTER (self), 0);
-  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), 0);
+
+  if (type == WOCKY_STANZA_TYPE_NONE)
+    g_return_val_if_fail (stanza == NULL, 0);
+  else
+    g_return_val_if_fail (WOCKY_IS_STANZA (stanza), 0);
 
   return wocky_c2s_porter_register_handler_internal (self, type, sub_type,
       MATCH_SERVER, NULL,

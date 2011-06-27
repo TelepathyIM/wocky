@@ -608,7 +608,8 @@ free_handler (gpointer data)
   g_hash_table_unref (handler->porters);
   if (handler->contact != NULL)
     g_object_unref (handler->contact);
-  g_object_unref (handler->stanza);
+  if (handler->stanza != NULL)
+    g_object_unref (handler->stanza);
   g_slice_free (StanzaHandler, handler);
 }
 
@@ -1261,7 +1262,9 @@ stanza_handler_new (WockyMetaPorter *self,
   out->priority = priority;
   out->callback = callback;
   out->user_data = user_data;
-  out->stanza = g_object_ref (stanza);
+
+  if (stanza != NULL)
+    out->stanza = g_object_ref (stanza);
 
   return out;
 }
