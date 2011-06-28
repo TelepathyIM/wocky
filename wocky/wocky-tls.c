@@ -663,6 +663,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
+                               GStrv               extra_identities,
                                WockyTLSVerificationLevel level,
                                WockyTLSCertStatus *status)
 {

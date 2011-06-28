@@ -38,6 +38,7 @@
 struct _WockyTLSConnectorPrivate {
   gboolean legacy_ssl;
   gchar *peername;
+  GStrv extra_identities;
 
   WockyTLSHandler *handler;
   WockyTLSSession *session;
@@ -107,6 +108,7 @@ wocky_tls_connector_finalize (GObject *object)
   WockyTLSConnector *self = WOCKY_TLS_CONNECTOR (object);
 
   g_free (self->priv->peername);
+  g_strfreev (self->priv->extra_identities);
 
   if (self->priv->session != NULL)
     {
@@ -333,7 +335,7 @@ session_handshake_cb (GObject *source,
 
   wocky_tls_handler_verify_async (self->priv->handler,
       self->priv->session, self->priv->peername,
-      tls_handler_verify_async_cb, self);
+      self->priv->extra_identities, tls_handler_verify_async_cb, self);
 }
 
 static void
@@ -458,6 +460,7 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
     WockyXmppConnection *connection,
     gboolean old_style_ssl,
     const gchar *peername,
+    GStrv extra_identities,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
@@ -477,6 +480,7 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
   self->priv->secure_result = async_result;
   self->priv->legacy_ssl = old_style_ssl;
   self->priv->peername = g_strdup (peername);
+  self->priv->extra_identities = g_strdupv (extra_identities);
 
   if (old_style_ssl)
     do_handshake (self);

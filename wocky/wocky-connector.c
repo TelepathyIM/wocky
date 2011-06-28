@@ -1034,7 +1034,7 @@ maybe_old_ssl (WockyConnector *self)
 
       DEBUG ("Beginning SSL handshake");
       wocky_tls_connector_secure_async (tls_connector,
-          priv->conn, TRUE, get_peername (self),
+          priv->conn, TRUE, get_peername (self), NULL,
           priv->cancellable, tls_connector_secure_cb, self);
 
       g_object_unref (tls_connector);
@@ -1227,7 +1227,7 @@ xmpp_features_cb (GObject *source,
 
       tls_connector = wocky_tls_connector_new (priv->tls_handler);
       wocky_tls_connector_secure_async (tls_connector,
-          priv->conn, FALSE, get_peername (self), priv->cancellable,
+          priv->conn, FALSE, get_peername (self), NULL, priv->cancellable,
           tls_connector_secure_cb, self);
 
       g_object_unref (tls_connector);
