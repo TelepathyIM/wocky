@@ -747,50 +747,52 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   /* if we get this far, we have a structurally valid certificate *
    * signed by _someone_: check the hostname matches the peername */
   if (peername != NULL)
-    switch (gnutls_certificate_type_get (session->session))
-      {
-        gnutls_x509_crt_t x509;
-        gnutls_openpgp_crt_t opgp;
-      case GNUTLS_CRT_X509:
-        DEBUG ("checking X509 cert");
-        if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
-          { /* we know these ops must succeed, or verify_peers2 would have *
-             * failed before we got here: We just need to duplicate a bit  *
-             * of what it does:                                            */
-            const gnutls_datum_t *peers =
-              gnutls_certificate_get_peers (session->session, &cls);
+    {
+      switch (gnutls_certificate_type_get (session->session))
+        {
+          gnutls_x509_crt_t x509;
+          gnutls_openpgp_crt_t opgp;
+        case GNUTLS_CRT_X509:
+          DEBUG ("checking X509 cert");
+          if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
+            { /* we know these ops must succeed, or verify_peers2 would have *
+               * failed before we got here: We just need to duplicate a bit  *
+               * of what it does:                                            */
+              const gnutls_datum_t *peers =
+                gnutls_certificate_get_peers (session->session, &cls);
 
-            gnutls_x509_crt_import (x509, &peers[0], GNUTLS_X509_FMT_DER);
-            rval = gnutls_x509_crt_check_hostname (x509, peername);
-            DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d", peername, rval);
-            rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
-            peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+              gnutls_x509_crt_import (x509, &peers[0], GNUTLS_X509_FMT_DER);
+              rval = gnutls_x509_crt_check_hostname (x509, peername);
+              DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d", peername, rval);
+              rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
+              peer_name_ok = (rval == GNUTLS_E_SUCCESS);
 
-            gnutls_x509_crt_deinit (x509);
-          }
-        break;
-      case GNUTLS_CRT_OPENPGP:
-        DEBUG ("checking PGP cert");
-        if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
-          {
-            const gnutls_datum_t *peers =
-              gnutls_certificate_get_peers (session->session, &cls);
+              gnutls_x509_crt_deinit (x509);
+            }
+          break;
+        case GNUTLS_CRT_OPENPGP:
+          DEBUG ("checking PGP cert");
+          if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
+            {
+              const gnutls_datum_t *peers =
+                gnutls_certificate_get_peers (session->session, &cls);
 
-            gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
-            rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
-            DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",peername,rval);
-            rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
-            peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+              gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
+              rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
+              DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",peername,rval);
+              rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
+              peer_name_ok = (rval == GNUTLS_E_SUCCESS);
 
-            gnutls_openpgp_crt_deinit (opgp);
-          }
-        break;
-      default:
-        /* theoretically, this can't happen if ...verify_peers2 is working: */
-        DEBUG ("unknown cert type!");
-        rval = GNUTLS_E_INVALID_REQUEST;
-        peer_name_ok = FALSE;
-      }
+              gnutls_openpgp_crt_deinit (opgp);
+            }
+          break;
+        default:
+          /* theoretically, this can't happen if ...verify_peers2 is working: */
+          DEBUG ("unknown cert type!");
+          rval = GNUTLS_E_INVALID_REQUEST;
+          peer_name_ok = FALSE;
+        }
+    }
 
   DEBUG ("peer_name_ok: %d", peer_name_ok );
 
