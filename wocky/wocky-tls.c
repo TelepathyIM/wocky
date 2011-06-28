@@ -746,7 +746,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
   /* if we get this far, we have a structurally valid certificate *
    * signed by _someone_: check the hostname matches the peername */
-  if (peername != NULL)
+  if (peername != NULL || extra_identities != NULL)
     {
       const gnutls_datum_t *peers;
       guint n_peers;
@@ -765,8 +765,34 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
             {
               gnutls_x509_crt_import (x509, &peers[0], GNUTLS_X509_FMT_DER);
-              rval = gnutls_x509_crt_check_hostname (x509, peername);
-              DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d", peername, rval);
+
+              if (peername != NULL)
+                {
+                  rval = gnutls_x509_crt_check_hostname (x509, peername);
+                  DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
+                      peername, rval);
+                }
+              else
+                {
+                  rval = 0;
+                }
+
+              if (rval == 0 && extra_identities != NULL)
+                {
+                  gint i;
+
+                  for (i = 0; extra_identities[i] != NULL; i++)
+                    {
+                      rval = gnutls_x509_crt_check_hostname (x509,
+                          extra_identities[i]);
+                      DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
+                          extra_identities[i], rval);
+
+                      if (rval != 0)
+                        break;
+                    }
+                }
+
               rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
 
               gnutls_x509_crt_deinit (x509);
@@ -778,7 +804,35 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
             {
               gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
               rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
-              DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",peername,rval);
+              DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d", peername, rval);
+
+              if (peername != NULL)
+                {
+                  rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
+                  DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",
+                      peername, rval);
+                }
+              else
+                {
+                  rval = 0;
+                }
+
+              if (rval == 0 && extra_identities != NULL)
+                {
+                  gint i;
+
+                  for (i = 0; extra_identities[i] != NULL; i++)
+                    {
+                      rval = gnutls_openpgp_crt_check_hostname (opgp,
+                          extra_identities[i]);
+                      DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",
+                          extra_identities[i], rval);
+
+                      if (rval != 0)
+                        break;
+                    }
+                }
+
               rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
 
               gnutls_openpgp_crt_deinit (opgp);
