@@ -180,11 +180,7 @@ wocky_auth_registry_has_mechanism (
     GSList *list,
     const gchar *mech)
 {
-  GSList *t;
-
-  t = g_slist_find_custom (list, mech, (GCompareFunc) g_strcmp0);
-
-  return (t != NULL);
+  return (g_slist_find_custom (list, mech, (GCompareFunc) g_strcmp0) != NULL);
 }
 
 WockyAuthRegistryStartData *
