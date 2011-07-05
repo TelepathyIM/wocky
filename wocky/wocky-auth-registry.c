@@ -176,7 +176,10 @@ wocky_auth_registry_new (void)
 }
 
 static gboolean
-wocky_auth_registry_has_mechanism (GSList *list, const gchar *mech) {
+wocky_auth_registry_has_mechanism (
+    GSList *list,
+    const gchar *mech)
+{
   GSList *t;
 
   t = g_slist_find_custom (list, mech, (GCompareFunc) g_strcmp0);
