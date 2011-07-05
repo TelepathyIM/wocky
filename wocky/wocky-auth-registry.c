@@ -28,7 +28,7 @@ struct _WockyAuthRegistryPrivate
 };
 
 static void wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
     const gchar *username,
@@ -176,10 +176,10 @@ wocky_auth_registry_new (void)
 }
 
 static gboolean
-wocky_auth_registry_has_mechanism (const GSList *list, const gchar *mech) {
+wocky_auth_registry_has_mechanism (GSList *list, const gchar *mech) {
   GSList *t;
 
-  t = g_slist_find_custom ((GSList *) list, mech, (GCompareFunc) g_strcmp0);
+  t = g_slist_find_custom (list, mech, (GCompareFunc) g_strcmp0);
 
   return (t != NULL);
 }
@@ -218,7 +218,7 @@ wocky_auth_registry_start_data_free (WockyAuthRegistryStartData *start_data)
 
 static gboolean
 wocky_auth_registry_select_handler (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain,
     const gchar *username,
     const gchar *password,
@@ -315,7 +315,7 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
 
 static void
 wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
     const gchar *username,
@@ -372,7 +372,7 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
 
 void
 wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
     const gchar *username,
@@ -560,7 +560,7 @@ wocky_auth_registry_add_handler (WockyAuthRegistry *self,
  */
 gboolean
 wocky_auth_registry_supports_one_of (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain)
 {
   return wocky_auth_registry_select_handler (self, mechanisms,

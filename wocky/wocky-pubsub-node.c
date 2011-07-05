@@ -902,13 +902,13 @@ wocky_pubsub_node_list_affiliates_finish (
 WockyStanza *
 wocky_pubsub_node_make_modify_affiliates_stanza (
     WockyPubsubNode *self,
-    const GList *affiliates,
+    GList *affiliates,
     WockyNode **pubsub_node,
     WockyNode **affiliations_node)
 {
   WockyStanza *stanza;
   WockyNode *affiliations;
-  const GList *l;
+  GList *l;
 
   stanza = pubsub_node_make_action_stanza (self, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_XMPP_NS_PUBSUB_OWNER, "affiliations", NULL,
@@ -971,7 +971,7 @@ wocky_pubsub_node_make_modify_affiliates_stanza (
 void
 wocky_pubsub_node_modify_affiliates_async (
     WockyPubsubNode *self,
-    const GList *affiliates,
+    GList *affiliates,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)

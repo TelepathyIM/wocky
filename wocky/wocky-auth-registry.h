@@ -142,7 +142,7 @@ typedef struct _WockyAuthRegistryPrivate WockyAuthRegistryPrivate;
  * supports and gets the initial data from the chosen handler.
  */
 typedef void (*WockyAuthRegistryStartAuthAsyncFunc) (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
     const gchar *username,
@@ -281,7 +281,7 @@ GType wocky_auth_registry_get_type (void) G_GNUC_CONST;
 WockyAuthRegistry *wocky_auth_registry_new (void);
 
 void wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain,
     gboolean is_secure_channel,
     const gchar *username,
@@ -331,7 +331,7 @@ void wocky_auth_registry_failure (WockyAuthRegistry *self,
     GError *error);
 
 gboolean wocky_auth_registry_supports_one_of (WockyAuthRegistry *self,
-    const GSList *mechanisms,
+    GSList *mechanisms,
     gboolean allow_plain);
 
 G_END_DECLS

@@ -67,7 +67,7 @@ const gchar *wocky_enum_to_nick (GType enum_type, gint value);
 
 gchar *wocky_absolutize_path (const gchar *path);
 
-GList *wocky_list_deep_copy (GBoxedCopyFunc copy, const GList *items);
+GList *wocky_list_deep_copy (GBoxedCopyFunc copy, GList *items);
 
 GString *wocky_g_string_dup (const GString *str);
 

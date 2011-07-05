@@ -700,10 +700,10 @@ wocky_absolutize_path (const gchar *path)
 
 GList *
 wocky_list_deep_copy (GBoxedCopyFunc copy,
-    const GList *items)
+    GList *items)
 {
   GList *ret = NULL;
-  const GList *l;
+  GList *l;
 
   g_return_val_if_fail (copy != NULL, NULL);
 

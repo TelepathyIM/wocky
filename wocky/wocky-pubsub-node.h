@@ -170,7 +170,7 @@ gboolean wocky_pubsub_node_list_affiliates_finish (
 
 void wocky_pubsub_node_modify_affiliates_async (
     WockyPubsubNode *self,
-    const GList *affiliates,
+    GList *affiliates,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
