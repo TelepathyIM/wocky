@@ -621,11 +621,12 @@ GPtrArray *
 wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
     WockyTLSCertType *type)
 {
-  guint idx, cls;
+  guint idx;
+  guint n_peers;
   const gnutls_datum_t *peers = NULL;
   GPtrArray *certificates;
 
-  peers = gnutls_certificate_get_peers (session->session, &cls);
+  peers = gnutls_certificate_get_peers (session->session, &n_peers);
 
   if (peers == NULL)
     return NULL;
@@ -633,7 +634,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
   certificates =
     g_ptr_array_new_with_free_func ((GDestroyNotify) g_array_unref);
 
-  for (idx = 0; idx < cls; idx++)
+  for (idx = 0; idx < n_peers; idx++)
     {
       GArray *cert = g_array_sized_new (TRUE, TRUE, sizeof (guchar),
           peers[idx].size);
@@ -668,7 +669,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
-  guint cls = -1;
   guint _stat = 0;
   gboolean peer_name_ok = TRUE;
   const gchar *check_level;
@@ -749,13 +749,14 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   if (peername != NULL)
     {
       const gnutls_datum_t *peers;
+      guint n_peers;
       gnutls_x509_crt_t x509;
       gnutls_openpgp_crt_t opgp;
 
       /* we know these ops must succeed, or verify_peers2 would have *
        * failed before we got here: We just need to duplicate a bit  *
        * of what it does:                                            */
-      peers = gnutls_certificate_get_peers (session->session, &cls);
+      peers = gnutls_certificate_get_peers (session->session, &n_peers);
 
       switch (gnutls_certificate_type_get (session->session))
         {
