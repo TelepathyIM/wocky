@@ -689,7 +689,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       { GNUTLS_CERT_INVALID,            WOCKY_TLS_CERT_INVALID             },
       { ~((long) 0),                    WOCKY_TLS_CERT_UNKNOWN_ERROR       },
       { 0,                              WOCKY_TLS_CERT_OK                  } };
-  /* *********************************************************************** */
 
   g_assert (status != NULL);
   *status = WOCKY_TLS_CERT_OK;
