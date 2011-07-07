@@ -71,6 +71,8 @@
                          GNUTLS_VERIFY_DISABLE_CA_SIGN          )
 
 #include "wocky-debug.h"
+#include "wocky-tls-enumtypes.h"
+#include "wocky-utils.h"
 
 #include <gnutls/gnutls.h>
 #include <string.h>
@@ -670,7 +672,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   guint cls = -1;
   guint _stat = 0;
   gboolean peer_name_ok = TRUE;
-  const gchar *check_level;
   gnutls_certificate_verify_flags check;
 
   /* list gnutls cert error conditions in descending order of noteworthiness *
@@ -696,25 +697,22 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   switch (level)
     {
     case WOCKY_TLS_VERIFY_STRICT:
-      check_level = "WOCKY_TLS_VERIFY_STRICT";
       check = VERIFY_STRICT;
       break;
     case WOCKY_TLS_VERIFY_NORMAL:
-      check_level = "WOCKY_TLS_VERIFY_NORMAL";
       check = VERIFY_NORMAL;
       break;
     case WOCKY_TLS_VERIFY_LENIENT:
-      check_level = "WOCKY_TLS_VERIFY_LENIENT";
       check = VERIFY_LENIENT;
       break;
     default:
       g_warn_if_reached ();
-      check_level = "Unknown strictness level";
       check = VERIFY_STRICT;
       break;
     }
 
-  DEBUG ("setting gnutls verify flags level to: %s", check_level);
+  DEBUG ("setting gnutls verify flags level to: %s",
+      wocky_enum_to_nick (WOCKY_TYPE_TLS_VERIFICATION_LEVEL, level));
   gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, check);
   rval = gnutls_certificate_verify_peers2 (session->session, &_stat);
 

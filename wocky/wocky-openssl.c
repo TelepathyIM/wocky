@@ -62,6 +62,7 @@
 #define DEBUG_ASYNC_DETAIL_LEVEL 6
 
 #include "wocky-debug.h"
+#include "wocky-tls-enumtypes.h"
 #include "wocky-utils.h"
 
 #include <openssl/ssl.h>
@@ -1000,7 +1001,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
-  const gchar *check_level;
   X509 *cert;
   gboolean lenient = (level == WOCKY_TLS_VERIFY_LENIENT);
 
@@ -1011,21 +1011,16 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   switch (level)
     {
     case WOCKY_TLS_VERIFY_STRICT:
-      check_level = "WOCKY_TLS_VERIFY_STRICT";
-      break;
     case WOCKY_TLS_VERIFY_NORMAL:
-      check_level = "WOCKY_TLS_VERIFY_NORMAL";
-      break;
     case WOCKY_TLS_VERIFY_LENIENT:
-      check_level = "WOCKY_TLS_VERIFY_LENIENT";
       break;
     default:
       g_warn_if_reached ();
-      check_level = "Unknown strictness level";
       level = WOCKY_TLS_VERIFY_STRICT;
     }
 
-  DEBUG ("setting ssl verify flags level to: %s", check_level);
+  DEBUG ("setting ssl verify flags level to: %s",
+      wocky_enum_to_nick (WOCKY_TYPE_TLS_VERIFICATION_LEVEL, level));
   cert = SSL_get_peer_certificate (session->ssl);
   rval = SSL_get_verify_result (session->ssl);
   DEBUG ("X509 cert: %p; verified: %d", cert, rval);
