@@ -550,10 +550,21 @@ _new_connection (GSocketService *service,
     gpointer user_data)
 {
   WockyMetaPorter *self = user_data;
-  GSocketAddress *addr = g_socket_connection_get_remote_address (
-      socket_connection, NULL);
+  GSocketAddress *addr;
   GInetAddress *inet_address;
   gchar *str;
+  GError *error = NULL;
+
+  addr = g_socket_connection_get_remote_address (
+      socket_connection, &error);
+
+  if (addr == NULL)
+    {
+      DEBUG ("New connection, but failed to get remote address "
+          "so ignoring: %s", error->message);
+      g_clear_error (&error);
+      return FALSE;
+    }
 
   addr = normalize_address (addr);
 
@@ -562,7 +573,7 @@ _new_connection (GSocketService *service,
 
   str = g_inet_address_to_string (inet_address);
 
-  DEBUG ("new connection from %s!", str);
+  DEBUG ("New connection from %s!", str);
 
   wocky_ll_connector_incoming_async (G_IO_STREAM (socket_connection),
       NULL, new_connection_connect_cb, g_object_ref (self));
