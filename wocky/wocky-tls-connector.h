@@ -73,6 +73,7 @@ void wocky_tls_connector_secure_async (WockyTLSConnector *self,
     WockyXmppConnection *connection,
     gboolean old_style_ssl,
     const gchar *peername,
+    GStrv extra_identities,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);

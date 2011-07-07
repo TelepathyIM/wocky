@@ -947,6 +947,43 @@ check_peer_name (const char *target, X509 *cert)
   return rval;
 }
 
+static gboolean
+check_peer_names (const char *peer_name,
+    GStrv extra_identities,
+    X509 *cert)
+{
+  gboolean tried = FALSE;
+
+  if (peer_name != NULL)
+    {
+      if (check_peer_name (peer_name, cert))
+        return TRUE;
+
+      tried = TRUE;
+    }
+
+  if (extra_identities != NULL)
+    {
+      gint i;
+
+      for (i = 0; extra_identities[i] != NULL; i++)
+        {
+          if (wocky_strdiff (extra_identities[i], peer_name))
+            {
+              if (check_peer_name (extra_identities[i], cert))
+                return TRUE;
+
+              tried = TRUE;
+            }
+        }
+    }
+
+  /* If no peer names were passed it means we didn't want to check the
+   * certificate against anything.
+   * If some attempts were made then it means the check failed. */
+  return !tried;
+}
+
 GPtrArray *
 wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
     WockyTLSCertType *type)
@@ -996,6 +1033,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
+                               GStrv               extra_identities,
                                WockyTLSVerificationLevel level,
                                WockyTLSCertStatus *status)
 {
@@ -1047,7 +1085,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
           rval = X509_V_ERR_CERT_UNTRUSTED;
         }
     }
-  else if (peername != NULL && !check_peer_name (peername, cert))
+  else if (!check_peer_names (peername, extra_identities, cert))
     {
       /* Irrespective of whether the certificate is valid, if it's for the
        * wrong host that's arguably a more useful error condition to report.

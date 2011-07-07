@@ -621,11 +621,12 @@ GPtrArray *
 wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
     WockyTLSCertType *type)
 {
-  guint idx, cls;
+  guint idx;
+  guint n_peers;
   const gnutls_datum_t *peers = NULL;
   GPtrArray *certificates;
 
-  peers = gnutls_certificate_get_peers (session->session, &cls);
+  peers = gnutls_certificate_get_peers (session->session, &n_peers);
 
   if (peers == NULL)
     return NULL;
@@ -633,7 +634,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
   certificates =
     g_ptr_array_new_with_free_func ((GDestroyNotify) g_array_unref);
 
-  for (idx = 0; idx < cls; idx++)
+  for (idx = 0; idx < n_peers; idx++)
     {
       GArray *cert = g_array_sized_new (TRUE, TRUE, sizeof (guchar),
           peers[idx].size);
@@ -663,11 +664,11 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
+                               GStrv               extra_identities,
                                WockyTLSVerificationLevel level,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
-  guint cls = -1;
   guint _stat = 0;
   gboolean peer_name_ok = TRUE;
   const gchar *check_level;
@@ -745,51 +746,106 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
   /* if we get this far, we have a structurally valid certificate *
    * signed by _someone_: check the hostname matches the peername */
-  if (peername != NULL)
-    switch (gnutls_certificate_type_get (session->session))
-      {
-        gnutls_x509_crt_t x509;
-        gnutls_openpgp_crt_t opgp;
-      case GNUTLS_CRT_X509:
-        DEBUG ("checking X509 cert");
-        if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
-          { /* we know these ops must succeed, or verify_peers2 would have *
-             * failed before we got here: We just need to duplicate a bit  *
-             * of what it does:                                            */
-            const gnutls_datum_t *peers =
-              gnutls_certificate_get_peers (session->session, &cls);
+  if (peername != NULL || extra_identities != NULL)
+    {
+      const gnutls_datum_t *peers;
+      guint n_peers;
+      gnutls_x509_crt_t x509;
+      gnutls_openpgp_crt_t opgp;
 
-            gnutls_x509_crt_import (x509, &peers[0], GNUTLS_X509_FMT_DER);
-            rval = gnutls_x509_crt_check_hostname (x509, peername);
-            DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d", peername, rval);
-            rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
-            peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+      /* we know these ops must succeed, or verify_peers2 would have *
+       * failed before we got here: We just need to duplicate a bit  *
+       * of what it does:                                            */
+      peers = gnutls_certificate_get_peers (session->session, &n_peers);
 
-            gnutls_x509_crt_deinit (x509);
-          }
-        break;
-      case GNUTLS_CRT_OPENPGP:
-        DEBUG ("checking PGP cert");
-        if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
-          {
-            const gnutls_datum_t *peers =
-              gnutls_certificate_get_peers (session->session, &cls);
+      switch (gnutls_certificate_type_get (session->session))
+        {
+        case GNUTLS_CRT_X509:
+          DEBUG ("checking X509 cert");
+          if ((rval = gnutls_x509_crt_init (&x509)) == GNUTLS_E_SUCCESS)
+            {
+              gnutls_x509_crt_import (x509, &peers[0], GNUTLS_X509_FMT_DER);
 
-            gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
-            rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
-            DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",peername,rval);
-            rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
-            peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+              if (peername != NULL)
+                {
+                  rval = gnutls_x509_crt_check_hostname (x509, peername);
+                  DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
+                      peername, rval);
+                }
+              else
+                {
+                  rval = 0;
+                }
 
-            gnutls_openpgp_crt_deinit (opgp);
-          }
-        break;
-      default:
-        /* theoretically, this can't happen if ...verify_peers2 is working: */
-        DEBUG ("unknown cert type!");
-        rval = GNUTLS_E_INVALID_REQUEST;
-        peer_name_ok = FALSE;
-      }
+              if (rval == 0 && extra_identities != NULL)
+                {
+                  gint i;
+
+                  for (i = 0; extra_identities[i] != NULL; i++)
+                    {
+                      rval = gnutls_x509_crt_check_hostname (x509,
+                          extra_identities[i]);
+                      DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
+                          extra_identities[i], rval);
+
+                      if (rval != 0)
+                        break;
+                    }
+                }
+
+              rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
+
+              gnutls_x509_crt_deinit (x509);
+            }
+          break;
+        case GNUTLS_CRT_OPENPGP:
+          DEBUG ("checking PGP cert");
+          if ((rval = gnutls_openpgp_crt_init (&opgp)) == GNUTLS_E_SUCCESS)
+            {
+              gnutls_openpgp_crt_import (opgp, &peers[0], GNUTLS_OPENPGP_FMT_RAW);
+              rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
+              DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d", peername, rval);
+
+              if (peername != NULL)
+                {
+                  rval = gnutls_openpgp_crt_check_hostname (opgp, peername);
+                  DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",
+                      peername, rval);
+                }
+              else
+                {
+                  rval = 0;
+                }
+
+              if (rval == 0 && extra_identities != NULL)
+                {
+                  gint i;
+
+                  for (i = 0; extra_identities[i] != NULL; i++)
+                    {
+                      rval = gnutls_openpgp_crt_check_hostname (opgp,
+                          extra_identities[i]);
+                      DEBUG ("gnutls_openpgp_crt_check_hostname: %s -> %d",
+                          extra_identities[i], rval);
+
+                      if (rval != 0)
+                        break;
+                    }
+                }
+
+              rval = (rval == 0) ? -1 : GNUTLS_E_SUCCESS;
+
+              gnutls_openpgp_crt_deinit (opgp);
+            }
+          break;
+        default:
+          /* theoretically, this can't happen if ...verify_peers2 is working: */
+          DEBUG ("unknown cert type!");
+          rval = GNUTLS_E_INVALID_REQUEST;
+        }
+
+      peer_name_ok = (rval == GNUTLS_E_SUCCESS);
+    }
 
   DEBUG ("peer_name_ok: %d", peer_name_ok );
 
