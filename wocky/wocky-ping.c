@@ -230,9 +230,7 @@ send_xmpp_ping (WockyPing *self)
 static gboolean
 ping_iq_cb (WockyPorter *porter, WockyStanza *stanza, gpointer data)
 {
-#ifdef ENABLE_DEBUG
   const gchar *from = wocky_stanza_get_from (stanza);
-#endif
 
   DEBUG ("replying to ping from %s", from ? from : "<null>");
   wocky_porter_acknowledge_iq (porter, stanza, NULL);
