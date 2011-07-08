@@ -78,19 +78,29 @@ void wocky_debug_node_tree (WockyDebugFlags flag, WockyNodeTree *tree,
 
 #ifdef DEBUG_FLAG
 
-#define DEBUG(format, ...) \
-  G_STMT_START { } G_STMT_END
+static inline void
+DEBUG (
+    const gchar *format,
+    ...)
+{
+  /* blah blah blah */
+}
 
-#define DEBUG_STANZA(stanza, format, ...) \
-  G_STMT_START { } G_STMT_END
+static inline void
+DEBUG_STANZA (WockyStanza *stanza,
+    const gchar *format,
+    ...)
+{
+}
 
-#define DEBUG_NODE_TREE(stanza, format, ...) \
-  G_STMT_START { } G_STMT_END
+static inline void
+DEBUG_NODE_TREE (WockyNodeTree *tree,
+    const gchar *format,
+    ...)
+{
+}
 
 #define DEBUGGING 0
-
-#define NODE_DEBUG(n, s) \
-  G_STMT_START { } G_STMT_END
 
 #endif /* DEBUG_FLAG */
 
