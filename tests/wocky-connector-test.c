@@ -3477,22 +3477,23 @@ run_test (gpointer data)
           g_object_unref (tmp);
         }
     }
-  else if (test->result.domain == S_ANY_ERROR)
-    {
-      g_assert (test->result.xmpp == NULL);
-    }
   else
     {
-      /* We want the error to match either of result.code or
-       * result.fallback_code, but don't care which.
-       * The expected error domain is the same for either code.
-       */
-      if (error->code == test->result.fallback_code)
-        g_assert_error (error, map_static_domain (test->result.domain),
-          test->result.fallback_code);
-      else
-        g_assert_error (error, map_static_domain (test->result.domain),
-          test->result.code);
+      g_assert (test->result.xmpp == NULL);
+
+      if (test->result.domain != S_ANY_ERROR)
+        {
+          /* We want the error to match either of result.code or
+           * result.fallback_code, but don't care which.
+           * The expected error domain is the same for either code.
+           */
+          if (error->code == test->result.fallback_code)
+            g_assert_error (error, map_static_domain (test->result.domain),
+              test->result.fallback_code);
+          else
+            g_assert_error (error, map_static_domain (test->result.domain),
+              test->result.code);
+        }
     }
 
   if (wcon != NULL)
