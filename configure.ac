@@ -169,7 +169,9 @@ AC_CHECK_LIB(sasl2, sasl_server_new,
           HAVE_LIBSASL2=yes
           AC_DEFINE(HAVE_LIBSASL2, 1, [Define if libsasl2 is available]) ],
         [ AC_MSG_WARN(libsasl2 headers missing: skipping sasl tests)]) ],
-    [ AC_MSG_WARN(libsasl2 not found: skipping sasl tests) ])
+    [ AC_MSG_WARN(libsasl2 not found: skipping sasl tests)
+      HAVE_LIBSASL2=no
+    ])
 
 AC_SUBST(LIBSASL2_LIBS)
 AC_SUBST(LIBSASL2_CFLAGS)
