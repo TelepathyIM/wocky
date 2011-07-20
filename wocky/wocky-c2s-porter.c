@@ -1006,21 +1006,35 @@ static void
 build_queueable_stanza_patterns (WockyC2SPorter *self)
 {
   WockyC2SPorterPrivate *priv = self->priv;
-  WockyStanza *pattern;
+  gchar **node_name = NULL;
+  gchar *node_names [] = {
+      "http://jabber.org/protocol/geoloc",
+      "http://jabber.org/protocol/nick",
+      "http://laptop.org/xmpp/buddy-properties",
+      "http://laptop.org/xmpp/activities",
+      "http://laptop.org/xmpp/current-activity",
+      "http://laptop.org/xmpp/activity-properties",
+      NULL};
 
   if (priv->queueable_stanza_patterns != NULL)
     return;
 
-  /* all PEP updates are queueable */
-  pattern = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
-      '(', "event",
-        ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
-      ')',
-      NULL);
+  for (node_name = node_names; *node_name != NULL ; node_name++)
+    {
+      WockyStanza *pattern = wocky_stanza_build (
+          WOCKY_STANZA_TYPE_MESSAGE,
+          WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+          '(', "event",
+            ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+            '(', "items",
+            '@', "node", *node_name,
+            ')',
+          ')',
+          NULL);
 
-  priv->queueable_stanza_patterns = g_list_prepend (
-      priv->queueable_stanza_patterns, pattern);
+      priv->queueable_stanza_patterns = g_list_prepend (
+        priv->queueable_stanza_patterns, pattern);
+    }
 }
 
 static gboolean
