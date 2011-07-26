@@ -73,7 +73,7 @@ typedef struct {
   gsize count;
   GError *read_error /* no, this is not a coding style violation */;
   gboolean dispose_has_run;
-  WockyTestSTreamReadMode mode;
+  WockyTestStreamReadMode mode;
   gboolean corked;
 } WockyTestInputStream;
 
@@ -628,7 +628,7 @@ wocky_test_output_stream_set_write_error (GOutputStream *stream)
 
 void
 wocky_test_stream_set_mode (GInputStream *stream,
-  WockyTestSTreamReadMode mode)
+  WockyTestStreamReadMode mode)
 {
   WOCKY_TEST_INPUT_STREAM (stream)->mode = mode;
 }

@@ -78,7 +78,7 @@ typedef enum {
   WOCK_TEST_STREAM_READ_COMBINE,
   /* one read reads only data from one write */
   WOCK_TEST_STREAM_READ_EXACT,
-} WockyTestSTreamReadMode;
+} WockyTestStreamReadMode;
 
 typedef enum {
   /* all writes are only half-done, default */
@@ -88,7 +88,7 @@ typedef enum {
 } WockyTestStreamWriteMode;
 
 void wocky_test_stream_set_mode (GInputStream *stream,
-  WockyTestSTreamReadMode mode);
+  WockyTestStreamReadMode mode);
 
 void wocky_test_stream_set_write_mode (GOutputStream *stream,
   WockyTestStreamWriteMode mode);
