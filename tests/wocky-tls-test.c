@@ -258,7 +258,7 @@ teardown_ssl_test (ssl_test_t *ssl_test)
 }
 
 static void
-test_openssl_handshake_rw (void)
+test_tls_handshake_rw (void)
 {
   ssl_test_t ssl_test = { NULL, } ;
   test_data_t *test = setup_test ();
@@ -311,7 +311,7 @@ main (int argc, char **argv)
   int result;
 
   test_init (argc, argv);
-  g_test_add_func ("/openssl/handshake+rw", test_openssl_handshake_rw);
+  g_test_add_func ("/tls/handshake+rw", test_tls_handshake_rw);
   result = g_test_run ();
   test_deinit ();
 
