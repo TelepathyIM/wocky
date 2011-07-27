@@ -648,8 +648,10 @@ test_close_cancel (void)
 {
   test_data_t *test = setup_test ();
 
-  test_open_both_connections (test);
+  wocky_test_stream_set_write_mode (test->stream->stream0_output,
+    WOCKY_TEST_STREAM_WRITE_COMPLETE);
 
+  test_open_both_connections (test);
   wocky_porter_start (test->sched_out);
 
   wocky_xmpp_connection_recv_stanza_async (test->in, NULL,
@@ -2352,6 +2354,9 @@ test_close_error (void)
 {
   test_data_t *test = setup_test ();
 
+  wocky_test_stream_set_write_mode (test->stream->stream0_output,
+    WOCKY_TEST_STREAM_WRITE_COMPLETE);
+
   test_open_both_connections (test);
   wocky_porter_start (test->sched_in);
 
@@ -2551,6 +2556,9 @@ test_close_force (void)
 {
   test_data_t *test = setup_test ();
   WockyStanza *s;
+
+  wocky_test_stream_set_write_mode (test->stream->stream0_output,
+    WOCKY_TEST_STREAM_WRITE_COMPLETE);
 
   test_open_both_connections (test);
   wocky_porter_start (test->sched_in);

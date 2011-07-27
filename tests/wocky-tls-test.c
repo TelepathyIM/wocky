@@ -23,6 +23,11 @@ typedef struct {
   test_data_t *test;
   char cli_buf[BUF_SIZE];
   char srv_buf[BUF_SIZE];
+
+  char *cli_send;
+  gsize cli_send_len;
+  gsize cli_sent;
+
   WockyTLSConnection *client;
   WockyTLSConnection *server;
   GString *cli_data;
@@ -43,13 +48,25 @@ client_write_cb (GObject *source,
   GOutputStream *output = G_OUTPUT_STREAM (source);
   ssl_test_t *ssl_test = data;
   GError *error = NULL;
+  gsize ret;
 
-  g_assert (g_output_stream_write_finish (output, result, &error)
-    == TEST_SSL_DATA_LEN);
+  ret = g_output_stream_write_finish (output, result, &error);
+  g_assert_cmpint (ret, <=, ssl_test->cli_send_len - ssl_test->cli_sent);
   g_assert_no_error (error);
 
-  ssl_test->test->outstanding--;
-  g_main_loop_quit (ssl_test->test->loop);
+  ssl_test->cli_sent += ret;
+
+  if (ssl_test->cli_sent == ssl_test->cli_send_len)
+    {
+      ssl_test->test->outstanding--;
+      g_main_loop_quit (ssl_test->test->loop);
+      return;
+    }
+
+  g_output_stream_write_async (output,
+    ssl_test->cli_send + ssl_test->cli_sent,
+    ssl_test->cli_send_len - ssl_test->cli_sent,
+    G_PRIORITY_DEFAULT, ssl_test->test->cancellable, client_write_cb, data);
 }
 
 static void
@@ -95,8 +112,9 @@ client_read_cb (GObject *source,
         {
           GIOStream *io = G_IO_STREAM (ssl_test->client);
           GOutputStream *output = g_io_stream_get_output_stream (io);
+
           g_output_stream_write_async (output,
-              TEST_SSL_DATA_A, TEST_SSL_DATA_LEN, G_PRIORITY_DEFAULT,
+              ssl_test->cli_send, ssl_test->cli_send_len, G_PRIORITY_DEFAULT,
               ssl_test->test->cancellable, client_write_cb, data);
           return;
         }
@@ -141,8 +159,16 @@ server_read_cb (GObject *source,
 
   g_string_append_len (ssl_test->srv_data, ssl_test->srv_buf, count);
 
-  ssl_test->test->outstanding--;
-  g_main_loop_quit (ssl_test->test->loop);
+  if (ssl_test->srv_data->len < ssl_test->cli_send_len)
+    {
+      g_input_stream_read_async (input, ssl_test->srv_buf, BUF_SIZE,
+       G_PRIORITY_DEFAULT, ssl_test->test->cancellable, server_read_cb, data);
+    }
+  else
+    {
+      ssl_test->test->outstanding--;
+      g_main_loop_quit (ssl_test->test->loop);
+    }
 }
 
 
@@ -222,6 +248,7 @@ setup_ssl_test (ssl_test_t *ssl_test, test_data_t *test)
 static void
 teardown_ssl_test (ssl_test_t *ssl_test)
 {
+  g_free (ssl_test->cli_send);
   g_string_free (ssl_test->cli_data, TRUE);
   g_string_free (ssl_test->srv_data, TRUE);
   g_io_stream_close (G_IO_STREAM (ssl_test->server), NULL, NULL);
@@ -231,7 +258,7 @@ teardown_ssl_test (ssl_test_t *ssl_test)
 }
 
 static void
-test_openssl_handshake_rw (void)
+test_tls_handshake_rw (void)
 {
   ssl_test_t ssl_test = { NULL, } ;
   test_data_t *test = setup_test ();
@@ -242,6 +269,15 @@ test_openssl_handshake_rw (void)
   gchar *target =
     TEST_SSL_DATA_A "\0" TEST_SSL_DATA_B "\0"
     TEST_SSL_DATA_A "\0" TEST_SSL_DATA_B "\0" TEST_SSL_DATA_A;
+
+  ssl_test.cli_send = g_malloc0 (32 * 1024);
+
+  while (ssl_test.cli_send_len + 4 < 32 * 1024)
+    {
+      guint32 r = g_random_int ();
+      memcpy (ssl_test.cli_send + ssl_test.cli_send_len, &r, 4);
+      ssl_test.cli_send_len += 4;
+    }
 
   setup_ssl_test (&ssl_test, test);
 
@@ -255,12 +291,12 @@ test_openssl_handshake_rw (void)
 
   test_wait_pending (test);
 
-  g_assert (test->outstanding == 0);
-  g_assert (ssl_test.cli_data->len == expected);
-  g_assert (ssl_test.srv_data->len == TEST_SSL_DATA_LEN);
+  g_assert_cmpint (test->outstanding, ==, 0);
+  g_assert_cmpint (ssl_test.cli_data->len, ==, expected);
+  g_assert_cmpint (ssl_test.srv_data->len, ==, ssl_test.cli_send_len);
   g_assert (!memcmp (ssl_test.cli_data->str, target, expected));
   g_assert (!memcmp (ssl_test.srv_data->str,
-    TEST_SSL_DATA_A, TEST_SSL_DATA_LEN));
+    ssl_test.cli_send, ssl_test.cli_send_len));
 
   teardown_test (test);
   teardown_ssl_test (&ssl_test);
@@ -275,7 +311,7 @@ main (int argc, char **argv)
   int result;
 
   test_init (argc, argv);
-  g_test_add_func ("/openssl/handshake+rw", test_openssl_handshake_rw);
+  g_test_add_func ("/tls/handshake+rw", test_tls_handshake_rw);
   result = g_test_run ();
   test_deinit ();
 

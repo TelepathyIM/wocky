@@ -159,8 +159,8 @@ typedef struct
 {
   WockyTLSOpState state;
 
-  gpointer buffer;
-  gsize requested;
+  guint8 *buffer;
+  gssize requested;
   gssize result;
   GError *error;
 } WockyTLSOp;
@@ -1168,12 +1168,44 @@ wocky_tls_session_write_ready (GObject      *object,
                                gpointer      user_data)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (user_data);
+  gssize ret;
 
   g_assert (session->write_op.state == WOCKY_TLS_OP_STATE_ACTIVE);
 
-  session->write_op.result =
-    g_output_stream_write_finish (G_OUTPUT_STREAM (object), result,
+  ret = g_output_stream_write_finish (G_OUTPUT_STREAM (object), result,
                                   &session->write_op.error);
+  if (ret > 0)
+    {
+      session->write_op.result += ret;
+
+      if (session->write_op.result < session->write_op.requested)
+        {
+          GOutputStream *stream;
+          WockyTLSJob *active_job;
+
+          stream = g_io_stream_get_output_stream (session->stream);
+
+          if (session->handshake_job.job.active)
+              active_job = &session->handshake_job.job;
+          else
+              active_job = &session->write_job.job;
+
+          g_output_stream_write_async (stream,
+            session->write_op.buffer + session->write_op.result,
+            session->write_op.requested - session->write_op.result,
+            active_job->io_priority,
+            active_job->cancellable,
+            wocky_tls_session_write_ready,
+            session);
+          return;
+        }
+    }
+  else
+    {
+      /* Error or EOF, we're done */
+      session->write_op.result = ret;
+    }
+
   session->write_op.state = WOCKY_TLS_OP_STATE_DONE;
 
   /* don't recurse if the async handler is already running */
@@ -1211,6 +1243,7 @@ wocky_tls_session_push_func (gpointer    user_data,
           session->write_op.buffer = g_memdup (buffer, count);
           session->write_op.requested = count;
           session->write_op.error = NULL;
+          session->write_op.result = 0;
 
           g_output_stream_write_async (stream,
                                        session->write_op.buffer,
