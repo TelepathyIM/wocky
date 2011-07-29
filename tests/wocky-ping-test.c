@@ -55,8 +55,9 @@ test_periodic_ping (void)
   WockyPing *ping;
   test_data_t *test = setup_test_with_timeout (TOTAL_TIMEOUT);
 
+  g_assert (WOCKY_IS_C2S_PORTER (test->sched_in));
   /* First, we ping every n seconds */
-  ping = wocky_ping_new (test->sched_in, PING_INTERVAL);
+  ping = wocky_ping_new (WOCKY_C2S_PORTER (test->sched_in), PING_INTERVAL);
 
   test_open_both_connections (test);
 
@@ -113,7 +114,8 @@ test_pong (void)
   WockyPing *ping;
   test_data_t *test = setup_test ();
 
-  ping = wocky_ping_new (test->sched_in, 0);
+  g_assert (WOCKY_IS_C2S_PORTER (test->sched_in));
+  ping = wocky_ping_new (WOCKY_C2S_PORTER (test->sched_in), 0);
 
   test_open_both_connections (test);
 
