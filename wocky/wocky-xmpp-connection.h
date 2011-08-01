@@ -173,6 +173,16 @@ gboolean wocky_xmpp_connection_force_close_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_xmpp_connection_send_whitespace_ping_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_xmpp_connection_send_whitespace_ping_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error);
+
 void wocky_xmpp_connection_reset (WockyXmppConnection *connection);
 
 gchar * wocky_xmpp_connection_new_id (WockyXmppConnection *self);
