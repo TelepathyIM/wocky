@@ -57,7 +57,7 @@ struct _WockyPingPrivate
   gboolean dispose_has_run;
 };
 
-static void send_xmpp_ping (WockyPing *self);
+static void send_ping (WockyPing *self);
 static gboolean ping_iq_cb (WockyPorter *porter, WockyStanza *stanza,
     gpointer data);
 
@@ -137,8 +137,8 @@ wocky_ping_constructed (GObject *object)
       ')', NULL);
 
   priv->heartbeat = wocky_heartbeat_source_new (priv->ping_interval);
-  g_source_set_callback (priv->heartbeat, (GSourceFunc) send_xmpp_ping,
-      self, NULL);
+  g_source_set_callback (priv->heartbeat, (GSourceFunc) send_ping, self,
+      NULL);
   g_source_attach (priv->heartbeat, NULL);
 }
 
@@ -212,22 +212,17 @@ wocky_ping_new (WockyC2SPorter *porter, guint interval)
 }
 
 static void
-send_xmpp_ping (WockyPing *self)
+send_ping (WockyPing *self)
 {
-  WockyStanza *iq;
-
   g_return_if_fail (WOCKY_IS_PING (self));
 
-  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_GET, NULL, NULL,
-      '(', "ping",
-          ':', WOCKY_XMPP_NS_PING,
-      ')', NULL);
-
+  /* We send a whitespace ping and not a XMPP one to save bandwidth.
+   * As much as it can sound a stupidly small gain, it can be useful when
+   * sending pings on an idle cellular connection; very small packets can
+   * be sent using a low power 3G channel. */
   DEBUG ("pinging");
-  wocky_porter_send_iq_async (WOCKY_PORTER (self->priv->porter), iq, NULL,
+  wocky_c2s_porter_send_whitespace_ping_async (self->priv->porter, NULL,
       NULL, NULL);
-  g_object_unref (iq);
 }
 
 static gboolean
