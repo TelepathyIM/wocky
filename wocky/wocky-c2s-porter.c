@@ -630,35 +630,43 @@ send_head_stanza (WockyC2SPorter *self)
 }
 
 static void
+terminate_sending_operations (WockyC2SPorter *self,
+    GError *error)
+{
+  WockyC2SPorterPrivate *priv = self->priv;
+  sending_queue_elem *elem;
+
+  g_return_if_fail (error != NULL);
+
+  while ((elem = g_queue_pop_head (priv->sending_queue)))
+    {
+      g_simple_async_result_set_from_error (elem->result, error);
+      g_simple_async_result_complete (elem->result);
+      sending_queue_elem_free (elem);
+    }
+}
+
+static void
 send_stanza_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
   WockyC2SPorter *self = WOCKY_C2S_PORTER (user_data);
   WockyC2SPorterPrivate *priv = self->priv;
-  sending_queue_elem *elem;
   GError *error = NULL;
-
-  elem = g_queue_pop_head (priv->sending_queue);
 
   if (!wocky_xmpp_connection_send_stanza_finish (
         WOCKY_XMPP_CONNECTION (source), res, &error))
     {
       /* Sending failed. Cancel this sending operation and all the others
        * pending ones as we won't be able to send any more stanza. */
-
-      while (elem != NULL)
-        {
-          g_simple_async_result_set_from_error (elem->result, error);
-          g_simple_async_result_complete (elem->result);
-          sending_queue_elem_free (elem);
-          elem = g_queue_pop_head (priv->sending_queue);
-        }
-
+      terminate_sending_operations (self, error);
       g_error_free (error);
     }
   else
     {
+      sending_queue_elem *elem = g_queue_pop_head (priv->sending_queue);
+
       if (elem == NULL)
         /* The elem could have been removed from the queue if its sending
          * operation has already been completed (for example by forcing to
@@ -1895,7 +1903,6 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
 {
   WockyC2SPorter *self = WOCKY_C2S_PORTER (porter);
   WockyC2SPorterPrivate *priv = self->priv;
-  sending_queue_elem *elem;
   GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCIBLY_CLOSED,
       "Porter was closed forcibly" };
 
@@ -1956,14 +1963,7 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
   g_object_unref (self);
 
   /* Terminate all the pending sending operations */
-  elem = g_queue_pop_head (priv->sending_queue);
-  while (elem != NULL)
-    {
-      g_simple_async_result_set_from_error (elem->result, &err);
-      g_simple_async_result_complete_in_idle (elem->result);
-      sending_queue_elem_free (elem);
-      elem = g_queue_pop_head (priv->sending_queue);
-    }
+  terminate_sending_operations (self, &err);
 
   /* Terminate all the pending send IQ operations */
   abort_pending_iqs (self, &err);
