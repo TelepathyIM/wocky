@@ -78,6 +78,17 @@ GType wocky_c2s_porter_get_type (void);
 WockyPorter * wocky_c2s_porter_new (WockyXmppConnection *connection,
     const gchar *full_jid);
 
+void wocky_c2s_porter_send_whitespace_ping_async (
+    WockyC2SPorter *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean wocky_c2s_porter_send_whitespace_ping_finish (
+    WockyC2SPorter *self,
+    GAsyncResult *result,
+    GError **error);
+
 guint wocky_c2s_porter_register_handler_from_server_va (
     WockyC2SPorter *self,
     WockyStanzaType type,
