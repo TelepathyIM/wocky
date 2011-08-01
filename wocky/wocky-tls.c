@@ -41,6 +41,10 @@
  * equivalent to a priority string of "SECURE:+COMP-DEFLATE".
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-tls.h"
 
 #include <gnutls/x509.h>
@@ -51,11 +55,26 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#ifdef ENABLE_PREFER_STREAM_CIPHERS
 #define DEFAULT_TLS_OPTIONS \
-  "NORMAL:"         /* all secure algorithms */ \
-  "-COMP-NULL:"     /* remove null compression                           */ \
-  "+COMP-DEFLATE:"  /* prefer deflate                                    */ \
-  "+COMP-NULL"      /* fall back to null                                 */
+  /* start with nothing enabled by default */ \
+  "NONE:" \
+  /* enable all the normal algorithms */ \
+  "+VERS-TLS-ALL:+SIGN-ALL:+MAC-ALL:+CTYPE-ALL:+RSA:" \
+  /* prefer deflate compression, but fall back to null compression */ \
+  "+COMP-DEFLATE:+COMP-NULL:" \
+  /* our preferred stream ciphers */ \
+  "+ARCFOUR-128:+ARCFOUR-40:" \
+  /* all the other ciphers */ \
+  "+AES-128-CBC:+AES-256-CBC:+3DES-CBC:+DES-CBC:+RC2-40:" \
+  "+CAMELLIA-256-CBC:+CAMELLIA-128-CBC"
+#else
+#define DEFAULT_TLS_OPTIONS \
+  "NORMAL:"        /* all secure algorithms */ \
+  "-COMP-NULL:"    /* remove null compression */ \
+  "+COMP-DEFLATE:" /* prefer deflate */ \
+  "+COMP-NULL"     /* fall back to null */
+#endif
 
 #define DEBUG_FLAG DEBUG_TLS
 #define DEBUG_HANDSHAKE_LEVEL 5
