@@ -93,6 +93,12 @@ void wocky_test_stream_set_mode (GInputStream *stream,
 void wocky_test_stream_set_write_mode (GOutputStream *stream,
   WockyTestStreamWriteMode mode);
 
+typedef void (*WockyTestStreamDirectReadCb) (const gchar *buff, gsize len,
+  gpointer user_data);
+
+void wocky_test_stream_set_direct_read_callback (GInputStream *stream,
+  WockyTestStreamDirectReadCb cb, gpointer user_data);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_TEST_STREAM_H__*/
