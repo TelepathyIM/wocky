@@ -147,6 +147,23 @@ AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)
 AM_CONDITIONAL(USING_OPENSSL, test x$USING_OPENSSL = xyes)
 
+AC_ARG_ENABLE([prefer-stream-ciphers],
+  AC_HELP_STRING([--enable-prefer-stream-ciphers],
+    [prefer stream ciphers over block ciphers to save bandwidth (at the possible expense of security)]),
+    [prefer_stream_ciphers=$enableval], [prefer_stream_ciphers=no])
+
+if test x$prefer_stream_ciphers = xyes; then
+  AC_DEFINE(ENABLE_PREFER_STREAM_CIPHERS, [],
+      [Prefer stream ciphers over block ones to save bandwidth])
+  if test $with_tls = gnutls; then
+    # The *-ALL priority strings require gnutls 2.12.0.
+    # We do this check here and not earlier to avoid accidentally falling
+    # back to openssl because of the use of --enable-prefer-stream-ciphers.
+    PKG_CHECK_MODULES(GNUTLS_FOR_STREAM_CIPHERS, [gnutls >= 2.12.0],[],
+      AC_MSG_ERROR([gnutls 2.12.0 is needed to use --enable-prefer-stream-cihpers]))
+  fi
+fi
+
 GLIB_GENMARSHAL=`$PKG_CONFIG --variable=glib_genmarshal glib-2.0`
 AC_SUBST(GLIB_GENMARSHAL)
 
@@ -232,6 +249,7 @@ Configure summary:
 
     Features:
         TLS Backend..........: ${with_tls}
+        Prefer stream ciphers: ${prefer_stream_ciphers}
         SASL2 Tests..........: ${HAVE_LIBSASL2}
         gtk-doc documentation: ${enable_gtk_doc}
         libiphb integration..: ${have_iphb}

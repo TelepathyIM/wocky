@@ -73,6 +73,26 @@
 #include <errno.h>
 #include <sys/types.h>
 
+/* SSL_CTX_set_cipher_list() allows to restrict/alter the list of supported
+ * ciphers; see ciphers(1) for documentation on the format.
+ * Usually the normal ciphers are ok, but on mobile phones we prefer RC4 as
+ * it decreases the size of packets. The bandwidth difference is tiny, but
+ * the difference in power consumption between small and very small packets
+ * can be significant on 3G. */
+#ifdef ENABLE_PREFER_STREAM_CIPHERS
+
+#define CIPHER_LIST \
+  "RC4-SHA:" \
+  "RC4-MD5:" \
+  "ECDHE-RSA-RC4-SHA:" \
+  "ECDHE-ECDSA-RC4-SHA:" \
+  "ECDH-RSA-RC4-SHA:" \
+  "ECDH-ECDSA-RC4-SHA:" \
+  "PSK-RC4-SHA:" \
+  "ALL" /* fall-back to all the other algorithms */
+
+#endif
+
 enum
 {
   PROP_S_NONE,
@@ -1751,11 +1771,9 @@ wocky_tls_session_constructed (GObject *object)
   X509_STORE_set_flags (SSL_CTX_get_cert_store (session->ctx),
                         X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
 
-  /* If you want to restrict/alter the list of supported ciphers, do so *
-   * with this function: (CIPHER_LIST is a ':' separated list of names) *
-   * in which elements can be negated with a ! prefix                   *
-   * eg "all:!some-crypto-we-hate"                                      *
-   * SSL_CTX_set_cipher_list (session->ctx, CIPHER_LIST);               */
+#ifdef CIPHER_LIST
+  SSL_CTX_set_cipher_list (session->ctx, CIPHER_LIST);
+#endif
 
   if (session->server)
     {
