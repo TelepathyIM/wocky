@@ -22,20 +22,20 @@
  */
 #define TOTAL_TIMEOUT (PING_COUNT * PING_INTERVAL + 1) * 3
 
-static gboolean
-ping_recv_cb (WockyPorter *porter, WockyStanza *stanza, gpointer user_data)
+static void
+ping_recv_cb (const gchar *buff, gsize len, gpointer user_data)
 {
-  test_data_t *data = (test_data_t *) user_data;
-  WockyStanza *reply;
+  test_data_t *data = user_data;
+  gchar *tmp_buff;
 
-  reply = wocky_stanza_build_iq_result (stanza, NULL);
-  wocky_porter_send (porter, reply);
-  g_object_unref (reply);
+  /* There is no g_assert_cmpnstr */
+  tmp_buff = g_strndup (buff, len);
+  g_assert_cmpstr (tmp_buff, ==, " ");
+  g_free (tmp_buff);
 
   g_assert_cmpuint (data->outstanding, >, 0);
   data->outstanding--;
   g_main_loop_quit (data->loop);
-  return TRUE;
 }
 
 static gboolean
@@ -54,21 +54,26 @@ test_periodic_ping (void)
 {
   WockyPing *ping;
   test_data_t *test = setup_test_with_timeout (TOTAL_TIMEOUT);
+  WockyXmppConnection *connection;
+  GIOStream *stream;
+  GInputStream *stream_in;
 
+  g_assert (WOCKY_IS_C2S_PORTER (test->sched_in));
   /* First, we ping every n seconds */
-  ping = wocky_ping_new (test->sched_in, PING_INTERVAL);
+  ping = wocky_ping_new (WOCKY_C2S_PORTER (test->sched_in), PING_INTERVAL);
 
   test_open_both_connections (test);
 
   wocky_porter_start (test->sched_in);
   wocky_porter_start (test->sched_out);
 
-  wocky_porter_register_handler_from_anyone (test->sched_out,
-      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
-      WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, ping_recv_cb, test,
-      '(', "ping",
-          ':', WOCKY_XMPP_NS_PING,
-      ')', NULL);
+  g_object_get (test->sched_out, "connection", &connection, NULL);
+  g_object_get (connection, "base-stream", &stream, NULL);
+  stream_in = g_io_stream_get_input_stream (stream);
+  g_object_unref (stream);
+  g_object_unref (connection);
+
+  wocky_test_stream_set_direct_read_callback (stream_in, ping_recv_cb, test);
 
   test->outstanding += PING_COUNT;
 
@@ -85,6 +90,8 @@ test_periodic_ping (void)
   g_object_set (ping, "ping-interval", PING_INTERVAL, NULL);
   test->outstanding += 1;
   test_wait_pending (test);
+
+  wocky_test_stream_set_direct_read_callback (stream_in, NULL, NULL);
 
   test_close_both_porters (test);
   g_object_unref (ping);
@@ -113,7 +120,8 @@ test_pong (void)
   WockyPing *ping;
   test_data_t *test = setup_test ();
 
-  ping = wocky_ping_new (test->sched_in, 0);
+  g_assert (WOCKY_IS_C2S_PORTER (test->sched_in));
+  ping = wocky_ping_new (WOCKY_C2S_PORTER (test->sched_in), 0);
 
   test_open_both_connections (test);
 

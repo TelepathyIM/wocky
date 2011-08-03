@@ -74,6 +74,8 @@ typedef struct {
   GError *read_error /* no, this is not a coding style violation */;
   gboolean dispose_has_run;
   WockyTestStreamReadMode mode;
+  WockyTestStreamDirectReadCb direct_read_cb;
+  gpointer direct_read_user_data;
   gboolean corked;
 } WockyTestInputStream;
 
@@ -297,6 +299,9 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
       }
   } while (self->mode != WOCK_TEST_STREAM_READ_EXACT
     && written < count && self->out_array != NULL);
+
+  if (self->direct_read_cb != NULL)
+    self->direct_read_cb (buffer, written, self->direct_read_user_data);
 
   return written;
 }
@@ -643,6 +648,17 @@ wocky_test_stream_cork (GInputStream *stream,
   if (cork == FALSE)
     wocky_test_input_stream_try_read (tstream);
 
+}
+
+void
+wocky_test_stream_set_direct_read_callback (GInputStream *stream,
+  WockyTestStreamDirectReadCb cb,
+  gpointer user_data)
+{
+  WockyTestInputStream *tstream = WOCKY_TEST_INPUT_STREAM (stream);
+
+  tstream->direct_read_cb = cb;
+  tstream->direct_read_user_data = user_data;
 }
 
 void

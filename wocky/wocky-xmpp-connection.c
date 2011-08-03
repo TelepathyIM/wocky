@@ -47,6 +47,7 @@
 #include "wocky-xmpp-reader.h"
 #include "wocky-xmpp-writer.h"
 #include "wocky-stanza.h"
+#include "wocky-utils.h"
 
 #define BUFFER_SIZE 1024
 
@@ -1028,6 +1029,98 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
   priv->output_closed = TRUE;
 
   return TRUE;
+}
+
+/**
+ * wocky_xmpp_connection_send_whitespace_ping_async:
+ * @connection: a #WockyXmppConnection
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied.
+ * @user_data: the data to pass to callback function.
+ *
+ * Request asynchronous sending of a whitespace ping. When the operation is
+ * finished @callback will be called. You can then call
+ * wocky_xmpp_connection_send_whitespace_ping_finish() to get the result of
+ * the operation.
+ *
+ * Can only be called after wocky_xmpp_connection_send_open_async has finished
+ * its operation.
+ */
+void
+wocky_xmpp_connection_send_whitespace_ping_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  WockyXmppConnectionPrivate *priv =
+      connection->priv;
+
+  if (G_UNLIKELY (priv->output_result != NULL))
+    goto pending;
+
+  if (G_UNLIKELY (!priv->output_open))
+    goto not_open;
+
+  if (G_UNLIKELY (priv->output_closed))
+    goto is_closed;
+
+  g_assert (!priv->output_closed);
+  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_cancellable == NULL);
+
+  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
+    callback, user_data, wocky_xmpp_connection_send_whitespace_ping_async);
+
+  if (cancellable != NULL)
+    priv->output_cancellable = g_object_ref (cancellable);
+
+  priv->output_buffer = (guint8 *) " ";
+  priv->length = 1;
+  priv->offset = 0;
+
+  wocky_xmpp_connection_do_write (connection);
+
+  return;
+
+pending:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
+  return;
+
+not_open:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+    "Connections hasn't been opened for sending");
+  return;
+
+is_closed:
+  g_simple_async_report_error_in_idle (G_OBJECT (connection),
+    callback, user_data,
+    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+    "Connections has been closed for sending");
+  return;
+}
+
+/**
+ * wocky_xmpp_connection_send_whitespace_ping_finish:
+ * @connection: a #WockyXmppConnection.
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes sending a whitespace ping.
+ *
+ * Returns: TRUE if the ping was succesfully sent, FALSE on error.
+ */
+gboolean
+wocky_xmpp_connection_send_whitespace_ping_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  wocky_implement_finish_void (connection,
+      wocky_xmpp_connection_send_whitespace_ping_async);
 }
 
 /**

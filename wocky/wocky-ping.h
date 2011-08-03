@@ -24,7 +24,7 @@
 #include <glib-object.h>
 
 #include "wocky-types.h"
-#include "wocky-porter.h"
+#include "wocky-c2s-porter.h"
 
 G_BEGIN_DECLS
 
@@ -70,7 +70,7 @@ GType wocky_ping_get_type (void);
   (G_TYPE_INSTANCE_GET_CLASS ((obj), WOCKY_TYPE_PING, \
    WockyPingClass))
 
-WockyPing * wocky_ping_new (WockyPorter *porter, guint interval);
+WockyPing * wocky_ping_new (WockyC2SPorter *porter, guint interval);
 
 G_END_DECLS
 

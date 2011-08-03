@@ -47,7 +47,7 @@ enum
 /* private structure */
 struct _WockyPingPrivate
 {
-  WockyPorter *porter;
+  WockyC2SPorter *porter;
 
   guint ping_interval;
   GSource *heartbeat;
@@ -57,7 +57,7 @@ struct _WockyPingPrivate
   gboolean dispose_has_run;
 };
 
-static void send_xmpp_ping (WockyPing *self);
+static void send_ping (WockyPing *self);
 static gboolean ping_iq_cb (WockyPorter *porter, WockyStanza *stanza,
     gpointer data);
 
@@ -128,7 +128,8 @@ wocky_ping_constructed (GObject *object)
 
   g_assert (priv->porter != NULL);
 
-  priv->ping_iq_cb = wocky_porter_register_handler_from_anyone (priv->porter,
+  priv->ping_iq_cb = wocky_porter_register_handler_from_anyone (
+      WOCKY_PORTER (priv->porter),
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, ping_iq_cb, self,
       '(', "ping",
@@ -136,8 +137,8 @@ wocky_ping_constructed (GObject *object)
       ')', NULL);
 
   priv->heartbeat = wocky_heartbeat_source_new (priv->ping_interval);
-  g_source_set_callback (priv->heartbeat, (GSourceFunc) send_xmpp_ping,
-      self, NULL);
+  g_source_set_callback (priv->heartbeat, (GSourceFunc) send_ping, self,
+      NULL);
   g_source_attach (priv->heartbeat, NULL);
 }
 
@@ -154,7 +155,8 @@ wocky_ping_dispose (GObject *object)
 
   if (priv->ping_iq_cb != 0)
     {
-      wocky_porter_unregister_handler (priv->porter, priv->ping_iq_cb);
+      wocky_porter_unregister_handler (WOCKY_PORTER (priv->porter),
+          priv->ping_iq_cb);
       priv->ping_iq_cb = 0;
     }
 
@@ -183,9 +185,9 @@ wocky_ping_class_init (WockyPingClass *wocky_ping_class)
   object_class->get_property = wocky_ping_get_property;
   object_class->dispose = wocky_ping_dispose;
 
-  spec = g_param_spec_object ("porter", "Wocky porter",
+  spec = g_param_spec_object ("porter", "Wocky C2S porter",
       "the wocky porter to set up keepalive pings on",
-      WOCKY_TYPE_PORTER,
+      WOCKY_TYPE_C2S_PORTER,
       G_PARAM_READWRITE |
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_PORTER, spec);
@@ -199,9 +201,9 @@ wocky_ping_class_init (WockyPingClass *wocky_ping_class)
 }
 
 WockyPing *
-wocky_ping_new (WockyPorter *porter, guint interval)
+wocky_ping_new (WockyC2SPorter *porter, guint interval)
 {
-  g_return_val_if_fail (WOCKY_IS_PORTER (porter), NULL);
+  g_return_val_if_fail (WOCKY_IS_C2S_PORTER (porter), NULL);
 
   return g_object_new (WOCKY_TYPE_PING,
       "porter", porter,
@@ -210,21 +212,17 @@ wocky_ping_new (WockyPorter *porter, guint interval)
 }
 
 static void
-send_xmpp_ping (WockyPing *self)
+send_ping (WockyPing *self)
 {
-  WockyStanza *iq;
-
   g_return_if_fail (WOCKY_IS_PING (self));
 
-  iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
-      WOCKY_STANZA_SUB_TYPE_GET, NULL, NULL,
-      '(', "ping",
-          ':', WOCKY_XMPP_NS_PING,
-      ')', NULL);
-
+  /* We send a whitespace ping and not a XMPP one to save bandwidth.
+   * As much as it can sound a stupidly small gain, it can be useful when
+   * sending pings on an idle cellular connection; very small packets can
+   * be sent using a low power 3G channel. */
   DEBUG ("pinging");
-  wocky_porter_send_iq_async (self->priv->porter, iq, NULL, NULL, NULL);
-  g_object_unref (iq);
+  wocky_c2s_porter_send_whitespace_ping_async (self->priv->porter, NULL,
+      NULL, NULL);
 }
 
 static gboolean
