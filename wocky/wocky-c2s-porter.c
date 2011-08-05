@@ -103,7 +103,7 @@ struct _WockyC2SPorterPrivate
   /* Queue of (owned WockyStanza *) */
   GQueue *unimportant_queue;
   /* List of (owned WockyStanza *) */
-  GList *queueable_stanza_patterns;
+  GQueue queueable_stanza_patterns;
 
   WockyXmppConnection *connection;
 };
@@ -341,7 +341,6 @@ wocky_c2s_porter_init (WockyC2SPorter *self)
   priv->handlers = NULL;
   priv->power_saving_mode = FALSE;
   priv->unimportant_queue = g_queue_new ();
-  priv->queueable_stanza_patterns = NULL;
 
   priv->iq_reply_handlers = g_hash_table_new_full (g_str_hash, g_str_equal,
       NULL, (GDestroyNotify) stanza_iq_handler_free);
@@ -575,8 +574,8 @@ wocky_c2s_porter_finalize (GObject *object)
 
   g_queue_free (priv->unimportant_queue);
 
-  g_list_foreach (priv->queueable_stanza_patterns, (GFunc) g_object_unref, NULL);
-  g_list_free (priv->queueable_stanza_patterns);
+  g_queue_foreach (&priv->queueable_stanza_patterns, (GFunc) g_object_unref, NULL);
+  g_queue_clear (&priv->queueable_stanza_patterns);
 
   g_free (priv->full_jid);
   g_free (priv->bare_jid);
@@ -1035,21 +1034,31 @@ static void
 build_queueable_stanza_patterns (WockyC2SPorter *self)
 {
   WockyC2SPorterPrivate *priv = self->priv;
-  WockyStanza *pattern;
+  gchar **node_name = NULL;
+  gchar *node_names [] = {
+      "http://jabber.org/protocol/geoloc",
+      "http://jabber.org/protocol/nick",
+      "http://laptop.org/xmpp/buddy-properties",
+      "http://laptop.org/xmpp/activities",
+      "http://laptop.org/xmpp/current-activity",
+      "http://laptop.org/xmpp/activity-properties",
+      NULL};
 
-  if (priv->queueable_stanza_patterns != NULL)
-    return;
+  for (node_name = node_names; *node_name != NULL ; node_name++)
+    {
+      WockyStanza *pattern = wocky_stanza_build (
+          WOCKY_STANZA_TYPE_MESSAGE,
+          WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+          '(', "event",
+            ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
+            '(', "items",
+            '@', "node", *node_name,
+            ')',
+          ')',
+          NULL);
 
-  /* all PEP updates are queueable */
-  pattern = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
-      WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
-      '(', "event",
-        ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
-      ')',
-      NULL);
-
-  priv->queueable_stanza_patterns = g_list_prepend (
-      priv->queueable_stanza_patterns, pattern);
+      g_queue_push_tail (&priv->queueable_stanza_patterns, pattern);
+    }
 }
 
 static gboolean
@@ -1074,11 +1083,11 @@ is_stanza_important (WockyC2SPorter *self,
         }
     }
 
-  if (priv->queueable_stanza_patterns == NULL)
+  if (priv->queueable_stanza_patterns.length == 0)
     build_queueable_stanza_patterns (self);
 
   /* check whether stanza matches any of the queueable patterns */
-  for (l = priv->queueable_stanza_patterns; l != NULL; l = l->next)
+  for (l = priv->queueable_stanza_patterns.head; l != NULL; l = l->next)
     {
       if (wocky_node_is_superset (node, wocky_stanza_get_top_node (
           WOCKY_STANZA (l->data))))
