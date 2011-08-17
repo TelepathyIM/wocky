@@ -339,7 +339,7 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
   /* FIXME properly escape values */
   g_string_append_printf (response, "username=\"%s\"", priv->username);
   g_string_append_printf (response, ",realm=\"%s\"", realm);
-  g_string_append_printf (response, ",digest-uri=\"xmpp/%s\"", realm);
+  g_string_append_printf (response, ",digest-uri=\"xmpp/%s\"", priv->server);
   g_string_append_printf (response, ",nonce=\"%s\",nc=00000001", nonce);
   g_string_append_printf (response, ",cnonce=\"%s\"", cnonce);
   /* FIXME should check if auth is in the cop challenge val */
@@ -357,7 +357,7 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
 
   g_free (digest_md5);
 
-  a2 = g_strdup_printf ("AUTHENTICATE:xmpp/%s", realm);
+  a2 = g_strdup_printf ("AUTHENTICATE:xmpp/%s", priv->server);
   a2h = md5_hex_hash (a2, -1);
 
   kd = g_strdup_printf ("%s:%s:00000001:%s:auth:%s", a1h, nonce, cnonce, a2h);
@@ -370,7 +370,7 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
   g_free (a2h);
 
   /* Calculate the response we expect from the server */
-  a2 = g_strdup_printf (":xmpp/%s", realm);
+  a2 = g_strdup_printf (":xmpp/%s", priv->server);
   a2h = md5_hex_hash (a2, -1);
 
   kd =  g_strdup_printf ("%s:%s:00000001:%s:auth:%s", a1h, nonce, cnonce, a2h);
