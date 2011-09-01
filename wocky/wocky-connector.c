@@ -923,11 +923,12 @@ tcp_host_connected (GObject *source,
           DEBUG ("we previously hit a GIOError when connecting using SRV; "
               "reporting that error");
           abort_connect_error (connector, &priv->srv_connect_error,
-              "Bad SRV record");
+              "couldn't connect to server specified by SRV record");
         }
       else
         {
-          abort_connect_error (connector, &error, "connection failed");
+          abort_connect_error (connector, &error,
+              "couldn't connect to server");
         }
 
       g_error_free (error);
