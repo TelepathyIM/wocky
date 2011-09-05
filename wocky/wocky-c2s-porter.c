@@ -1161,7 +1161,7 @@ remote_connection_closed (WockyC2SPorter *self,
 
   /* Completing a close operation, firing the remote-error signal could make the
    * user unref the porter. Ref it so, in such case, it would stay alive until
-   * we have finished to threat the error. */
+   * we have finished threatening the error. */
   g_object_ref (self);
 
   /* Complete pending send IQ operations as we won't be able to receive their
@@ -1302,8 +1302,8 @@ stanza_received_cb (GObject *source,
     }
 
   /* Handling a stanza could make the user unref the porter.
-   * Ref it so, in such case, it would stay alive until we have finished to
-   * threat the stanza. */
+   * Ref it so, in such case, it would stay alive until we have finished
+   * threatening the stanza. */
   g_object_ref (self);
 
   queue_or_handle_stanza (self, stanza);
