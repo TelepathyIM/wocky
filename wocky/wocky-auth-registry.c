@@ -212,9 +212,15 @@ wocky_auth_registry_start_data_free (WockyAuthRegistryStartData *start_data)
   g_slice_free (WockyAuthRegistryStartData, start_data);
 }
 
-static WockyAuthHandler *
+static gboolean
 wocky_auth_registry_select_handler (WockyAuthRegistry *self,
-    gboolean allow_plain, const GSList *mechanisms)
+    const GSList *mechanisms,
+    gboolean allow_plain,
+    const gchar *username,
+    const gchar *password,
+    const gchar *server,
+    const gchar *session_id,
+    WockyAuthHandler **out_handler)
 {
   WockyAuthRegistryPrivate *priv = self->priv;
   GSList *k;
@@ -229,13 +235,79 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
 
       if (wocky_auth_registry_has_mechanism (mechanisms, handler_mech))
         {
-          g_object_ref (handler);
-          return handler;
+          if (out_handler != NULL)
+            *out_handler = g_object_ref (handler);
+
+          return TRUE;
         }
     }
 
-  return NULL;
+  if (wocky_auth_registry_has_mechanism (mechanisms,
+          WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1))
+    {
+      if (out_handler != NULL)
+        {
+          /* XXX: check for username and password here? */
+          DEBUG ("Choosing SCRAM-SHA-1 as auth mechanism");
+          *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
+              server, username, password));
+        }
+      return TRUE;
+    }
+
+  if (wocky_auth_registry_has_mechanism (mechanisms,
+          WOCKY_AUTH_MECH_SASL_DIGEST_MD5))
+    {
+      if (out_handler != NULL)
+        {
+          /* XXX: check for username and password here? */
+          *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_digest_md5_new (
+                  server, username, password));
+        }
+      return TRUE;
+    }
+
+  if (wocky_auth_registry_has_mechanism (mechanisms,
+          WOCKY_AUTH_MECH_JABBER_DIGEST))
+    {
+      if (out_handler != NULL)
+        {
+          *out_handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_digest_new (
+                  session_id, password));
+        }
+      return TRUE;
+    }
+
+  if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
+          WOCKY_AUTH_MECH_SASL_PLAIN))
+    {
+      if (out_handler != NULL)
+        {
+          /* XXX: check for username and password here? */
+          DEBUG ("Choosing PLAIN as auth mechanism");
+          *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_plain_new (
+                  username, password));
+        }
+      return TRUE;
+    }
+
+  if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
+          WOCKY_AUTH_MECH_JABBER_PASSWORD))
+    {
+      if (out_handler != NULL)
+        {
+          *out_handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_password_new (
+                  password));
+        }
+      return TRUE;
+    }
+
+  if (out_handler)
+    *out_handler = NULL;
+
+  return FALSE;
 }
+
 
 static void
 wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
@@ -257,49 +329,9 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
 
   g_assert (priv->handler == NULL);
 
-  priv->handler = wocky_auth_registry_select_handler (self, allow_plain,
-      mechanisms);
-
-  if (priv->handler == NULL)
-    {
-
-      if (wocky_auth_registry_has_mechanism (mechanisms, "SCRAM-SHA-1"))
-        {
-          /* XXX: check for username and password here? */
-          DEBUG ("Choosing SCRAM-SHA-1 as auth mechanism");
-          priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
-              server, username, password));
-        }
-      else if (wocky_auth_registry_has_mechanism (mechanisms,
-              WOCKY_AUTH_MECH_SASL_DIGEST_MD5))
-        {
-          /* XXX: check for username and password here? */
-          priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_digest_md5_new (
-                  server, username, password));
-        }
-      else if (wocky_auth_registry_has_mechanism (mechanisms,
-              WOCKY_AUTH_MECH_JABBER_DIGEST))
-        {
-          priv->handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_digest_new (
-                  session_id, password));
-        }
-      else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
-              WOCKY_AUTH_MECH_SASL_PLAIN))
-        {
-          /* XXX: check for username and password here? */
-          DEBUG ("Choosing PLAIN as auth mechanism");
-          priv->handler = WOCKY_AUTH_HANDLER (wocky_sasl_plain_new (
-                  username, password));
-        }
-      else if (allow_plain && wocky_auth_registry_has_mechanism (mechanisms,
-              WOCKY_AUTH_MECH_JABBER_PASSWORD))
-        {
-          priv->handler = WOCKY_AUTH_HANDLER (wocky_jabber_auth_password_new (
-                  password));
-        }
-    }
-
-  if (priv->handler == NULL)
+  if (!wocky_auth_registry_select_handler (self, mechanisms,
+          allow_plain, username, password, server, session_id,
+          &priv->handler))
     {
       g_simple_async_result_set_error (result, WOCKY_AUTH_ERROR,
           WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
@@ -508,4 +540,25 @@ wocky_auth_registry_add_handler (WockyAuthRegistry *self,
 
   g_object_ref (handler);
   priv->handlers = g_slist_append (priv->handlers, handler);
+}
+
+/**
+ * wocky_auth_registry_supports_one_of:
+ * @self: a #WockyAuthRegistry
+ * @allow_plain: Whether auth in plain text is allowed
+ * @mechanisms: a #GSList of gchar* of auth mechanisms
+ *
+ * Checks whether at least one of @mechanisms is supported by Wocky. At present,
+ * Wocky itself only implements password-based authentication mechanisms.
+ *
+ * Returns: %TRUE if one of the @mechanisms is supported by wocky,
+ *  %FALSE otherwise.
+ */
+gboolean
+wocky_auth_registry_supports_one_of (WockyAuthRegistry *self,
+    const GSList *mechanisms,
+    gboolean allow_plain)
+{
+  return wocky_auth_registry_select_handler (self, mechanisms,
+          allow_plain, NULL, NULL, NULL, NULL, NULL);
 }

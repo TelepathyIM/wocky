@@ -54,6 +54,7 @@ typedef enum
 #define WOCKY_AUTH_MECH_JABBER_PASSWORD "X-WOCKY-JABBER-PASSWORD"
 #define WOCKY_AUTH_MECH_SASL_DIGEST_MD5 "DIGEST-MD5"
 #define WOCKY_AUTH_MECH_SASL_PLAIN "PLAIN"
+#define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1 "SCRAM-SHA-1"
 
 /**
  * WockyAuthRegistryStartData:
@@ -324,6 +325,10 @@ WockyAuthRegistryStartData * wocky_auth_registry_start_data_dup (
 
 void wocky_auth_registry_failure (WockyAuthRegistry *self,
     GError *error);
+
+gboolean wocky_auth_registry_supports_one_of (WockyAuthRegistry *self,
+    const GSList *mechanisms,
+    gboolean allow_plain);
 
 G_END_DECLS
 
