@@ -1749,8 +1749,12 @@ wocky_c2s_porter_unregister_handler (WockyPorter *porter,
  * mode is disabled.
  *
  * Queueable stanzas are:
- *  - <presence/> and <presence type="unavailable"/>
- *  - all PEP updates
+ *
+ * <itemizedlist>
+ *  <listitem><code>&lt;presence/&gt;</code> and
+ *      <code>&lt;presence type="unavailable"/&gt;</code>;</listitem>
+ *  <listitem>PEP updates for a hardcoded list of namespaces.</listitem>
+ * </itemizedlist>
  *
  * Whenever stanza is handled, all previously queued stanzas
  * (if any) are handled as well, in the order they arrived. This preserves
