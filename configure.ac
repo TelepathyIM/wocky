@@ -225,7 +225,7 @@ dnl To be used by tests and examples
 WOCKY_CFLAGS='-I${top_builddir} -I${top_srcdir}'
 AC_SUBST(WOCKY_CFLAGS)
 
-GTK_DOC_CHECK([1.10],[--flavour no-tmpl])
+GTK_DOC_CHECK([1.17],[--flavour no-tmpl])
 
 AC_OUTPUT( Makefile            \
            wocky/Makefile      \
