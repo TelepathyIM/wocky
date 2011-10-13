@@ -185,8 +185,9 @@ wocky_caps_hash_compute_from_lists (
 
       if (field == NULL)
         {
-          DEBUG ("Data form is missing FORM_TYPE field");
-          goto cleanup;
+          DEBUG ("Data form is missing FORM_TYPE field; ignoring form and "
+              "moving onto next one");
+          continue;
         }
 
       form_name = g_value_get_string (field->default_value);
