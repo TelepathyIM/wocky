@@ -76,6 +76,7 @@ struct _WockyC2SPorterPrivate
   gchar *full_jid;
   gchar *bare_jid;
   gchar *resource;
+  gchar *domain;
 
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
@@ -361,7 +362,7 @@ wocky_c2s_porter_set_property (GObject *object,
 
   switch (property_id)
     {
-      gchar *node, *domain;
+      gchar *node;
 
       case PROP_CONNECTION:
         g_assert (priv->connection == NULL);
@@ -376,10 +377,9 @@ wocky_c2s_porter_set_property (GObject *object,
 
         priv->full_jid = g_value_dup_string (value);
         g_assert (priv->full_jid != NULL);
-        wocky_decode_jid (priv->full_jid, &node, &domain, &priv->resource);
-        priv->bare_jid = wocky_compose_jid (node, domain, NULL);
+        wocky_decode_jid (priv->full_jid, &node, &priv->domain, &priv->resource);
+        priv->bare_jid = wocky_compose_jid (node, priv->domain, NULL);
         g_free (node);
-        g_free (domain);
         break;
 
       default:
@@ -580,6 +580,7 @@ wocky_c2s_porter_finalize (GObject *object)
   g_free (priv->full_jid);
   g_free (priv->bare_jid);
   g_free (priv->resource);
+  g_free (priv->domain);
 
   G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->finalize (object);
 }
@@ -816,7 +817,8 @@ stanza_is_from_server (
 {
   return (nfrom == NULL ||
       !wocky_strdiff (nfrom, self->priv->full_jid) ||
-      !wocky_strdiff (nfrom, self->priv->bare_jid));
+      !wocky_strdiff (nfrom, self->priv->bare_jid) ||
+      !wocky_strdiff (nfrom, self->priv->domain));
 }
 
 /* Return TRUE if not spoofed. */
@@ -844,7 +846,7 @@ check_spoofing (WockyC2SPorter *self,
     goto finally;
 
   /* if we sent an IQ without a 'to' attribute, it's to our server: allow it
-   * to use our full or bare JID to reply */
+   * to use our full/bare JID or domain to reply */
   if (should_be_from == NULL)
     {
       if (stanza_is_from_server (self, nfrom))
