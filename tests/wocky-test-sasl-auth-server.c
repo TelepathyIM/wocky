@@ -36,6 +36,7 @@
 #ifdef HAVE_LIBSASL2
 
 #include <sasl/sasl.h>
+#include <sasl/saslplug.h>
 #define CHECK_SASL_RETURN(x)                                \
 G_STMT_START   {                                            \
     if (x < SASL_OK) {                                      \
@@ -929,8 +930,8 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   static gboolean sasl_initialized = FALSE;
   int ret;
   static sasl_callback_t callbacks[] = {
-    { SASL_CB_LOG, test_sasl_server_auth_log, NULL },
-    { SASL_CB_GETOPT, test_sasl_server_auth_getopt, NULL },
+    { SASL_CB_LOG, (sasl_callback_ft) test_sasl_server_auth_log, NULL },
+    { SASL_CB_GETOPT, (sasl_callback_ft) test_sasl_server_auth_getopt, NULL },
     { SASL_CB_LIST_END, NULL, NULL },
   };
 
