@@ -339,8 +339,7 @@ test_dataforms_invalid (void)
       wocky_stanza_get_top_node (stanza));
   g_object_unref (stanza);
 
-  /* should have failed, so no output. of course if the test fails
-   * then the string won't be freed! oh no!  */
+  /* should be NULL because of type="lol" */
   g_assert (out == NULL);
 
   /* now with no FORM_TYPE field but fine otherwise */
@@ -363,11 +362,32 @@ test_dataforms_invalid (void)
       ')',
       NULL);
 
-  out = wocky_caps_hash_compute_from_node (
-      wocky_stanza_get_top_node (stanza));
-  g_object_unref (stanza);
+  /* should just be ignoring the invalid data form as XEP-0115 section
+   * "5.4 Processing Method", bullet point 3.6 tells us */
+  check_hash (stanza, "9LXnSGAOqGkjoewMq7WHTF4wK/U=");
 
-  g_assert (out == NULL);
+  /* now with a FORM_TYPE but not type="hidden" */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+      ')',
+      NULL);
+
+  /* should just be ignoring the invalid data form as XEP-0115 section
+   * "5.4 Processing Method", bullet point 3.6 tells us */
+  check_hash (stanza, "9LXnSGAOqGkjoewMq7WHTF4wK/U=");
 
   /* now with <field var='blah'><value/></field> but fine otherwise;
    * this will fail because we have everything about the field but the

@@ -185,11 +185,20 @@ wocky_caps_hash_compute_from_lists (
 
       if (field == NULL)
         {
-          DEBUG ("Data form is missing FORM_TYPE field");
-          goto cleanup;
+          DEBUG ("Data form is missing FORM_TYPE field; ignoring form and "
+              "moving onto next one");
+          continue;
         }
 
       form_name = g_value_get_string (field->default_value);
+
+      if (field->type != WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN)
+        {
+          DEBUG ("FORM_TYPE field of form '%s' is not hidden; "
+              "ignoring form and moving onto next one",
+                 form_name);
+          continue;
+        }
 
       if (g_hash_table_lookup (form_names, form_name) != NULL)
         {
