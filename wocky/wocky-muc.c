@@ -413,7 +413,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       WOCKY_TYPE_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
       G_TYPE_STRING,  /* XMPP msg ID      */
-      G_TYPE_LONG,    /* time_t           */
+      G_TYPE_DATE_TIME, /* timestamp      */
       G_TYPE_POINTER, /* WockyMucMember * */
       G_TYPE_STRING,  /* content          */
       G_TYPE_STRING,  /* subject          */
@@ -426,7 +426,7 @@ wocky_muc_class_init (WockyMucClass *klass)
       WOCKY_TYPE_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
       G_TYPE_STRING,  /* XMPP msg ID      */
-      G_TYPE_LONG,    /* time_t           */
+      G_TYPE_DATE_TIME, /* timestamp      */
       G_TYPE_POINTER, /* WockyMucMember * */
       G_TYPE_STRING,  /* content          */
       WOCKY_TYPE_XMPP_ERROR,    /* WockyXmppError   */
@@ -1304,11 +1304,11 @@ get_message_sender (WockyMuc *muc,
 /*
  * Parse timestamp of delayed messages. For non-delayed, it's 0.
  */
-static time_t
+static GDateTime *
 extract_timestamp (WockyNode *msg)
 {
   WockyNode *x = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
-  time_t stamp = 0;
+  GDateTime *stamp = NULL;
 
   if (x != NULL)
     {
@@ -1323,14 +1323,18 @@ extract_timestamp (WockyNode *msg)
           GTimeVal timeval = { 0, 0 };
           gchar *tm_dup = g_strdup_printf ("%sZ", tm);
 
+          /* FIXME: GTimeVal should go away */
           if (!g_time_val_from_iso8601 (tm_dup, &timeval))
             DEBUG ("Malformed date string '%s' for " WOCKY_XMPP_NS_DELAY, tm);
           else
-            stamp = timeval.tv_sec;
+            stamp = g_date_time_new_from_timeval_local (&timeval);
 
           g_free (tm_dup);
         }
     }
+
+  if (stamp == NULL)
+    stamp = g_date_time_new_from_unix_local (0);
 
   return stamp;
 }
@@ -1392,7 +1396,7 @@ handle_message (WockyPorter *porter,
   const gchar *from = wocky_node_get_attribute (msg, "from");
   const gchar *body = wocky_node_get_content_from_child (msg, "body");
   const gchar *subj = wocky_node_get_content_from_child (msg, "subject");
-  time_t stamp = extract_timestamp (msg);
+  GDateTime *datetime = extract_timestamp (msg);
   WockyStanzaSubType sub_type;
   WockyMucMsgType mtype;
   WockyMucMember *who = NULL;
@@ -1425,7 +1429,7 @@ handle_message (WockyPorter *porter,
 
       wocky_stanza_extract_errors (stanza, &etype, &error, NULL, NULL);
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
-          stanza, mtype, id, stamp, who, body, error->code, etype);
+          stanza, mtype, id, datetime, who, body, error->code, etype);
       g_clear_error (&error);
     }
   else
@@ -1433,11 +1437,13 @@ handle_message (WockyPorter *porter,
       WockyMucMsgState mstate = extract_chat_state (msg);
 
       g_signal_emit (muc, signals[SIG_MSG], 0,
-          stanza, mtype, id, stamp, who, body, subj, mstate);
+          stanza, mtype, id, datetime, who, body, subj, mstate);
     }
 
   if (member_is_temporary)
     free_member (who);
+
+  g_date_time_unref (datetime);
 
   return TRUE;
 }
