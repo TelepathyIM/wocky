@@ -40,7 +40,7 @@ typedef struct _WockyHeartbeatSource {
 
     guint max_interval;
 
-    GTimeVal next_wakeup;
+    gint64 next_wakeup;
 } WockyHeartbeatSource;
 
 #if HAVE_IPHB
@@ -133,7 +133,7 @@ wocky_heartbeat_source_prepare (
     gint *msec_to_poll)
 {
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
-  GTimeVal now;
+  gint64 now;
 
 #if HAVE_IPHB
   /* If we're listening to the system heartbeat, always rely on it to wake us
@@ -149,27 +149,24 @@ wocky_heartbeat_source_prepare (
   if (self->max_interval == 0)
     return FALSE;
 
-  g_source_get_current_time (source, &now);
+  now = g_source_get_time (source);
 
   /* If now > self->next_wakeup, it's already time to wake up. */
-  if (now.tv_sec > self->next_wakeup.tv_sec ||
-      (now.tv_sec == self->next_wakeup.tv_sec &&
-       now.tv_usec >= self->next_wakeup.tv_usec))
+  if (now > self->next_wakeup)
     {
-      DEBUG ("ready to wake up (at %li.%li)", now.tv_sec, now.tv_usec);
+      DEBUG ("ready to wake up (at %li)", now);
       return TRUE;
     }
 
   /* Otherwise, we should only go back to sleep for a period of
-   * (self->next_wakeup - now). Inconveniently, GTimeVal gives us µs but we
-   * need to return ms; hence the scaling.
+   * (self->next_wakeup - now). Inconveniently, g_source_get_time() gives us µs
+   * but we need to return ms; hence the scaling.
    *
    * The value calculated here will always be positive. The difference in
    * seconds is non-negative; if it's zero, the difference in microseconds is
    * positive.
    */
-  *msec_to_poll = (self->next_wakeup.tv_sec - now.tv_sec) * 1000
-      + (self->next_wakeup.tv_usec - now.tv_usec) / 1000;
+  *msec_to_poll = (self->next_wakeup - now) / 1000;
 
   return FALSE;
 }
@@ -179,7 +176,7 @@ wocky_heartbeat_source_check (
     GSource *source)
 {
   WockyHeartbeatSource *self = (WockyHeartbeatSource *) source;
-  GTimeVal now;
+  gint64 now;
 
 #ifdef HAVE_IPHB
   if (self->heartbeat != NULL)
@@ -206,11 +203,9 @@ wocky_heartbeat_source_check (
   if (self->max_interval == 0)
     return FALSE;
 
-  g_source_get_current_time (source, &now);
+  now = g_source_get_time (source);
 
-  return (now.tv_sec > self->next_wakeup.tv_sec ||
-      (now.tv_sec == self->next_wakeup.tv_sec &&
-       now.tv_usec >= self->next_wakeup.tv_usec));
+  return (now > self->next_wakeup);
 }
 
 #if HAVE_IPHB
@@ -243,11 +238,10 @@ wocky_heartbeat_source_dispatch (
    */
   if (DEBUGGING)
     {
-      GTimeVal now;
+      gint64 now;
 
-      g_source_get_current_time (source, &now);
-      DEBUG ("calling %p (%p) at %li.%li", callback, user_data,
-          now.tv_sec, now.tv_usec);
+      now = g_source_get_time (source);
+      DEBUG ("calling %p (%p) at %li", callback, user_data, now);
     }
 
   ((WockyHeartbeatCallback) callback) (user_data);
@@ -257,10 +251,9 @@ wocky_heartbeat_source_dispatch (
 #endif
 
   /* Record the time we next want to wake up. */
-  g_source_get_current_time (source, &self->next_wakeup);
-  self->next_wakeup.tv_sec += self->max_interval;
-  DEBUG ("next wakeup at %li.%li", self->next_wakeup.tv_sec,
-      self->next_wakeup.tv_usec);
+  self->next_wakeup = g_source_get_time (source);
+  self->next_wakeup += self->max_interval * G_USEC_PER_SEC;
+  DEBUG ("next wakeup at %li", self->next_wakeup);
 
   return TRUE;
 }
@@ -338,8 +331,8 @@ wocky_heartbeat_source_new (
    */
   self->max_interval = max_interval;
 
-  g_get_current_time (&self->next_wakeup);
-  self->next_wakeup.tv_sec += max_interval;
+  self->next_wakeup = g_get_monotonic_time ();
+  self->next_wakeup += max_interval * G_USEC_PER_SEC;
 
 #if HAVE_IPHB
   connect_to_heartbeat (self);
@@ -397,17 +390,16 @@ wocky_heartbeat_source_update_interval (
    * just update it.
    */
   if (self->max_interval == 0)
-    g_source_get_current_time (source, &self->next_wakeup);
+    self->next_wakeup = g_source_get_time (source);
 
   /* If this moves self->next_wakeup into the past, then we'll wake up ASAP,
    * which is what we want.
    */
-  self->next_wakeup.tv_sec += (max_interval - self->max_interval);
+  self->next_wakeup += (max_interval - self->max_interval) * G_USEC_PER_SEC;
   self->max_interval = max_interval;
 
   if (self->max_interval == 0)
     DEBUG ("heartbeat disabled");
   else
-    DEBUG ("next wakeup at or before %li.%li", self->next_wakeup.tv_sec,
-        self->next_wakeup.tv_usec);
+    DEBUG ("next wakeup at or before %li", self->next_wakeup);
 }
