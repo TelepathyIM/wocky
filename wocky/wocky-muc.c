@@ -1333,9 +1333,6 @@ extract_timestamp (WockyNode *msg)
         }
     }
 
-  if (stamp == NULL)
-    stamp = g_date_time_new_from_unix_local (0);
-
   return stamp;
 }
 
@@ -1443,7 +1440,8 @@ handle_message (WockyPorter *porter,
   if (member_is_temporary)
     free_member (who);
 
-  g_date_time_unref (datetime);
+  if (datetime != NULL)
+    g_date_time_unref (datetime);
 
   return TRUE;
 }
