@@ -238,4 +238,11 @@ $(filter %-enumtypes.c,$(built_sources)): %-enumtypes.c: %.h Makefile.in
 	--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (\"@EnumName@\", values);\n  }\n  return etype;\n}\n" \
 	$< > $@
 
-
+Android.mk: Makefile.am $(built_sources) $(built_headers)
+	androgenizer -:PROJECT wocky -:SHARED wocky -:TAGS eng debug \
+	 -:REL_TOP $(top_srcdir) -:ABS_TOP $(abs_top_srcdir) \
+	 -:SOURCES $(handwritten_sources) $(built_sources) \
+	 -:CFLAGS $(DEFS) $(CFLAGS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CFLAGS) \
+	 -:CPPFLAGS $(CPPFLAGS) $(AM_CPPFLAGS) \
+	 -:LDFLAGS $(AM_LDFLAGS) $(GCRYPT_LIBS) \
+	> $@

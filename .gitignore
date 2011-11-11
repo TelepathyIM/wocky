@@ -39,6 +39,7 @@ valgrind.*.log
 .cvsignore
 Thumbs.db
 autom4te.cache
+Android.mk
 Makefile
 Makefile.in
 INSTALL
