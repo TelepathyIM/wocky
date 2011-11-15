@@ -46,9 +46,12 @@ G_STMT_START   {                                            \
     }                                                       \
 } G_STMT_END
 
-#ifndef sasl_callback_ft
+/* Apparently, we're allowed to typedef the same thing *again* if it's
+ * the same signature, so this allows for backwards compatiblity with
+ * older libsasl2s and also works with newer ones too. This'll only
+ * break if libsasl2 change the type of sasl_callback_ft. I sure hope
+ * they don't! */
 typedef int (*sasl_callback_ft)(void);
-#endif
 
 #else
 
