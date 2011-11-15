@@ -46,6 +46,10 @@ G_STMT_START   {                                            \
     }                                                       \
 } G_STMT_END
 
+#ifndef sasl_callback_ft
+typedef int (*sasl_callback_ft)(void);
+#endif
+
 #else
 
 #define SASL_OK 0
