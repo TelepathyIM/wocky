@@ -138,7 +138,7 @@ test_sasl_utils_hmac_sha1 (digest_test *t)
   for (i = 0; i < g_checksum_type_get_length (G_CHECKSUM_SHA1); i++)
     g_assert_cmphex (result->data[i], ==, t->result[i]);
 
-  g_byte_array_free (result, TRUE);
+  g_byte_array_unref (result);
 }
 
 int

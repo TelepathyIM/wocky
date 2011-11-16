@@ -143,7 +143,7 @@ wocky_sasl_scram_dispose (GObject *object)
   g_free (priv->auth_message);
 
   if (priv->salted_password != NULL)
-    g_byte_array_free (priv->salted_password, TRUE);
+    g_byte_array_unref (priv->salted_password);
 
   G_OBJECT_CLASS (wocky_sasl_scram_parent_class)->dispose (object);
 }
@@ -329,14 +329,14 @@ scram_calculate_salted_password (WockySaslScram *self)
       GByteArray *U = sasl_calculate_hmac_sha1 ((guint8 *) priv->password,
         pass_len, prev->data, prev->len);
 
-      g_byte_array_free (prev, TRUE);
+      g_byte_array_unref (prev);
       prev = U;
 
       scram_xor_array (result, U);
     }
 
-  g_byte_array_free (prev, TRUE);
-  g_byte_array_free (salt, TRUE);
+  g_byte_array_unref (prev);
+  g_byte_array_unref (salt);
   priv->salted_password = result;
 }
 
@@ -382,8 +382,8 @@ scram_make_client_proof (WockySaslScram *self)
 
   proof = g_base64_encode (client_key->data, client_key->len);
 
-  g_byte_array_free (client_key, TRUE);
-  g_byte_array_free (client_signature, TRUE);
+  g_byte_array_unref (client_key);
+  g_byte_array_unref (client_signature);
 
   return proof;
 #undef CLIENT_KEY_STR
@@ -509,8 +509,8 @@ scram_check_server_verification (WockySaslScram *self,
       verification,  v);
 
 
-  g_byte_array_free (server_key, TRUE);
-  g_byte_array_free (server_signature, TRUE);
+  g_byte_array_unref (server_key);
+  g_byte_array_unref (server_signature);
   g_free (v);
 
   return ret;
