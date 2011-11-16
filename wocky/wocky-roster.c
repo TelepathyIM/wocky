@@ -114,8 +114,8 @@ pending_operation_free (PendingOperation *pending)
   g_slist_foreach (pending->waiting_operations, (GFunc) g_object_unref, NULL);
   g_slist_free (pending->waiting_operations);
 
-  g_hash_table_destroy (pending->groups_to_add);
-  g_hash_table_destroy (pending->groups_to_remove);
+  g_hash_table_unref (pending->groups_to_add);
+  g_hash_table_unref (pending->groups_to_remove);
 
   g_slice_free (PendingOperation, pending);
 }
@@ -592,8 +592,8 @@ wocky_roster_finalize (GObject *object)
   WockyRoster *self = WOCKY_ROSTER (object);
   WockyRosterPrivate *priv = self->priv;
 
-  g_hash_table_destroy (priv->items);
-  g_hash_table_destroy (priv->pending_operations);
+  g_hash_table_unref (priv->items);
+  g_hash_table_unref (priv->pending_operations);
 
   G_OBJECT_CLASS (wocky_roster_parent_class)->finalize (object);
 }

@@ -568,9 +568,9 @@ wocky_c2s_porter_finalize (GObject *object)
   g_assert_cmpuint (g_queue_get_length (priv->sending_queue), ==, 0);
   g_queue_free (priv->sending_queue);
 
-  g_hash_table_destroy (priv->handlers_by_id);
+  g_hash_table_unref (priv->handlers_by_id);
   g_list_free (priv->handlers);
-  g_hash_table_destroy (priv->iq_reply_handlers);
+  g_hash_table_unref (priv->iq_reply_handlers);
 
   g_queue_free (priv->unimportant_queue);
 

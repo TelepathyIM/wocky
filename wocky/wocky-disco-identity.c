@@ -175,7 +175,7 @@ wocky_disco_identity_array_free (GPtrArray *arr)
   if (arr == NULL)
     return;
 
-  g_ptr_array_free (arr, TRUE);
+  g_ptr_array_unref (arr);
 }
 
 /**

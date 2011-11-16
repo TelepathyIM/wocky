@@ -169,7 +169,7 @@ wocky_pubsub_service_dispose (GObject *object)
           g_slice_free (EventTrampoline, t);
         }
 
-      g_ptr_array_free (priv->trampolines, TRUE);
+      g_ptr_array_unref (priv->trampolines);
       priv->trampolines = NULL;
 
       g_object_unref (priv->porter);

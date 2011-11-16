@@ -198,9 +198,9 @@ wocky_contact_factory_finalize (GObject *object)
   WockyContactFactory *self = WOCKY_CONTACT_FACTORY (object);
   WockyContactFactoryPrivate *priv = self->priv;
 
-  g_hash_table_destroy (priv->bare_contacts);
-  g_hash_table_destroy (priv->resource_contacts);
-  g_hash_table_destroy (priv->ll_contacts);
+  g_hash_table_unref (priv->bare_contacts);
+  g_hash_table_unref (priv->resource_contacts);
+  g_hash_table_unref (priv->ll_contacts);
 
   G_OBJECT_CLASS (wocky_contact_factory_parent_class)->finalize (object);
 }

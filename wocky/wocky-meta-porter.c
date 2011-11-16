@@ -605,7 +605,7 @@ free_handler (gpointer data)
           stanza_handler_porter_disposed_cb, handler);
     }
 
-  g_hash_table_destroy (handler->porters);
+  g_hash_table_unref (handler->porters);
   if (handler->contact != NULL)
     g_object_unref (handler->contact);
   g_object_unref (handler->stanza);
@@ -738,8 +738,8 @@ wocky_meta_porter_dispose (GObject *object)
   g_socket_service_stop (priv->listener);
   g_object_unref (priv->listener);
 
-  g_hash_table_destroy (priv->porters);
-  g_hash_table_destroy (priv->handlers);
+  g_hash_table_unref (priv->porters);
+  g_hash_table_unref (priv->handlers);
 
   if (G_OBJECT_CLASS (wocky_meta_porter_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_meta_porter_parent_class)->dispose (object);

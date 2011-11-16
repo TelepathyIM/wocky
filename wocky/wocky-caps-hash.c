@@ -266,11 +266,11 @@ wocky_caps_hash_compute_from_lists (
 cleanup:
   g_checksum_free (checksum);
 
-  g_hash_table_destroy (form_names);
+  g_hash_table_unref (form_names);
 
-  g_ptr_array_free (identities_sorted, TRUE);
-  g_ptr_array_free (features_sorted, TRUE);
-  g_ptr_array_free (dataforms_sorted, TRUE);
+  g_ptr_array_unref (identities_sorted);
+  g_ptr_array_unref (features_sorted);
+  g_ptr_array_unref (dataforms_sorted);
 
   return encoded;
 }
@@ -362,8 +362,8 @@ wocky_caps_hash_compute_from_node (WockyNode *node)
 
 out:
   wocky_disco_identity_array_free (identities);
-  g_ptr_array_free (features, TRUE);
-  g_ptr_array_free (dataforms, TRUE);
+  g_ptr_array_unref (features);
+  g_ptr_array_unref (dataforms);
 
   return str;
 }

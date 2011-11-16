@@ -630,7 +630,7 @@ check_edit_roster_stanza (WockyStanza *stanza,
     }
 
   g_assert (g_hash_table_size (expected_groups) == 0);
-  g_hash_table_destroy (expected_groups);
+  g_hash_table_unref (expected_groups);
 }
 
 static void

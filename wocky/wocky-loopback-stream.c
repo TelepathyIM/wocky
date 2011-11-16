@@ -241,7 +241,7 @@ wocky_loopback_input_stream_read (GInputStream *stream,
 
       if (self->offset == self->out_array->len)
         {
-          g_array_free (self->out_array, TRUE);
+          g_array_unref (self->out_array);
           self->out_array = g_async_queue_try_pop (self->queue);
           self->offset = 0;
         }
@@ -382,7 +382,7 @@ wocky_loopback_input_stream_dispose (GObject *object)
   self->dispose_has_run = TRUE;
 
   if (self->out_array != NULL)
-    g_array_free (self->out_array, TRUE);
+    g_array_unref (self->out_array);
   self->out_array = NULL;
 
   if (self->queue != NULL)
