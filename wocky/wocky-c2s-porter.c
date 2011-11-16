@@ -632,7 +632,7 @@ send_head_stanza (WockyC2SPorter *self)
   wocky_xmpp_connection_send_stanza_async (priv->connection,
       elem->stanza, elem->cancellable, send_stanza_cb, g_object_ref (self));
 
-  g_signal_emit_by_name (self, "sending");
+  g_signal_emit_by_name (self, "sending", elem->stanza);
 }
 
 static void
@@ -2154,7 +2154,7 @@ wocky_c2s_porter_send_whitespace_ping_async (WockyC2SPorter *self,
       wocky_xmpp_connection_send_whitespace_ping_async (priv->connection,
           cancellable, send_whitespace_ping_cb, g_object_ref (result));
 
-      g_signal_emit_by_name (self, "sending");
+      g_signal_emit_by_name (self, "sending", NULL);
     }
 
   g_object_unref (result);

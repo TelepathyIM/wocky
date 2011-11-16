@@ -118,14 +118,16 @@ wocky_porter_default_init (WockyPorterInterface *iface)
       /**
        * WockyPorter::sending:
        * @porter: the object on which the signal is emitted
+       * @stanza: the #WockyStanza being sent, or %NULL if @porter is just
+       *    sending whitespace
        *
        * The ::sending signal is emitted whenever #WockyPorter sends data
        * on the XMPP connection.
        */
       g_signal_new ("sending", iface_type,
           G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-          g_cclosure_marshal_VOID__VOID,
-          G_TYPE_NONE, 0);
+          g_cclosure_marshal_VOID__OBJECT,
+          G_TYPE_NONE, 1, WOCKY_TYPE_STANZA);
 
       g_once_init_leave (&initialization_value, 1);
     }
