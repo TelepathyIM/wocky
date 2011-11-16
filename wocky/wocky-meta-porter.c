@@ -192,6 +192,10 @@ static void porter_closing_cb (WockyPorter *porter, PorterData *data);
 static void porter_remote_closed_cb (WockyPorter *porter, PorterData *data);
 static void porter_remote_error_cb (WockyPorter *porter, GQuark domain,
     gint code, const gchar *msg, PorterData *data);
+static void porter_sending_cb (
+    WockyC2SPorter *child_porter,
+    WockyStanza *stanza,
+    PorterData *data);
 
 static void
 disconnect_porter_signal_handlers (WockyPorter *porter,
@@ -203,6 +207,8 @@ disconnect_porter_signal_handlers (WockyPorter *porter,
       porter_closing_cb, data);
   g_signal_handlers_disconnect_by_func (porter,
       porter_remote_error_cb, data);
+  g_signal_handlers_disconnect_by_func (porter,
+      porter_sending_cb, data);
 }
 
 static void
@@ -240,6 +246,15 @@ porter_remote_error_cb (WockyPorter *porter,
   DEBUG ("remote error in porter, close it");
   wocky_porter_force_close_async (porter, NULL, NULL, NULL);
   porter_closing_cb (porter, data);
+}
+
+static void
+porter_sending_cb (
+    WockyC2SPorter *child_porter,
+    WockyStanza *stanza,
+    PorterData *data)
+{
+  g_signal_emit_by_name (data->self, "sending", stanza);
 }
 
 static void
@@ -311,6 +326,8 @@ create_porter (WockyMetaPorter *self,
       G_CALLBACK (porter_remote_closed_cb), data);
   g_signal_connect (data->porter, "remote-error",
       G_CALLBACK (porter_remote_error_cb), data);
+  g_signal_connect (data->porter, "sending",
+      G_CALLBACK (porter_sending_cb), data);
 
   register_porter_handlers (self, data->porter, contact);
   wocky_porter_start (data->porter);
