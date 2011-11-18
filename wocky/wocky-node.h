@@ -176,6 +176,16 @@ const gchar *wocky_node_get_ns (WockyNode *node);
 gboolean wocky_node_has_ns (WockyNode *node, const gchar *ns);
 gboolean wocky_node_has_ns_q (WockyNode *node, GQuark ns);
 
+/* Matching element name and namespace */
+gboolean wocky_node_matches_q (
+    WockyNode *node,
+    const gchar *name,
+    GQuark ns);
+gboolean wocky_node_matches (
+    WockyNode *node,
+    const gchar *name,
+    const gchar *ns);
+
 /* Setting/Getting language */
 const gchar *wocky_node_get_language (WockyNode *node);
 void wocky_node_set_language (WockyNode *node, const gchar *lang);

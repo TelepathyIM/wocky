@@ -836,6 +836,55 @@ wocky_node_has_ns_q (WockyNode *node, GQuark ns)
 }
 
 /**
+ * wocky_node_matches_q:
+ * @node: a #WockyNode
+ * @name: the expected element name, which may not be %NULL
+ * @ns: the expected element namespace, which may not be 0
+ *
+ * Checks whether a node has a particular name and namespace.
+ *
+ * Returns: %TRUE if @node is named @name, in namespace @ns.
+ */
+gboolean
+wocky_node_matches_q (
+    WockyNode *node,
+    const gchar *name,
+    GQuark ns)
+{
+  g_return_val_if_fail (node != NULL, FALSE);
+  g_return_val_if_fail (name != NULL, FALSE);
+  g_return_val_if_fail (ns != 0, FALSE);
+
+  if (wocky_strdiff (node->name, name))
+    return FALSE;
+
+  return wocky_node_has_ns_q (node, ns);
+}
+
+/**
+ * wocky_node_matches:
+ * @node: a #WockyNode
+ * @name: the expected element name, which may not be %NULL
+ * @ns: the expected element namespace, which may not be %NULL
+ *
+ * Checks whether a node has a particular name and namespace.
+ *
+ * Returns: %TRUE if @node is named @name, in namespace @ns.
+ */
+gboolean
+wocky_node_matches (
+    WockyNode *node,
+    const gchar *name,
+    const gchar *ns)
+{
+  g_return_val_if_fail (node != NULL, FALSE);
+  g_return_val_if_fail (name != NULL, FALSE);
+  g_return_val_if_fail (ns != NULL, FALSE);
+
+  return wocky_node_matches_q (node, name, g_quark_try_string (ns));
+}
+
+/**
  * wocky_node_get_language:
  * @node: a #WockyNode
  *
