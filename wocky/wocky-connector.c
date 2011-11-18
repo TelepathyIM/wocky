@@ -1183,8 +1183,7 @@ xmpp_features_cb (GObject *source,
   DEBUG ("received feature stanza from server");
   node = wocky_stanza_get_top_node (stanza);
 
-  if (wocky_strdiff (node->name, "features") ||
-      wocky_strdiff (wocky_node_get_ns (node), WOCKY_XMPP_NS_STREAM))
+  if (!wocky_node_matches (node, "features", WOCKY_XMPP_NS_STREAM))
     {
       char *msg = state_message (priv, "Malformed or missing feature stanza");
       abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, msg);

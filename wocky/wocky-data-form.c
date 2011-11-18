@@ -572,8 +572,7 @@ wocky_data_form_new_from_node (WockyNode *x,
   const gchar *type, *title, *instructions;
   WockyDataForm *form;
 
-  if (wocky_strdiff (x->name, "x")
-      || x->ns != g_quark_from_string (WOCKY_XMPP_NS_DATA))
+  if (!wocky_node_matches (x, "x", WOCKY_XMPP_NS_DATA))
     {
       DEBUG ("Invalid 'x' node");
       g_set_error (error, WOCKY_DATA_FORM_ERROR,
