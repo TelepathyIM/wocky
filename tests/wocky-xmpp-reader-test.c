@@ -92,6 +92,16 @@
 "    <body>" WHITESPACE_ONLY_BODY "</body>" \
 "  </message>"
 
+#define NON_CHARACTER_CODEPOINTS_REPLACEMENT "�🙈�"
+
+#define MESSAGE_WITH_NON_CHARACTER_CODEPOINTS \
+"  <message to='morse@thamesvalley.police.uk' " \
+"           from='lewis@thamesvalley.police.uk'> " \
+"    <body>\xef\xb7\xaf🙈\xef\xb7\xaf</body>" \
+"  </message>"
+
+
+
 static void
 test_stream_no_stanzas (void)
 {
@@ -340,6 +350,7 @@ test_body (
   body = wocky_node_get_child (wocky_stanza_get_top_node (stanza), "body");
   g_assert (body != NULL);
 
+  g_assert (g_utf8_validate (body->content, -1, NULL));
   g_assert_cmpstr (body->content, ==, expected_body_text);
 
   g_object_unref (stanza);
@@ -358,6 +369,14 @@ static void
 test_whitespace_only (void)
 {
   test_body (MESSAGE_WITH_WHITESPACE_ONLY_BODY, WHITESPACE_ONLY_BODY);
+}
+
+/* Test that a message body consisting entirely of whitespace isn't ignored */
+static void
+test_non_character_codepoints (void)
+{
+  test_body (MESSAGE_WITH_NON_CHARACTER_CODEPOINTS,
+    NON_CHARACTER_CODEPOINTS_REPLACEMENT);
 }
 
 int
@@ -379,6 +398,8 @@ main (int argc,
   g_test_add_func ("/xmpp-reader/invalid-namespace", test_invalid_namespace);
   g_test_add_func ("/xmpp-reader/whitespace-padding", test_whitespace_padding);
   g_test_add_func ("/xmpp-reader/whitespace-only", test_whitespace_only);
+  g_test_add_func ("/xmpp-reader/utf-non-character-codepoints",
+    test_non_character_codepoints);
 
   result = g_test_run ();
   test_deinit ();
