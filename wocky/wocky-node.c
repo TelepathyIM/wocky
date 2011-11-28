@@ -63,6 +63,98 @@ static NSPrefix default_attr_ns_prefixes[] =
 static GHashTable *user_ns_prefixes = NULL;
 static GHashTable *default_ns_prefixes = NULL;
 
+/* Do a strndup operation, but at the same time replace all characters that
+ * aren't valid according to g_utf8_validate by � */
+
+static gchar *
+strndup_make_valid (const gchar *str, gssize len)
+{
+  const gchar *remainder = str;
+  GString *result;
+  const gchar *endp;
+  gssize left = len;
+
+  /* Simplify things by always keeping track of the string lenght */
+  if (left < 0)
+    left = strlen (remainder);
+
+  result = g_string_sized_new (len);
+
+  while (!g_utf8_validate (remainder, left, &endp))
+    {
+      g_string_append_len (result, remainder, endp - remainder);
+      /* append U+FFFD REPLACEMENT CHARACTER */
+      g_string_append (result, "\357\277\275");
+
+      /* left, minus the valid part of the string */
+      left -= (endp - remainder);
+
+      remainder = g_utf8_find_next_char (endp, endp + left);
+      /* left, minus the skipped part, if there is no next utf8 character,
+       * nothing is left */
+      if (remainder == NULL)
+        left = 0;
+      else if (left > 0)
+        left -= (remainder - endp);
+    }
+  g_string_append_len (result, remainder, left);
+
+  return g_string_free (result, FALSE);
+}
+
+static gchar *
+strndup_validated (const gchar *str, gssize len)
+{
+  if (str == NULL)
+    return NULL;
+
+  /* Fast path, string happily validates, simple copy */
+  if (G_LIKELY (g_utf8_validate (str, len, NULL)))
+    {
+      if (len < 0)
+        return g_strdup (str);
+      else
+        return g_strndup (str, len);
+    }
+
+  /* slow path, string doesn't validate.. */
+  return strndup_make_valid (str, len);
+}
+
+static gchar *
+concat_validated (const gchar *s1, const gchar *s2, gssize s2_size)
+{
+  gchar *result;
+  gssize s1_size;
+  /* data to be freed after use if needed */
+  const gchar *to_free = NULL;
+
+  /* concatting to nothing, iotw, strndup :) */
+  if (s1 == NULL)
+    return strndup_validated (s2, s2_size);
+
+  s1_size = strlen (s1);
+  if (s2_size < 0)
+    s2_size = strlen (s2);
+
+  if (G_UNLIKELY (!g_utf8_validate (s2, s2_size, NULL)))
+    {
+      /* Make a validated copy we will free later on. Making a copy to just
+       * concat and then free isn't the most efficient way, but at this point
+       * we're out of the fast-path anyway */
+      to_free = s2 = strndup_make_valid (s2, s2_size);
+      s2_size = strlen (s2);
+    }
+
+  result = g_malloc0 (s1_size + s2_size + 1);
+  memcpy (result, s1, s1_size);
+  memcpy (result + s1_size, s2, s2_size);
+  g_free ((gchar *) to_free);
+
+  return result;
+}
+
+
 static WockyNode *
 new_node (const char *name, GQuark ns)
 {
@@ -73,7 +165,7 @@ new_node (const char *name, GQuark ns)
 
   result = g_slice_new0 (WockyNode);
 
-  result->name = g_strdup (name);
+  result->name = strndup_validated (name, -1);
   result->ns = ns;
 
   return result;
@@ -322,7 +414,7 @@ ns_prefix_new (const gchar *urn,
 {
   NSPrefix *nsp = g_slice_new0 (NSPrefix);
   nsp->ns_urn = urn;
-  nsp->prefix = g_strdup (prefix);
+  nsp->prefix = strndup_validated (prefix, -1);
   nsp->ns = ns;
 
   return nsp;
@@ -514,8 +606,8 @@ wocky_node_set_attribute_n_ns (WockyNode *node, const gchar *key,
   GSList *link;
   Tuple search;
 
-  a->key = g_strdup (key);
-  a->value = g_strndup (value, value_size);
+  a->key = strndup_validated (key, -1);
+  a->value = strndup_validated (value, value_size);
   a->prefix = g_strdup (wocky_node_attribute_ns_get_prefix_from_urn (ns));
   a->ns = (ns != NULL) ? g_quark_from_string (ns) : 0;
 
@@ -863,7 +955,7 @@ wocky_node_set_language_n (WockyNode *node, const gchar *lang,
     gsize lang_size)
 {
   g_free (node->language);
-  node->language = g_strndup (lang, lang_size);
+  node->language = strndup_validated (lang, lang_size);
 }
 
 /**
@@ -894,7 +986,7 @@ void
 wocky_node_set_content (WockyNode *node, const gchar *content)
 {
   g_free (node->content);
-  node->content = g_strdup (content);
+  node->content = strndup_validated (content, -1);
 }
 
 /**
@@ -909,7 +1001,7 @@ wocky_node_append_content (WockyNode *node,
     const gchar *content)
 {
   gchar *t = node->content;
-  node->content = g_strconcat (t, content, NULL);
+  node->content = concat_validated (t, content, -1);
   g_free (t);
 }
 
@@ -926,9 +1018,9 @@ void
 wocky_node_append_content_n (WockyNode *node, const gchar *content,
     gsize size)
 {
-  gsize csize = node->content != NULL ? strlen (node->content) : 0;
-  node->content = g_realloc (node->content, csize + size + 1);
-  g_strlcpy (node->content + csize, content, size + 1);
+  gchar *t = node->content;
+  node->content = concat_validated (t, content, size);
+  g_free (t);
 }
 
 static gboolean
