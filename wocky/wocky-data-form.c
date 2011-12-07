@@ -738,14 +738,14 @@ wocky_data_form_set_boolean (WockyDataForm *self,
 }
 
 /**
- * wocky_data_form_set_boolean:
+ * wocky_data_form_set_string:
  * @self: a data form
- * @field_name: the name of a boolean field of @self
+ * @field_name: the name of a string field of @self
  * @field_value: the value to fill in for @field_name
  * @create_if_missing: if no field named @field_name exists, create it
  *
  * Returns: %TRUE if the field was successfully filled in; %FALSE if the field
- *          did not exist or does not accept a boolean
+ *          did not exist or does not accept a string
  */
 gboolean
 wocky_data_form_set_string (WockyDataForm *self,
