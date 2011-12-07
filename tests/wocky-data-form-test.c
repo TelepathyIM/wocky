@@ -355,6 +355,52 @@ test_parse_form (void)
 }
 
 static void
+test_raw_value_contents (void)
+{
+  WockyStanza *stanza;
+  WockyDataForm *form;
+  const gchar *description[] = { "Badger", "Mushroom", "Snake", NULL };
+  gboolean set_succeeded;
+
+  /* Create fields without WockyNode to trigger this bug:
+   * https://bugs.freedesktop.org/show_bug.cgi?id=43584
+   */
+  form = g_object_new (WOCKY_TYPE_DATA_FORM, NULL);
+  g_assert (form != NULL);
+
+  /* set text-single field */
+  set_succeeded = wocky_data_form_set_string (form, "botname",
+      "The Jabber Google Bot", FALSE);
+  g_assert (!set_succeeded);
+  set_succeeded = wocky_data_form_set_string (form, "botname",
+      "The Jabber Google Bot", TRUE);
+  g_assert (set_succeeded);
+
+  /* set text-multi field */
+  set_succeeded = wocky_data_form_set_strv (form, "description",
+      description, FALSE);
+  g_assert (!set_succeeded);
+  set_succeeded = wocky_data_form_set_strv (form, "description",
+      description, TRUE);
+  g_assert (set_succeeded);
+
+  /* set boolean field */
+  set_succeeded = wocky_data_form_set_boolean (form, "public", FALSE, FALSE);
+  g_assert (!set_succeeded);
+  set_succeeded = wocky_data_form_set_boolean (form, "public", FALSE, TRUE);
+  g_assert (set_succeeded);
+
+  stanza = wocky_stanza_build (
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
+      NULL, NULL, NULL);
+
+  wocky_data_form_add_to_node (form, wocky_stanza_get_top_node (stanza));
+
+  g_object_unref (stanza);
+  g_object_unref (form);
+}
+
+static void
 test_submit (void)
 {
   WockyStanza *stanza;
@@ -835,6 +881,7 @@ main (int argc, char **argv)
 
   g_test_add_func ("/data-form/instantiation", test_new_from_form);
   g_test_add_func ("/data-form/parse-form", test_parse_form);
+  g_test_add_func ("/data-form/raw_value_contents", test_raw_value_contents);
   g_test_add_func ("/data-form/submit", test_submit);
   g_test_add_func ("/data-form/submit-blindly", test_submit_blindly);
   g_test_add_func ("/data-form/parse-multi-result", test_parse_multi_result);
