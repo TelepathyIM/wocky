@@ -687,6 +687,7 @@ data_form_set_value (WockyDataForm *self,
     gboolean create_if_missing)
 {
   WockyDataFormField *field;
+  GType t;
 
   g_return_val_if_fail (field_name != NULL, FALSE);
   g_return_val_if_fail (value != NULL, FALSE);
@@ -714,6 +715,35 @@ data_form_set_value (WockyDataForm *self,
     wocky_g_value_slice_free (field->value);
 
   field->value = value;
+
+  g_strfreev (field->raw_value_contents);
+
+  t = G_VALUE_TYPE (field->value);
+  if (t == G_TYPE_STRING)
+    {
+      const gchar const *value_str[] =
+          { g_value_get_string (field->value), NULL };
+
+      field->raw_value_contents = g_strdupv ((GStrv) value_str);
+    }
+  else if (t == G_TYPE_BOOLEAN)
+    {
+      const gchar const *value_str[] =
+          { g_value_get_boolean (field->value) ? "1" : "0", NULL };
+
+      field->raw_value_contents = g_strdupv ((GStrv) value_str);
+    }
+  else if (t == G_TYPE_STRV)
+    {
+      const GStrv value_str = g_value_get_boxed (field->value);
+
+      field->raw_value_contents = g_strdupv (value_str);
+    }
+  else
+    {
+      g_assert_not_reached ();
+    }
+
   return TRUE;
 }
 
@@ -1034,6 +1064,7 @@ add_field_to_node_using_default (WockyDataFormField *field,
     wocky_node_set_attribute (field_node, "type",
         type_to_str (field->type));
 
+  g_assert (field->raw_value_contents != NULL);
   for (s = field->raw_value_contents; *s != NULL; s++)
     wocky_node_add_child_with_content (field_node, "value", *s);
 }
