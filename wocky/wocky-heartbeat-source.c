@@ -154,7 +154,7 @@ wocky_heartbeat_source_prepare (
   /* If now > self->next_wakeup, it's already time to wake up. */
   if (now > self->next_wakeup)
     {
-      DEBUG ("ready to wake up (at %li)", now);
+      DEBUG ("ready to wake up (at %" G_GINT64_FORMAT ")", now);
       return TRUE;
     }
 
@@ -241,7 +241,7 @@ wocky_heartbeat_source_dispatch (
       gint64 now;
 
       now = g_source_get_time (source);
-      DEBUG ("calling %p (%p) at %li", callback, user_data, now);
+      DEBUG ("calling %p (%p) at %" G_GINT64_FORMAT, callback, user_data, now);
     }
 
   ((WockyHeartbeatCallback) callback) (user_data);
@@ -253,7 +253,7 @@ wocky_heartbeat_source_dispatch (
   /* Record the time we next want to wake up. */
   self->next_wakeup = g_source_get_time (source);
   self->next_wakeup += self->max_interval * G_USEC_PER_SEC;
-  DEBUG ("next wakeup at %li", self->next_wakeup);
+  DEBUG ("next wakeup at %" G_GINT64_FORMAT, self->next_wakeup);
 
   return TRUE;
 }
@@ -401,5 +401,5 @@ wocky_heartbeat_source_update_interval (
   if (self->max_interval == 0)
     DEBUG ("heartbeat disabled");
   else
-    DEBUG ("next wakeup at or before %li", self->next_wakeup);
+    DEBUG ("next wakeup at or before %" G_GINT64_FORMAT, self->next_wakeup);
 }
