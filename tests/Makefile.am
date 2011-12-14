@@ -64,6 +64,8 @@ TEST_PROGS = wocky-xmpp-reader-test \
   wocky-scram-sha1-test \
   wocky-caps-hash-test
 
+noinst_PROGRAMS=
+
 wocky_tls_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_tls_test_SOURCES = \
   wocky-tls-test.c        \
@@ -234,6 +236,17 @@ wocky_http_proxy_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_http_proxy_test_SOURCES = wocky-http-proxy-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
+
+wocky_dummy_xmpp_server_DEPENDENCIES = $(LIBWOCKY)
+wocky_dummy_xmpp_server_SOURCES = wocky-dummy-xmpp-server.c \
+   wocky-test-connector-server.c wocky-test-connector-server.h \
+   wocky-test-sasl-auth-server.c wocky-test-sasl-auth-server.h
+wocky_dummy_xmpp_server_LDADD = $(LDADD) @LIBSASL2_LIBS@
+wocky_dummy_xmpp_server_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
+
+if HAVE_LIBSASL2
+  noinst_PROGRAMS += wocky-dummy-xmpp-server
+endif
 
 wocky_caps_hash_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_caps_hash_test_SOURCES = wocky-caps-hash-test.c \

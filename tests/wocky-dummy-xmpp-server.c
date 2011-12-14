@@ -31,6 +31,7 @@ client_connected (GIOChannel *channel,
   int ssock = g_io_channel_unix_get_fd (channel);
   int csock = accept (ssock, (struct sockaddr *)&client, &clen);
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
+  ConnectorProblem cproblem = { 0, };
 
   GSocketConnection *gconn;
   pid_t pid = 0;
@@ -52,16 +53,17 @@ client_connected (GIOChannel *channel,
       break;
     case 0:
       while (g_source_remove_by_user_data (loop));
-      g_io_channel_close (channel);
+      g_io_channel_shutdown (channel, TRUE, NULL);
       flags = fcntl (csock, F_GETFL );
       flags = flags & ~O_NONBLOCK;
       fcntl (csock, F_SETFL, flags);
       gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
       server = test_connector_server_new (G_IO_STREAM (gconn),
-          NULL, "foo", "bar",
-          CONNECTOR_PROBLEM_NO_PROBLEM,
-          SERVER_PROBLEM_NO_PROBLEM);
-      test_connector_server_start (G_OBJECT (server));
+          NULL, "foo", "bar", "1.0",
+          &cproblem,
+          SERVER_PROBLEM_NO_PROBLEM,
+          CERT_STANDARD);
+      test_connector_server_start (server);
       return FALSE;
     default:
       g_socket_close (gsock, NULL);
@@ -81,7 +83,10 @@ main (int argc,
 
   memset (&server, 0, sizeof (server));
 
+#if !GLIB_CHECK_VERSION (2, 31, 0)
   g_thread_init (NULL);
+#endif
+
   g_type_init ();
 
   loop = g_main_loop_new (NULL, FALSE);

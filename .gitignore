@@ -79,6 +79,7 @@ wocky/wocky-uninstalled.pc
 tests/sasl-test.db
 tests/test-report.xml
 tests/wocky-*-test
+tests/wocky-dummy-xmpp-server
 tests/wocky-test-sasl-auth
 tests/*report.xml
 
