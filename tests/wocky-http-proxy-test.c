@@ -101,7 +101,11 @@ static void
 run_in_thread (HttpTestData *data,
     GThreadFunc func)
 {
+#if GLIB_CHECK_VERSION (2, 31, 0)
+  data->thread = g_thread_new ("server_thread", func, data);
+#else
   data->thread = g_thread_create (func, data, TRUE, NULL);
+#endif
   g_assert (data->thread != NULL);
 }
 

@@ -288,7 +288,10 @@ void
 test_init (int argc,
     char **argv)
 {
+#if !GLIB_CHECK_VERSION (2, 31, 0)
   g_thread_init (NULL);
+#endif
+
   g_test_init (&argc, &argv, NULL);
   g_type_init ();
   wocky_init ();

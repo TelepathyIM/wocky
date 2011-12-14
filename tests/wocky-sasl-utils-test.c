@@ -146,7 +146,11 @@ main (int argc,
     char **argv)
 {
   int i;
+
+#if !GLIB_CHECK_VERSION (2, 31, 0)
   g_thread_init (NULL);
+#endif
+
   g_test_init (&argc, &argv, NULL);
 
   for (i = 0 ; hmac_sha1_tests[i].key_len > 0 ; i++)
