@@ -649,6 +649,8 @@ wocky_data_form_set_type (WockyDataForm *self,
     const gchar *form_type)
 {
   WockyDataFormField *field;
+  const gchar const *raw_value_contents[] =
+      { form_type, NULL };
 
   g_return_val_if_fail (form_type != NULL, FALSE);
 
@@ -661,7 +663,9 @@ wocky_data_form_set_type (WockyDataForm *self,
     }
 
   field = wocky_data_form_field_new (WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN,
-      "FORM_TYPE", NULL, NULL, FALSE, NULL, NULL,
+      "FORM_TYPE", NULL, NULL, FALSE,
+      wocky_g_value_slice_new_string (form_type),
+      g_strdupv ((GStrv) raw_value_contents),
       wocky_g_value_slice_new_string (form_type),
       NULL);
   data_form_add_field (self, field, FALSE);
