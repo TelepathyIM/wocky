@@ -267,7 +267,7 @@ check_PROGRAMS = $(TEST_PROGS)
 
 check_c_sources = $(notdir $(wildcard $(srcdir)/*.c) $(wildcard $(srcdir)/*.h))
 
-all: $(TEST_PROGS)
+noinst_PROGRAMS = $(TEST_PROGS)
 
 test-report: test-report.xml
 	gtester-report $(top_builddir)/tests/$@.xml > \

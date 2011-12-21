@@ -4,14 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <config.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+
+#ifdef G_OS_WIN32
+#include <windows.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#include <glib.h>
-#include <glib/gstdio.h>
+#endif
 
 #include <wocky/wocky-connector.h>
 #include <wocky/wocky-namespaces.h>
@@ -3132,6 +3138,9 @@ client_connected (GIOChannel *channel,
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
   test_t *test = data;
   ConnectorProblem *cproblem = &test->server_parameters.problem.conn;
+#ifdef G_OS_WIN32
+  u_long mode = 0;
+#endif
 
   GSocketConnection *gconn;
   long flags;
@@ -3146,9 +3155,14 @@ client_connected (GIOChannel *channel,
   if (!test->server_parameters.features.tls)
       cproblem->xmpp |= XMPP_PROBLEM_NO_TLS;
 
+#ifdef G_OS_WIN32
+  WSAEventSelect( csock, 0, 0);
+  ioctlsocket (csock, FIONBIO, &mode);
+#else
   flags = fcntl (csock, F_GETFL );
   flags = flags & ~O_NONBLOCK;
   fcntl (csock, F_SETFL, flags);
+#endif
   gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
   g_object_unref (gsock);
   test->server = test_connector_server_new (G_IO_STREAM (gconn),
@@ -3180,7 +3194,9 @@ start_dummy_xmpp_server (test_t *test)
   memset (&server, 0, sizeof (server));
 
   server.sin_family = AF_INET;
-  inet_aton (REACHABLE, &server.sin_addr);
+
+  /* mingw doesn't support aton or pton so using more portable inet_addr */
+  server.sin_addr.s_addr = inet_addr ((const char * ) REACHABLE);
   server.sin_port = htons (port);
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
