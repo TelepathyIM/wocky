@@ -244,5 +244,5 @@ Android.mk: Makefile.am $(built_sources) $(built_headers)
 	 -:SOURCES $(handwritten_sources) $(built_sources) \
 	 -:CFLAGS $(DEFS) $(CFLAGS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CFLAGS) \
 	 -:CPPFLAGS $(CPPFLAGS) $(AM_CPPFLAGS) \
-	 -:LDFLAGS $(AM_LDFLAGS) $(GCRYPT_LIBS) \
+	 -:LDFLAGS $(AM_LDFLAGS) \
 	> $@

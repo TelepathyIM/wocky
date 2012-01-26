@@ -96,7 +96,6 @@
 #include <gnutls/gnutls.h>
 #include <string.h>
 #include <errno.h>
-#include <gcrypt.h>
 #include <sys/types.h>
 #include <unistd.h>
 enum
