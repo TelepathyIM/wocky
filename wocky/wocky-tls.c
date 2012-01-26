@@ -1433,7 +1433,7 @@ static void
 wocky_tls_session_init (WockyTLSSession *session)
 {
   const char *level;
-  guint lvl = 0;
+  guint64 lvl = 0;
   static gsize initialised;
 
   if G_UNLIKELY (g_once_init_enter (&initialised))
@@ -1443,8 +1443,8 @@ wocky_tls_session_init (WockyTLSSession *session)
       g_once_init_leave (&initialised, 1);
     }
 
-  if ((level = getenv ("WOCKY_TLS_DEBUG_LEVEL")) != NULL)
-    lvl = atoi (level);
+  if ((level = g_getenv ("WOCKY_TLS_DEBUG_LEVEL")) != NULL)
+    lvl = g_ascii_strtoull (level, NULL, 10);
 
   tls_debug_level = lvl;
   gnutls_global_set_log_level (lvl);
@@ -1481,7 +1481,7 @@ wocky_tls_session_set_property (GObject *object, guint prop_id,
 static const char *
 tls_options (void)
 {
-  const char *options = getenv ("WOCKY_GNUTLS_OPTIONS");
+  const char *options = g_getenv ("WOCKY_GNUTLS_OPTIONS");
   return (options != NULL && *options != '\0') ? options : DEFAULT_TLS_OPTIONS;
 }
 
