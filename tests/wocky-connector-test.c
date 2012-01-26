@@ -3156,7 +3156,7 @@ client_connected (GIOChannel *channel,
       cproblem->xmpp |= XMPP_PROBLEM_NO_TLS;
 
 #ifdef G_OS_WIN32
-  WSAEventSelect( csock, 0, 0);
+  WSAEventSelect (csock, 0, 0);
   ioctlsocket (csock, FIONBIO, &mode);
 #else
   flags = fcntl (csock, F_GETFL );
