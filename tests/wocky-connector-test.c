@@ -3140,10 +3140,11 @@ client_connected (GIOChannel *channel,
   ConnectorProblem *cproblem = &test->server_parameters.problem.conn;
 #ifdef G_OS_WIN32
   u_long mode = 0;
+#else
+  long flags;
 #endif
 
   GSocketConnection *gconn;
-  long flags;
 
   if (csock < 0)
     {
@@ -3199,7 +3200,7 @@ start_dummy_xmpp_server (test_t *test)
   server.sin_addr.s_addr = inet_addr ((const char * ) REACHABLE);
   server.sin_port = htons (port);
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse));
+  setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, (const char *) &reuse, sizeof (reuse));
 
   res = bind (ssock, (struct sockaddr *) &server, sizeof (server));
 
