@@ -1232,10 +1232,10 @@ wocky_tls_session_write_ready (GObject      *object,
     wocky_tls_session_try_operation (session, WOCKY_TLS_OP_WRITE);
 }
 
-static gssize
+static ssize_t
 wocky_tls_session_push_func (gpointer    user_data,
                              const void *buffer,
-                             gsize       count)
+                             size_t      count)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (user_data);
   GOutputStream *stream;
@@ -1325,10 +1325,10 @@ wocky_tls_session_push_func (gpointer    user_data,
     }
 }
 
-static gssize
+static ssize_t
 wocky_tls_session_pull_func (gpointer  user_data,
                              void     *buffer,
-                             gsize     count)
+                             size_t     count)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (user_data);
   GInputStream *stream;
