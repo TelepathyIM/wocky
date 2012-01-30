@@ -113,16 +113,21 @@ test_send_query_cb (GObject *source_object,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
+  WockyNode *item;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
   reply = wocky_pep_service_get_finish (WOCKY_PEP_SERVICE (source_object), res,
-      NULL);
+      &item, NULL);
   g_assert (reply != NULL);
 
   wocky_stanza_get_type_info (reply, &type, &sub_type);
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_RESULT);
+
+  g_assert (item != NULL);
+  g_assert_cmpstr (item->name, ==, "item");
+  g_assert_cmpstr (wocky_node_get_attribute (item, "id"), ==, "1");
 
   g_object_unref (reply);
 
@@ -169,7 +174,7 @@ test_send_query_failed_cb (GObject *source_object,
   GError *error = NULL;
 
   reply = wocky_pep_service_get_finish (WOCKY_PEP_SERVICE (source_object), res,
-      &error);
+      NULL, &error);
   g_assert (reply == NULL);
   g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_CLOSED);

@@ -87,6 +87,7 @@ void wocky_pep_service_get_async (WockyPepService *self,
 
 WockyStanza * wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
+    WockyNode **item,
     GError **error) G_GNUC_WARN_UNUSED_RESULT;
 
 WockyStanza * wocky_pep_service_make_publish_stanza (WockyPepService *self,

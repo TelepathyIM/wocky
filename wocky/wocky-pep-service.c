@@ -400,6 +400,8 @@ wocky_pep_service_get_async (WockyPepService *self,
  * wocky_pep_service_get_finish:
  * @self: a #WockyPepService object
  * @result: a #GAsyncResult
+ * @item: (out) (allow-none): on success, the first &lt;item&gt; element
+ *  in the result, or %NULL if @self has no published items.
  * @error: a location to store a #GError if an error occurs
  *
  * Finishes an asynchronous operation to get the PEP node,
@@ -411,17 +413,35 @@ wocky_pep_service_get_async (WockyPepService *self,
 WockyStanza *
 wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
+    WockyNode **item,
     GError **error)
 {
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
+  WockyStanza *reply;
 
   if (g_simple_async_result_propagate_error (simple, error))
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (self), wocky_pep_service_get_async), NULL);
+  reply = WOCKY_STANZA (g_simple_async_result_get_op_res_gpointer (simple));
 
-  return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
+  if (item != NULL)
+    {
+      WockyNode *pubsub_node = wocky_node_get_child_ns (
+          wocky_stanza_get_top_node (reply), "pubsub", WOCKY_XMPP_NS_PUBSUB);
+      WockyNode *items_node = NULL;
+
+      if (pubsub_node != NULL)
+        items_node = wocky_node_get_child (pubsub_node, "items");
+
+      if (items_node != NULL)
+        *item = wocky_node_get_child (items_node, "item");
+      else
+        *item = NULL;
+    }
+
+  return g_object_ref (reply);
 }
 
 /**
