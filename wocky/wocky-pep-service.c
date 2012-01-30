@@ -209,6 +209,8 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
    * @self: a #WockyPepService object
    * @contact: the #WockyBareContact who changed the node
    * @stanza: the #WockyStanza
+   * @item: the first—and typically only—&lt;item&gt; element in @stanza, or
+   *  %NULL if there is none.
    *
    * Emitted when the node value changes.
    */
@@ -217,8 +219,8 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
       G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
       0,
       NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_OBJECT,
-      G_TYPE_NONE, 2, WOCKY_TYPE_BARE_CONTACT, WOCKY_TYPE_STANZA);
+      _wocky_signals_marshal_VOID__OBJECT_OBJECT_POINTER,
+      G_TYPE_NONE, 3, WOCKY_TYPE_BARE_CONTACT, WOCKY_TYPE_STANZA, G_TYPE_POINTER);
 }
 
 /**
@@ -251,6 +253,7 @@ msg_event_cb (WockyPorter *porter,
   const gchar *from;
   WockyBareContact *contact;
   WockyStanzaSubType sub_type;
+  WockyNode *event, *items, *item;
 
   from = wocky_stanza_get_from (stanza);
   if (from == NULL)
@@ -269,10 +272,17 @@ msg_event_cb (WockyPorter *porter,
       return FALSE;
     }
 
+  event = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "event", WOCKY_XMPP_NS_PUBSUB_EVENT);
+  g_return_val_if_fail (event != NULL, FALSE);
+  items = wocky_node_get_child (event, "items");
+  g_return_val_if_fail (items != NULL, FALSE);
+  item = wocky_node_get_child (items, "item");
+
   contact = wocky_contact_factory_ensure_bare_contact (
       priv->contact_factory, from);
 
-  g_signal_emit (G_OBJECT (self), signals[CHANGED], 0, contact, stanza);
+  g_signal_emit (G_OBJECT (self), signals[CHANGED], 0, contact, stanza, item);
 
   g_object_unref (contact);
   return TRUE;
