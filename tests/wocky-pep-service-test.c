@@ -33,10 +33,27 @@ static void
 test_changed_signal_cb (WockyPepService *pep,
     WockyBareContact *contact,
     WockyStanza *stanza,
+    WockyNode *item,
     test_data_t *test)
 {
-  g_assert (!wocky_strdiff (wocky_bare_contact_get_jid (contact),
-        "alice@example.org"));
+  const gchar *id = wocky_node_get_attribute (
+      wocky_stanza_get_top_node (stanza), "id");
+
+  g_assert_cmpstr (wocky_bare_contact_get_jid (contact), ==,
+        "alice@example.org");
+
+  /* the id happens to hold the number of <item> children; we expect to get the
+   * first one if there is more than one. */
+  if (wocky_strdiff (id, "0"))
+    {
+      g_assert (item != NULL);
+      g_assert_cmpstr (item->name, ==, "item");
+      g_assert_cmpstr (wocky_node_get_attribute (item, "id"), ==, "1");
+    }
+  else
+    {
+      g_assert (item == NULL);
+    }
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -45,27 +62,42 @@ test_changed_signal_cb (WockyPepService *pep,
 
 static void
 send_pep_event (WockyPorter *porter,
-    const gchar *node)
+    const gchar *node,
+    guint n_items)
 {
   WockyStanza *stanza;
+  WockyNode *items;
+  gchar *n_items_str = g_strdup_printf ("%d", n_items);
+  guint i;
 
   stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE,
       "alice@example.org", NULL,
+      /* This is a hint for test_changed_signal_cb. */
+      '@', "id", n_items_str,
       '(', "event",
         ':', WOCKY_XMPP_NS_PUBSUB_EVENT,
         '(', "items",
-        '@', "node", node,
-          '(', "item",
-          '@', "id", "1",
-            '(', "payload", ')',
-          ')',
+          '@', "node", node,
+          '*', &items,
         ')',
       ')',
       NULL);
 
+  for (i = 1; i <= n_items; i++)
+    {
+      gchar *i_str = g_strdup_printf ("%d", i);
+      wocky_node_add_build (items,
+          '(', "item",
+          '@', "id", i_str,
+            '(', "payload", ')',
+          ')', NULL);
+      g_free (i_str);
+    }
+
   wocky_porter_send (porter, stanza);
   g_object_unref (stanza);
+  g_free (n_items_str);
 }
 
 static void
@@ -83,22 +115,24 @@ test_changed_signal (void)
   wocky_porter_start (test->sched_out);
   wocky_porter_start (test->sched_in);
 
-  /* send event on the right node */
+  /* send events on the right node */
   event_received = FALSE;
-  send_pep_event (test->sched_in, TEST_NODE1);
+  send_pep_event (test->sched_in, TEST_NODE1, 0);
+  send_pep_event (test->sched_in, TEST_NODE1, 1);
+  send_pep_event (test->sched_in, TEST_NODE1, 2);
 
-  test->outstanding += 1;
+  test->outstanding += 3;
   test_wait_pending (test);
   g_assert (event_received);
   event_received = FALSE;
 
   /* send event on the wrong node */
-  send_pep_event (test->sched_in, TEST_NODE2);
+  send_pep_event (test->sched_in, TEST_NODE2, 1);
 
   g_object_unref (pep);
 
   /* send event to the right node after the PEP service has been destroyed */
-  send_pep_event (test->sched_in, TEST_NODE1);
+  send_pep_event (test->sched_in, TEST_NODE1, 1);
 
   test_close_both_porters (test);
   teardown_test (test);
@@ -113,16 +147,21 @@ test_send_query_cb (GObject *source_object,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
+  WockyNode *item;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
   reply = wocky_pep_service_get_finish (WOCKY_PEP_SERVICE (source_object), res,
-      NULL);
+      &item, NULL);
   g_assert (reply != NULL);
 
   wocky_stanza_get_type_info (reply, &type, &sub_type);
   g_assert (type == WOCKY_STANZA_TYPE_IQ);
   g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_RESULT);
+
+  g_assert (item != NULL);
+  g_assert_cmpstr (item->name, ==, "item");
+  g_assert_cmpstr (wocky_node_get_attribute (item, "id"), ==, "1");
 
   g_object_unref (reply);
 
@@ -169,7 +208,7 @@ test_send_query_failed_cb (GObject *source_object,
   GError *error = NULL;
 
   reply = wocky_pep_service_get_finish (WOCKY_PEP_SERVICE (source_object), res,
-      &error);
+      NULL, &error);
   g_assert (reply == NULL);
   g_assert_error (error, WOCKY_XMPP_CONNECTION_ERROR,
       WOCKY_XMPP_CONNECTION_ERROR_CLOSED);

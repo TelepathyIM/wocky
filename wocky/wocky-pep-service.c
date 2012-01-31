@@ -1,6 +1,6 @@
 /*
  * wocky-pep-service.c - WockyPepService
- * Copyright (C) 2009 Collabora Ltd.
+ * Copyright © 2009,2012 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -209,6 +209,8 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
    * @self: a #WockyPepService object
    * @contact: the #WockyBareContact who changed the node
    * @stanza: the #WockyStanza
+   * @item: the first—and typically only—&lt;item&gt; element in @stanza, or
+   *  %NULL if there is none.
    *
    * Emitted when the node value changes.
    */
@@ -217,8 +219,8 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
       G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
       0,
       NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_OBJECT,
-      G_TYPE_NONE, 2, WOCKY_TYPE_BARE_CONTACT, WOCKY_TYPE_STANZA);
+      _wocky_signals_marshal_VOID__OBJECT_OBJECT_POINTER,
+      G_TYPE_NONE, 3, WOCKY_TYPE_BARE_CONTACT, WOCKY_TYPE_STANZA, G_TYPE_POINTER);
 }
 
 /**
@@ -251,6 +253,7 @@ msg_event_cb (WockyPorter *porter,
   const gchar *from;
   WockyBareContact *contact;
   WockyStanzaSubType sub_type;
+  WockyNode *event, *items, *item;
 
   from = wocky_stanza_get_from (stanza);
   if (from == NULL)
@@ -269,10 +272,17 @@ msg_event_cb (WockyPorter *porter,
       return FALSE;
     }
 
+  event = wocky_node_get_child_ns (wocky_stanza_get_top_node (stanza),
+      "event", WOCKY_XMPP_NS_PUBSUB_EVENT);
+  g_return_val_if_fail (event != NULL, FALSE);
+  items = wocky_node_get_child (event, "items");
+  g_return_val_if_fail (items != NULL, FALSE);
+  item = wocky_node_get_child (items, "item");
+
   contact = wocky_contact_factory_ensure_bare_contact (
       priv->contact_factory, from);
 
-  g_signal_emit (G_OBJECT (self), signals[CHANGED], 0, contact, stanza);
+  g_signal_emit (G_OBJECT (self), signals[CHANGED], 0, contact, stanza, item);
 
   g_object_unref (contact);
   return TRUE;
@@ -400,6 +410,8 @@ wocky_pep_service_get_async (WockyPepService *self,
  * wocky_pep_service_get_finish:
  * @self: a #WockyPepService object
  * @result: a #GAsyncResult
+ * @item: (out) (allow-none): on success, the first &lt;item&gt; element
+ *  in the result, or %NULL if @self has no published items.
  * @error: a location to store a #GError if an error occurs
  *
  * Finishes an asynchronous operation to get the PEP node,
@@ -411,17 +423,35 @@ wocky_pep_service_get_async (WockyPepService *self,
 WockyStanza *
 wocky_pep_service_get_finish (WockyPepService *self,
     GAsyncResult *result,
+    WockyNode **item,
     GError **error)
 {
   GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
+  WockyStanza *reply;
 
   if (g_simple_async_result_propagate_error (simple, error))
     return NULL;
 
   g_return_val_if_fail (g_simple_async_result_is_valid (result,
     G_OBJECT (self), wocky_pep_service_get_async), NULL);
+  reply = WOCKY_STANZA (g_simple_async_result_get_op_res_gpointer (simple));
 
-  return g_object_ref (g_simple_async_result_get_op_res_gpointer (simple));
+  if (item != NULL)
+    {
+      WockyNode *pubsub_node = wocky_node_get_child_ns (
+          wocky_stanza_get_top_node (reply), "pubsub", WOCKY_XMPP_NS_PUBSUB);
+      WockyNode *items_node = NULL;
+
+      if (pubsub_node != NULL)
+        items_node = wocky_node_get_child (pubsub_node, "items");
+
+      if (items_node != NULL)
+        *item = wocky_node_get_child (items_node, "item");
+      else
+        *item = NULL;
+    }
+
+  return g_object_ref (reply);
 }
 
 /**
