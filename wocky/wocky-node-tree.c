@@ -143,7 +143,7 @@ wocky_node_tree_finalize (GObject *object)
  * wocky_node_tree_new:
  * @name: The name of the toplevel node
  * @ns: The namespace of the toplevel node
- * @Varargs: the description of the node tree to build,
+ * @...: the description of the node tree to build,
  *  terminated with %NULL
  *
  * Build a node-tree from a list of arguments.

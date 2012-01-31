@@ -1710,7 +1710,7 @@ wocky_c2s_porter_register_handler_from_server_by_stanza (
  *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
  *  stop further processing.
  * @user_data: Passed to @callback.
- * @Varargs: a wocky_stanza_build() specification. The handler
+ * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
  *  passed to this function, as per wocky_node_is_superset().
  *

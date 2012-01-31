@@ -362,7 +362,7 @@ wocky_node_set_attribute (WockyNode *node,
  * wocky_node_set_attributes:
  * @node: a #WockyNode
  * @key: the attribute name to set
- * @Varargs: pairs of keys and values, terminated by %NULL
+ * @...: pairs of keys and values, terminated by %NULL
  *
  * Sets attributes in a #WockyNode to specific values.
  */
@@ -1346,7 +1346,7 @@ wocky_node_iter_next (WockyNodeIter *iter,
 /**
  * wocky_node_add_build:
  * @node: The node under which to add a new subtree
- * @Varargs: the description of the stanza to build,
+ * @...: the description of the stanza to build,
  *  terminated with %NULL
  *
  * Add a node subtree to an existing parent node.
