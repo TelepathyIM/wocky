@@ -82,9 +82,6 @@ typedef gboolean (*WockyAuthSuccessFunc) (
     WockyAuthHandler *handler,
     GError **error);
 
-void
-wocky_auth_handler_free (WockyAuthHandler *handler);
-
 GType
 wocky_auth_handler_get_type (void);
 
