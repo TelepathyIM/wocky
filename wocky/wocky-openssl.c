@@ -62,7 +62,6 @@
 #define DEBUG_ASYNC_DETAIL_LEVEL 6
 
 #include "wocky-debug.h"
-#include "wocky-tls-enumtypes.h"
 #include "wocky-utils.h"
 
 #include <openssl/ssl.h>

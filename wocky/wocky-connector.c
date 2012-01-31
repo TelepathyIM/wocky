@@ -109,7 +109,6 @@
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-error.h"
-#include "wocky-xmpp-error-enumtypes.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 

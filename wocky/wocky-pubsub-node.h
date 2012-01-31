@@ -23,6 +23,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#include "wocky-pubsub-node-enumtypes.h"
 #include "wocky-types.h"
 #include "wocky-session.h"
 #include "wocky-pubsub-service.h"

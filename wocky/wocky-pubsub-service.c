@@ -18,7 +18,6 @@
  */
 
 #include "wocky-pubsub-service.h"
-#include "wocky-pubsub-service-enumtypes.h"
 #include "wocky-pubsub-service-protected.h"
 
 #include "wocky-porter.h"

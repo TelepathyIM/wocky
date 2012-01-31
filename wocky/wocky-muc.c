@@ -25,8 +25,6 @@
 #include "wocky-debug.h"
 
 #include "wocky-muc.h"
-#include "wocky-muc-enumtypes.h"
-#include "wocky-xmpp-error-enumtypes.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
 #include "wocky-signals-marshal.h"

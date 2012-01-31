@@ -19,7 +19,6 @@
 
 #include "wocky-pubsub-node.h"
 #include "wocky-pubsub-node-protected.h"
-#include "wocky-pubsub-node-enumtypes.h"
 
 #include "wocky-namespaces.h"
 #include "wocky-porter.h"

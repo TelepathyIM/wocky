@@ -27,7 +27,6 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
-#include "wocky-xmpp-error-enumtypes.h"
 
 #define DEBUG_FLAG DEBUG_AUTH
 #include "wocky-debug.h"

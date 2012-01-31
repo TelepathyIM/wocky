@@ -22,6 +22,7 @@
 #define __WOCKY_XMPP_READER_H__
 
 #include <glib-object.h>
+#include "wocky-xmpp-reader-enumtypes.h"
 #include "wocky-stanza.h"
 
 G_BEGIN_DECLS

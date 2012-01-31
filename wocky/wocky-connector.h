@@ -23,12 +23,12 @@
 
 #include <glib-object.h>
 
+#include "wocky-connector-enumtypes.h"
 #include "wocky-sasl-auth.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-stanza.h"
 
 #include "wocky-tls.h"
-#include "wocky-tls-enumtypes.h"
 #include "wocky-tls-handler.h"
 
 G_BEGIN_DECLS
