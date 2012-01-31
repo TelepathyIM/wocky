@@ -1,5 +1,4 @@
-#include <wocky/wocky-c2s-porter.h>
-#include <wocky/wocky-loopback-stream.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

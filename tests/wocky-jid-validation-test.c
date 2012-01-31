@@ -1,6 +1,6 @@
 #include <glib.h>
 
-#include <wocky/wocky-utils.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

@@ -1,7 +1,7 @@
 
 #include "wocky-test-sasl-handler.h"
 
-#include <wocky/wocky-auth-handler.h>
+#include <wocky/wocky.h>
 
 static void
 auth_handler_iface_init (gpointer g_iface);

@@ -4,8 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-resource-contact.h>
-#include <wocky/wocky-utils.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

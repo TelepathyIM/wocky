@@ -1,5 +1,8 @@
-/* wocky-auth-registry.h */
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
 
+/* wocky-auth-registry.h */
 #ifndef _WOCKY_AUTH_REGISTRY_H
 #define _WOCKY_AUTH_REGISTRY_H
 

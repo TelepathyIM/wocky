@@ -18,7 +18,7 @@
  */
 
 #include <stdio.h>
-#include <wocky/wocky-sasl-scram.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

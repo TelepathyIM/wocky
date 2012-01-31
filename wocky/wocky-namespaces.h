@@ -1,3 +1,6 @@
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
 
 #ifndef __WOCKY_NAMESPACES_H__
 #define __WOCKY_NAMESPACES_H__

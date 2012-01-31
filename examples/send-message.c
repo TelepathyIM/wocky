@@ -6,11 +6,7 @@
 #include <glib.h>
 
 #include <gio/gio.h>
-#include <wocky/wocky-connector.h>
-#include <wocky/wocky-xmpp-connection.h>
 #include <wocky/wocky.h>
-#include <wocky/wocky-porter.h>
-#include <wocky/wocky-session.h>
 
 GMainLoop *mainloop;
 char *recipient;

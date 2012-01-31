@@ -1,7 +1,6 @@
 #include <glib.h>
 
-#include <wocky/wocky-caps-hash.h>
-#include <wocky/wocky-stanza.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

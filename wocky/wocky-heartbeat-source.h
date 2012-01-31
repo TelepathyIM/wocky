@@ -18,6 +18,10 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#if !defined (WOCKY_COMPILATION)
+# error "This is an internal header."
+#endif
+
 #ifndef WOCKY_HEARTBEAT_SOURCE_H
 #define WOCKY_HEARTBEAT_SOURCE_H
 

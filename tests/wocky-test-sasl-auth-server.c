@@ -28,9 +28,6 @@
 
 #include "wocky-test-sasl-auth-server.h"
 
-#include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-namespaces.h>
 #include "config.h"
 
 #ifdef HAVE_LIBSASL2

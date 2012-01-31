@@ -4,13 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-roster.h>
-#include <wocky/wocky-porter.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-bare-contact.h>
-#include <wocky/wocky-namespaces.h>
-#include <wocky/wocky-session.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"

@@ -3,8 +3,14 @@
 
 #include <string.h>
 
+#include <wocky/wocky.h>
+
+/* WockyHttpProxy isn't public API, so we need to be a bit sneaky to get the
+ * header.
+ */
+#define WOCKY_COMPILATION
 #include <wocky/wocky-http-proxy.h>
-#include <wocky/wocky-utils.h>
+#undef WOCKY_COMPILATION
 
 typedef enum
 {

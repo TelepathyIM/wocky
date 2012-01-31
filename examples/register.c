@@ -6,8 +6,7 @@
 #include <glib.h>
 
 #include <gio/gio.h>
-#include <wocky/wocky-connector.h>
-#include <wocky/wocky-utils.h>
+#include <wocky/wocky.h>
 
 GMainLoop *mainloop;
 

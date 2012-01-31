@@ -2,7 +2,7 @@
 #define WOCKY_PUBSUB_TEST_HELPERS_H
 
 #include <glib.h>
-#include <wocky/wocky-pubsub-service.h>
+#include <wocky/wocky.h>
 
 typedef struct {
     const gchar *node;

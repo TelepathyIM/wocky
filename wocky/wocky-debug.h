@@ -1,3 +1,6 @@
+#if !defined (WOCKY_COMPILATION)
+# error "This is an internal header."
+#endif
 
 #ifndef __WOCKY_DEBUG_H__
 #define __WOCKY_DEBUG_H__

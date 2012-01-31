@@ -4,9 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-pep-service.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-namespaces.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"

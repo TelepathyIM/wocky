@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <wocky/wocky-utils.h>
+#include <wocky/wocky.h>
 
 static void
 test_compose_jid (void)

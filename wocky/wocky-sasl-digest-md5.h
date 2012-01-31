@@ -1,3 +1,7 @@
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
+
 #ifndef _WOCKY_SASL_DIGEST_MD5_H
 #define _WOCKY_SASL_DIGEST_MD5_H
 

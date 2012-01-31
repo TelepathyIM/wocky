@@ -5,9 +5,7 @@
 #include "wocky-test-stream.h"
 #include "wocky-test-helper.h"
 
-#include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-sasl-auth.h>
-#include <wocky/wocky-auth-registry.h>
+#include <wocky/wocky.h>
 
 typedef struct {
   gchar *description;
