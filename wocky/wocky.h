@@ -34,6 +34,7 @@
 #include "wocky-contact-factory.h"
 #include "wocky-contact.h"
 #include "wocky-data-form.h"
+#include "wocky-debug.h"
 #include "wocky-disco-identity.h"
 #include "wocky-jabber-auth-digest.h"
 #include "wocky-jabber-auth.h"

@@ -1,5 +1,5 @@
-#if !defined (WOCKY_COMPILATION)
-# error "This is an internal header."
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
 #endif
 
 #ifndef __WOCKY_DEBUG_H__
