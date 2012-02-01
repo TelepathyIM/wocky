@@ -25,6 +25,7 @@
 #include "wocky-pubsub-helpers.h"
 #include "wocky-pubsub-node.h"
 #include "wocky-pubsub-node-protected.h"
+#include "wocky-pubsub-node-internal.h"
 #include "wocky-namespaces.h"
 #include "wocky-signals-marshal.h"
 

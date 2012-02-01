@@ -79,6 +79,7 @@ handwritten_headers = \
   wocky-pubsub-helpers.h \
   wocky-pubsub-node.h \
   wocky-pubsub-node-protected.h \
+  wocky-pubsub-node-internal.h \
   wocky-pubsub-service.h \
   wocky-pubsub-service-protected.h \
   wocky-resource-contact.h \

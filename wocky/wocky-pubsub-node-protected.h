@@ -1,5 +1,5 @@
 /*
- * wocky-pubsub-node-internal.h - protected methods on WockyPubsubNode
+ * wocky-pubsub-node-protected.h - protected methods on WockyPubsubNode
  * Copyright © 2010 Collabora Ltd.
  * Copyright © 2010 Nokia Corporation
  *
@@ -25,24 +25,6 @@
 #define WOCKY_PUBSUB_NODE_PROTECTED_H
 
 #include "wocky-pubsub-node.h"
-
-/* for use by WockyPubsubService */
-
-typedef void (*WockyPubsubNodeEventHandler) (
-    WockyPubsubNode *self,
-    WockyStanza *event_stanza,
-    WockyNode *event_node,
-    WockyNode *action_node);
-
-typedef struct {
-    const gchar *action;
-    WockyPubsubNodeEventHandler method;
-} WockyPubsubNodeEventMapping;
-
-const WockyPubsubNodeEventMapping *_wocky_pubsub_node_get_event_mappings (
-    guint *n_mappings);
-
-/* for use by subclasses */
 
 WockyPorter *wocky_pubsub_node_get_porter (WockyPubsubNode *self);
 
