@@ -208,8 +208,12 @@ sched_close_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_porter_close_finish (
-      WOCKY_PORTER (source), res, NULL));
+  GError *error = NULL;
+  gboolean ret = wocky_porter_close_finish (
+      WOCKY_PORTER (source), res, &error);
+
+  g_assert_no_error (error);
+  g_assert (ret);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
