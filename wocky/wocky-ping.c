@@ -33,7 +33,7 @@
 #include "wocky-stanza.h"
 
 #define DEBUG_FLAG DEBUG_PING
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE (WockyPing, wocky_ping, G_TYPE_OBJECT)
 

@@ -6,7 +6,7 @@
 #include <string.h>
 
 #define DEBUG_FLAG DEBUG_AUTH
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 typedef enum {
   WOCKY_SASL_DIGEST_MD5_STATE_STARTED,

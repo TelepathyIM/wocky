@@ -29,7 +29,7 @@
 #include "wocky-signals-marshal.h"
 
 #define DEBUG_FLAG DEBUG_PUBSUB
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 static gboolean pubsub_service_propagate_event (WockyPorter *porter,
     WockyStanza *event_stanza,

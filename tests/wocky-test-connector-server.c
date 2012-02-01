@@ -37,7 +37,7 @@
  */
 #define DEBUG_FLAG DEBUG_CONNECTOR
 #define WOCKY_COMPILATION
-#include <wocky/wocky-debug.h>
+#include <wocky/wocky-debug-internal.h>
 #undef WOCKY_COMPILATION
 
 G_DEFINE_TYPE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT);

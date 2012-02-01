@@ -26,7 +26,7 @@
 #include "wocky-stanza.h"
 #include "wocky-xmpp-error.h"
 #include "wocky-namespaces.h"
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #include "wocky-node-private.h"
 

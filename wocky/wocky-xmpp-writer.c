@@ -39,7 +39,7 @@
 G_DEFINE_TYPE (WockyXmppWriter, wocky_xmpp_writer, G_TYPE_OBJECT)
 
 #define DEBUG_FLAG DEBUG_XMPP_WRITER
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 /* properties */
 enum {

@@ -36,7 +36,7 @@
 #include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_DATA_FORM
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE (WockyDataForm, wocky_data_form, G_TYPE_OBJECT)
 

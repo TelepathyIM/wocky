@@ -22,7 +22,7 @@
 #include <time.h>
 
 #define DEBUG_FLAG DEBUG_MUC_CONNECTION
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #include "wocky-muc.h"
 #include "wocky-namespaces.h"

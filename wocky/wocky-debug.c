@@ -3,7 +3,7 @@
 
 #include <glib.h>
 
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #ifdef ENABLE_DEBUG
 

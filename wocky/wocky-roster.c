@@ -43,7 +43,7 @@
 #include "wocky-session.h"
 
 #define DEBUG_FLAG DEBUG_ROSTER
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #define GOOGLE_ROSTER_VERSION "2"
 

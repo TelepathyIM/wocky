@@ -58,6 +58,7 @@ handwritten_headers = \
   wocky-contact-factory.h \
   wocky-data-form.h \
   wocky-debug.h \
+  wocky-debug-internal.h \
   wocky-disco-identity.h \
   wocky-heartbeat-source.h \
   wocky-jabber-auth.h \

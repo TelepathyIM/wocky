@@ -40,7 +40,7 @@
 #include "wocky-namespaces.h"
 
 #define DEBUG_FLAG DEBUG_PRESENCE
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 static gint
 char_cmp (gconstpointer a,

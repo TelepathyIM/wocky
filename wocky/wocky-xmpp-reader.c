@@ -42,7 +42,7 @@
 #include "wocky-stanza.h"
 
 #define DEBUG_FLAG DEBUG_XMPP_READER
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 /* properties */
 enum {

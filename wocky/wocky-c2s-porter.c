@@ -50,7 +50,7 @@
 #include "wocky-contact-factory.h"
 
 #define DEBUG_FLAG DEBUG_PORTER
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 static void wocky_porter_iface_init (gpointer g_iface, gpointer iface_data);
 

@@ -29,7 +29,7 @@
 #include "wocky-namespaces.h"
 
 #define DEBUG_FLAG DEBUG_CONNECTOR
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 static void initable_iface_init (gpointer, gpointer);
 

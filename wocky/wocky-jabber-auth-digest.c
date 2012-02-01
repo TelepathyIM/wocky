@@ -3,7 +3,7 @@
 
 #include "wocky-auth-registry.h"
 #define DEBUG_FLAG DEBUG_AUTH
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 static void
 auth_handler_iface_init (gpointer g_iface);
