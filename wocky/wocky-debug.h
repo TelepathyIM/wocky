@@ -5,11 +5,7 @@
 #ifndef __WOCKY_DEBUG_H__
 #define __WOCKY_DEBUG_H__
 
-#include "config.h"
-
 G_BEGIN_DECLS
-
-#ifdef ENABLE_DEBUG
 
 typedef enum
 {
@@ -40,10 +36,6 @@ typedef enum
 #define DEBUG_XMPP (DEBUG_XMPP_READER | DEBUG_XMPP_WRITER)
 
 void wocky_debug_set_flags (WockyDebugFlags flags);
-
-#else /* ENABLE_DEBUG */
-
-#endif /* ENABLE_DEBUG */
 
 G_END_DECLS
 

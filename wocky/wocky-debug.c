@@ -133,5 +133,11 @@ wocky_debug_stanza (WockyDebugFlags flag,
   wocky_debug_node_tree_va (flag, (WockyNodeTree *) stanza, format, args);
   va_end (args);
 }
+#else /* !ENABLE_DEBUG */
+
+void
+wocky_debug_set_flags (WockyDebugFlags flags)
+{
+}
 
 #endif
