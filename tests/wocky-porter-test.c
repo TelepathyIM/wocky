@@ -1086,6 +1086,7 @@ test_handler_stanza (void)
       ')', NULL);
 
   wocky_porter_start (test->sched_out);
+  wocky_porter_start (test->sched_in);
 
   /* Send a not jingle IQ */
   iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
@@ -1175,7 +1176,7 @@ test_handler_stanza (void)
     ')', NULL);
   send_stanza (test, iq, TRUE);
 
-  test_close_porter (test);
+  test_close_both_porters (test);
   teardown_test (test);
 }
 
