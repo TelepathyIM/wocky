@@ -87,7 +87,6 @@ tests/*report.xml
 # tests/certs/ca-0-key.pem
 # tests/certs/exp-cert.pem # keep these hanging around as we'd have
 # tests/certs/new-cert.pem # to build-dep on datefudge otherwise
-# tests/certs/ca-0-crl.pem
 # tests/certs/ca-1-cert.pem
 # tests/certs/ca-1-key.pem
 # tests/certs/ca-2-cert.pem
@@ -107,7 +106,6 @@ tests/*report.xml
 tests/certtool
 tests/tardis
 # tests/certs/cas/*
-# tests/certs/crl/*
 
 examples/wocky-register
 examples/wocky-receive-messages

@@ -729,29 +729,29 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 }
 
 /* ************************************************************************* */
-/* adding CA certificates and CRL lists for peer certificate verification    */
-static void
-add_ca_or_crl (WockyTLSSession *session,
-               const gchar *path,
-               const gchar *label)
+/* adding CA certificates lists for peer certificate verification    */
+
+void
+wocky_tls_session_add_ca (WockyTLSSession *session,
+                          const gchar *path)
 {
   gboolean ok = FALSE;
 
   if (!g_file_test (path, G_FILE_TEST_EXISTS))
     {
-      DEBUG ("%s file or path '%s' not accessible", label, path);
+      DEBUG ("CA file or path '%s' not accessible", path);
       return;
     }
 
   if (g_file_test (path, G_FILE_TEST_IS_DIR))
     {
-      DEBUG ("Loading %s directory", label);
+      DEBUG ("Loading CA directory");
       ok = SSL_CTX_load_verify_locations (session->ctx, NULL, path);
     }
 
   if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
     {
-      DEBUG ("Loading %s file", label);
+      DEBUG ("Loading CA file");
       ok = SSL_CTX_load_verify_locations (session->ctx, path, NULL);
     }
 
@@ -760,25 +760,12 @@ add_ca_or_crl (WockyTLSSession *session,
       gulong e, f;
       for (f = e = ERR_get_error (); e != 0; e = ERR_get_error ())
         f = e;
-      DEBUG ("%s '%s' failed: %s", label, path, ERR_error_string (f, NULL));
+      DEBUG ("CA '%s' failed: %s", path, ERR_error_string (f, NULL));
     }
   else
-    DEBUG ("%s '%s' loaded", label, path);
+    DEBUG ("CA '%s' loaded", path);
 }
 
-void
-wocky_tls_session_add_ca (WockyTLSSession *session,
-                          const gchar *path)
-{
-  add_ca_or_crl (session, path, "CA");
-}
-
-void
-wocky_tls_session_add_crl (WockyTLSSession *session,
-                           const gchar *path)
-{
-  add_ca_or_crl (session, path, "CRL");
-}
 /* ************************************************************************* */
 
 void

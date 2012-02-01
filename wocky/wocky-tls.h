@@ -108,7 +108,6 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
                                     GError       **error);
 
 void wocky_tls_session_add_ca (WockyTLSSession *session, const gchar *path);
-void wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *path);
 
 WockyTLSSession *wocky_tls_session_new (GIOStream *stream);
 

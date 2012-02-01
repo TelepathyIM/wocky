@@ -16,7 +16,6 @@ NEW_CERT := $(CERT_DIR)/new-cert.pem
 TLS_KEY  := $(CERT_DIR)/tls-key.pem
 TLS_CERT := $(CERT_DIR)/tls-cert.pem
 CA_DIR   := $(CERT_DIR)/cas
-CRL_DIR  := $(CERT_DIR)/crl
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
@@ -344,7 +343,5 @@ EXTRA_DIST = $(SUPPRESSIONS)     \
 	$(wildcard $(srcdir)/certs/*.cfg)      \
 	$(wildcard $(srcdir)/certs/*.pem)      \
 	$(wildcard $(srcdir)/certs/cas/*.pem)  \
-	$(wildcard $(srcdir)/certs/cas/*.0)    \
-	$(wildcard $(srcdir)/certs/crl/*.pem)  \
-	$(wildcard $(srcdir)/certs/crl/*.r0)
+	$(wildcard $(srcdir)/certs/cas/*.0)
 

@@ -520,24 +520,20 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 }
 
 /* ************************************************************************* */
-/* adding CA certificates and CRL lists for peer certificate verification    */
-typedef int (*add_certfile) (gnutls_certificate_credentials_t res,
-                             const char *file,
-                             gnutls_x509_crt_fmt_t type);
+/* adding CA certificates lists for peer certificate verification    */
 
-static void
-add_certfiles (gnutls_certificate_credentials cred,
-               const gchar *thing,
-               add_certfile add)
+void
+wocky_tls_session_add_ca (WockyTLSSession *session,
+                          const gchar *ca_path)
 {
   int n = 0;
   struct stat target;
 
-  DEBUG ("checking %s", thing);
+  DEBUG ("adding CA CERT path '%s'", (gchar *) ca_path);
 
-  if (stat (thing, &target) != 0)
+  if (stat (ca_path, &target) != 0)
     {
-      DEBUG ("ca/crl file '%s': stat failed)", thing);
+      DEBUG ("CA file '%s': stat failed)", ca_path);
       return;
     }
 
@@ -546,47 +542,32 @@ add_certfiles (gnutls_certificate_credentials cred,
       DIR *dir;
       struct dirent *entry;
 
-      if ((dir = opendir (thing)) == NULL)
+      if ((dir = opendir (ca_path)) == NULL)
         return;
 
       for (entry = readdir (dir); entry != NULL; entry = readdir (dir))
         {
           struct stat file;
-          gchar *path = g_build_path ("/", thing, entry->d_name, NULL);
+          gchar *path = g_build_path ("/", ca_path, entry->d_name, NULL);
 
           if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
-            n += add (cred, path, GNUTLS_X509_FMT_PEM);
+            n += gnutls_certificate_set_x509_trust_file (
+                session->gnutls_cert_cred, path, GNUTLS_X509_FMT_PEM);
 
           g_free (path);
         }
 
-      DEBUG ("+ %s: %d certs from dir", thing, n);
+      DEBUG ("+ %s: %d certs from dir", ca_path, n);
       closedir (dir);
     }
   else if (S_ISREG (target.st_mode))
     {
-      n = add (cred, thing, GNUTLS_X509_FMT_PEM);
-      DEBUG ("+ %s: %d certs from file", thing, n);
+      n = gnutls_certificate_set_x509_trust_file (session->gnutls_cert_cred,
+          ca_path, GNUTLS_X509_FMT_PEM);
+      DEBUG ("+ %s: %d certs from file", ca_path, n);
     }
 }
 
-void
-wocky_tls_session_add_ca (WockyTLSSession *session,
-                          const gchar *path)
-{
-  DEBUG ("adding CA CERT path '%s'", (gchar *) path);
-  add_certfiles (session->gnutls_cert_cred, path,
-                 gnutls_certificate_set_x509_trust_file);
-}
-
-void
-wocky_tls_session_add_crl (WockyTLSSession *session,
-                           const gchar *path)
-{
-  DEBUG ("adding CRL path '%s'", (gchar *) path);
-  add_certfiles (session->gnutls_cert_cred, path,
-                 gnutls_certificate_set_x509_crl_file);
-}
 /* ************************************************************************* */
 
 void

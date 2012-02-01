@@ -175,25 +175,13 @@ add_ca (gpointer data,
 }
 
 static void
-add_crl (gpointer data,
-    gpointer user_data)
-{
-  WockyTLSSession *session = user_data;
-  const gchar *path = data;
-
-  wocky_tls_session_add_crl (session, path);
-}
-
-static void
 prepare_session (WockyTLSConnector *self)
 {
-  GSList *cas, *crls;
+  GSList *cas;
 
   cas = wocky_tls_handler_get_cas (self->priv->handler);
-  crls = wocky_tls_handler_get_crls (self->priv->handler);
 
   g_slist_foreach (cas, add_ca, self->priv->session);
-  g_slist_foreach (crls, add_crl, self->priv->session);
 }
 
 static void

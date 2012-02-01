@@ -2680,18 +2680,6 @@ test_t tests[] =
           { "moose@tomato-juice.org", "something", PLAIN, TLS },
           { "tomato-juice.org", 0, XMPP_V1 } } },
 
-    { "/connector/cert-verification/tls/crl/fail",
-      QUIET,
-      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
-      { { TLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
-        { "moose", "something" },
-        PORT_XMPP, CERT_REVOKED },
-        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
-        { PLAINTEXT_OK,
-          { "moose@weasel-juice.org", "something", PLAIN, TLS },
-          { NULL, 0, XMPP_V1 } } },
-
     { "/connector/cert-verification/tls/expired/fail",
       QUIET,
       { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_EXPIRED, -1 },
@@ -2808,18 +2796,6 @@ test_t tests[] =
           { "moose@tomato-juice.org", "something", PLAIN, TLS },
           { "tomato-juice.org", 0, XMPP_V1, OLD_SSL } } },
 
-    { "/connector/cert-verification/ssl/crl/fail",
-      QUIET,
-      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
-      { { TLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
-        { "moose", "something" },
-        PORT_XMPP, CERT_REVOKED },
-        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
-        { PLAINTEXT_OK,
-          { "moose@weasel-juice.org", "something", PLAIN, TLS },
-          { NULL, 0, XMPP_V1, OLD_SSL } } },
-
     { "/connector/cert-verification/ssl/expired/fail",
       QUIET,
       { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_EXPIRED, -1 },
@@ -2918,18 +2894,6 @@ test_t tests[] =
           { "moose@tomato-juice.org", "something", PLAIN, TLS },
           { "tomato-juice.org", 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
 
-    { "/connector/cert-nonverification/tls/crl/fail",
-      QUIET,
-      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
-      { { TLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
-        { "moose", "something" },
-        PORT_XMPP, CERT_REVOKED },
-        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
-        { PLAINTEXT_OK,
-          { "moose@weasel-juice.org", "something", PLAIN, TLS },
-          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT } } },
-
     { "/connector/cert-nonverification/tls/expired/ok",
       QUIET,
       { S_NO_ERROR, },
@@ -3027,18 +2991,6 @@ test_t tests[] =
         { PLAINTEXT_OK,
           { "moose@tomato-juice.org", "something", PLAIN, TLS },
           { "tomato-juice.org", 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
-
-    { "/connector/cert-nonverification/ssl/crl/fail",
-      QUIET,
-      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
-      { { TLS, NULL },
-        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
-        { "moose", "something" },
-        PORT_XMPP, CERT_REVOKED },
-        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
-        { PLAINTEXT_OK,
-          { "moose@weasel-juice.org", "something", PLAIN, TLS },
-          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT } } },
 
     { "/connector/cert-nonverification/ssl/expired/ok",
       QUIET,
@@ -3372,7 +3324,6 @@ run_test (gpointer data)
       NULL);
 
   wocky_tls_handler_add_ca (handler, ca);
-  wocky_tls_handler_add_crl (handler, TLS_CRL_DIR);
 
   g_object_unref (handler);
 
