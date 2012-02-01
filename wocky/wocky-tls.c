@@ -687,7 +687,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                WockyTLSCertStatus *status)
 {
   int rval = -1;
-  guint _stat = 0;
+  guint peer_cert_status = 0;
   gboolean peer_name_ok = TRUE;
   gnutls_certificate_verify_flags check;
 
@@ -731,7 +731,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   DEBUG ("setting gnutls verify flags level to: %s",
       wocky_enum_to_nick (WOCKY_TYPE_TLS_VERIFICATION_LEVEL, level));
   gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, check);
-  rval = gnutls_certificate_verify_peers2 (session->session, &_stat);
+  rval = gnutls_certificate_verify_peers2 (session->session, &peer_cert_status);
 
   if (rval != GNUTLS_E_SUCCESS)
     {
@@ -875,7 +875,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       for (x = 0; status_map[x].gnutls != 0; x++)
         {
           DEBUG ("checking gnutls error %d", status_map[x].gnutls);
-          if (_stat & status_map[x].gnutls)
+          if (peer_cert_status & status_map[x].gnutls)
             {
               DEBUG ("gnutls error %d set", status_map[x].gnutls);
               *status = status_map[x].wocky;
@@ -1231,10 +1231,10 @@ wocky_tls_session_write_ready (GObject      *object,
     wocky_tls_session_try_operation (session, WOCKY_TLS_OP_WRITE);
 }
 
-static gssize
+static ssize_t
 wocky_tls_session_push_func (gpointer    user_data,
                              const void *buffer,
-                             gsize       count)
+                             size_t      count)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (user_data);
   GOutputStream *stream;
@@ -1324,10 +1324,10 @@ wocky_tls_session_push_func (gpointer    user_data,
     }
 }
 
-static gssize
+static ssize_t
 wocky_tls_session_pull_func (gpointer  user_data,
                              void     *buffer,
-                             gsize     count)
+                             size_t     count)
 {
   WockyTLSSession *session = WOCKY_TLS_SESSION (user_data);
   GInputStream *stream;
