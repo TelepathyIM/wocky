@@ -35,7 +35,7 @@
 /* We're being a bit naughty here by including wocky-debug.h, but we're
  * internal *enough*.
  */
-#define DEBUG_FLAG DEBUG_CONNECTOR
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_CONNECTOR
 #define WOCKY_COMPILATION
 #include <wocky/wocky-debug-internal.h>
 #undef WOCKY_COMPILATION

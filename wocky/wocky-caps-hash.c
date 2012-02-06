@@ -39,7 +39,7 @@
 #include "wocky-data-form.h"
 #include "wocky-namespaces.h"
 
-#define DEBUG_FLAG DEBUG_PRESENCE
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PRESENCE
 #include "wocky-debug-internal.h"
 
 static gint

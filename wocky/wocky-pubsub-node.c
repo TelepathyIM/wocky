@@ -28,7 +28,7 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
-#define DEBUG_FLAG DEBUG_PUBSUB
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PUBSUB
 #include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE (WockyPubsubNode, wocky_pubsub_node, G_TYPE_OBJECT)

@@ -34,7 +34,7 @@
 #include "wocky-namespaces.h"
 #include "wocky-signals-marshal.h"
 
-#define DEBUG_FLAG DEBUG_PUBSUB
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PUBSUB
 #include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE (WockyPepService, wocky_pep_service, G_TYPE_OBJECT)

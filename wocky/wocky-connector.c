@@ -98,7 +98,7 @@
 
 #include <gio/gio.h>
 
-#define DEBUG_FLAG DEBUG_CONNECTOR
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_CONNECTOR
 #include "wocky-debug-internal.h"
 
 #include "wocky-http-proxy.h"

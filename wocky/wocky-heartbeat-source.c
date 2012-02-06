@@ -23,7 +23,7 @@
 
 #include <errno.h>
 
-#define DEBUG_FLAG DEBUG_HEARTBEAT
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_HEARTBEAT
 #include "wocky-debug-internal.h"
 
 #ifdef HAVE_IPHB

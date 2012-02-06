@@ -2,7 +2,7 @@
 #include "wocky-jabber-auth-password.h"
 
 #include "wocky-auth-registry.h"
-#define DEBUG_FLAG DEBUG_AUTH
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_AUTH
 #include "wocky-debug-internal.h"
 
 static void

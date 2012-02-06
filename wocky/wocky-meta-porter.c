@@ -42,7 +42,7 @@ typedef uint16_t u_int16_t;
 #include "wocky-ll-connector.h"
 #include "wocky-loopback-stream.h"
 
-#define DEBUG_FLAG DEBUG_PORTER
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PORTER
 #include "wocky-debug-internal.h"
 
 static void wocky_porter_iface_init (gpointer g_iface,

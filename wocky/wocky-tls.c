@@ -76,7 +76,7 @@
   "+COMP-NULL"     /* fall back to null */
 #endif
 
-#define DEBUG_FLAG DEBUG_TLS
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_TLS
 #define DEBUG_HANDSHAKE_LEVEL 5
 #define DEBUG_ASYNC_DETAIL_LEVEL 6
 

@@ -9,7 +9,7 @@
 #include "wocky-jabber-auth-digest.h"
 #include "wocky-utils.h"
 
-#define DEBUG_FLAG DEBUG_AUTH
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_AUTH
 #include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT)

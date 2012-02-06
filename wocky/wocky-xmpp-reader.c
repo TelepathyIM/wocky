@@ -41,7 +41,7 @@
 
 #include "wocky-stanza.h"
 
-#define DEBUG_FLAG DEBUG_XMPP_READER
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_XMPP_READER
 #include "wocky-debug-internal.h"
 
 /* properties */
@@ -686,7 +686,7 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
   g_return_if_fail (priv->state < WOCKY_XMPP_READER_STATE_CLOSED);
 
 #ifdef ENABLE_DEBUG
-  wocky_debug (DEBUG_NET, "Parsing chunk: %.*s", (int)length, data);
+  wocky_debug (WOCKY_DEBUG_NET, "Parsing chunk: %.*s", (int)length, data);
 #endif
 
   parser = priv->parser;

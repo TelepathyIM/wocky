@@ -38,7 +38,7 @@
 
 G_DEFINE_TYPE (WockyXmppWriter, wocky_xmpp_writer, G_TYPE_OBJECT)
 
-#define DEBUG_FLAG DEBUG_XMPP_WRITER
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_XMPP_WRITER
 #include "wocky-debug-internal.h"
 
 /* properties */
@@ -450,7 +450,7 @@ _write_node_tree (WockyXmppWriter *writer,
   *length  = priv->buffer->use;
 
 #ifdef ENABLE_DEBUG
-  wocky_debug (DEBUG_NET, "Writing xml: %.*s", (int)*length, *data);
+  wocky_debug (WOCKY_DEBUG_NET, "Writing xml: %.*s", (int)*length, *data);
 #endif
 }
 

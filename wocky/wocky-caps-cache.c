@@ -35,7 +35,7 @@
 #include "wocky-xmpp-reader.h"
 #include "wocky-xmpp-writer.h"
 
-#define DEBUG_FLAG DEBUG_PRESENCE
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PRESENCE
 #include "wocky-debug-internal.h"
 
 #define DB_USER_VERSION 2

@@ -49,7 +49,7 @@
 #include "wocky-namespaces.h"
 #include "wocky-contact-factory.h"
 
-#define DEBUG_FLAG DEBUG_PORTER
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PORTER
 #include "wocky-debug-internal.h"
 
 static void wocky_porter_iface_init (gpointer g_iface, gpointer iface_data);

@@ -21,7 +21,7 @@
 #include <string.h>
 #include <time.h>
 
-#define DEBUG_FLAG DEBUG_MUC_CONNECTION
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_MUC_CONNECTION
 #include "wocky-debug-internal.h"
 
 #include "wocky-muc.h"
