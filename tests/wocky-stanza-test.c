@@ -4,10 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-stanza.h>
-#include <wocky/wocky-xmpp-error.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-namespaces.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

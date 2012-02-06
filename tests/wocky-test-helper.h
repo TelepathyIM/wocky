@@ -3,9 +3,7 @@
 
 G_BEGIN_DECLS
 
-#include <wocky/wocky-xmpp-connection.h>
-#include <wocky/wocky-porter.h>
-#include <wocky/wocky-session.h>
+#include <wocky/wocky.h>
 #include "wocky-test-stream.h"
 
 typedef struct {

@@ -1,8 +1,8 @@
 /*
- * wocky-heartbeat-source.h: header for a GSource wrapping libiphb.
- * Copyright © 2010 Collabora Ltd. <http://www.collabora.co.uk>
+ * wocky-pubsub-node-internal.h - internal methods on WockyPubsubNode
+ *                                used by WockyPubsubService
+ * Copyright © 2010 Collabora Ltd.
  * Copyright © 2010 Nokia Corporation
- * @author Will Thompson <will.thompson@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,23 +22,23 @@
 # error "This is an internal header."
 #endif
 
-#ifndef WOCKY_HEARTBEAT_SOURCE_H
-#define WOCKY_HEARTBEAT_SOURCE_H
+#ifndef WOCKY_PUBSUB_NODE_INTERNAL_H
+#define WOCKY_PUBSUB_NODE_INTERNAL_H
 
-#include <glib.h>
+#include "wocky-pubsub-node.h"
 
-G_BEGIN_DECLS
+typedef void (*WockyPubsubNodeEventHandler) (
+    WockyPubsubNode *self,
+    WockyStanza *event_stanza,
+    WockyNode *event_node,
+    WockyNode *action_node);
 
-typedef void (*WockyHeartbeatCallback) (
-    gpointer user_data);
+typedef struct {
+    const gchar *action;
+    WockyPubsubNodeEventHandler method;
+} WockyPubsubNodeEventMapping;
 
-GSource *wocky_heartbeat_source_new (
-    guint max_interval);
+const WockyPubsubNodeEventMapping *_wocky_pubsub_node_get_event_mappings (
+    guint *n_mappings);
 
-void wocky_heartbeat_source_update_interval (
-    GSource *source,
-    guint max_interval);
-
-G_END_DECLS
-
-#endif /* WOCKY_HEARTBEAT_SOURCE_H */
+#endif /* WOCKY_PUBSUB_NODE_INTERNAL_H */

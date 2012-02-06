@@ -17,12 +17,16 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
 
 #ifndef WOCKY_DATA_FORM_H
 #define WOCKY_DATA_FORM_H
 
 #include <glib-object.h>
 
+#include "wocky-data-form-enumtypes.h"
 #include "wocky-node.h"
 
 G_BEGIN_DECLS

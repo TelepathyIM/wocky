@@ -35,7 +35,7 @@
 #include <string.h>
 
 #define DEBUG_FLAG DEBUG_PRESENCE
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 G_DEFINE_BOXED_TYPE (WockyDiscoIdentity, wocky_disco_identity,
     wocky_disco_identity_copy, wocky_disco_identity_free)

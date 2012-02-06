@@ -19,11 +19,7 @@
 #include <arpa/inet.h>
 #endif
 
-#include <wocky/wocky-connector.h>
-#include <wocky/wocky-namespaces.h>
-#include <wocky/wocky-sasl-auth.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-xmpp-error.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-connector-server.h"
 #include "test-resolver.h"

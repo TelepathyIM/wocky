@@ -26,7 +26,7 @@
 #include "wocky-tls-connector.h"
 
 #define DEBUG_FLAG DEBUG_TLS
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #include "wocky-namespaces.h"
 #include "wocky-connector.h"

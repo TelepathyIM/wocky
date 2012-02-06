@@ -22,11 +22,16 @@
  * 'g' prefixes changes to 'wocky' and server-side TLS support added.
  *
  */
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
 
 #ifndef _wocky_tls_h_
 #define _wocky_tls_h_
 
 #include <gio/gio.h>
+
+#include "wocky-tls-enumtypes.h"
 
 #define WOCKY_TYPE_TLS_CONNECTION (wocky_tls_connection_get_type ())
 #define WOCKY_TYPE_TLS_SESSION    (wocky_tls_session_get_type ())

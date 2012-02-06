@@ -25,8 +25,7 @@
 
 #include <gio/gio.h>
 
-#include <wocky/wocky-stanza.h>
-#include <wocky/wocky-xmpp-connection.h>
+#include <wocky/wocky.h>
 
 G_BEGIN_DECLS
 

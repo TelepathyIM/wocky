@@ -450,7 +450,7 @@ wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
  *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
  *  stop further processing.
  * @user_data: Passed to @callback.
- * @Varargs: a wocky_stanza_build() specification. The handler
+ * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
  *  passed to this function, as per wocky_node_is_superset().
  *
@@ -641,7 +641,7 @@ wocky_porter_register_handler_from_anyone_by_stanza (
  *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
  *  stop further processing.
  * @user_data: Passed to @callback.
- * @Varargs: a wocky_stanza_build() specification. The handler
+ * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
  *  passed to this function, as per wocky_node_is_superset().
  *
@@ -843,7 +843,7 @@ wocky_porter_send_iq_finish (WockyPorter *self,
  * @porter: a #WockyPorter
  * @stanza: a stanza of type #WOCKY_STANZA_TYPE_IQ and sub-type either
  *          #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
- * @Varargs: a wocky_stanza_build() specification; pass %NULL to include no
+ * @...: a wocky_stanza_build() specification; pass %NULL to include no
  *           body in the reply.
  *
  * Sends an acknowledgement for @stanza back to the sender, as a shorthand for

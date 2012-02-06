@@ -58,6 +58,7 @@ handwritten_headers = \
   wocky-contact-factory.h \
   wocky-data-form.h \
   wocky-debug.h \
+  wocky-debug-internal.h \
   wocky-disco-identity.h \
   wocky-heartbeat-source.h \
   wocky-jabber-auth.h \
@@ -78,6 +79,7 @@ handwritten_headers = \
   wocky-pubsub-helpers.h \
   wocky-pubsub-node.h \
   wocky-pubsub-node-protected.h \
+  wocky-pubsub-node-internal.h \
   wocky-pubsub-service.h \
   wocky-pubsub-service-protected.h \
   wocky-resource-contact.h \
@@ -210,7 +212,9 @@ wocky-signals-marshal.list: $(handwritten_sources) Makefile.am
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) \
             @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @SQLITE_CFLAGS@ @TLS_CFLAGS@ \
             @LIBIPHB_CFLAGS@ \
-            -DG_LOG_DOMAIN=\"wocky\"
+            -DG_LOG_DOMAIN=\"wocky\" \
+            -DWOCKY_COMPILATION
+
 
 AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @SQLITE_LIBS@ @TLS_LIBS@ @LIBIPHB_LIBS@
 

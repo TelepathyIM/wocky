@@ -24,7 +24,7 @@
 #include <errno.h>
 
 #define DEBUG_FLAG DEBUG_HEARTBEAT
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #ifdef HAVE_IPHB
 # include <iphbd/libiphb.h>

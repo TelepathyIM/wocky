@@ -99,7 +99,7 @@
 #include <gio/gio.h>
 
 #define DEBUG_FLAG DEBUG_CONNECTOR
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #include "wocky-http-proxy.h"
 #include "wocky-sasl-auth.h"
@@ -109,7 +109,6 @@
 #include "wocky-namespaces.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-xmpp-error.h"
-#include "wocky-xmpp-error-enumtypes.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 

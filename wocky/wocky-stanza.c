@@ -26,7 +26,7 @@
 #include "wocky-stanza.h"
 #include "wocky-xmpp-error.h"
 #include "wocky-namespaces.h"
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #include "wocky-node-private.h"
 
@@ -293,7 +293,7 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  *           #WOCKY_STANZA_SUB_TYPE_SUBSCRIBED.)
  * @from: The sender's JID, or %NULL to leave it unspecified.
  * @to: The target's JID, or %NULL to leave it unspecified.
- * @Varargs: the description of the stanza to build,
+ * @...: the description of the stanza to build,
  *  terminated with %NULL
  *
  * Build a XMPP stanza from a list of arguments.
@@ -537,7 +537,7 @@ wocky_stanza_build_iq_result_va (
  * wocky_stanza_build_iq_error:
  * @iq: a stanza of type #WOCKY_STANZA_TYPE_IQ and sub-type either
  *      #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET
- * @Varargs: a wocky_stanza_build() specification
+ * @...: a wocky_stanza_build() specification
  *
  * Builds an error reply to @iq containing the given body. This function also
  * adds the child element of @iq to the reply, as recommended by <ulink

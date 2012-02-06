@@ -1,6 +1,6 @@
 #include "wocky-pubsub-test-helpers.h"
 
-#include <wocky/wocky-pubsub-node.h>
+#include <wocky/wocky.h>
 
 void
 test_pubsub_add_subscription_nodes (

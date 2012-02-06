@@ -3,7 +3,7 @@
 
 #include <glib.h>
 
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 #ifdef ENABLE_DEBUG
 
@@ -132,6 +132,12 @@ wocky_debug_stanza (WockyDebugFlags flag,
   va_start (args, format);
   wocky_debug_node_tree_va (flag, (WockyNodeTree *) stanza, format, args);
   va_end (args);
+}
+#else /* !ENABLE_DEBUG */
+
+void
+wocky_debug_set_flags (WockyDebugFlags flags)
+{
 }
 
 #endif

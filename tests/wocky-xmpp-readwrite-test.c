@@ -4,9 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-xmpp-reader.h>
-#include <wocky/wocky-xmpp-writer.h>
-#include <wocky/wocky-utils.h>
+#include <wocky/wocky.h>
 
 #include "wocky-test-helper.h"
 

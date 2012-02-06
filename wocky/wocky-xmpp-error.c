@@ -25,7 +25,6 @@
 
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
-#include "wocky-xmpp-error-enumtypes.h"
 
 /* Definitions of XMPP core stanza errors, as per RFC 3920 §9.3; plus the
  * corresponding legacy error codes as described by XEP-0086.

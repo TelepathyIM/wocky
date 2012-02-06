@@ -27,10 +27,9 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
 #include "wocky-utils.h"
-#include "wocky-xmpp-error-enumtypes.h"
 
 #define DEBUG_FLAG DEBUG_AUTH
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE(WockyJabberAuth, wocky_jabber_auth, G_TYPE_OBJECT)
 

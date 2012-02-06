@@ -46,7 +46,7 @@
 #include "wocky-utils.h"
 
 #define DEBUG_FLAG DEBUG_ROSTER
-#include "wocky-debug.h"
+#include "wocky-debug-internal.h"
 
 G_DEFINE_TYPE (WockyContact, wocky_contact, G_TYPE_OBJECT)
 

@@ -17,11 +17,16 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
+
 #ifndef __WOCKY_MUC_H__
 #define __WOCKY_MUC_H__
 
 #include <glib-object.h>
 
+#include "wocky-muc-enumtypes.h"
 #include "wocky-namespaces.h"
 #include "wocky-porter.h"
 

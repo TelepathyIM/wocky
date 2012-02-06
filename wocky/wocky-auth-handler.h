@@ -1,3 +1,6 @@
+#if !defined (WOCKY_H_INSIDE) && !defined (WOCKY_COMPILATION)
+# error "Only <wocky/wocky.h> can be included directly."
+#endif
 
 #ifndef _WOCKY_AUTH_HANDLER_H
 #define _WOCKY_AUTH_HANDLER_H
@@ -21,7 +24,7 @@ typedef struct _WockyAuthHandler WockyAuthHandler;
 /**
  * WockyAuthInitialResponseFunc:
  * @handler: a #WockyAuthHandler object
- * @initial_data: a #GString location to fill with the initial data, or %NULL to ignre
+ * @initial_data: (out): a #GString location to fill with the initial data
  * @error: an optional location for a #GError to fill, or %NULL
  *
  * Called when authentication begins, if the mechanism allows a
@@ -29,10 +32,10 @@ typedef struct _WockyAuthHandler WockyAuthHandler;
  * XMPP, corresponds to sending the <code>&lt;auth/&gt;</code> stanza
  * to the server).
  *
- * The function should return %TRUE on success and optionally set the
- * @initial_data to a string (allocated using g_malloc()) if there is
- * initial data to send. On error it should return %FALSE and set the
- * error
+ * The function should return %TRUE on success, and optionally set the
+ * @initial_data to a string if there is
+ * initial data to send. On error, it should return %FALSE and set
+ * @error.
  *
  * Returns: %TRUE on success, otherwise %FALSE
  **/
@@ -43,14 +46,15 @@ typedef gboolean (*WockyAuthInitialResponseFunc) (WockyAuthHandler *handler,
 /**
  * WockyAuthChallengeFunc:
  * @handler: a #WockyAuthHandler object
- * @data: the challange string
- * @response: a location to fill with a challenge response in a #GString
+ * @data: the challenge string
+ * @response: (out) (transfer full): a location to fill with a challenge
+ *  response in a #GString
  * @error: an optional location for a #GError to fill, or %NULL
  *
- * Called During authentication, when a
+ * Called during authentication when a
  * <code>&lt;challenge/&gt;</code> stanza or a
  * <code>&lt;success/&gt;</code> with data is received. The handler
- * should put response data in response (allocate using g_malloc()) if
+ * should put response data into @response if
  * appropriate. The handler is responsible for Base64-encoding
  * responses if appropriate.
  *
@@ -81,9 +85,6 @@ typedef gboolean (*WockyAuthAuthDataFunc) (
 typedef gboolean (*WockyAuthSuccessFunc) (
     WockyAuthHandler *handler,
     GError **error);
-
-void
-wocky_auth_handler_free (WockyAuthHandler *handler);
 
 GType
 wocky_auth_handler_get_type (void);

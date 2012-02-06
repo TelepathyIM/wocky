@@ -18,7 +18,7 @@
  */
 
 #include <stdio.h>
-#include <wocky/wocky-sasl-utils.h>
+#include <wocky/wocky.h>
 
 typedef struct {
   guint8 *key;

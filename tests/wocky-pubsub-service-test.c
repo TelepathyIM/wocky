@@ -4,11 +4,7 @@
 
 #include <glib.h>
 
-#include <wocky/wocky-pubsub-service.h>
-#include <wocky/wocky-pubsub-node.h>
-#include <wocky/wocky-utils.h>
-#include <wocky/wocky-namespaces.h>
-#include <wocky/wocky-xmpp-error.h>
+#include <wocky/wocky.h>
 
 #include "wocky-pubsub-test-helpers.h"
 #include "wocky-test-helper.h"

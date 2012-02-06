@@ -89,8 +89,7 @@
                          GNUTLS_VERIFY_DISABLE_TIME_CHECKS      | \
                          GNUTLS_VERIFY_DISABLE_CA_SIGN          )
 
-#include "wocky-debug.h"
-#include "wocky-tls-enumtypes.h"
+#include "wocky-debug-internal.h"
 #include "wocky-utils.h"
 
 #include <gnutls/gnutls.h>
