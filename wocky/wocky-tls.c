@@ -1,4 +1,7 @@
 /*
+ * Wocky TLS integration - GNUTLS implementation
+ * (just named -tls for historical reasons)
+ *
  * Copyright © 2008 Christian Kellner, Samuel Cormier-Iijima
  * Copyright © 2008-2009 Codethink Limited
  * Copyright © 2009 Collabora Limited
@@ -261,17 +264,6 @@ G_DEFINE_TYPE (WockyTLSOutputStream, wocky_tls_output_stream, G_TYPE_OUTPUT_STRE
                                        WOCKY_TYPE_TLS_OUTPUT_STREAM,         \
                                        WockyTLSOutputStream))
 
-GQuark
-wocky_tls_cert_error_quark (void)
-{
-  static GQuark quark = 0;
-
-  if (quark == 0)
-    quark = g_quark_from_static_string ("wocky-tls-cert-error");
-
-  return quark;
-}
-
 static const gchar *hdesc_to_string (long desc)
 {
 #define HDESC(x) case GNUTLS_HANDSHAKE_##x: return #x; break;
@@ -310,7 +302,8 @@ wocky_tls_set_error (GError **error,
   int code = (int) result;
 
   if (result < 0)
-    g_set_error (error, 0, 0, "%d: %s", code, error_to_string (code));
+    g_set_error (error, WOCKY_TLS_ERROR, 0, "%d: %s",
+        code, error_to_string (code));
 
   return result < 0;
 }

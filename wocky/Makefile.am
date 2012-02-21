@@ -144,6 +144,7 @@ handwritten_sources = \
   wocky-session.c \
   wocky-stanza.c \
   wocky-utils.c \
+  wocky-tls-common.c \
   wocky-tls-handler.c \
   wocky-tls-connector.c \
   wocky-xep-0115-capabilities.c \
