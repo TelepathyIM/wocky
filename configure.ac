@@ -99,6 +99,16 @@ AM_CONDITIONAL(INSTALL_HEADERS, test x$with_installed_headers != x)
 HEADER_DIR=$with_installed_headers
 AC_SUBST(HEADER_DIR)
 
+dnl Build a shared library even though Wocky isn't stable yet?
+AC_ARG_ENABLE([shared-suffix],
+  AC_HELP_STRING([--enable-shared-suffix=],
+    [install a shared library with a version-specific suffix]),
+  [],
+  [enable_shared_suffix=])
+AM_CONDITIONAL([ENABLE_SHARED_SUFFIX], [test x$enable_shared_suffix != x])
+SHARED_SUFFIX="$enable_shared_suffix"
+AC_SUBST([SHARED_SUFFIX])
+
 dnl Check for code generation tools
 AC_HEADER_STDC([])
 AC_CHECK_HEADERS_ONCE([unistd.h])

@@ -1,6 +1,15 @@
 include $(top_srcdir)/tools/flymake.mk
 
+if ENABLE_SHARED_SUFFIX
+lib_LTLIBRARIES = libwocky.la
+
+libwocky_la_LDFLAGS = \
+  -no-undefined \
+  -release $(SHARED_SUFFIX) \
+  $(NULL)
+else
 noinst_LTLIBRARIES = libwocky.la
+endif
 
 EXTRA_DIST =
 
