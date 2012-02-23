@@ -217,7 +217,14 @@ AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) \
             -DWOCKY_COMPILATION
 
 
-AM_LDFLAGS = $(GCOV_LIBS) @GLIB_LIBS@ @LIBXML2_LIBS@ @SQLITE_LIBS@ @TLS_LIBS@ @LIBIPHB_LIBS@
+libwocky_la_LIBADD = \
+  $(GCOV_LIBS) \
+  @GLIB_LIBS@ \
+  @LIBXML2_LIBS@ \
+  @SQLITE_LIBS@ \
+  @TLS_LIBS@ \
+  @LIBIPHB_LIBS@ \
+  $(NULL)
 
 # rules for making the glib enum objects
 # The shell variable $long is something like WOCKY_XMPP_ERROR for
@@ -249,5 +256,5 @@ Android.mk: Makefile.am $(built_sources) $(built_headers)
 	 -:SOURCES $(handwritten_sources) $(built_sources) \
 	 -:CFLAGS $(DEFS) $(CFLAGS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CFLAGS) \
 	 -:CPPFLAGS $(CPPFLAGS) $(AM_CPPFLAGS) \
-	 -:LDFLAGS $(AM_LDFLAGS) \
+	 -:LDFLAGS $(AM_LDFLAGS) $(libwocky_la_LIBADD) \
 	> $@
