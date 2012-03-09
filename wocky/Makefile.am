@@ -67,9 +67,7 @@ handwritten_headers = \
   wocky-contact-factory.h \
   wocky-data-form.h \
   wocky-debug.h \
-  wocky-debug-internal.h \
   wocky-disco-identity.h \
-  wocky-heartbeat-source.h \
   wocky-jabber-auth.h \
   wocky-jabber-auth-digest.h \
   wocky-jabber-auth-password.h \
@@ -80,7 +78,6 @@ handwritten_headers = \
   wocky-muc.h \
   wocky-namespaces.h \
   wocky-node.h \
-  wocky-node-private.h \
   wocky-node-tree.h \
   wocky-pep-service.h \
   wocky-ping.h \
@@ -88,7 +85,6 @@ handwritten_headers = \
   wocky-pubsub-helpers.h \
   wocky-pubsub-node.h \
   wocky-pubsub-node-protected.h \
-  wocky-pubsub-node-internal.h \
   wocky-pubsub-service.h \
   wocky-pubsub-service-protected.h \
   wocky-resource-contact.h \
@@ -125,8 +121,10 @@ handwritten_sources = \
   wocky-contact-factory.c \
   wocky-data-form.c \
   wocky-debug.c \
+  wocky-debug-internal.h \
   wocky-disco-identity.c \
   wocky-heartbeat-source.c \
+  wocky-heartbeat-source.h \
   wocky-jabber-auth.c \
   wocky-jabber-auth-digest.c \
   wocky-jabber-auth-password.c \
@@ -136,12 +134,14 @@ handwritten_sources = \
   wocky-meta-porter.c \
   wocky-muc.c \
   wocky-node.c \
+  wocky-node-private.h \
   wocky-node-tree.c \
   wocky-pep-service.c \
   wocky-ping.c \
   wocky-porter.c \
   wocky-pubsub-helpers.c \
   wocky-pubsub-node.c \
+  wocky-pubsub-node-internal.h \
   wocky-pubsub-service.c \
   wocky-resource-contact.c \
   wocky-roster.c \
