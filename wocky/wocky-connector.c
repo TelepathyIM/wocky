@@ -880,7 +880,7 @@ tcp_srv_connected (GObject *source,
 
       if ((host != NULL) && (*host != '\0'))
         {
-          DEBUG ("Falling back to HOST connection to %s", host);
+          DEBUG ("Falling back to HOST connection to %s port %u", host, port);
           connect_to_host_async (connector, host, port);
         }
       else
