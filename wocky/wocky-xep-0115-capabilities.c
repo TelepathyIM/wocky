@@ -2,7 +2,7 @@
  * wocky-xep-0115-capabilities.c - interface for holding capabilities
  * of contacts
  *
- * Copyright (C) 2011 Collabora Ltd.
+ * Copyright (C) 2011-2012 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -57,4 +57,19 @@ wocky_xep_0115_capabilities_get_data_forms (
     return method (contact);
 
   return NULL;
+}
+
+gboolean
+wocky_xep_0115_capabilities_has_feature (
+    WockyXep0115Capabilities *contact,
+    const gchar *feature)
+{
+  WockyXep0115CapabilitiesInterface *iface =
+    WOCKY_XEP_0115_CAPABILITIES_GET_INTERFACE (contact);
+  WockyXep0115CapabilitiesHasFeatureFunc method = iface->has_feature;
+
+  if (method != NULL)
+    return method (contact, feature);
+
+  return FALSE;
 }

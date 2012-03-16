@@ -2,7 +2,7 @@
  * wocky-xep-0115-capabilities.h - interface for holding capabilities
  * of contacts
  *
- * Copyright (C) 2011 Collabora Ltd.
+ * Copyright (C) 2011-2012 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -52,14 +52,23 @@ typedef struct _WockyXep0115CapabilitiesInterface WockyXep0115CapabilitiesInterf
 typedef const GPtrArray * (*WockyXep0115CapabilitiesGetDataFormsFunc) (
     WockyXep0115Capabilities *contact);
 
+typedef gboolean (*WockyXep0115CapabilitiesHasFeatureFunc) (
+    WockyXep0115Capabilities *contact,
+    const gchar *feature);
+
 const GPtrArray * wocky_xep_0115_capabilities_get_data_forms (
     WockyXep0115Capabilities *contact);
+
+gboolean wocky_xep_0115_capabilities_has_feature (
+    WockyXep0115Capabilities *contact,
+    const gchar *feature);
 
 struct _WockyXep0115CapabilitiesInterface {
     GTypeInterface parent;
 
-    /* TODO: features and identites! */
+    /* TODO: capability enumeration and identities! */
     WockyXep0115CapabilitiesGetDataFormsFunc get_data_forms;
+    WockyXep0115CapabilitiesHasFeatureFunc has_feature;
 };
 
 GType wocky_xep_0115_capabilities_get_type (void);
