@@ -1,6 +1,6 @@
 /*
  * wocky-pubsub-internal.h — header for PubSub helper functions
- * Copyright © 2009–2010 Collabora Ltd.
+ * Copyright © 2009–2012 Collabora Ltd.
  * Copyright © 2010 Nokia Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -47,6 +47,9 @@ WockyStanza *wocky_pubsub_make_publish_stanza (
     WockyNode **pubsub_out,
     WockyNode **publish_out,
     WockyNode **item_out);
+
+void wocky_send_ll_pep_event (WockySession *session,
+    WockyStanza *stanza);
 
 gboolean wocky_pubsub_distill_iq_reply (GObject *source,
     GAsyncResult *res,

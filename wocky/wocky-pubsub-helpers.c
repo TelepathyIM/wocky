@@ -1,6 +1,6 @@
 /*
  * wocky-pubsub-helpers.c — PubSub helper functions
- * Copyright © 2009–2010 Collabora Ltd.
+ * Copyright © 2009–2012 Collabora Ltd.
  * Copyright © 2010 Nokia Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -22,6 +22,8 @@
 
 #include "wocky-namespaces.h"
 #include "wocky-pubsub-service.h"
+#include "wocky-session.h"
+#include "wocky-xep-0115-capabilities.h"
 
 
 /**
@@ -161,6 +163,80 @@ wocky_pubsub_make_stanza (
     *action_node = action;
 
   return stanza;
+}
+
+static void
+send_stanza_to_contact (WockyPorter *porter,
+    WockyContact *contact,
+    WockyStanza *stanza)
+{
+  WockyStanza *to_send = wocky_stanza_copy (stanza);
+
+  wocky_stanza_set_to_contact (to_send, contact);
+  wocky_porter_send (porter, to_send);
+  g_object_unref (to_send);
+}
+
+/**
+ * wocky_send_ll_pep_event:
+ * @session: the WockySession to send on
+ * @stanza: the PEP event stanza to send
+ *
+ * Send a PEP event to all link-local contacts interested in receiving it.
+ */
+void
+wocky_send_ll_pep_event (WockySession *session,
+    WockyStanza *stanza)
+{
+  WockyContactFactory *contact_factory;
+  WockyPorter *porter;
+  WockyLLContact *self_contact;
+  GList *contacts, *l;
+  WockyNode *message, *event, *items;
+  const gchar *pep_node;
+  gchar *node;
+
+  g_return_if_fail (WOCKY_IS_SESSION (session));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
+  message = wocky_stanza_get_top_node (stanza);
+  event = wocky_node_get_first_child (message);
+  items = wocky_node_get_first_child (event);
+
+  pep_node = wocky_node_get_attribute (items, "node");
+
+  if (pep_node == NULL)
+    return;
+
+  node = g_strdup_printf ("%s+notify", pep_node);
+
+  contact_factory = wocky_session_get_contact_factory (session);
+  porter = wocky_session_get_porter (session);
+
+  contacts = wocky_contact_factory_get_ll_contacts (contact_factory);
+
+  for (l = contacts; l != NULL; l = l->next)
+    {
+      WockyXep0115Capabilities *contact;
+
+      if (!WOCKY_IS_XEP_0115_CAPABILITIES (l->data))
+        continue;
+
+      contact = l->data;
+
+      if (wocky_xep_0115_capabilities_has_feature (contact, node))
+        send_stanza_to_contact (porter, WOCKY_CONTACT (contact), stanza);
+    }
+
+  /* now send to self */
+  self_contact = wocky_contact_factory_ensure_ll_contact (contact_factory,
+      wocky_porter_get_full_jid (porter));
+
+  send_stanza_to_contact (porter, WOCKY_CONTACT (self_contact), stanza);
+
+  g_object_unref (self_contact);
+  g_list_free (contacts);
+  g_free (node);
 }
 
 static gboolean
