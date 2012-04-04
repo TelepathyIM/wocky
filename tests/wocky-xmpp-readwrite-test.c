@@ -10,7 +10,7 @@
 
 #define TO "example.net"
 #define FROM "julliet@example.com"
-#define VERSION "1.0"
+#define XMPP_VERSION "1.0"
 #define LANG "en"
 #define DUMMY_NS "urn:wocky:test:blah:blah:blah"
 
@@ -54,7 +54,7 @@ test_readwrite (void)
   g_assert (wocky_xmpp_reader_get_state (reader)
     == WOCKY_XMPP_READER_STATE_INITIAL);
 
-  wocky_xmpp_writer_stream_open (writer, TO, FROM, VERSION, LANG, NULL,
+  wocky_xmpp_writer_stream_open (writer, TO, FROM, XMPP_VERSION, LANG, NULL,
       &data, &length);
   wocky_xmpp_reader_push (reader, data, length);
 
@@ -70,7 +70,7 @@ test_readwrite (void)
 
   g_assert (!wocky_strdiff (to, TO));
   g_assert (!wocky_strdiff (from, FROM));
-  g_assert (!wocky_strdiff (version, VERSION));
+  g_assert (!wocky_strdiff (version, XMPP_VERSION));
   g_assert (!wocky_strdiff (lang, LANG));
 
   g_free (to);
