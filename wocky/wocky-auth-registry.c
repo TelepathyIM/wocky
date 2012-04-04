@@ -1,5 +1,9 @@
 /* wocky-auth-registry.c */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-auth-registry.h"
 #include "wocky-auth-handler.h"
 #include "wocky-sasl-scram.h"

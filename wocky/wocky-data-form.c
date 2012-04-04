@@ -28,6 +28,10 @@
  * XEP-0004.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-data-form.h"
 
 #include <string.h>

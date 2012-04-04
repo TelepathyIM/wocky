@@ -22,6 +22,10 @@
  *  Copyright (C) 2006-2007 Nokia Corporation
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-utils.h"
 
 #include <string.h>

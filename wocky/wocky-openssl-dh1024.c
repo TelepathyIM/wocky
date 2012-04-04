@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #ifndef HEADER_DH_H
 #include <openssl/dh.h>
 #endif

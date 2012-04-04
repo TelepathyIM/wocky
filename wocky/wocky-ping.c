@@ -26,6 +26,10 @@
  * Support for XEP-0199 pings.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-ping.h"
 
 #include "wocky-heartbeat-source.h"

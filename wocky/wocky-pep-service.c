@@ -26,6 +26,10 @@
  * Object to aid with looking up PEP nodes and listening for changes.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-pep-service.h"
 
 #include "wocky-pubsub-helpers.h"

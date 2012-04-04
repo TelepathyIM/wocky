@@ -16,6 +16,11 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-sasl-scram.h"
 #include "wocky-sasl-auth.h"
 #include "wocky-sasl-utils.h"

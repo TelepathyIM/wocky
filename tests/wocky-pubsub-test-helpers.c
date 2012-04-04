@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "wocky-pubsub-test-helpers.h"
 
 #include <wocky/wocky.h>

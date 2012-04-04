@@ -32,6 +32,10 @@
  * test_resolver_add_A (TEST_RESOLVER (kludged), "localhost", "127.0.1.1");
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <glib.h>
 
