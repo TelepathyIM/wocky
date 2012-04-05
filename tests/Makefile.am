@@ -34,7 +34,6 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_UNKNOWN_CRT_FILE='"$(UNKNOWN_CERT)"' \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
-            -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
 ############################################################################
 TEST_PROGS = wocky-xmpp-reader-test \
@@ -90,7 +89,7 @@ wocky_xmpp_reader_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_connector_test_DEPENDENCIES = $(CRL_DIR) $(CA_DIR) certs $(LIBWOCKY)
+wocky_connector_test_DEPENDENCIES = $(CA_DIR) certs $(LIBWOCKY)
 
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c        \
