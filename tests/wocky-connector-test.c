@@ -3323,6 +3323,9 @@ run_test (gpointer data)
       "tls-handler"             , handler,
       NULL);
 
+  /* check if the cert paths are valid */
+  g_assert (g_file_test (TLS_CA_CRT_FILE, G_FILE_TEST_EXISTS));
+
   wocky_tls_handler_add_ca (handler, ca);
 
   g_object_unref (handler);
