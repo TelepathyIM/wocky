@@ -19,6 +19,10 @@
 #include <arpa/inet.h>
 #endif
 
+#ifdef G_OS_UNIX
+#include <netinet/tcp.h>
+#endif
+
 #include <wocky/wocky.h>
 
 #include "wocky-test-connector-server.h"
@@ -3190,6 +3194,9 @@ start_dummy_xmpp_server (ServerParameters *srv)
   server.sin_port = htons (port);
   ssock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
   setsockopt (ssock, SOL_SOCKET, SO_REUSEADDR, (const char *) &reuse, sizeof (reuse));
+#ifdef G_OS_UNIX
+  setsockopt (ssock, IPPROTO_TCP, TCP_NODELAY, (const char *) &reuse, sizeof (reuse));
+#endif
 
   res = bind (ssock, (struct sockaddr *) &server, sizeof (server));
 
@@ -3307,6 +3314,21 @@ test_done (GObject *source,
 
 typedef void (*test_func) (gconstpointer);
 
+#ifdef G_OS_UNIX
+static void
+connection_established_cb (WockyConnector *connector,
+    GSocketConnection *conn,
+    gpointer user_data)
+{
+  GSocket *sock = g_socket_connection_get_socket (conn);
+  gint fd, flag = 1;
+
+  fd = g_socket_get_fd (sock);
+  setsockopt (fd, IPPROTO_TCP, TCP_NODELAY,
+      (const char *) &flag, sizeof (flag));
+}
+#endif
+
 static gboolean
 start_test (gpointer data)
 {
@@ -3384,6 +3406,12 @@ run_test (gpointer data)
 
   test->connector = wcon;
   g_idle_add (start_test, test);
+
+#ifdef G_OS_UNIX
+  /* set TCP_NODELAY as soon as possible */
+  g_signal_connect (test->connector, "connection-established",
+      G_CALLBACK (connection_established_cb), NULL);
+#endif
 
   g_main_loop_run (mainloop);
 
