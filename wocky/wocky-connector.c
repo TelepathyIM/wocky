@@ -114,6 +114,13 @@
 
 G_DEFINE_TYPE (WockyConnector, wocky_connector, G_TYPE_OBJECT);
 
+enum {
+  CONNECTION_ESTABLISHED,
+  LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 static void wocky_connector_class_init (WockyConnectorClass *klass);
 
 /* XMPP connect/auth/etc handlers */
@@ -756,6 +763,26 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       "TLS Handler", WOCKY_TYPE_TLS_HANDLER,
       (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_TLS_HANDLER, spec);
+
+  /**
+   * WockyConnector::connection-established:
+   * @connection: the #GSocketConnection
+   *
+   * Emitted as soon as a connection to the remote server has been
+   * established. This can be useful if you want to do something
+   * unusual to the connection early in its lifetime not supported by
+   * the #WockyConnector APIs.
+   *
+   * As the connection process has only just started and the stream
+   * not even opened yet, no data must be sent over @connection. This
+   * signal is merely intended to set esoteric socket options (such as
+   * TCP_NODELAY) on the connection.
+   */
+  signals[CONNECTION_ESTABLISHED] = g_signal_new ("connection-established",
+      G_OBJECT_CLASS_TYPE (klass),
+      G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+      g_cclosure_marshal_VOID__OBJECT,
+      G_TYPE_NONE, 1, G_TYPE_SOCKET_CONNECTION);
 }
 
 #define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
@@ -912,6 +939,9 @@ tcp_srv_connected (GObject *source,
   else
     {
       DEBUG ("SRV connection succeeded");
+
+      g_signal_emit (self, signals[CONNECTION_ESTABLISHED], 0, priv->sock);
+
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
       maybe_old_ssl (self);
@@ -952,6 +982,9 @@ tcp_host_connected (GObject *source,
   else
     {
       DEBUG ("HOST connection succeeded");
+
+      g_signal_emit (self, signals[CONNECTION_ESTABLISHED], 0, priv->sock);
+
       priv->connected = TRUE;
       priv->state = WCON_TCP_CONNECTED;
       maybe_old_ssl (self);
