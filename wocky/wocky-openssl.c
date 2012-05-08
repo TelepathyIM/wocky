@@ -810,33 +810,38 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
 #define CASELESS_CHARCMP(x, y) \
   ((x) != '\0') && ((y) != '\0') && (toupper (x) == toupper (y))
 
+static inline gboolean
+compare_hostname (const char *host, const char *cert)
+{
+    /* advance to first different character */
+    for (; CASELESS_CHARCMP (*cert, *host); cert++, host++);
+
+    /* were the strings entirely, caselessly equal? */
+    return (strlen (cert) == 0 && strlen (host) == 0);
+}
+
 static gboolean
 compare_wildcarded_hostname (const char *hostname, const char *certname)
 {
   DEBUG ("%s ~ %s", hostname, certname);
-  /* first diff character */
-  for (; CASELESS_CHARCMP (*certname, *hostname); certname++, hostname++);
-
-  /* at end of both strings: simple equality condition met, no wildcard check */
-  if (strlen (certname) == 0 && strlen (hostname) == 0)
+  if (compare_hostname (hostname, certname))
     return TRUE;
 
-  if (*certname == '*') /* wildcarded certificate */
+  /* wildcard handling: we only allow leading '*.' wildcards:
+     no *foo.blerg.org - that would be a biiig security hole */
+  while( *certname++ == '*' && *certname++ == '.' )
     {
-      certname++;
-      while (1)
-        {
-          /* stop at each further char into the hostname and see if it *
-          * matches the remainder of the (possibly further wildcarded) *
-          * certificate (eg *.*.cam.ac.uk)                             */
-          if (compare_wildcarded_hostname (hostname, certname))
-            return TRUE;
-          /* came to the end of the hostname or encountered a '.' in      *
-           * in the middle of the wildcarded region, which is not allowed */
-          if (*hostname == '\0' || *hostname == '.')
-            break;
-          hostname++;
-        }
+      /* a leading '*.' swallows the next domain word */
+      hostname = index( hostname, '.' );
+
+      if( hostname == NULL )
+        return FALSE;
+      else
+        hostname++;
+
+      DEBUG ("%s ~ %s", hostname, certname);
+      if (compare_hostname (hostname, certname))
+        return TRUE;
     }
 
   return FALSE;
