@@ -15,7 +15,12 @@ NEW_KEY  := $(CERT_DIR)/new-key.pem
 NEW_CERT := $(CERT_DIR)/new-cert.pem
 TLS_KEY  := $(CERT_DIR)/tls-key.pem
 TLS_CERT := $(CERT_DIR)/tls-cert.pem
+WILD_KEY := $(CERT_DIR)/wild-key.pem
+WILD_CERT:= $(CERT_DIR)/wild-cert.pem
+BADWILD_KEY  := $(CERT_DIR)/badwild-key.pem
+BADWILD_CERT := $(CERT_DIR)/badwild-cert.pem
 CA_DIR   := $(CERT_DIR)/cas
+CRL_DIR  := $(CERT_DIR)/crl
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
 LIBWOCKY := $(top_builddir)/wocky/libwocky.la
@@ -34,6 +39,11 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_UNKNOWN_CRT_FILE='"$(UNKNOWN_CERT)"' \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
             -DTLS_SERVER_CRT_FILE='"$(TLS_CERT)"'\
+            -DTLS_WILD_KEY_FILE='"$(WILD_KEY)"'  \
+            -DTLS_WILD_CRT_FILE='"$(WILD_CERT)"' \
+            -DTLS_BADWILD_CRT_FILE='"$(BADWILD_CERT)"' \
+            -DTLS_BADWILD_KEY_FILE='"$(BADWILD_KEY)"'  \
+            -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
 ############################################################################
 TEST_PROGS = wocky-xmpp-reader-test \
