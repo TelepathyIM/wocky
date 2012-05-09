@@ -652,6 +652,85 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
   return certificates;
 }
 
+static inline gboolean
+invalid_wildcard (const char *name, int size)
+{
+  gboolean seen_star = FALSE;
+  gchar last = 0;
+  int offset;
+
+  for (offset = 0; offset < size; offset++)
+    {
+      gchar this = *(name + offset);
+
+      if (this == '*')
+        {
+          if (!seen_star)
+            seen_star = TRUE;
+          else
+            return TRUE; /* more than 1 *, not allowed */
+        }
+
+      /* * must be followed by . */
+      if (last == '*' && this != '.')
+        return TRUE;
+
+      last = this;
+    }
+
+  return FALSE;
+}
+
+#define OID_X520_COMMON_NAME "2.5.4.3"
+
+static gboolean
+cert_names_are_valid (gnutls_x509_crt_t cert)
+{
+  char name[256];
+  size_t size;
+  gboolean found = FALSE;
+  int type = 0;
+  int i = 0;
+
+  /* reject wildcards like '*foo' - only '*.foo' is permitted */
+  for (i = 0; type >= 0; i++)
+    {
+      size = sizeof (name);
+      type = gnutls_x509_crt_get_subject_alt_name (cert, i, name, &size, NULL);
+
+      switch (type)
+        {
+        case GNUTLS_SAN_DNSNAME:
+        case GNUTLS_SAN_IPADDRESS:
+          found = TRUE;
+          if (invalid_wildcard (name, size))
+              return FALSE;
+          break;
+        default:
+          break;
+        }
+    }
+
+  if (!found)
+    {
+      size = sizeof (name);
+
+      /* cert has no names at all? bizarro! */
+      if (gnutls_x509_crt_get_dn_by_oid (cert, OID_X520_COMMON_NAME, 0,
+                                         0, name, &size) < 0)
+          return FALSE;
+
+      found = TRUE;
+
+      if (invalid_wildcard (name, size))
+          return FALSE;
+
+    }
+
+  /* found a name, wasn't a duff wildcard */
+  return found;
+}
+
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
@@ -754,9 +833,16 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
               if (peername != NULL)
                 {
-                  rval = gnutls_x509_crt_check_hostname (x509, peername);
-                  DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
-                      peername, rval);
+                  if (!cert_names_are_valid (x509))
+                    {
+                      rval = 0;
+                    }
+                  else
+                    {
+                      rval = gnutls_x509_crt_check_hostname (x509, peername);
+                      DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
+                             peername, rval);
+                    }
                 }
               else
                 {
@@ -765,17 +851,24 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
               if (rval == 0 && extra_identities != NULL)
                 {
-                  gint i;
-
-                  for (i = 0; extra_identities[i] != NULL; i++)
+                  if (!cert_names_are_valid (x509))
                     {
-                      rval = gnutls_x509_crt_check_hostname (x509,
-                          extra_identities[i]);
-                      DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
-                          extra_identities[i], rval);
+                      rval = 0;
+                    }
+                  else
+                    {
+                      gint i;
 
-                      if (rval != 0)
-                        break;
+                      for (i = 0; extra_identities[i] != NULL; i++)
+                        {
+                          rval = gnutls_x509_crt_check_hostname (x509,
+                            extra_identities[i]);
+                          DEBUG ("gnutls_x509_crt_check_hostname: %s -> %d",
+                            extra_identities[i], rval);
+
+                          if (rval != 0)
+                            break;
+                        }
                     }
                 }
 
