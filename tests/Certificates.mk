@@ -13,6 +13,7 @@ CA_CERT3 := $(CERT_DIR)/ca-2-cert.pem
 CRTS     := new exp ca-0 ca-1 ca-2 rev ss tls unknown wild badwild
 CERTS    := $(foreach name,$(CRTS),certs/$(name)-cert.pem)
 KEYS     := $(foreach name,$(CRTS),certs/$(name)-key.pem)
+REV_CERT := $(filter %rev-cert.pem, $(CERTS))
 CRL      := $(CERT_DIR)/ca-0-crl.pem
 CAS      := $(CA_CERT) $(CA_CERT2) $(CA_CERT3)
 DAY      := 86400
