@@ -50,6 +50,7 @@ struct _WockyTLSHandlerPrivate {
   gboolean ignore_ssl_errors;
 
   GSList *cas;
+  GSList *crl;
 };
 
 static void
@@ -100,6 +101,13 @@ wocky_tls_handler_finalize (GObject *object)
       g_slist_foreach (self->priv->cas, (GFunc) g_free, NULL);
       g_slist_free (self->priv->cas);
     }
+
+  if (self->priv->crl != NULL)
+    {
+      g_slist_foreach (self->priv->crl, (GFunc) g_free, NULL);
+      g_slist_free (self->priv->crl);
+    }
+
 
   G_OBJECT_CLASS (wocky_tls_handler_parent_class)->finalize (object);
 }
@@ -311,10 +319,45 @@ wocky_tls_handler_add_ca (WockyTLSHandler *self,
   return abspath != NULL;
 }
 
+/**
+ * wocky_tls_handler_add_crl:
+ * @self: a #WockyTLSHandler instance
+ * @path: a path to a directory or file containing PEM encoded CRL certificates
+ *
+ * There are no standard locations as there are for CAs, but dirmngr
+ * (for example) will cache CRLs in:
+ *
+ * /var/cache/dirmngr/crls.d
+ *
+ * Returns: a #gboolean indicating whether the path was resolved.
+ * Does not indicate that there was actually a file or directory there
+ * or that any CRLs were actually found. The CRLs won't actually be loaded
+ * until just before the TLS session setup is attempted.
+ */
+gboolean
+wocky_tls_handler_add_crl (WockyTLSHandler *self,
+    const gchar *path)
+{
+  gchar *abspath = wocky_absolutize_path (path);
+
+  if (abspath != NULL)
+    self->priv->crl = g_slist_prepend (self->priv->crl, abspath);
+
+  return abspath != NULL;
+}
+
 GSList *
 wocky_tls_handler_get_cas (WockyTLSHandler *self)
 {
   g_assert (WOCKY_IS_TLS_HANDLER (self));
 
   return self->priv->cas;
+}
+
+GSList *
+wocky_tls_handler_get_crl (WockyTLSHandler *self)
+{
+  g_assert (WOCKY_IS_TLS_HANDLER (self));
+
+  return self->priv->crl;
 }
