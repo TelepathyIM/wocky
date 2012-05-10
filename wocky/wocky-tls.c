@@ -568,6 +568,62 @@ wocky_tls_session_add_ca (WockyTLSSession *session,
     }
 }
 
+void
+wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *crl_path)
+{
+  int n = 0;
+  struct stat target;
+
+  DEBUG ("adding CRL CERT path '%s'", (gchar *) crl_path);
+
+  if (stat (crl_path, &target) != 0)
+    {
+      DEBUG ("CRL file '%s': stat failed)", crl_path);
+      return;
+    }
+
+  if (S_ISDIR (target.st_mode))
+    {
+      DIR *dir;
+      struct dirent *entry;
+
+      if ((dir = opendir (crl_path)) == NULL)
+        return;
+
+      for (entry = readdir (dir); entry != NULL; entry = readdir (dir))
+        {
+          struct stat file;
+          gchar *path = g_build_path ("/", crl_path, entry->d_name, NULL);
+
+          if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
+            {
+              int x = gnutls_certificate_set_x509_crl_file (
+                session->gnutls_cert_cred, path, GNUTLS_X509_FMT_PEM);
+
+              if (x < 0)
+                DEBUG ("Error loading %s: %d %s", path, x, gnutls_strerror (x));
+              else
+                n += x;
+            }
+
+          g_free (path);
+        }
+
+      DEBUG ("+ %s: %d certs from dir", crl_path, n);
+      closedir (dir);
+    }
+  else if (S_ISREG (target.st_mode))
+    {
+      n = gnutls_certificate_set_x509_trust_file (session->gnutls_cert_cred,
+          crl_path, GNUTLS_X509_FMT_PEM);
+
+      if (n < 0)
+        DEBUG ("Error loading '%s': %d %s", crl_path, n, gnutls_strerror(n));
+      else
+        DEBUG ("+ %s: %d certs from file", crl_path, n);
+    }
+}
+
 /* ************************************************************************* */
 
 void

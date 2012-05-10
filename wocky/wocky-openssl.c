@@ -729,7 +729,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 }
 
 /* ************************************************************************* */
-/* adding CA certificates lists for peer certificate verification    */
+/* adding CA certificates & CRL lists for peer certificate verification      */
 
 void
 wocky_tls_session_add_ca (WockyTLSSession *session,
@@ -764,6 +764,47 @@ wocky_tls_session_add_ca (WockyTLSSession *session,
     }
   else
     DEBUG ("CA '%s' loaded", path);
+}
+
+void
+wocky_tls_session_add_crl (WockyTLSSession *session,
+                           const gchar *path)
+{
+  gboolean ok = FALSE;
+
+  if (!g_file_test (path, G_FILE_TEST_EXISTS))
+    {
+      DEBUG ("CRL file or path '%s' not accessible", path);
+      return;
+    }
+
+  if (g_file_test (path, G_FILE_TEST_IS_DIR))
+    {
+      X509_STORE *store = SSL_CTX_get_cert_store (session->ctx);
+      X509_LOOKUP_METHOD *method = X509_LOOKUP_hash_dir ();
+      X509_LOOKUP *lookup = X509_STORE_add_lookup (store, method);
+      DEBUG ("Loading CRL directory");
+      ok = X509_LOOKUP_add_dir (lookup, path, X509_FILETYPE_PEM) == 1;
+    }
+
+  if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+    {
+      X509_STORE *store = SSL_CTX_get_cert_store (session->ctx);
+      X509_LOOKUP_METHOD *method = X509_LOOKUP_file ();
+      X509_LOOKUP *lookup = X509_STORE_add_lookup (store, method);
+      DEBUG ("Loading CRL file");
+      ok = X509_LOOKUP_load_file (lookup, path, X509_FILETYPE_PEM) == 1;
+    }
+
+  if (!ok)
+    {
+      gulong e, f;
+      for (f = e = ERR_get_error (); e != 0; e = ERR_get_error ())
+        f = e;
+      DEBUG ("'%s' failed: %s\n", path, ERR_error_string (f, NULL));
+    }
+  else
+    DEBUG ("'%s' loaded\n", path);
 }
 
 /* ************************************************************************* */
