@@ -2794,6 +2794,30 @@ test_t tests[] =
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_STRICT, TLS_CA_DIR } } },
 
+    { "/connector/cert-verification/tls/revoked/fail",
+      QUIET,
+      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_REVOKED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { TLS_REQUIRED,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_STRICT, TLS_CA_DIR } } },
+
+    { "/connector/cert-verification/tls/revoked/lenient/fail",
+      QUIET,
+      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP, CERT_REVOKED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { TLS_REQUIRED,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT, TLS_CA_DIR } } },
+
     /* ********************************************************************* */
     /* as above but with legacy ssl                                          */
     { "/connector/cert-verification/ssl/nohost/ok",
@@ -2939,6 +2963,30 @@ test_t tests[] =
         { TLS_REQUIRED,
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_STRICT, TLS_CA_DIR } } },
+
+    { "/connector/cert-verification/ssl/revoked/fail",
+      QUIET,
+      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_REVOKED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { TLS_REQUIRED,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_STRICT, TLS_CA_DIR } } },
+
+    { "/connector/cert-verification/ssl/revoked/lenient/fail",
+      QUIET,
+      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_REVOKED },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { TLS_REQUIRED,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT, TLS_CA_DIR } } },
 
     /* ********************************************************************* */
     /* certificate non-verification tests                                    */
@@ -3423,6 +3471,13 @@ run_test (gpointer data)
   g_assert (g_file_test (TLS_CA_CRT_FILE, G_FILE_TEST_EXISTS));
 
   wocky_tls_handler_add_ca (handler, ca);
+
+  /* not having a CRL can expose a bug in the openssl error handling
+   * (basically we get 'CRL not fetched' instead of 'Expired'):
+   * The bug has been fixed, but we can keep checking for it by
+   * dropping the CRLs when the test is for an expired cert */
+  if (test->server_parameters.cert != CERT_EXPIRED)
+    wocky_tls_handler_add_crl (handler, TLS_CRL_DIR);
 
   g_object_unref (handler);
 
