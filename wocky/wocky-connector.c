@@ -291,6 +291,8 @@ struct _WockyConnectorPrivate
   WockyTLSHandler *tls_handler;
 
   WockyAuthRegistry *auth_registry;
+
+  guint see_other_host_count;
 };
 
 /* choose an appropriate chunk of text describing our state for debug/error */
@@ -1152,7 +1154,7 @@ xmpp_init_recv_cb (GObject *source,
 /* ************************************************************************* */
 /* handle stream errors                                                      */
 static gboolean
-stream_error_abort (WockyConnector *connector,
+stream_error_abort (WockyConnector *self,
     WockyStanza *stanza)
 {
   GError *error = NULL;
@@ -1160,8 +1162,40 @@ stream_error_abort (WockyConnector *connector,
   if (!wocky_stanza_extract_stream_error (stanza, &error))
     return FALSE;
 
+  if (g_error_matches (error, WOCKY_XMPP_STREAM_ERROR,
+          WOCKY_XMPP_STREAM_ERROR_SEE_OTHER_HOST))
+    {
+      const gchar *other_host;
+
+      other_host = wocky_node_get_content_from_child_ns (
+          wocky_stanza_get_top_node (stanza),
+          "see-other-host", WOCKY_XMPP_NS_STREAMS);
+
+      if (other_host != NULL && self->priv->see_other_host_count < 5)
+        {
+          DEBUG ("Need to restart connection with host: %s", other_host);
+
+          self->priv->see_other_host_count++;
+
+          /* Reset to initial state */
+          g_clear_object (&self->priv->features);
+          g_clear_object (&self->priv->sock);
+          g_clear_object (&self->priv->conn);
+          self->priv->state = WCON_TCP_CONNECTING;
+          self->priv->authed = FALSE;
+          self->priv->encrypted = FALSE;
+          self->priv->connected = FALSE;
+
+          connect_to_host_async (self, other_host, 5222);
+
+          goto out;
+        }
+    }
+
   DEBUG ("Received stream error: %s", error->message);
-  abort_connect (connector, error);
+  abort_connect (self, error);
+
+out:
   g_error_free (error);
   return TRUE;
 }
