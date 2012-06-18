@@ -804,22 +804,40 @@ wocky_connector_finalize (GObject *object)
 
 static void
 connect_to_host_async (WockyConnector *connector,
-    const gchar *host,
-    guint port)
+    const gchar *host_and_port,
+    guint default_port)
 {
   WockyConnectorPrivate *priv = connector->priv;
 
 #if HAVE_GIO_PROXY
-  /* Legacy SSL mode is just like doing HTTPS, so let's trigger HTTPS
-   * proxy setting if any */
-  gchar *uri = g_strdup_printf ("%s://%s:%i",
-      priv->legacy_ssl ? "https" : "xmpp-client", host, port);
-  g_socket_client_connect_to_uri_async (priv->client,
-      uri, port, NULL, tcp_host_connected, connector);
-  g_free (uri);
+  {
+    const gchar *uri_format = "%s://%s";
+    gchar *uri;
+
+    /* If host_and_port is an ipv6 address we must ensure it has [] around it */
+    if (host_and_port[0] != '[')
+      {
+        const gchar *p;
+
+        /* if host_and_port contains 2 ':' chars, it must be an ipv6 address */
+        p = g_strstr_len (host_and_port, -1, ":");
+        if (p != NULL)
+          p = g_strstr_len (p + 1, -1, ":");
+        if (p != NULL)
+          uri_format = "%s://[%s]";
+      }
+
+    /* Legacy SSL mode is just like doing HTTPS, so let's trigger HTTPS
+     * proxy setting if any */
+    uri = g_strdup_printf (uri_format,
+        priv->legacy_ssl ? "https" : "xmpp-client", host_and_port);
+    g_socket_client_connect_to_uri_async (priv->client,
+        uri, default_port, NULL, tcp_host_connected, connector);
+    g_free (uri);
+  }
 #else
   g_socket_client_connect_to_host_async (priv->client,
-      host, port, NULL, tcp_host_connected, connector);
+      host_and_port, default_port, NULL, tcp_host_connected, connector);
 #endif
 }
 
