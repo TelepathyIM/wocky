@@ -45,6 +45,7 @@ typedef enum
   XMPP_PROBLEM_NO_SESSION  = CONNPROBLEM (10),
   XMPP_PROBLEM_CANNOT_BIND = CONNPROBLEM (11),
   XMPP_PROBLEM_OLD_AUTH_FEATURE = CONNPROBLEM (12),
+  XMPP_PROBLEM_SEE_OTHER_HOST = CONNPROBLEM (13),
 } XmppProblem;
 
 typedef enum
@@ -175,6 +176,10 @@ TestConnectorServer * test_connector_server_new (GIOStream *stream,
     CertSet cert);
 
 void test_connector_server_start (TestConnectorServer *self);
+
+void test_connector_server_set_other_host (TestConnectorServer *self,
+    const gchar *host,
+    guint port);
 
 void test_connector_server_teardown (TestConnectorServer *self,
   GAsyncReadyCallback callback,

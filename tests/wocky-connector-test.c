@@ -72,7 +72,6 @@
 #  define G_IO_ERROR_NETWORK_UNREACHABLE -1
 #endif
 
-gboolean running_test = FALSE;
 static GError *error = NULL;
 static GResolver *original;
 static GResolver *kludged;
@@ -118,6 +117,23 @@ map_static_domain (gint domain)
 
 typedef void (*test_setup) (gpointer);
 
+typedef struct _ServerParameters ServerParameters;
+struct _ServerParameters {
+  struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
+  struct { ServerProblem sasl; ConnectorProblem conn; } problem;
+  struct { gchar *user; gchar *pass; } auth;
+  guint port;
+  CertSet cert;
+
+  /* Extra server for see-other-host problem */
+  ServerParameters *extra_server;
+
+  /* Runtime */
+  TestConnectorServer *server;
+  GIOChannel *channel;
+  guint watch;
+};
+
 typedef struct {
   gchar *desc;
   gboolean quiet;
@@ -130,13 +146,7 @@ typedef struct {
            gchar *jid;
            gchar *sid;
   } result;
-  struct {
-    struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
-    struct { ServerProblem sasl; ConnectorProblem conn; } problem;
-    struct { gchar *user; gchar *pass; } auth;
-    guint port;
-    CertSet cert;
-  } server_parameters;
+  ServerParameters server_parameters;
   struct { char *srv; guint port; char *host; char *addr; char *srvhost; } dns;
   struct {
     gboolean require_tls;
@@ -145,17 +155,22 @@ typedef struct {
     int op;
     test_setup setup;
   } client;
-  TestConnectorServer *server;
+
+  /* Runtime */
   WockyConnector *connector;
   gboolean ok;
-  GIOChannel *channel;
-  guint watch;
 } test_t;
 
 static void _set_connector_email_prop (test_t *test)
 {
   g_object_set (G_OBJECT (test->connector), "email", "foo@bar.org", NULL);
 }
+
+ServerParameters see_other_host_extra_server =
+  { { TLS, NULL },
+    { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+    { "moose", "something" },
+    8222 };
 
 test_t tests[] =
   { /* basic connection test, no SRV record, no host or port supplied: */
@@ -200,6 +215,19 @@ test_t tests[] =
       { NULL, 0, "weasel-juice.org", REACHABLE, NULL },
       { PLAINTEXT_OK,
         { "moose@weasel-juice.org", "something", FALSE, NOTLS },
+        { NULL, 0 } } },
+
+    { "/connector/see-other-host",
+      NOISY,
+      { S_NO_ERROR, },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM,
+          { XMPP_PROBLEM_SEE_OTHER_HOST, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_STANDARD, &see_other_host_extra_server },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { PLAINTEXT_OK,
+        { "moose@weasel-juice.org", "something", PLAIN, NOTLS },
         { NULL, 0 } } },
 
     /* No SRV or connect host specified */
@@ -3074,18 +3102,20 @@ setup_dummy_dns_entries (const test_t *test)
 
 /* ************************************************************************* */
 /* Dummy XMPP server */
+static void start_dummy_xmpp_server (ServerParameters *srv);
+
 static gboolean
 client_connected (GIOChannel *channel,
     GIOCondition cond,
     gpointer data)
 {
+  ServerParameters *srv = data;
   struct sockaddr_in client;
   socklen_t clen = sizeof (client);
   int ssock = g_io_channel_unix_get_fd (channel);
   int csock = accept (ssock, (struct sockaddr *) &client, &clen);
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
-  test_t *test = data;
-  ConnectorProblem *cproblem = &test->server_parameters.problem.conn;
+  ConnectorProblem *cproblem = &srv->problem.conn;
 #ifdef G_OS_WIN32
   u_long mode = 0;
 #else
@@ -3101,7 +3131,7 @@ client_connected (GIOChannel *channel,
       return TRUE;
     }
 
-  if (!test->server_parameters.features.tls)
+  if (!srv->features.tls)
       cproblem->xmpp |= XMPP_PROBLEM_NO_TLS;
 
 #ifdef G_OS_WIN32
@@ -3114,28 +3144,39 @@ client_connected (GIOChannel *channel,
 #endif
   gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
   g_object_unref (gsock);
-  test->server = test_connector_server_new (G_IO_STREAM (gconn),
-      test->server_parameters.features.auth_mech,
-      test->server_parameters.auth.user,
-      test->server_parameters.auth.pass,
-      test->server_parameters.features.version,
+
+  srv->server = test_connector_server_new (G_IO_STREAM (gconn),
+      srv->features.auth_mech,
+      srv->auth.user,
+      srv->auth.pass,
+      srv->features.version,
       cproblem,
-      test->server_parameters.problem.sasl,
-      test->server_parameters.cert);
-  test_connector_server_start (test->server);
+      srv->problem.sasl,
+      srv->cert);
   g_object_unref (gconn);
-  test->watch = 0;
+
+  /* Recursively start extra servers */
+  if (srv->extra_server != NULL)
+    {
+      test_connector_server_set_other_host (srv->server, REACHABLE,
+          srv->extra_server->port);
+      start_dummy_xmpp_server (srv->extra_server);
+    }
+
+  test_connector_server_start (srv->server);
+
+  srv->watch = 0;
   return FALSE;
 }
 
 static void
-start_dummy_xmpp_server (test_t *test)
+start_dummy_xmpp_server (ServerParameters *srv)
 {
   int ssock;
   int reuse = 1;
   struct sockaddr_in server;
   int res = -1;
-  guint port = test->server_parameters.port;
+  guint port = srv->port;
 
   if (port == 0)
     return;
@@ -3171,11 +3212,11 @@ start_dummy_xmpp_server (test_t *test)
       exit (code);
     }
 
-  test->channel = g_io_channel_unix_new (ssock);
-  g_io_channel_set_flags (test->channel, G_IO_FLAG_NONBLOCK, NULL);
-  test->watch = g_io_add_watch (test->channel, G_IO_IN|G_IO_PRI,
-    client_connected, (gpointer)test);
-  g_io_channel_set_close_on_unref (test->channel, TRUE);
+  srv->channel = g_io_channel_unix_new (ssock);
+  g_io_channel_set_flags (srv->channel, G_IO_FLAG_NONBLOCK, NULL);
+  srv->watch = g_io_add_watch (srv->channel, G_IO_IN|G_IO_PRI,
+    client_connected, srv);
+  g_io_channel_set_close_on_unref (srv->channel, TRUE);
   return;
 }
 /* ************************************************************************* */
@@ -3184,19 +3225,48 @@ test_server_teardown_cb (GObject *source,
   GAsyncResult *result,
   gpointer user_data)
 {
-  test_t *test = user_data;
+  GMainLoop *loop = user_data;
 
   g_assert (test_connector_server_teardown_finish (
     TEST_CONNECTOR_SERVER (source), result, NULL));
 
-  running_test = FALSE;
+  g_main_loop_quit (loop);
+}
 
-  if (test->server != NULL)
-    g_object_unref (test->server);
-  test->server = NULL;
+static void
+test_server_teardown (test_t *test,
+    ServerParameters *srv)
+{
+  /* Recursively teardown extra servers */
+  if (srv->extra_server != NULL)
+    test_server_teardown (test, srv->extra_server);
+  srv->extra_server = NULL;
 
-  if (g_main_loop_is_running (mainloop))
-    g_main_loop_quit (mainloop);
+  if (srv->server != NULL)
+    {
+      GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+
+      if (test->result.used_mech == NULL)
+        {
+          test->result.used_mech = g_strdup (
+            test_connector_server_get_used_mech (srv->server));
+        }
+
+      /* Run until server is down */
+      test_connector_server_teardown (srv->server,
+        test_server_teardown_cb, loop);
+      g_main_loop_run (loop);
+
+      g_clear_object (&srv->server);
+    }
+
+  if (srv->watch != 0)
+    g_source_remove (srv->watch);
+  srv->watch = 0;
+
+  if (srv->channel != NULL)
+    g_io_channel_unref (srv->channel);
+  srv->channel = NULL;
 }
 
 static void
@@ -3230,27 +3300,9 @@ test_done (GObject *source,
   if (conn != NULL)
     test->result.xmpp = g_object_ref (conn);
 
+  test_server_teardown (test, &test->server_parameters);
 
-  if (test->watch != 0)
-    g_source_remove (test->watch);
-
-  test->watch = 0;
-
-  if (test->channel != NULL)
-    g_io_channel_unref (test->channel);
-  test->channel = NULL;
-
-  if (test->server != NULL)
-    {
-      test->result.used_mech = g_strdup (
-        test_connector_server_get_used_mech (test->server));
-      test_connector_server_teardown (test->server,
-        test_server_teardown_cb, test);
-    }
-  else if (g_main_loop_is_running (mainloop))
-    {
-      g_main_loop_quit (mainloop);
-    }
+  g_main_loop_quit (mainloop);
 }
 
 typedef void (*test_func) (gconstpointer);
@@ -3301,7 +3353,7 @@ run_test (gpointer data)
   g_free (path);
   /* end of cleanup block */
 
-  start_dummy_xmpp_server (test);
+  start_dummy_xmpp_server (&test->server_parameters);
   setup_dummy_dns_entries (test);
 
   ca = test->client.options.ca ? test->client.options.ca : TLS_CA_CRT_FILE;
@@ -3331,7 +3383,6 @@ run_test (gpointer data)
   g_object_unref (handler);
 
   test->connector = wcon;
-  running_test = TRUE;
   g_idle_add (start_test, test);
 
   g_main_loop_run (mainloop);

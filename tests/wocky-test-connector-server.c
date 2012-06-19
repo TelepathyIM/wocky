@@ -109,6 +109,9 @@ struct _TestConnectorServerPrivate
   GSimpleAsyncResult *teardown_result;
 
   struct { ServerProblem sasl; ConnectorProblem *connector; } problem;
+
+  gchar *other_host;
+  guint other_port;
 };
 
 static void
@@ -1388,6 +1391,24 @@ force_closed_cb (GObject *source,
 }
 
 static void
+see_other_host_cb (GObject *source,
+    GAsyncResult *result,
+    gpointer user_data)
+{
+  TestConnectorServer *self = user_data;
+
+  g_assert (wocky_xmpp_connection_send_stanza_finish (self->priv->conn,
+      result, NULL));
+
+  if (server_dec_outstanding (self))
+    return;
+
+  server_enc_outstanding (self);
+  wocky_xmpp_connection_force_close_async (self->priv->conn,
+      self->priv->cancellable, force_closed_cb, self);
+}
+
+static void
 xmpp_init (GObject *source,
     GAsyncResult *result,
     gpointer data)
@@ -1469,6 +1490,28 @@ xmpp_init (GObject *source,
           wocky_xmpp_connection_recv_stanza_async (priv->conn,
               priv->cancellable,
               xmpp_handler, self);
+        }
+      else if (priv->problem.connector->xmpp & XMPP_PROBLEM_SEE_OTHER_HOST)
+        {
+          WockyStanza *stanza;
+          WockyNode *node;
+          gchar *host_and_port;
+
+          host_and_port = g_strdup_printf ("%s:%u", self->priv->other_host,
+              self->priv->other_port);
+
+          DEBUG ("Redirect to another host: %s", host_and_port);
+
+          stanza = wocky_stanza_new ("error", WOCKY_XMPP_NS_STREAM);
+          node = wocky_stanza_get_top_node (stanza);
+          wocky_node_add_child_with_content_ns (node, "see-other-host",
+              host_and_port, WOCKY_XMPP_NS_STREAMS);
+
+          server_enc_outstanding (self);
+          wocky_xmpp_connection_send_stanza_async (self->priv->conn, stanza,
+              self->priv->cancellable, see_other_host_cb, self);
+
+          g_object_unref (stanza);
         }
       else
         {
@@ -1644,4 +1687,18 @@ test_connector_server_get_used_mech (TestConnectorServer *self)
   TestConnectorServerPrivate *priv = self->priv;
 
   return priv->used_mech;
+}
+
+void
+test_connector_server_set_other_host (TestConnectorServer *self,
+    const gchar *host,
+    guint port)
+{
+  g_return_if_fail (TEST_IS_CONNECTOR_SERVER (self));
+  g_return_if_fail (self->priv->other_host == NULL);
+  g_return_if_fail (self->priv->other_port == 0);
+
+  self->priv->other_host = g_strdup (host);
+  self->priv->other_port = port;
+
 }
