@@ -244,9 +244,6 @@ typedef enum
 
 struct _WockyConnectorPrivate
 {
-  /* properties: */
-  GIOStream *stream;
-
   /* caller's choices about what to allow/disallow */
   gboolean auth_insecure_ok; /* can we auth over non-ssl */
   gboolean encrypted_plain_auth_ok; /* plaintext auth over secure channel */
