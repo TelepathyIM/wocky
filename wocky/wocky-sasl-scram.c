@@ -530,7 +530,7 @@ scram_handle_server_final_message (WockySaslScram *self,
 {
   gchar attr, *value = NULL;
 
-  if (!scram_get_next_attr_value (&message, &attr, &value) && attr != 'v')
+  if (!scram_get_next_attr_value (&message, &attr, &value) || attr != 'v')
     goto invalid;
 
   if (!scram_check_server_verification (self, value))
