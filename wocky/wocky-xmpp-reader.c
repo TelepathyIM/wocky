@@ -242,6 +242,8 @@ wocky_xmpp_reader_class_init (WockyXmppReaderClass *wocky_xmpp_reader_class)
 
   g_type_class_add_private (wocky_xmpp_reader_class,
       sizeof (WockyXmppReaderPrivate));
+  wocky_xmpp_reader_class->stream_element_name = "stream";
+  wocky_xmpp_reader_class->stream_element_ns = WOCKY_XMPP_NS_STREAM;
 
   object_class->constructed = wocky_xmpp_reader_constructed;
   object_class->dispose = wocky_xmpp_reader_dispose;
@@ -416,15 +418,19 @@ handle_stream_open (
     int nb_attributes,
     const xmlChar **attributes)
 {
+  WockyXmppReaderClass *klass = WOCKY_XMPP_READER_GET_CLASS (self);
   WockyXmppReaderPrivate *priv = self->priv;
   int i;
 
-  if (wocky_strdiff ("stream", localname)
-      || wocky_strdiff (WOCKY_XMPP_NS_STREAM, uri))
+  if (wocky_strdiff (klass->stream_element_name, localname)
+      || wocky_strdiff (klass->stream_element_ns, uri))
     {
-      priv->error = g_error_new_literal (WOCKY_XMPP_READER_ERROR,
+      priv->error = g_error_new (WOCKY_XMPP_READER_ERROR,
         WOCKY_XMPP_READER_ERROR_INVALID_STREAM_START,
-        "Invalid start of the XMPP stream");
+        "Invalid start of the XMPP stream "
+        "(expected <%s xmlns=%s>, got <%s xmlns=%s>)",
+        klass->stream_element_name, klass->stream_element_ns,
+        localname, uri);
       g_queue_push_tail (priv->stanzas, NULL);
       return;
     }

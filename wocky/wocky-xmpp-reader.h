@@ -44,6 +44,10 @@ typedef struct _WockyXmppReaderPrivate WockyXmppReaderPrivate;
 struct _WockyXmppReaderClass {
     /*<private>*/
     GObjectClass parent_class;
+
+    /*<protected>*/
+    const gchar *stream_element_name;
+    const gchar *stream_element_ns;
 };
 
 struct _WockyXmppReader {
