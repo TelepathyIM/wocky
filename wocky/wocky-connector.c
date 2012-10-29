@@ -785,7 +785,6 @@ wocky_connector_class_init (WockyConnectorClass *klass)
       G_TYPE_NONE, 1, G_TYPE_SOCKET_CONNECTION);
 }
 
-#define UNREF_AND_FORGET(x) if (x != NULL) { g_object_unref (x); x = NULL; }
 #define GFREE_AND_FORGET(x) g_free (x); x = NULL;
 
 static void
@@ -798,12 +797,12 @@ wocky_connector_dispose (GObject *object)
     return;
 
   priv->dispose_has_run = TRUE;
-  UNREF_AND_FORGET (priv->conn);
-  UNREF_AND_FORGET (priv->client);
-  UNREF_AND_FORGET (priv->sock);
-  UNREF_AND_FORGET (priv->features);
-  UNREF_AND_FORGET (priv->auth_registry);
-  UNREF_AND_FORGET (priv->tls_handler);
+  g_clear_object (&priv->conn);
+  g_clear_object (&priv->client);
+  g_clear_object (&priv->sock);
+  g_clear_object (&priv->features);
+  g_clear_object (&priv->auth_registry);
+  g_clear_object (&priv->tls_handler);
 
   if (G_OBJECT_CLASS (wocky_connector_parent_class )->dispose)
     G_OBJECT_CLASS (wocky_connector_parent_class)->dispose (object);
