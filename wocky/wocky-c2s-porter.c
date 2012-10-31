@@ -1087,19 +1087,17 @@ is_stanza_important (WockyC2SPorter *self,
   WockyC2SPorterPrivate *priv = self->priv;
   WockyNode *node = wocky_stanza_get_top_node (stanza);
   WockyStanzaType type;
+  WockyStanzaSubType sub_type;
   GList *l;
 
-  wocky_stanza_get_type_info (stanza, &type, NULL);
+  wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
   /* <presence/> and <presence type="unavailable"/> are queueable */
-  if (type == WOCKY_STANZA_TYPE_PRESENCE)
+  if (type == WOCKY_STANZA_TYPE_PRESENCE &&
+      (sub_type == WOCKY_STANZA_SUB_TYPE_NONE ||
+       sub_type == WOCKY_STANZA_SUB_TYPE_UNAVAILABLE))
     {
-      const gchar *ptype = wocky_node_get_attribute (node, "type");
-      /* presence type is either missing or "unavailable" */
-      if ((ptype == NULL) || !wocky_strdiff (ptype, "unavailable"))
-        {
-          return FALSE;
-        }
+      return FALSE;
     }
 
   if (priv->queueable_stanza_patterns.length == 0)
