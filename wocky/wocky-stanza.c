@@ -475,6 +475,19 @@ wocky_stanza_get_type_info (WockyStanza *stanza,
           wocky_stanza_get_top_node (stanza), "type"));
 }
 
+gboolean
+wocky_stanza_has_type (WockyStanza *stanza,
+    WockyStanzaType expected_type)
+{
+  WockyStanzaType actual_type;
+
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), FALSE);
+
+  wocky_stanza_get_type_info (stanza, &actual_type, NULL);
+
+  return expected_type == actual_type;
+}
+
 static WockyStanza *
 create_iq_reply (WockyStanza *iq,
     WockyStanzaSubType sub_type_reply,
