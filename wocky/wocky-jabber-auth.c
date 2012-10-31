@@ -303,7 +303,7 @@ auth_failed (WockyJabberAuth *self, gint code, const gchar *format, ...)
 static gboolean
 stream_error (WockyJabberAuth *self, WockyStanza *stanza)
 {
-  WockyStanzaType type = WOCKY_STANZA_TYPE_NONE;
+  GError *error = NULL;
 
   if (stanza == NULL)
     {
@@ -311,13 +311,8 @@ stream_error (WockyJabberAuth *self, WockyStanza *stanza)
       return TRUE;
     }
 
-  wocky_stanza_get_type_info (stanza, &type, NULL);
-
-  if (type == WOCKY_STANZA_TYPE_STREAM_ERROR)
+  if (wocky_stanza_extract_stream_error (stanza, &error))
     {
-      GError *error = wocky_xmpp_stream_error_from_node (
-          wocky_stanza_get_top_node (stanza));
-
       auth_failed (self, WOCKY_AUTH_ERROR_STREAM, "%s: %s",
           wocky_enum_to_nick (WOCKY_TYPE_XMPP_STREAM_ERROR, error->code),
           error->message);
