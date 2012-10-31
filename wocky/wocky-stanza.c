@@ -702,11 +702,7 @@ gboolean
 wocky_stanza_extract_stream_error (WockyStanza *stanza,
     GError **stream_error)
 {
-  WockyStanzaType type;
-
-  wocky_stanza_get_type_info (stanza, &type, NULL);
-
-  if (type != WOCKY_STANZA_TYPE_STREAM_ERROR)
+  if (!wocky_stanza_has_type (stanza, WOCKY_STANZA_TYPE_STREAM_ERROR))
     return FALSE;
 
   g_propagate_error (stream_error,

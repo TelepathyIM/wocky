@@ -1260,16 +1260,16 @@ xmpp_features_cb (GObject *source,
   if (stream_error_abort (self, stanza))
     goto out;
 
-  DEBUG ("received feature stanza from server");
-  node = wocky_stanza_get_top_node (stanza);
-
-  if (!wocky_node_matches (node, "features", WOCKY_XMPP_NS_STREAM))
+  if (!wocky_stanza_has_type (stanza, WOCKY_STANZA_TYPE_STREAM_FEATURES))
     {
       char *msg = state_message (priv, "Malformed or missing feature stanza");
       abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, msg);
       g_free (msg);
       goto out;
     }
+
+  DEBUG ("received feature stanza from server");
+  node = wocky_stanza_get_top_node (stanza);
 
   /* cache the current feature set: according to the RFC, we should forget
    * any previous feature set as soon as we open a new stream, so that
