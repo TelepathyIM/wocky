@@ -757,6 +757,21 @@ test_stanza_error_to_node_jingle (void)
   g_clear_error (&specialized);
 }
 
+static void
+test_unknown (
+    gconstpointer name_null_ns)
+{
+  const gchar *name = name_null_ns;
+  const gchar *ns = name + strlen (name) + 1;
+  WockyStanza *stanza = wocky_stanza_new (name, ns);
+  WockyStanzaType type;
+
+  wocky_stanza_get_type_info (stanza, &type, NULL);
+  g_assert_cmpuint (type, ==, WOCKY_STANZA_TYPE_UNKNOWN);
+
+  g_object_unref (stanza);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -798,6 +813,13 @@ main (int argc, char **argv)
       test_stanza_error_to_node_core);
   g_test_add_func ("/xmpp-stanza/errors/stanza-to-node-jingle",
       test_stanza_error_to_node_jingle);
+
+  g_test_add_data_func ("/xmpp-stanza/types/unknown-stanza-type",
+      "this-will-never-be-real\0" WOCKY_XMPP_NS_JABBER_CLIENT,
+      test_unknown);
+  g_test_add_data_func ("/xmpp-stanza/types/wrong-namespaces",
+      "challenge\0this:is:not:the:sasl:namespace",
+      test_unknown);
 
   result =  g_test_run ();
   test_deinit ();

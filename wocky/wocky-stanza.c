@@ -418,8 +418,11 @@ wocky_stanza_build_va (WockyStanzaType type,
 }
 
 static WockyStanzaType
-get_type_from_name (const gchar *name)
+get_type_from_node (WockyNode *node)
 {
+  const gchar *name = node->name;
+  /* TODO: the lookup table should be quark-y. */
+  const gchar *ns = g_quark_to_string (node->ns);
   guint i;
 
   if (name == NULL)
@@ -429,7 +432,8 @@ get_type_from_name (const gchar *name)
   for (i = 1; i < WOCKY_STANZA_TYPE_UNKNOWN; i++)
     {
        if (type_names[i].name != NULL &&
-           strcmp (name, type_names[i].name) == 0)
+           strcmp (name, type_names[i].name) == 0 &&
+           strcmp (ns, type_names[i].ns) == 0)
          {
            return type_names[i].type;
          }
@@ -472,7 +476,7 @@ wocky_stanza_get_type_info (WockyStanza *stanza,
   g_assert (top_node != NULL);
 
   if (type != NULL)
-    *type = get_type_from_name (top_node->name);
+    *type = get_type_from_node (top_node);
 
   if (sub_type != NULL)
     *sub_type = get_sub_type_from_name (
