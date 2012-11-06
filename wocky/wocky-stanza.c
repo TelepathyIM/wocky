@@ -464,15 +464,19 @@ wocky_stanza_get_type_info (WockyStanza *stanza,
     WockyStanzaType *type,
     WockyStanzaSubType *sub_type)
 {
+  WockyNode *top_node;
+
   g_return_if_fail (stanza != NULL);
-  g_assert (wocky_stanza_get_top_node (stanza) != NULL);
+
+  top_node = wocky_stanza_get_top_node (stanza);
+  g_assert (top_node != NULL);
 
   if (type != NULL)
-    *type = get_type_from_name (wocky_stanza_get_top_node (stanza)->name);
+    *type = get_type_from_name (top_node->name);
 
   if (sub_type != NULL)
-    *sub_type = get_sub_type_from_name (wocky_node_get_attribute (
-          wocky_stanza_get_top_node (stanza), "type"));
+    *sub_type = get_sub_type_from_name (
+        wocky_node_get_attribute (top_node, "type"));
 }
 
 gboolean
