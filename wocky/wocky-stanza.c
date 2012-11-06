@@ -49,9 +49,10 @@ typedef struct
     WockyStanzaType type;
     const gchar *name;
     const gchar *ns;
+    GQuark ns_q;
 } StanzaTypeName;
 
-static const StanzaTypeName type_names[NUM_WOCKY_STANZA_TYPE] =
+static StanzaTypeName type_names[NUM_WOCKY_STANZA_TYPE] =
 {
     { WOCKY_STANZA_TYPE_NONE,            NULL,
         WOCKY_XMPP_NS_JABBER_CLIENT },
@@ -79,6 +80,16 @@ static const StanzaTypeName type_names[NUM_WOCKY_STANZA_TYPE] =
         WOCKY_XMPP_NS_STREAM },
     { WOCKY_STANZA_TYPE_UNKNOWN,         NULL,        NULL },
 };
+
+static void
+fill_in_namespace_quarks (void)
+{
+  int i;
+
+  /* We skip the first entry as it's NONE */
+  for (i = 1; type_names[i].type != WOCKY_STANZA_TYPE_UNKNOWN; i++)
+    type_names[i].ns_q = g_quark_from_static_string (type_names[i].ns);
+}
 
 typedef struct
 {
@@ -147,6 +158,8 @@ wocky_stanza_class_init (WockyStanzaClass *wocky_stanza_class)
 
   object_class->dispose = wocky_stanza_dispose;
   object_class->finalize = wocky_stanza_finalize;
+
+  fill_in_namespace_quarks ();
 }
 
 static void
@@ -421,8 +434,7 @@ static WockyStanzaType
 get_type_from_node (WockyNode *node)
 {
   const gchar *name = node->name;
-  /* TODO: the lookup table should be quark-y. */
-  const gchar *ns = g_quark_to_string (node->ns);
+  GQuark ns = node->ns;
   guint i;
 
   if (name == NULL)
@@ -432,8 +444,8 @@ get_type_from_node (WockyNode *node)
   for (i = 1; i < WOCKY_STANZA_TYPE_UNKNOWN; i++)
     {
        if (type_names[i].name != NULL &&
-           strcmp (name, type_names[i].name) == 0 &&
-           strcmp (ns, type_names[i].ns) == 0)
+           ns == type_names[i].ns_q &&
+           strcmp (name, type_names[i].name) == 0)
          {
            return type_names[i].type;
          }
