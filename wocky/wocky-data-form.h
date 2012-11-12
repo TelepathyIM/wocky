@@ -88,6 +88,12 @@ struct _WockyDataFormFieldOption
  * @desc: the description of the field
  * @required: %TRUE if the field is required, otherwise %FALSE
  * @default_value: the default of the field
+ * @raw_value_contents: a %NULL-terminated array holding the literal value(s) as
+ *  specified in the original XML. For example, this might be something like
+ *  <code language="c">{ "1", NULL }</code> or <code language="c">{ "false",
+ *  NULL }</code> for a #WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN field, or
+ *  <code language="c">{ "hi", "there", NULL }</code> for a
+ *  #WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI field.
  * @value: the field value
  * @options: a #GSList of #WockyDataFormFieldOption<!-- -->s if @type
  *   if %WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI or
@@ -104,8 +110,6 @@ struct _WockyDataFormField
   gchar *desc;
   gboolean required;
   GValue *default_value;
-  /* a GStrv of actual values so can be {"1", NULL} or {"false", NULL}
-   * for BOOLEAN or {"hi", "there", NULL} TEXT_MULTI, for example. */
   gchar **raw_value_contents;
   GValue *value;
   /* for LIST_MULTI and LIST_SINGLE only.

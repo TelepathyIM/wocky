@@ -402,7 +402,7 @@ wocky_xmpp_reader_get_property (GObject *object,
 }
 
 /**
- * wocky_xmpp_reader_new
+ * wocky_xmpp_reader_new:
  *
  * Convenience function to create a new #WockyXmppReader.
  *
@@ -415,7 +415,7 @@ wocky_xmpp_reader_new (void)
 }
 
 /**
- * wocky_xmpp_reader_new_no_stream
+ * wocky_xmpp_reader_new_no_stream:
  *
  * Convenience function to create a new #WockyXmppReader that has streaming
  * mode disabled.

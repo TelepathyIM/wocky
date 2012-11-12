@@ -123,6 +123,7 @@ wocky_pubsub_make_publish_stanza (
 /**
  * wocky_pubsub_make_stanza:
  * @service: the JID of a PubSub service, or %NULL
+ * @sub_type: #WOCKY_STANZA_SUB_TYPE_SET or #WOCKY_STANZA_SUB_TYPE_GET, as you wish
  * @pubsub_ns: the namespace for the &lt;pubsub/&gt; node of the stanza
  * @action_name: the action node to add to &lt;pubsub/&gt;
  * @pubsub_node: address at which to store a pointer to the &lt;pubsub/&gt; node
@@ -131,7 +132,7 @@ wocky_pubsub_make_publish_stanza (
  *
  * <!-- -->
  *
- * Returns: a new iq[type='set']/pubsub/@action stanza
+ * Returns: a new iq[type=@sub_type]/pubsub/@action stanza
  */
 WockyStanza *
 wocky_pubsub_make_stanza (

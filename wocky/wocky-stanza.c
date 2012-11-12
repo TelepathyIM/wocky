@@ -312,10 +312,9 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  * @...: the description of the stanza to build,
  *  terminated with %NULL
  *
- * Build a XMPP stanza from a list of arguments.
- * Example:
+ * Build a XMPP stanza from a list of arguments. For example, the following invocation:
  *
- * <example><programlisting>
+ * |[
  * wocky_stanza_build (
  *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
  *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
@@ -327,8 +326,11 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  *      WOCKY_NODE_END,
  *    WOCKY_NODE_END,
  *   NULL);
- * <!-- -->
- * /<!-- -->* produces
+ * ]|
+ *
+ * produces this stanza:
+ *
+ * |[
  * &lt;message from='alice@<!-- -->collabora.co.uk' to='bob@<!-- -->collabora.co.uk'&gt;
  *   &lt;html xmlns='http://www.w3.org/1999/xhtml'&gt;
  *     &lt;body textcolor='red'&gt;
@@ -336,14 +338,13 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  *     &lt;/body&gt;
  *   &lt;/html&gt;
  * &lt;/message&gt;
- * *<!-- -->/
- * </programlisting></example>
+ * ]|
  *
  * You may optionally use mnemonic ASCII characters in place of the build tags,
  * to better reflect the structure of the stanza in C source. For example, the
  * above stanza could be written as:
  *
- * <example><programlisting>
+ * |[
  * wocky_stanza_build (
  *    WOCKY_STANZA_TYPE_MESSAGE, WOCKY_STANZA_SUB_TYPE_NONE,
  *    "alice@<!-- -->collabora.co.uk", "bob@<!-- -->collabora.co.uk",
@@ -353,7 +354,7 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  *      ')',
  *    ')'
  *   NULL);
- * </programlisting></example>
+ * ]|
  *
  * Returns: a new stanza object
  */
