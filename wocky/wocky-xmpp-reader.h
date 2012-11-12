@@ -115,6 +115,8 @@ GType wocky_xmpp_reader_get_type (void);
 
 WockyXmppReader * wocky_xmpp_reader_new (void);
 WockyXmppReader * wocky_xmpp_reader_new_no_stream (void);
+WockyXmppReader * wocky_xmpp_reader_new_no_stream_ns (
+    const gchar *default_namespace);
 
 
 WockyXmppReaderState wocky_xmpp_reader_get_state (WockyXmppReader *reader);

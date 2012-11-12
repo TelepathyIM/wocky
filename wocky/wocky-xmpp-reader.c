@@ -430,6 +430,25 @@ wocky_xmpp_reader_new_no_stream (void)
       NULL);
 }
 
+/**
+ * wocky_xmpp_reader_new_no_stream_ns:
+ * @default_namespace: default XML namespace to apply to the top-level element
+ *
+ * Create a new #WockyXmppReader, with #WockyXmppReader:streaming-mode disabled
+ * and the specified #WockyXmppReader:default-namespace.
+ *
+ * Returns: (transfer full): a new #WockyXmppReader in non-streaming mode.
+ */
+WockyXmppReader *
+wocky_xmpp_reader_new_no_stream_ns (
+    const gchar *default_namespace)
+{
+  return g_object_new (WOCKY_TYPE_XMPP_READER,
+      "streaming-mode", FALSE,
+      "default-namespace", default_namespace,
+      NULL);
+}
+
 static void
 handle_stream_open (
     WockyXmppReader *self,
