@@ -381,6 +381,71 @@ test_non_character_codepoints (void)
     NON_CHARACTER_CODEPOINTS_REPLACEMENT);
 }
 
+static void
+check_namespaces (
+    WockyXmppReader *reader,
+    const gchar *xml,
+    const gchar *expected_namespace)
+{
+  WockyStanza *stanza;
+  WockyNode *top_node, *body_node;
+
+  wocky_xmpp_reader_push (reader, (const guint8 *) xml, strlen (xml));
+  stanza = wocky_xmpp_reader_pop_stanza (reader);
+  g_assert (stanza != NULL);
+  top_node = wocky_stanza_get_top_node (stanza);
+  g_assert (top_node != NULL);
+  g_assert_cmpstr (expected_namespace, ==, wocky_node_get_ns (top_node));
+  body_node = wocky_node_get_first_child (top_node);
+  g_assert (body_node != NULL);
+  g_assert_cmpstr (expected_namespace, ==, wocky_node_get_ns (body_node));
+
+  g_object_unref (stanza);
+  wocky_xmpp_reader_reset (reader);
+}
+
+static void
+test_no_stream_default_namespace (
+    WockyXmppReader *reader,
+    const gchar *expected_default_namespace)
+{
+  /* Regardless of the reader's default namespace, a root node with an
+   * explicitly-specified namespace should get that namespace.
+   */
+  check_namespaces (reader,
+      "<message xmlns='" WOCKY_XMPP_NS_JABBER_CLIENT "'>"
+      "<body>hai</body></message>",
+      WOCKY_XMPP_NS_JABBER_CLIENT);
+
+  /* What namespace the nodes here end up in depends on the reader's default.
+   */
+  check_namespaces (reader, "<message><body>hai</body></message>",
+      expected_default_namespace);
+}
+
+static void
+test_no_stream_default_default_namespace (void)
+{
+  WockyXmppReader *reader = wocky_xmpp_reader_new_no_stream ();
+
+  /* WockyXmppReader defaults to the empty namespace. */
+  test_no_stream_default_namespace (reader, "");
+
+  g_object_unref (reader);
+}
+
+static void
+test_no_stream_specified_default_namespace (void)
+{
+#define WEIRD "wocky:weird:namespace"
+  WockyXmppReader *reader = wocky_xmpp_reader_new_no_stream_ns (WEIRD);
+
+  test_no_stream_default_namespace (reader, WEIRD);
+
+  g_object_unref (reader);
+#undef WEIRD
+}
+
 int
 main (int argc,
     char **argv)
@@ -402,6 +467,10 @@ main (int argc,
   g_test_add_func ("/xmpp-reader/whitespace-only", test_whitespace_only);
   g_test_add_func ("/xmpp-reader/utf-non-character-codepoints",
     test_non_character_codepoints);
+  g_test_add_func ("/xmpp-reader/no-stream-default-default-namespace",
+      test_no_stream_default_default_namespace);
+  g_test_add_func ("/xmpp-reader/no-stream-specified-default-namespace",
+      test_no_stream_specified_default_namespace);
 
   result = g_test_run ();
   test_deinit ();
