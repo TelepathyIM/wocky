@@ -151,14 +151,17 @@ main (int argc,
   g_type_init ();
   wocky_init ();
 
-  if (argc != 3)
+  if (argc != 2)
     {
-      g_printerr ("Usage: %s <jid> <password>\n", argv[0]);
+      g_printerr ("Usage: %s <jid>\n", argv[0]);
       return -1;
     }
 
   jid = argv[1];
-  password = argv[2];
+  /* This example doesn't use your real password because it does not actually
+   * validate certificates: it just dumps them then declares them valid.
+   */
+  password = "not a chance";
 
   mainloop = g_main_loop_new (NULL, FALSE);
   handler = g_object_new (dump_tls_handler_get_type (), NULL);
