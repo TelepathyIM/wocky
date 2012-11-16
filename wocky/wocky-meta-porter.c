@@ -1222,25 +1222,13 @@ register_porter_handler (StanzaHandler *handler,
 
   g_assert (g_hash_table_lookup (handler->porters, porter) == NULL);
 
-  if (handler->contact != NULL)
-    {
-      gchar *jid = wocky_contact_dup_jid (handler->contact);
-
-      id = wocky_porter_register_handler_from_by_stanza (porter,
-          handler->type, handler->sub_type, jid,
-          handler->priority, porter_handler_cb, handler,
-          handler->stanza);
-
-      g_free (jid);
-    }
-  else
-    {
-      id = wocky_porter_register_handler_from_anyone_by_stanza (porter,
-          handler->type, handler->sub_type,
-          handler->priority, porter_handler_cb, handler,
-          handler->stanza);
-    }
-
+  /* If handler->contact is not NULL, we know that this c2s porter is a
+   * connection to them, so we still don't need to tell it to match the sender.
+   */
+  id = wocky_porter_register_handler_from_anyone_by_stanza (porter,
+      handler->type, handler->sub_type,
+      handler->priority, porter_handler_cb, handler,
+      handler->stanza);
   g_hash_table_insert (handler->porters, porter, GUINT_TO_POINTER (id));
 
   g_object_weak_ref (G_OBJECT (porter),
