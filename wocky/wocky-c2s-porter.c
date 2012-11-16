@@ -165,14 +165,18 @@ typedef enum {
     MATCH_JID
 } SenderMatch;
 
+typedef struct {
+    gchar *node;
+    gchar *domain;
+    gchar *resource;
+} JidTriple;
+
 typedef struct
 {
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
   SenderMatch sender_match;
-  gchar *node;
-  gchar *domain;
-  gchar *resource;
+  JidTriple jid;
   guint priority;
   WockyStanza *match;
   WockyPorterHandlerFunc callback;
@@ -184,7 +188,7 @@ stanza_handler_new (
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     SenderMatch sender_match,
-    const gchar *from,
+    JidTriple *jid,
     guint priority,
     WockyStanza *stanza,
     WockyPorterHandlerFunc callback,
@@ -204,16 +208,13 @@ stanza_handler_new (
 
   if (sender_match == MATCH_JID)
     {
-      gboolean from_valid;
+      g_assert (jid != NULL);
 
-      g_assert (from != NULL);
-      from_valid = wocky_decode_jid (from, &(result->node),
-          &(result->domain), &(result->resource));
-      g_assert (from_valid);
+      result->jid = *jid;
     }
   else
     {
-      g_assert (from == NULL);
+      g_assert (jid == NULL);
     }
 
   return result;
@@ -222,9 +223,9 @@ stanza_handler_new (
 static void
 stanza_handler_free (StanzaHandler *handler)
 {
-  g_free (handler->node);
-  g_free (handler->domain);
-  g_free (handler->resource);
+  g_free (handler->jid.node);
+  g_free (handler->jid.domain);
+  g_free (handler->jid.resource);
 
   if (handler->match != NULL)
     g_object_unref (handler->match);
@@ -992,17 +993,17 @@ handle_stanza (WockyC2SPorter *self,
             break;
 
           case MATCH_JID:
-            g_assert (handler->domain != NULL);
+            g_assert (handler->jid.domain != NULL);
 
-            if (wocky_strdiff (node, handler->node))
+            if (wocky_strdiff (node, handler->jid.node))
               continue;
 
-            if (wocky_strdiff (domain, handler->domain))
+            if (wocky_strdiff (domain, handler->jid.domain))
               continue;
 
             /* If a resource was specified, we need to match against it. */
-            if (handler->resource != NULL &&
-                wocky_strdiff (resource, handler->resource))
+            if (handler->jid.resource != NULL &&
+                wocky_strdiff (resource, handler->jid.resource))
               continue;
 
             break;
@@ -1524,7 +1525,7 @@ wocky_c2s_porter_register_handler_internal (WockyC2SPorter *self,
     WockyStanzaType type,
     WockyStanzaSubType sub_type,
     SenderMatch sender_match,
-    const gchar *from,
+    JidTriple *jid,
     guint priority,
     WockyPorterHandlerFunc callback,
     gpointer user_data,
@@ -1535,7 +1536,7 @@ wocky_c2s_porter_register_handler_internal (WockyC2SPorter *self,
 
   g_return_val_if_fail (WOCKY_IS_PORTER (self), 0);
 
-  handler = stanza_handler_new (type, sub_type, sender_match, from, priority,
+  handler = stanza_handler_new (type, sub_type, sender_match, jid, priority,
       stanza, callback, user_data);
 
   g_hash_table_insert (priv->handlers_by_id,
@@ -1557,11 +1558,20 @@ wocky_c2s_porter_register_handler_from_by_stanza (WockyPorter *porter,
     WockyStanza *stanza)
 {
   WockyC2SPorter *self = WOCKY_C2S_PORTER (porter);
+  JidTriple jid;
+  gboolean from_valid;
 
   g_return_val_if_fail (from != NULL, 0);
 
+  from_valid = wocky_decode_jid (from, &jid.node, &jid.domain, &jid.resource);
+  if (!from_valid)
+    {
+      g_critical ("from='%s' isn't a valid JID", from);
+      return 0;
+    }
+
   return wocky_c2s_porter_register_handler_internal (self, type, sub_type,
-      MATCH_JID, from,
+      MATCH_JID, &jid,
       priority, callback, user_data, stanza);
 }
 
