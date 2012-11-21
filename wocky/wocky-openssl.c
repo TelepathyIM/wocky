@@ -729,7 +729,7 @@ wocky_tls_session_handshake (WockyTLSSession   *session,
 }
 
 /* ************************************************************************* */
-/* adding CA certificates lists for peer certificate verification    */
+/* adding CA certificates & CRL lists for peer certificate verification      */
 
 void
 wocky_tls_session_add_ca (WockyTLSSession *session,
@@ -764,6 +764,47 @@ wocky_tls_session_add_ca (WockyTLSSession *session,
     }
   else
     DEBUG ("CA '%s' loaded", path);
+}
+
+void
+wocky_tls_session_add_crl (WockyTLSSession *session,
+                           const gchar *path)
+{
+  gboolean ok = FALSE;
+
+  if (!g_file_test (path, G_FILE_TEST_EXISTS))
+    {
+      DEBUG ("CRL file or path '%s' not accessible", path);
+      return;
+    }
+
+  if (g_file_test (path, G_FILE_TEST_IS_DIR))
+    {
+      X509_STORE *store = SSL_CTX_get_cert_store (session->ctx);
+      X509_LOOKUP_METHOD *method = X509_LOOKUP_hash_dir ();
+      X509_LOOKUP *lookup = X509_STORE_add_lookup (store, method);
+      DEBUG ("Loading CRL directory");
+      ok = X509_LOOKUP_add_dir (lookup, path, X509_FILETYPE_PEM) == 1;
+    }
+
+  if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+    {
+      X509_STORE *store = SSL_CTX_get_cert_store (session->ctx);
+      X509_LOOKUP_METHOD *method = X509_LOOKUP_file ();
+      X509_LOOKUP *lookup = X509_STORE_add_lookup (store, method);
+      DEBUG ("Loading CRL file");
+      ok = X509_LOOKUP_load_file (lookup, path, X509_FILETYPE_PEM) == 1;
+    }
+
+  if (!ok)
+    {
+      gulong e, f;
+      for (f = e = ERR_get_error (); e != 0; e = ERR_get_error ())
+        f = e;
+      DEBUG ("'%s' failed: %s\n", path, ERR_error_string (f, NULL));
+    }
+  else
+    DEBUG ("'%s' loaded\n", path);
 }
 
 /* ************************************************************************* */
@@ -807,36 +848,32 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
 
-#define CASELESS_CHARCMP(x, y) \
-  ((x) != '\0') && ((y) != '\0') && (toupper (x) == toupper (y))
-
 static gboolean
 compare_wildcarded_hostname (const char *hostname, const char *certname)
 {
   DEBUG ("%s ~ %s", hostname, certname);
-  /* first diff character */
-  for (; CASELESS_CHARCMP (*certname, *hostname); certname++, hostname++);
 
-  /* at end of both strings: simple equality condition met, no wildcard check */
-  if (strlen (certname) == 0 && strlen (hostname) == 0)
+  if (g_ascii_strcasecmp (hostname, certname) == 0)
     return TRUE;
 
-  if (*certname == '*') /* wildcarded certificate */
+  /* We only allow leading '*.' wildcards. See the final bullet point of XMPP
+   * Core §13.7.1.2.1
+   * <http://xmpp.org/rfcs/rfc6120.html#security-certificates-generation-server>:
+   *
+   *   DNS domain names in server certificates MAY contain the wildcard
+   *   character '*' as the complete left-most label within the identifier.
+   */
+  if (g_str_has_prefix (certname, "*."))
     {
-      certname++;
-      while (1)
-        {
-          /* stop at each further char into the hostname and see if it *
-          * matches the remainder of the (possibly further wildcarded) *
-          * certificate (eg *.*.cam.ac.uk)                             */
-          if (compare_wildcarded_hostname (hostname, certname))
-            return TRUE;
-          /* came to the end of the hostname or encountered a '.' in      *
-           * in the middle of the wildcarded region, which is not allowed */
-          if (*hostname == '\0' || *hostname == '.')
-            break;
-          hostname++;
-        }
+      const gchar *certname_tail = certname + 2;
+      const gchar *hostname_tail = index (hostname, '.');
+
+      if (hostname_tail == NULL)
+        return FALSE;
+
+      hostname_tail++;
+      DEBUG ("%s ~ %s", hostname_tail, certname_tail);
+      return g_ascii_strcasecmp (hostname_tail, certname_tail) == 0;
     }
 
   return FALSE;
@@ -1015,6 +1052,101 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
   return certificates;
 }
 
+static WockyTLSCertStatus
+_cert_status (WockyTLSSession *session,
+         int ssl_code,
+         WockyTLSVerificationLevel level,
+         int old_code)
+{
+  switch (ssl_code)
+    {
+    case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
+    case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+    case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
+    case X509_V_ERR_SUBJECT_ISSUER_MISMATCH:
+      return WOCKY_TLS_CERT_SIGNER_UNKNOWN;
+      break;
+    case X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE:
+    case X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY:
+    case X509_V_ERR_CERT_SIGNATURE_FAILURE:
+    case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
+    case X509_V_ERR_INVALID_PURPOSE:
+    case X509_V_ERR_CERT_REJECTED:
+    case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+      return WOCKY_TLS_CERT_INVALID;
+      break;
+    case X509_V_ERR_CERT_REVOKED:
+      return WOCKY_TLS_CERT_REVOKED;
+      break;
+    case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
+    case X509_V_ERR_CERT_NOT_YET_VALID:
+      return WOCKY_TLS_CERT_NOT_ACTIVE;
+      break;
+    case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
+    case X509_V_ERR_CERT_HAS_EXPIRED:
+      return WOCKY_TLS_CERT_EXPIRED;
+      break;
+    case X509_V_ERR_OUT_OF_MEM:
+      return WOCKY_TLS_CERT_INTERNAL_ERROR;
+      break;
+    case X509_V_ERR_INVALID_CA:
+    case X509_V_ERR_CERT_UNTRUSTED:
+    case X509_V_ERR_AKID_SKID_MISMATCH:
+    case X509_V_ERR_AKID_ISSUER_SERIAL_MISMATCH:
+    case X509_V_ERR_KEYUSAGE_NO_CERTSIGN:
+      return WOCKY_TLS_CERT_SIGNER_UNAUTHORISED;
+      break;
+    case X509_V_ERR_PATH_LENGTH_EXCEEDED:
+      return WOCKY_TLS_CERT_MAYBE_DOS;
+      break;
+    case X509_V_ERR_UNABLE_TO_GET_CRL:
+      /* if we are in STRICT mode, being unable to see the CRL is a
+       * terminal condition: in NORMAL or LENIENT we can live with it.
+       * Also, if we re-tried and got the same error, we're just going
+       * to loop indefinitely, so bail out with the original error.
+       * NOTE: 'unable to fetch' a CRL is not the same as CRL invalidated
+       * the certificate, or we'd just turn the CRL checks off when in
+       * NORMAL or LENIENT mode */
+      if (level == WOCKY_TLS_VERIFY_STRICT ||
+          old_code == X509_V_ERR_UNABLE_TO_GET_CRL)
+        {
+          return WOCKY_TLS_CERT_INSECURE;
+        }
+      else
+        {
+          WockyTLSCertStatus status = WOCKY_TLS_CERT_OK;
+          X509_STORE_CTX *xctx = X509_STORE_CTX_new();
+          X509_STORE *store = SSL_CTX_get_cert_store(session->ctx);
+          X509 *cert = SSL_get_peer_certificate (session->ssl);
+          STACK_OF(X509) *chain = SSL_get_peer_cert_chain (session->ssl);
+          long old_flags = store->param->flags;
+          long new_flags = old_flags;
+          DEBUG("No CRL available, but not in strict mode - re-verifying");
+
+          new_flags &= ~(X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
+
+          store->param->flags = new_flags;
+          X509_STORE_CTX_init (xctx, store, cert, chain);
+          X509_STORE_CTX_set_flags (xctx, new_flags);
+
+          if( X509_verify_cert (xctx) < 1 )
+            {
+              int new_code = X509_STORE_CTX_get_error (xctx);
+              status = _cert_status (session, new_code, level, ssl_code);
+            }
+
+          store->param->flags = old_flags;
+          X509_STORE_CTX_free (xctx);
+          X509_free (cert);
+
+          return status;
+        }
+      break;
+    default:
+      return WOCKY_TLS_CERT_UNKNOWN_ERROR;
+    }
+}
+
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                const gchar        *peername,
@@ -1076,59 +1208,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
   if (rval != X509_V_OK)
     {
       DEBUG ("cert verification error: %d", rval);
-      switch (rval)
-        {
-        case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-        case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
-        case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-        case X509_V_ERR_SUBJECT_ISSUER_MISMATCH:
-          *status = WOCKY_TLS_CERT_SIGNER_UNKNOWN;
-          break;
-        case X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE:
-        case X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY:
-        case X509_V_ERR_CERT_SIGNATURE_FAILURE:
-        case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
-        case X509_V_ERR_INVALID_PURPOSE:
-        case X509_V_ERR_CERT_REJECTED:
-        case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-          *status = WOCKY_TLS_CERT_INVALID;
-          break;
-        case X509_V_ERR_CERT_REVOKED:
-          *status = WOCKY_TLS_CERT_REVOKED;
-          break;
-        case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
-        case X509_V_ERR_CERT_NOT_YET_VALID:
-          *status = WOCKY_TLS_CERT_NOT_ACTIVE;
-          break;
-        case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
-        case X509_V_ERR_CERT_HAS_EXPIRED:
-          *status = WOCKY_TLS_CERT_EXPIRED;
-          break;
-        case X509_V_ERR_OUT_OF_MEM:
-          *status = WOCKY_TLS_CERT_INTERNAL_ERROR;
-          break;
-        case X509_V_ERR_INVALID_CA:
-        case X509_V_ERR_CERT_UNTRUSTED:
-        case X509_V_ERR_AKID_SKID_MISMATCH:
-        case X509_V_ERR_AKID_ISSUER_SERIAL_MISMATCH:
-        case X509_V_ERR_KEYUSAGE_NO_CERTSIGN:
-          *status = WOCKY_TLS_CERT_SIGNER_UNAUTHORISED;
-          break;
-        case X509_V_ERR_PATH_LENGTH_EXCEEDED:
-          *status = WOCKY_TLS_CERT_MAYBE_DOS;
-          break;
-        case X509_V_ERR_UNABLE_TO_GET_CRL:
-          /* if we are in STRICT mode, being unable to see the CRL is a   *
-           * terminal condition: in NORMAL or LENIENT we can live with it */
-          if (level == WOCKY_TLS_VERIFY_STRICT)
-            *status = WOCKY_TLS_CERT_INSECURE;
-          else
-            DEBUG ("ignoring UNABLE_TO_GET_CRL: we're not in strict mode");
-
-          break;
-        default:
-          *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
-        }
+      *status = _cert_status (session, rval, level, X509_V_OK);
 
       /* some conditions are to be ignored when lenient, others still matter */
       if (lenient)

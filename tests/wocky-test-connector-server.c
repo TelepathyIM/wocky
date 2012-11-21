@@ -82,6 +82,8 @@ static struct { CertSet set; const gchar *key; const gchar *crt; } certs[] =
     { CERT_UNKNOWN,  TLS_UNKNOWN_KEY_FILE, TLS_UNKNOWN_CRT_FILE },
     { CERT_SELFSIGN, TLS_SS_KEY_FILE,      TLS_SS_CRT_FILE      },
     { CERT_REVOKED,  TLS_REV_KEY_FILE,     TLS_REV_CRT_FILE     },
+    { CERT_WILDCARD, TLS_WILD_KEY_FILE,    TLS_WILD_CRT_FILE    },
+    { CERT_BADWILD,  TLS_BADWILD_KEY_FILE, TLS_BADWILD_CRT_FILE },
     { CERT_NONE,     NULL,                 NULL                 } };
 
 struct _TestConnectorServerPrivate
