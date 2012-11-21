@@ -848,24 +848,12 @@ wocky_tls_session_handshake_finish (WockyTLSSession   *session,
   return g_object_new (WOCKY_TYPE_TLS_CONNECTION, "session", session, NULL);
 }
 
-#define CASELESS_CHARCMP(x, y) \
-  ((x) != '\0') && ((y) != '\0') && (toupper (x) == toupper (y))
-
-static inline gboolean
-compare_hostname (const char *host, const char *cert)
-{
-    /* advance to first different character */
-    for (; CASELESS_CHARCMP (*cert, *host); cert++, host++);
-
-    /* were the strings entirely, caselessly equal? */
-    return (strlen (cert) == 0 && strlen (host) == 0);
-}
-
 static gboolean
 compare_wildcarded_hostname (const char *hostname, const char *certname)
 {
   DEBUG ("%s ~ %s", hostname, certname);
-  if (compare_hostname (hostname, certname))
+
+  if (g_ascii_strcasecmp (hostname, certname))
     return TRUE;
 
   /* wildcard handling: we only allow leading '*.' wildcards:
@@ -881,7 +869,7 @@ compare_wildcarded_hostname (const char *hostname, const char *certname)
         hostname++;
 
       DEBUG ("%s ~ %s", hostname, certname);
-      if (compare_hostname (hostname, certname))
+      if (g_ascii_strcasecmp (hostname, certname))
         return TRUE;
     }
 
