@@ -711,28 +711,14 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
 static inline gboolean
 invalid_wildcard (const char *name, int size)
 {
-  gboolean seen_star = FALSE;
-  gchar last = 0;
-  int offset;
-
-  for (offset = 0; offset < size; offset++)
+  if (name[0] == '*' && name[1] == '.')
     {
-      gchar this = *(name + offset);
-
-      if (this == '*')
-        {
-          if (!seen_star)
-            seen_star = TRUE;
-          else
-            return TRUE; /* more than 1 *, not allowed */
-        }
-
-      /* * must be followed by . */
-      if (last == '*' && this != '.')
-        return TRUE;
-
-      last = this;
+      name += 2;
+      size -= 2;
     }
+
+  if (memchr (name, '*', size) != NULL)
+    return TRUE;
 
   return FALSE;
 }
