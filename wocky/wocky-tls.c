@@ -709,7 +709,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
 }
 
 static inline gboolean
-invalid_wildcard (const char *name, int size)
+contains_illegal_wildcard (const char *name, int size)
 {
   if (name[0] == '*' && name[1] == '.')
     {
@@ -734,7 +734,9 @@ cert_names_are_valid (gnutls_x509_crt_t cert)
   int type = 0;
   int i = 0;
 
-  /* reject wildcards like '*foo' - only '*.foo' is permitted */
+  /* GNUTLS allows wildcards anywhere within the certificate name, but XMPP only
+   * permits a single leading "*.".
+   */
   for (i = 0; type >= 0; i++)
     {
       size = sizeof (name);
@@ -745,7 +747,7 @@ cert_names_are_valid (gnutls_x509_crt_t cert)
         case GNUTLS_SAN_DNSNAME:
         case GNUTLS_SAN_IPADDRESS:
           found = TRUE;
-          if (invalid_wildcard (name, size))
+          if (contains_illegal_wildcard (name, size))
               return FALSE;
           break;
         default:
@@ -764,7 +766,7 @@ cert_names_are_valid (gnutls_x509_crt_t cert)
 
       found = TRUE;
 
-      if (invalid_wildcard (name, size))
+      if (contains_illegal_wildcard (name, size))
           return FALSE;
 
     }
