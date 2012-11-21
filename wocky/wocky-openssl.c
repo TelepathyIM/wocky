@@ -853,24 +853,27 @@ compare_wildcarded_hostname (const char *hostname, const char *certname)
 {
   DEBUG ("%s ~ %s", hostname, certname);
 
-  if (g_ascii_strcasecmp (hostname, certname))
+  if (g_ascii_strcasecmp (hostname, certname) == 0)
     return TRUE;
 
-  /* wildcard handling: we only allow leading '*.' wildcards:
-     no *foo.blerg.org - that would be a biiig security hole */
-  while( *certname++ == '*' && *certname++ == '.' )
+  /* We only allow leading '*.' wildcards. See the final bullet point of XMPP
+   * Core §13.7.1.2.1
+   * <http://xmpp.org/rfcs/rfc6120.html#security-certificates-generation-server>:
+   *
+   *   DNS domain names in server certificates MAY contain the wildcard
+   *   character '*' as the complete left-most label within the identifier.
+   */
+  if (g_str_has_prefix (certname, "*."))
     {
-      /* a leading '*.' swallows the next domain word */
-      hostname = index( hostname, '.' );
+      const gchar *certname_tail = certname + 2;
+      const gchar *hostname_tail = index (hostname, '.');
 
-      if( hostname == NULL )
+      if (hostname_tail == NULL)
         return FALSE;
-      else
-        hostname++;
 
-      DEBUG ("%s ~ %s", hostname, certname);
-      if (g_ascii_strcasecmp (hostname, certname))
-        return TRUE;
+      hostname_tail++;
+      DEBUG ("%s ~ %s", hostname_tail, certname_tail);
+      return g_ascii_strcasecmp (hostname_tail, certname_tail) == 0;
     }
 
   return FALSE;
