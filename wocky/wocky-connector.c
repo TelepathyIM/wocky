@@ -303,26 +303,22 @@ struct _WockyConnectorPrivate
 };
 
 /* choose an appropriate chunk of text describing our state for debug/error */
-static char *
-state_message (WockyConnectorPrivate *priv, const char *str)
+static const gchar *
+state_message (WockyConnectorPrivate *priv)
 {
-  const char *state = NULL;
-
   if (priv->authed)
-    state = "Authentication Completed";
+    return "Authentication Completed";
   else if (priv->encrypted)
     {
       if (priv->legacy_ssl)
-        state = "SSL Negotiated";
+        return "SSL Negotiated";
       else
-        state = "TLS Negotiated";
+        return "TLS Negotiated";
     }
   else if (priv->connected)
-    state = "TCP Connection Established";
+    return "TCP Connection Established";
   else
-    state = "Connecting... ";
-
-  return g_strdup_printf ("%s: %s", state, str);
+    return "Connecting... ";
 }
 
 static void
@@ -1136,7 +1132,6 @@ xmpp_init_recv_cb (GObject *source,
   GError *error = NULL;
   WockyConnector *self = WOCKY_CONNECTOR (data);
   WockyConnectorPrivate *priv = self->priv;
-  gchar *debug = NULL;
   gchar *version = NULL;
   gchar *from = NULL;
   gchar *id = NULL;
@@ -1145,9 +1140,8 @@ xmpp_init_recv_cb (GObject *source,
   if (!wocky_xmpp_connection_recv_open_finish (priv->conn, result, NULL,
           &from, &version, NULL, &id, &error))
     {
-      char *msg = state_message (priv, error->message);
-      abort_connect_error (self, &error, msg);
-      g_free (msg);
+      abort_connect_error (self, &error, "%s: %s",
+          state_message (priv), error->message);
       g_error_free (error);
       goto out;
     }
@@ -1155,10 +1149,9 @@ xmpp_init_recv_cb (GObject *source,
   g_free (priv->session_id);
   priv->session_id = g_strdup (id);
 
-  debug = state_message (priv, "");
-  DEBUG ("%s: received XMPP version=%s stream open from server", debug,
+  DEBUG ("%s: received XMPP version=%s stream open from server",
+      state_message (priv),
       version != NULL ? version : "(unspecified)");
-  g_free (debug);
 
   ver = (version != NULL) ? atof (version) : -1;
 
@@ -1262,9 +1255,8 @@ xmpp_features_cb (GObject *source,
 
   if (!wocky_stanza_has_type (stanza, WOCKY_STANZA_TYPE_STREAM_FEATURES))
     {
-      char *msg = state_message (priv, "Malformed or missing feature stanza");
-      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, msg);
-      g_free (msg);
+      abort_connect_code (data, WOCKY_CONNECTOR_ERROR_BAD_FEATURES, "%s: %s",
+          state_message (priv), "Malformed or missing feature stanza");
       goto out;
     }
 
