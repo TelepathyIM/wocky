@@ -66,6 +66,7 @@ test_node_add_tree (void)
 {
   WockyNodeTree *origin, *ashes, *destination;
   WockyNode *ash, *top;
+  WockyNode *ash_copy;
 
   origin = wocky_node_tree_new ("Eyjafjallajökull", "urn:wocky:lol:ísland",
     '(', "æsc",
@@ -80,7 +81,9 @@ test_node_add_tree (void)
   destination = wocky_node_tree_new ("europe", "urn:wocky:lol:noplanesforyou",
       '*', &top, NULL);
 
-  wocky_node_add_node_tree (top, ashes);
+  ash_copy = wocky_node_add_node_tree (top, ashes);
+
+  test_assert_nodes_equal (ash_copy, ash);
 
   test_assert_nodes_equal (
     wocky_node_get_first_child (wocky_node_tree_get_top_node (destination)),

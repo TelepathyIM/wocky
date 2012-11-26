@@ -1557,17 +1557,21 @@ _wocky_node_copy (WockyNode *node)
  * @tree: The node tree to add
  *
  * Copies the nodes from @tree, and appends them to @node's children.
+ *
+ * Returns: the root of the copy of @tree added to @node.
  */
-void
+WockyNode *
 wocky_node_add_node_tree (WockyNode *node, WockyNodeTree *tree)
 {
   WockyNode *copy;
 
-  g_return_if_fail (node != NULL);
-  g_return_if_fail (tree != NULL);
+  g_return_val_if_fail (node != NULL, NULL);
+  g_return_val_if_fail (tree != NULL, NULL);
 
   copy = _wocky_node_copy (wocky_node_tree_get_top_node (tree));
   node->children = g_slist_append (node->children, copy);
+
+  return copy;
 }
 
 /**
@@ -1577,19 +1581,23 @@ wocky_node_add_node_tree (WockyNode *node, WockyNodeTree *tree)
  *
  * Copies the nodes from @tree, and inserts them as the first child of @node,
  * before any existing children.
+ *
+ * Returns: the root of the copy of @tree added to @node.
  */
-void
+WockyNode *
 wocky_node_prepend_node_tree (
     WockyNode *node,
     WockyNodeTree *tree)
 {
   WockyNode *copy;
 
-  g_return_if_fail (node != NULL);
-  g_return_if_fail (tree != NULL);
+  g_return_val_if_fail (node != NULL, NULL);
+  g_return_val_if_fail (tree != NULL, NULL);
 
   copy = _wocky_node_copy (wocky_node_tree_get_top_node (tree));
   node->children = g_slist_prepend (node->children, copy);
+
+  return copy;
 }
 
 /**
