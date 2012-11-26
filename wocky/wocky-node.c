@@ -1306,7 +1306,12 @@ wocky_node_iter_init (WockyNodeIter *iter,
     const gchar *name,
     const gchar *ns)
 {
+  g_return_if_fail (iter != NULL);
+  g_return_if_fail (node != NULL);
+
+  iter->node = node;
   iter->pending = node->children;
+  iter->current = NULL;
   iter->name = name;
   iter->ns = g_quark_from_string (ns);
 }
@@ -1330,7 +1335,8 @@ wocky_node_iter_next (WockyNodeIter *iter,
     {
       WockyNode *ln = (WockyNode *) iter->pending->data;
 
-      iter->pending  = g_slist_next (iter->pending);
+      iter->current = iter->pending;
+      iter->pending = g_slist_next (iter->pending);
 
       if (iter->name != NULL && wocky_strdiff (ln->name, iter->name))
         continue;
@@ -1344,7 +1350,32 @@ wocky_node_iter_next (WockyNodeIter *iter,
       return TRUE;
     }
 
+  iter->current = NULL;
   return FALSE;
+}
+
+/**
+ * wocky_node_iter_remove:
+ * @iter: an initialized #WockyNodeIter
+ *
+ * Removes and frees the node returned by the last call to
+ * wocky_node_iter_next() from its parent. Can only be called after
+ * wocky_node_iter_next() returned %TRUE, and cannot be called more than once
+ * per successful call to wocky_node_iter_next().
+ */
+void
+wocky_node_iter_remove (WockyNodeIter *iter)
+{
+  g_return_if_fail (iter->node != NULL);
+  g_return_if_fail (iter->current != NULL);
+
+  g_assert (iter->current->data != NULL);
+  wocky_node_free (iter->current->data);
+
+  iter->node->children = g_slist_delete_link (iter->node->children,
+      iter->current);
+
+  iter->current = NULL;
 }
 
 /**

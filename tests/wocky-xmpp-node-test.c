@@ -375,6 +375,35 @@ test_node_iteration (void)
 }
 
 static void
+test_node_iter_remove (void)
+{
+  WockyNode *top, *child;
+  WockyNodeTree *tree = wocky_node_tree_new ("foo", "wocky:test",
+      '*', &top,
+      '(', "remove-me", ')',
+      '(', "remove-me", ')',
+      '(', "preserve-me", ')',
+      '(', "remove-me", ')',
+      '(', "preserve-me", ')',
+      '(', "remove-me", ')',
+      '(', "remove-me", ')',
+      NULL);
+  WockyNodeIter iter;
+
+  wocky_node_iter_init (&iter, top, "remove-me", NULL);
+  while (wocky_node_iter_next (&iter, NULL))
+    wocky_node_iter_remove (&iter);
+
+  g_assert_cmpuint (g_slist_length (top->children), ==, 2);
+
+  wocky_node_iter_init (&iter, top, NULL, NULL);
+  while (wocky_node_iter_next (&iter, &child))
+    g_assert_cmpstr (child->name, ==, "preserve-me");
+
+  g_object_unref (tree);
+}
+
+static void
 test_get_first_child (void)
 {
   WockyNodeTree *tree = wocky_node_tree_new ("my-elixir", "my:poison",
@@ -421,6 +450,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-node/append-content-n", test_append_content_n);
   g_test_add_func ("/xmpp-node/set-attribute-ns", test_set_attribute_ns);
   g_test_add_func ("/xmpp-node/node-iterator", test_node_iteration);
+  g_test_add_func ("/xmpp-node/node-iterator-remove", test_node_iter_remove);
   g_test_add_func ("/xmpp-node/get-first-child", test_get_first_child);
 
   result = g_test_run ();

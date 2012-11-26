@@ -229,7 +229,9 @@ gboolean wocky_node_is_superset (WockyNode *node,
  */
 typedef struct {
   /*<private>*/
+  WockyNode *node;
   GSList *pending;
+  GSList *current;
   const gchar *name;
   GQuark ns;
 } WockyNodeIter;
@@ -242,6 +244,7 @@ void wocky_node_iter_init (WockyNodeIter *iter,
 gboolean wocky_node_iter_next (WockyNodeIter *iter,
     WockyNode **next);
 
+void wocky_node_iter_remove (WockyNodeIter *iter);
 
 void wocky_node_add_build (WockyNode *node,
     ...) G_GNUC_NULL_TERMINATED;
