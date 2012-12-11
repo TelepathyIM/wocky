@@ -36,6 +36,7 @@ static GDebugKey keys[] = {
   { "heartbeat",         WOCKY_DEBUG_HEARTBEAT         },
   { "presence",          WOCKY_DEBUG_PRESENCE          },
   { "connection-factory",WOCKY_DEBUG_CONNECTION_FACTORY},
+  { "media",             WOCKY_DEBUG_JINGLE            },
   { 0, },
 };
 
