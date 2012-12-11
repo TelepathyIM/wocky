@@ -30,6 +30,9 @@ void wocky_debug_stanza (WockyDebugFlags flag, WockyStanza *stanza,
 void wocky_debug_node_tree (WockyDebugFlags flag, WockyNodeTree *tree,
     const gchar *format, ...)
     G_GNUC_PRINTF (3, 4);
+void wocky_debug_node (WockyDebugFlags flag, WockyNode *node,
+    const gchar *format, ...)
+    G_GNUC_PRINTF (3, 4);
 
 #ifdef WOCKY_DEBUG_FLAG
 
@@ -43,6 +46,10 @@ void wocky_debug_node_tree (WockyDebugFlags flag, WockyNodeTree *tree,
 
 #define DEBUG_NODE_TREE(tree, format, ...) \
   wocky_debug_node_tree (WOCKY_DEBUG_FLAG, tree, "%s: " format, G_STRFUNC,\
+      ##__VA_ARGS__)
+
+#define DEBUG_NODE(node, format, ...) \
+  wocky_debug_node (WOCKY_DEBUG_FLAG, node, "%s: " format, G_STRFUNC,\
       ##__VA_ARGS__)
 
 #define DEBUGGING wocky_debug_flag_is_set(WOCKY_DEBUG_FLAG)
@@ -70,6 +77,13 @@ DEBUG_STANZA (WockyStanza *stanza,
 
 static inline void
 DEBUG_NODE_TREE (WockyNodeTree *tree,
+    const gchar *format,
+    ...)
+{
+}
+
+static inline void
+DEBUG_NODE (WockyNode *node,
     const gchar *format,
     ...)
 {

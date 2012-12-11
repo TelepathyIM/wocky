@@ -88,8 +88,8 @@ void wocky_debug_valist (WockyDebugFlags flag,
 }
 
 static void
-wocky_debug_node_tree_va (WockyDebugFlags flag,
-    WockyNodeTree *tree,
+wocky_debug_node_va (WockyDebugFlags flag,
+    WockyNode *node,
     const gchar *format,
     va_list args)
 {
@@ -101,14 +101,35 @@ wocky_debug_node_tree_va (WockyDebugFlags flag,
 
       msg = g_strdup_vprintf (format, args);
 
-      node_str = wocky_node_to_string (
-          wocky_node_tree_get_top_node (tree));
+      node_str = wocky_node_to_string (node);
 
       g_log (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, "%s\n%s", msg, node_str);
 
       g_free (msg);
       g_free (node_str);
   }
+}
+
+void
+wocky_debug_node (WockyDebugFlags flag,
+    WockyNode *node,
+    const gchar *format,
+    ...)
+{
+  va_list args;
+
+  va_start (args, format);
+  wocky_debug_node_va (flag, node, format, args);
+  va_end (args);
+}
+
+static void
+wocky_debug_node_tree_va (WockyDebugFlags flag,
+    WockyNodeTree *tree,
+    const gchar *format,
+    va_list args)
+{
+  wocky_debug_node_va (flag, wocky_node_tree_get_top_node (tree), format, args);
 }
 
 void
