@@ -26,14 +26,13 @@
 #include <string.h>
 #include <glib.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
-#include "connection.h"
-#include "debug.h"
+#include "wocky-debug-internal.h"
 #include "jingle-content.h"
 #include "jingle-factory.h"
 #include "jingle-session.h"
-#include "namespaces.h"
+#include "wocky-namespaces.h"
 
 static void
 transport_iface_init (gpointer g_iface, gpointer iface_data);
@@ -398,7 +397,7 @@ void
 jingle_transport_rawudp_register (WockyJingleFactory *factory)
 {
   wocky_jingle_factory_register_transport (factory,
-      NS_JINGLE_TRANSPORT_RAWUDP,
+      WOCKY_XMPP_NS_JINGLE_TRANSPORT_RAWUDP,
       WOCKY_TYPE_JINGLE_TRANSPORT_RAWUDP);
 }
 

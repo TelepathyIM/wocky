@@ -23,14 +23,13 @@
 #include "jingle-info-internal.h"
 
 #include <stdlib.h>
-#include <telepathy-glib/telepathy-glib.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
-#include "debug.h"
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
+#include "wocky-debug-internal.h"
 #include "google-relay.h"
-#include "gabble-enumtypes.h"
-#include "gabble-signals-marshal.h"
-#include "namespaces.h"
+#include "wocky-enumtypes.h"
+#include "wocky-signals-marshal.h"
+#include "wocky-namespaces.h"
 
 static gboolean jingle_info_cb (
     WockyPorter *porter,
@@ -231,7 +230,7 @@ wocky_jingle_info_class_init (WockyJingleInfoClass *klass)
 
   signals[STUN_SERVER_CHANGED] = g_signal_new ("stun-server-changed",
       G_OBJECT_CLASS_TYPE (object_class), G_SIGNAL_RUN_LAST,
-      0, NULL, NULL, gabble_marshal_VOID__STRING_UINT,
+      0, NULL, NULL, _wocky_signals_marshal_VOID__STRING_UINT,
       G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
 }
 
@@ -347,7 +346,7 @@ wocky_jingle_info_take_stun_server_internal (
   data = g_slice_new0 (PendingStunServer);
 
   DEBUG ("Resolving %s STUN server %s:%u",
-      wocky_enum_to_nick (GABBLE_TYPE_STUN_SERVER_SOURCE, data->source),
+      wocky_enum_to_nick (WOCKY_TYPE_STUN_SERVER_SOURCE, data->source),
       stun_server, stun_port);
   data->factory = self;
   g_object_add_weak_pointer (G_OBJECT (self), (gpointer *) &data->factory);
@@ -395,7 +394,7 @@ got_jingle_info_stanza (
   WockyNode *node, *query_node;
 
   query_node = wocky_node_get_child_ns (
-      wocky_stanza_get_top_node (stanza), "query", NS_GOOGLE_JINGLE_INFO);
+      wocky_stanza_get_top_node (stanza), "query", WOCKY_XMPP_NS_GOOGLE_JINGLE_INFO);
 
   if (query_node == NULL)
     return;
@@ -566,7 +565,7 @@ wocky_jingle_info_send_google_request (
   WockyStanza *stanza = wocky_stanza_build (
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET, NULL,
       wocky_porter_get_bare_jid (priv->porter),
-      '(', "query", ':', NS_GOOGLE_JINGLE_INFO, ')', NULL);
+      '(', "query", ':', WOCKY_XMPP_NS_GOOGLE_JINGLE_INFO, ')', NULL);
 
   wocky_porter_send_iq_async (priv->porter, stanza, NULL, jingle_info_reply_cb,
       g_object_ref (self));
@@ -576,7 +575,7 @@ wocky_jingle_info_send_google_request (
       WOCKY_C2S_PORTER (priv->porter),
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_SET,
       WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, jingle_info_cb, self,
-      '(', "query", ':', NS_GOOGLE_JINGLE_INFO, ')', NULL);
+      '(', "query", ':', WOCKY_XMPP_NS_GOOGLE_JINGLE_INFO, ')', NULL);
 }
 
 static void

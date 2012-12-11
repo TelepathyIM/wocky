@@ -27,19 +27,18 @@
 
 #include <wocky/wocky.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
-#include "gabble/capabilities.h"
-#include "debug.h"
-#include "gabble-signals-marshal.h"
-#include "gabble-enumtypes.h"
+#include "wocky-debug-internal.h"
+#include "wocky-signals-marshal.h"
+#include "wocky-enumtypes.h"
 #include "jingle-content.h"
 #include "jingle-factory.h"
 /* FIXME: the RTP-specific bits of this file should be separated from the
  *        generic Jingle code.
  */
 #include "jingle-media-rtp.h"
-#include "namespaces.h"
+#include "wocky-namespaces.h"
 
 G_DEFINE_TYPE(WockyJingleSession, wocky_jingle_session, G_TYPE_OBJECT);
 
@@ -497,7 +496,7 @@ wocky_jingle_session_class_init (WockyJingleSessionClass *cls)
 
   signals[TERMINATED] = g_signal_new ("terminated",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
-        0, NULL, NULL, gabble_marshal_VOID__BOOLEAN_UINT_STRING,
+        0, NULL, NULL, _wocky_signals_marshal_VOID__BOOLEAN_UINT_STRING,
         G_TYPE_NONE, 3, G_TYPE_BOOLEAN, G_TYPE_UINT, G_TYPE_STRING);
 
   signals[REMOTE_STATE_CHANGED] = g_signal_new ("remote-state-changed",
@@ -506,7 +505,7 @@ wocky_jingle_session_class_init (WockyJingleSessionClass *cls)
         G_TYPE_NONE, 0);
   signals[CONTENT_REJECTED] = g_signal_new ("content-rejected",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
-        0, NULL, NULL, gabble_marshal_VOID__OBJECT_UINT_STRING,
+        0, NULL, NULL, _wocky_signals_marshal_VOID__OBJECT_UINT_STRING,
         G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_UINT, G_TYPE_STRING);
 
   /*
@@ -520,7 +519,7 @@ wocky_jingle_session_class_init (WockyJingleSessionClass *cls)
   signals[QUERY_CAP] = g_signal_new ("query-cap",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
         0, g_signal_accumulator_first_wins, NULL,
-        gabble_marshal_BOOLEAN__OBJECT_STRING,
+        _wocky_signals_marshal_BOOLEAN__OBJECT_STRING,
         G_TYPE_BOOLEAN, 2, WOCKY_TYPE_CONTACT, G_TYPE_STRING);
 
   signals[ABOUT_TO_INITIATE] = g_signal_new ("about-to-initiate",
@@ -726,7 +725,7 @@ lookup_content (WockyJingleSession *sess,
        */
       if (creator == NULL &&
           wocky_jingle_session_peer_has_cap (sess,
-              QUIRK_OMITS_CONTENT_CREATORS))
+              WOCKY_QUIRK_OMITS_CONTENT_CREATORS))
         {
           DEBUG ("working around missing 'creator' attribute");
 
@@ -1042,7 +1041,7 @@ on_session_initiate (WockyJingleSession *sess, WockyNode *node,
         wocky_node_get_child (node, "description");
       content_ns = wocky_node_get_ns (desc_node);
 
-      if (!wocky_strdiff (content_ns, NS_GOOGLE_SESSION_VIDEO))
+      if (!wocky_strdiff (content_ns, WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO))
         {
           WockyJingleFactory *factory =
               wocky_jingle_session_get_factory (sess);
@@ -1054,13 +1053,13 @@ on_session_initiate (WockyJingleSession *sess, WockyNode *node,
           content_type = wocky_jingle_factory_lookup_content_type (
             factory, content_ns);
           create_content (sess, content_type, WOCKY_JINGLE_MEDIA_TYPE_VIDEO,
-            WOCKY_JINGLE_CONTENT_SENDERS_BOTH, NS_GOOGLE_SESSION_VIDEO, NULL,
+            WOCKY_JINGLE_CONTENT_SENDERS_BOTH, WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO, NULL,
               "video", node, error);
 
           content_type = wocky_jingle_factory_lookup_content_type (
-            factory, NS_GOOGLE_SESSION_PHONE);
+            factory, WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE);
           create_content (sess, content_type, WOCKY_JINGLE_MEDIA_TYPE_AUDIO,
-            WOCKY_JINGLE_CONTENT_SENDERS_BOTH, NS_GOOGLE_SESSION_PHONE, NULL,
+            WOCKY_JINGLE_CONTENT_SENDERS_BOTH, WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE, NULL,
               "audio", node, error);
         }
       else
@@ -1268,7 +1267,7 @@ handle_payload (WockyJingleSession *sess,
   const gchar *name = wocky_node_get_attribute (payload, "name");
   const gchar *creator = wocky_node_get_attribute (payload, "creator");
 
-  if (wocky_strdiff (ns, NS_JINGLE_RTP_INFO))
+  if (wocky_strdiff (ns, WOCKY_XMPP_NS_JINGLE_RTP_INFO))
     {
       *handled = FALSE;
       return TRUE;
@@ -1544,12 +1543,12 @@ detect_google_dialect (WockyNode *session_node)
 {
   /* The GTALK3 dialect is the only one that supports video at this time */
   if (wocky_node_get_child_ns (session_node,
-      "description", NS_GOOGLE_SESSION_VIDEO) != NULL)
+      "description", WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO) != NULL)
     return WOCKY_JINGLE_DIALECT_GTALK3;
 
   /* GTalk4 has a transport item, GTalk3 doesn't */
   if (wocky_node_get_child_ns (session_node,
-      "transport", NS_GOOGLE_TRANSPORT_P2P) == NULL)
+      "transport", WOCKY_XMPP_NS_GOOGLE_TRANSPORT_P2P) == NULL)
     return WOCKY_JINGLE_DIALECT_GTALK3;
 
   return WOCKY_JINGLE_DIALECT_GTALK4;
@@ -1578,7 +1577,7 @@ wocky_jingle_session_detect (
         return NULL;
 
   /* first, we try standard jingle */
-  session_node = wocky_node_get_child_ns (iq_node, "jingle", NS_JINGLE032);
+  session_node = wocky_node_get_child_ns (iq_node, "jingle", WOCKY_XMPP_NS_JINGLE);
 
   if (session_node != NULL)
     {
@@ -1587,7 +1586,7 @@ wocky_jingle_session_detect (
   else
     {
       /* then, we try a bit older jingle version */
-      session_node = wocky_node_get_child_ns (iq_node, "jingle", NS_JINGLE015);
+      session_node = wocky_node_get_child_ns (iq_node, "jingle", WOCKY_XMPP_NS_JINGLE015);
 
       if (session_node != NULL)
         {
@@ -1597,7 +1596,7 @@ wocky_jingle_session_detect (
         {
           /* next, we try googletalk */
           session_node = wocky_node_get_child_ns (iq_node,
-              "session", NS_GOOGLE_SESSION);
+              "session", WOCKY_XMPP_NS_GOOGLE_SESSION);
 
           if (session_node != NULL)
             {
@@ -1657,16 +1656,16 @@ wocky_jingle_session_parse (
   switch (priv->dialect) {
     case WOCKY_JINGLE_DIALECT_V032:
       session_node = wocky_node_get_child_ns (iq_node,
-          "jingle", NS_JINGLE032);
+          "jingle", WOCKY_XMPP_NS_JINGLE);
       break;
     case WOCKY_JINGLE_DIALECT_V015:
       session_node = wocky_node_get_child_ns (iq_node,
-          "jingle", NS_JINGLE015);
+          "jingle", WOCKY_XMPP_NS_JINGLE015);
       break;
     case WOCKY_JINGLE_DIALECT_GTALK3:
     case WOCKY_JINGLE_DIALECT_GTALK4:
       session_node = wocky_node_get_child_ns (iq_node,
-          "session", NS_GOOGLE_SESSION);
+          "session", WOCKY_XMPP_NS_GOOGLE_SESSION);
       break;
     default:
       /* just to make gcc happy about dealing with default case */
@@ -1722,16 +1721,16 @@ wocky_jingle_session_new_message (WockyJingleSession *sess,
     {
       case WOCKY_JINGLE_DIALECT_V032:
         el = "jingle";
-        ns = NS_JINGLE032;
+        ns = WOCKY_XMPP_NS_JINGLE;
         break;
       case WOCKY_JINGLE_DIALECT_V015:
         el = "jingle";
-        ns = NS_JINGLE015;
+        ns = WOCKY_XMPP_NS_JINGLE015;
         break;
       case WOCKY_JINGLE_DIALECT_GTALK3:
       case WOCKY_JINGLE_DIALECT_GTALK4:
         el = "session";
-        ns = NS_GOOGLE_SESSION;
+        ns = WOCKY_XMPP_NS_GOOGLE_SESSION;
         gtalk_mode = TRUE;
         break;
       case WOCKY_JINGLE_DIALECT_ERROR:
@@ -2021,7 +2020,7 @@ try_session_initiate_or_accept (WockyJingleSession *sess)
         {
           sess_node = wocky_node_add_child_ns_q (sess_node, "description",
               g_quark_from_static_string (has_video
-                  ? NS_GOOGLE_SESSION_VIDEO : NS_GOOGLE_SESSION_PHONE));
+                  ? WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO : WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE));
         }
     }
 
@@ -2366,7 +2365,7 @@ wocky_jingle_session_send_rtp_info (WockyJingleSession *sess,
   message = wocky_jingle_session_new_message (sess,
       WOCKY_JINGLE_ACTION_SESSION_INFO, &jingle);
   wocky_node_add_child_ns_q (jingle, name,
-      g_quark_from_static_string (NS_JINGLE_RTP_INFO));
+      g_quark_from_static_string (WOCKY_XMPP_NS_JINGLE_RTP_INFO));
 
   /* This is just informational, so ignoring the reply. */
   wocky_jingle_session_send (sess, message);
@@ -2407,7 +2406,7 @@ gboolean
 wocky_jingle_session_can_modify_contents (WockyJingleSession *sess)
 {
   return !WOCKY_JINGLE_DIALECT_IS_GOOGLE (sess->priv->dialect) &&
-      !wocky_jingle_session_peer_has_cap (sess, QUIRK_GOOGLE_WEBMAIL_CLIENT);
+      !wocky_jingle_session_peer_has_cap (sess, WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT);
 }
 
 WockyJingleDialect

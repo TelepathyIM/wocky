@@ -27,17 +27,16 @@
 
 #include <wocky/wocky.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
-#include "debug.h"
-#include "gabble-signals-marshal.h"
-#include "jingle-share.h"
+#include "wocky-debug-internal.h"
+#include "wocky-signals-marshal.h"
 #include "jingle-media-rtp.h"
 #include "jingle-session.h"
 #include "jingle-transport-google.h"
 #include "jingle-transport-rawudp.h"
 #include "jingle-transport-iceudp.h"
-#include "namespaces.h"
+#include "wocky-namespaces.h"
 
 #include "google-relay.h"
 
@@ -202,7 +201,6 @@ wocky_jingle_factory_constructed (GObject *obj)
 
   attach_to_wocky_session (self);
 
-  jingle_share_register (self);
   jingle_media_rtp_register (self);
   jingle_transport_google_register (self);
   jingle_transport_rawudp_register (self);
@@ -237,7 +235,7 @@ wocky_jingle_factory_class_init (WockyJingleFactoryClass *cls)
    */
   signals[NEW_SESSION] = g_signal_new ("new-session",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
-        0, NULL, NULL, gabble_marshal_VOID__OBJECT_BOOL,
+        0, NULL, NULL, _wocky_signals_marshal_VOID__OBJECT_BOOL,
         G_TYPE_NONE, 2, WOCKY_TYPE_JINGLE_SESSION, G_TYPE_BOOLEAN);
 
   /*
@@ -251,7 +249,7 @@ wocky_jingle_factory_class_init (WockyJingleFactoryClass *cls)
   signals[QUERY_CAP] = g_signal_new ("query-cap",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
         0, g_signal_accumulator_first_wins, NULL,
-        gabble_marshal_BOOLEAN__OBJECT_STRING,
+        _wocky_signals_marshal_BOOLEAN__OBJECT_STRING,
         G_TYPE_BOOLEAN, 2, WOCKY_TYPE_CONTACT, G_TYPE_STRING);
 }
 

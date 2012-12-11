@@ -30,15 +30,13 @@
 #include <string.h>
 #include <glib.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
-#include "connection.h"
-#include "debug.h"
+#include "wocky-debug-internal.h"
 #include "jingle-content.h"
 #include "jingle-factory.h"
 #include "jingle-session.h"
-#include "namespaces.h"
-#include "presence-cache.h"
+#include "wocky-namespaces.h"
 #include "jingle-transport-google.h"
 
 G_DEFINE_TYPE (WockyJingleMediaRtp,
@@ -337,9 +335,9 @@ static void transport_created (WockyJingleContent *content,
       if (priv->media_type == WOCKY_JINGLE_MEDIA_TYPE_VIDEO &&
           (WOCKY_JINGLE_DIALECT_IS_GOOGLE (dialect) ||
            wocky_jingle_session_peer_has_cap (content->session,
-               QUIRK_GOOGLE_WEBMAIL_CLIENT) ||
+               WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT) ||
            wocky_jingle_session_peer_has_cap (content->session,
-               QUIRK_ANDROID_GTALK_CLIENT)))
+               WOCKY_QUIRK_ANDROID_GTALK_CLIENT)))
         {
           jingle_transport_google_set_component_name (gtrans, "video_rtp", 1);
           jingle_transport_google_set_component_name (gtrans, "video_rtcp", 2);
@@ -357,7 +355,7 @@ static WockyJingleMediaType
 extract_media_type (WockyNode *desc_node,
                     GError **error)
 {
-  if (wocky_node_has_ns (desc_node, NS_JINGLE_RTP))
+  if (wocky_node_has_ns (desc_node, WOCKY_XMPP_NS_JINGLE_RTP))
     {
       const gchar *type = wocky_node_get_attribute (desc_node, "media");
 
@@ -379,16 +377,16 @@ extract_media_type (WockyNode *desc_node,
       return WOCKY_JINGLE_MEDIA_TYPE_NONE;
     }
 
-  if (wocky_node_has_ns (desc_node, NS_JINGLE_DESCRIPTION_AUDIO))
+  if (wocky_node_has_ns (desc_node, WOCKY_XMPP_NS_JINGLE_DESCRIPTION_AUDIO))
     return WOCKY_JINGLE_MEDIA_TYPE_AUDIO;
 
-  if (wocky_node_has_ns (desc_node, NS_JINGLE_DESCRIPTION_VIDEO))
+  if (wocky_node_has_ns (desc_node, WOCKY_XMPP_NS_JINGLE_DESCRIPTION_VIDEO))
     return WOCKY_JINGLE_MEDIA_TYPE_VIDEO;
 
-  if (wocky_node_has_ns (desc_node, NS_GOOGLE_SESSION_PHONE))
+  if (wocky_node_has_ns (desc_node, WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE))
     return WOCKY_JINGLE_MEDIA_TYPE_AUDIO;
 
-  if (wocky_node_has_ns (desc_node, NS_GOOGLE_SESSION_VIDEO))
+  if (wocky_node_has_ns (desc_node, WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO))
     return WOCKY_JINGLE_MEDIA_TYPE_VIDEO;
 
   /* If we get here, namespace in use is not one of namespaces we signed up
@@ -404,7 +402,7 @@ parse_rtcp_fb (WockyJingleContent *content, WockyNode *node)
   const gchar *type;
   const gchar *subtype;
 
-  if (wocky_strdiff (pt_ns, NS_JINGLE_RTCP_FB))
+  if (wocky_strdiff (pt_ns, WOCKY_XMPP_NS_JINGLE_RTCP_FB))
     return NULL;
 
   type = wocky_node_get_attribute (node, "type");
@@ -432,7 +430,7 @@ parse_rtcp_fb_trr_int (WockyJingleContent *content, WockyNode *node)
   guint trr_int;
   gchar *endptr = NULL;
 
-  if (wocky_strdiff (pt_ns, NS_JINGLE_RTCP_FB))
+  if (wocky_strdiff (pt_ns, WOCKY_XMPP_NS_JINGLE_RTCP_FB))
     return G_MAXUINT;
 
   txt = wocky_node_get_attribute (node, "value");
@@ -730,7 +728,7 @@ parse_description (WockyJingleContent *content,
     {
       const gchar *desc_ns =
         wocky_node_get_ns (desc_node);
-      video_session = !wocky_strdiff (desc_ns, NS_GOOGLE_SESSION_VIDEO);
+      video_session = !wocky_strdiff (desc_ns, WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO);
     }
 
   md = wocky_jingle_media_description_new ();
@@ -747,13 +745,13 @@ parse_description (WockyJingleContent *content,
               if (priv->media_type == WOCKY_JINGLE_MEDIA_TYPE_AUDIO)
                 {
                   if (video_session &&
-                      wocky_strdiff (pt_ns, NS_GOOGLE_SESSION_PHONE))
+                      wocky_strdiff (pt_ns, WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE))
                     continue;
                 }
               else if (priv->media_type == WOCKY_JINGLE_MEDIA_TYPE_VIDEO)
                 {
                   if (!(video_session && pt_ns == NULL)
-                      && wocky_strdiff (pt_ns, NS_GOOGLE_SESSION_VIDEO))
+                      && wocky_strdiff (pt_ns, WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO))
                     continue;
                 }
             }
@@ -776,7 +774,7 @@ parse_description (WockyJingleContent *content,
           const gchar *pt_ns = wocky_node_get_ns (node);
           WockyJingleRtpHeaderExtension *hdrext;
 
-          if (wocky_strdiff (pt_ns, NS_JINGLE_RTP_HDREXT))
+          if (wocky_strdiff (pt_ns, WOCKY_XMPP_NS_JINGLE_RTP_HDREXT))
             continue;
 
           hdrext = parse_rtp_header_extension (node);
@@ -899,7 +897,7 @@ produce_rtcp_fb_trr_int (WockyNode *node,
     return;
 
   trr_int_node = wocky_node_add_child_ns (node, "rtcp-fb-trr-int",
-      NS_JINGLE_RTCP_FB);
+      WOCKY_XMPP_NS_JINGLE_RTCP_FB);
   snprintf (tmp, 9, "%d", trr_int);
   wocky_node_set_attribute (trr_int_node, "value", tmp);
 }
@@ -912,7 +910,7 @@ produce_rtcp_fb (WockyJingleFeedbackMessage *fb, WockyNode *node)
 
   fb_node = wocky_node_add_child (node, "rtcp-fb");
 
-  wocky_node_set_attribute (fb_node, "xmlns", NS_JINGLE_RTCP_FB);
+  wocky_node_set_attribute (fb_node, "xmlns", WOCKY_XMPP_NS_JINGLE_RTCP_FB);
   wocky_node_set_attribute (fb_node, "type", fb->type);
 
   if (fb->subtype != NULL && fb->subtype[0] != 0)
@@ -943,12 +941,12 @@ produce_payload_type (WockyJingleContent *content,
         {
           /* Gtalk 03 has either an audio or a video session, in case of a
            * video session the audio codecs need to set their namespace to
-           * NS_GOOGLE_SESSION_PHONE. In the case of an audio session it
+           * WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE. In the case of an audio session it
            * doesn't matter, so just always set the namespace on audio
            * payloads.
            */
           pt_node->ns = g_quark_from_static_string (
-              NS_GOOGLE_SESSION_PHONE);
+              WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE);
         }
       else
         {
@@ -1017,13 +1015,13 @@ produce_description_node (WockyJingleDialect dialect, WockyJingleMediaType media
     {
       case WOCKY_JINGLE_DIALECT_GTALK4:
         g_assert (media_type == WOCKY_JINGLE_MEDIA_TYPE_AUDIO);
-        xmlns = NS_GOOGLE_SESSION_PHONE;
+        xmlns = WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE;
         break;
       case WOCKY_JINGLE_DIALECT_V015:
         if (media_type == WOCKY_JINGLE_MEDIA_TYPE_AUDIO)
-            xmlns = NS_JINGLE_DESCRIPTION_AUDIO;
+            xmlns = WOCKY_XMPP_NS_JINGLE_DESCRIPTION_AUDIO;
         else if (media_type == WOCKY_JINGLE_MEDIA_TYPE_VIDEO)
-            xmlns = NS_JINGLE_DESCRIPTION_VIDEO;
+            xmlns = WOCKY_XMPP_NS_JINGLE_DESCRIPTION_VIDEO;
         else
           {
             DEBUG ("unknown media type %u", media_type);
@@ -1031,7 +1029,7 @@ produce_description_node (WockyJingleDialect dialect, WockyJingleMediaType media
           }
         break;
       default:
-        xmlns = NS_JINGLE_RTP;
+        xmlns = WOCKY_XMPP_NS_JINGLE_RTP;
         if (media_type == WOCKY_JINGLE_MEDIA_TYPE_AUDIO)
             media_attr = "audio";
         else if (media_type == WOCKY_JINGLE_MEDIA_TYPE_VIDEO)
@@ -1069,7 +1067,7 @@ produce_hdrext (gpointer data, gpointer user_data)
   else if (hdrext->senders == WOCKY_JINGLE_CONTENT_SENDERS_RESPONDER)
     wocky_node_set_attribute (hdrext_node, "senders", "responder");
 
-  wocky_node_set_attribute (hdrext_node, "xmlns", NS_JINGLE_RTP_HDREXT);
+  wocky_node_set_attribute (hdrext_node, "xmlns", WOCKY_XMPP_NS_JINGLE_RTP_HDREXT);
 }
 
 static void
@@ -1081,10 +1079,10 @@ produce_description (WockyJingleContent *content, WockyNode *content_node)
   WockyJingleDialect dialect = wocky_jingle_session_get_dialect (content->session);
   WockyNode *desc_node;
 
-  if (wocky_jingle_session_peer_has_cap (content->session, NS_JINGLE_RTCP_FB))
+  if (wocky_jingle_session_peer_has_cap (content->session, WOCKY_XMPP_NS_JINGLE_RTCP_FB))
     priv->has_rtcp_fb = TRUE;
 
-  if (wocky_jingle_session_peer_has_cap (content->session, NS_JINGLE_RTP_HDREXT))
+  if (wocky_jingle_session_peer_has_cap (content->session, WOCKY_XMPP_NS_JINGLE_RTP_HDREXT))
     priv->has_rtp_hdrext = TRUE;
 
   desc_node = produce_description_node (dialect, priv->media_type,
@@ -1272,25 +1270,25 @@ jingle_media_rtp_register (WockyJingleFactory *factory)
 {
   /* Current (v0.25) Jingle draft URI */
   wocky_jingle_factory_register_content_type (factory,
-      NS_JINGLE_RTP, WOCKY_TYPE_JINGLE_MEDIA_RTP);
+      WOCKY_XMPP_NS_JINGLE_RTP, WOCKY_TYPE_JINGLE_MEDIA_RTP);
 
   /* Old Jingle audio/video namespaces */
   wocky_jingle_factory_register_content_type (factory,
-      NS_JINGLE_DESCRIPTION_AUDIO,
+      WOCKY_XMPP_NS_JINGLE_DESCRIPTION_AUDIO,
       WOCKY_TYPE_JINGLE_MEDIA_RTP);
 
   wocky_jingle_factory_register_content_type (factory,
-      NS_JINGLE_DESCRIPTION_VIDEO,
+      WOCKY_XMPP_NS_JINGLE_DESCRIPTION_VIDEO,
       WOCKY_TYPE_JINGLE_MEDIA_RTP);
 
   /* GTalk audio call namespace */
   wocky_jingle_factory_register_content_type (factory,
-      NS_GOOGLE_SESSION_PHONE,
+      WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE,
       WOCKY_TYPE_JINGLE_MEDIA_RTP);
 
   /* GTalk video call namespace */
   wocky_jingle_factory_register_content_type (factory,
-      NS_GOOGLE_SESSION_VIDEO,
+      WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO,
       WOCKY_TYPE_JINGLE_MEDIA_RTP);
 }
 

@@ -14,6 +14,8 @@ endif
 EXTRA_DIST =
 
 enumtype_sources = \
+  jingle-types.h \
+  jingle-info-internal.h \
   wocky-auth-registry.h \
   wocky-connector.h \
   wocky-data-form.h \
@@ -50,6 +52,17 @@ PROXY_SRC = \
   wocky-http-proxy.c
 
 handwritten_headers = \
+  google-relay.h \
+  jingle-content.h \
+  jingle-factory.h \
+  jingle-info-internal.h \
+  jingle-info.h \
+  jingle-media-rtp.h \
+  jingle-session.h \
+  jingle-transport-google.h \
+  jingle-transport-iceudp.h \
+  jingle-transport-iface.h \
+  jingle-transport-rawudp.h \
   wocky.h \
   wocky-auth-handler.h \
   wocky-auth-registry.h \
@@ -104,6 +117,16 @@ handwritten_headers = \
   wocky-xmpp-writer.h
 
 handwritten_sources = \
+  google-relay.c \
+  jingle-content.c \
+  jingle-factory.c \
+  jingle-info.c \
+  jingle-media-rtp.c \
+  jingle-session.c \
+  jingle-transport-google.c \
+  jingle-transport-iceudp.c \
+  jingle-transport-iface.c \
+  jingle-transport-rawudp.c \
   wocky.c \
   wocky-auth-handler.c \
   wocky-auth-registry.c \

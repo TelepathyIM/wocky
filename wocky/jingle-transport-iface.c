@@ -22,7 +22,6 @@
 
 #include <glib.h>
 
-#include "connection.h"
 #include "jingle-content.h"
 #include "jingle-session.h"
 

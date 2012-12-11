@@ -26,13 +26,13 @@
 #include <string.h>
 #include <glib.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
-#include "debug.h"
+#include "wocky-debug-internal.h"
 #include "jingle-content.h"
 #include "jingle-factory.h"
 #include "jingle-session.h"
-#include "namespaces.h"
+#include "wocky-namespaces.h"
 
 static void
 transport_iface_init (gpointer g_iface, gpointer iface_data);
@@ -394,7 +394,7 @@ parse_candidates (WockyJingleTransportIface *obj,
     {
       if (node_contains_a_candidate)
         {
-          NODE_DEBUG (transport_node,
+          DEBUG_NODE (transport_node,
               "couldn't parse any of the given candidates");
           g_set_error (error, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_BAD_REQUEST,
               "could not parse any of the given candidates");
@@ -611,7 +611,7 @@ void
 jingle_transport_iceudp_register (WockyJingleFactory *factory)
 {
   wocky_jingle_factory_register_transport (factory,
-      NS_JINGLE_TRANSPORT_ICEUDP,
+      WOCKY_XMPP_NS_JINGLE_TRANSPORT_ICEUDP,
       WOCKY_TYPE_JINGLE_TRANSPORT_ICEUDP);
 }
 

@@ -25,17 +25,16 @@
 #include <string.h>
 #include <glib.h>
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
-#include "connection.h"
-#include "debug.h"
+#include "wocky-debug-internal.h"
 #include "jingle-factory.h"
 #include "jingle-session.h"
 #include "jingle-transport-iface.h"
 #include "jingle-transport-google.h"
 #include "jingle-media-rtp.h"
-#include "namespaces.h"
-#include "gabble-signals-marshal.h"
+#include "wocky-namespaces.h"
+#include "wocky-signals-marshal.h"
 
 /* signal enum */
 enum
@@ -355,7 +354,7 @@ wocky_jingle_content_class_init (WockyJingleContentClass *cls)
     G_SIGNAL_RUN_LAST,
     0,
     NULL, NULL,
-    gabble_marshal_VOID__STRING_UINT,
+    _wocky_signals_marshal_VOID__STRING_UINT,
     G_TYPE_NONE,
     2,
     G_TYPE_STRING, G_TYPE_UINT);
@@ -539,7 +538,7 @@ wocky_jingle_content_parse_add (WockyJingleContent *c,
     {
       if (creator == NULL &&
           wocky_jingle_session_peer_has_cap (c->session,
-              QUIRK_GOOGLE_WEBMAIL_CLIENT))
+              WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT))
         {
           if (wocky_jingle_content_creator_is_initiator (c))
             creator = "initiator";

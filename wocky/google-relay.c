@@ -27,13 +27,13 @@
 #include <libsoup/soup.h>
 #endif
 
-#define DEBUG_FLAG GABBLE_DEBUG_MEDIA
+#define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
 #ifdef G_OS_WIN32
 #undef ERROR
 #endif
 
-#include "debug.h"
+#include "wocky-debug-internal.h"
 
 #define RELAY_HTTP_TIMEOUT 5
 
