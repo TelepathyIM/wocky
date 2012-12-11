@@ -84,6 +84,20 @@
 #define WOCKY_XEP77_NS_REGISTER \
   "jabber:iq:register"
 
+/* Namespaces for XEP-0166 draft v0.15, the most capable Jingle dialect
+ * supported by telepathy-gabble < 0.7.16, including the versions shipped with
+ * Maemo Chinook and Diablo.
+ */
+#define WOCKY_XMPP_NS_JINGLE015 \
+  "http://jabber.org/protocol/jingle"
+
+/* RTP audio capability in Jingle v0.15 (obsoleted by WOCKY_XMPP_NS_JINGLE_RTP) */
+#define WOCKY_XMPP_NS_JINGLE_DESCRIPTION_AUDIO \
+  "http://jabber.org/protocol/jingle/description/audio"
+/* RTP video capability in Jingle v0.15 (obsoleted by WOCKY_XMPP_NS_JINGLE_RTP) */
+#define WOCKY_XMPP_NS_JINGLE_DESCRIPTION_VIDEO \
+  "http://jabber.org/protocol/jingle/description/video"
+
 /* XEP-0166 Jingle */
 #define WOCKY_XMPP_NS_JINGLE \
   "urn:xmpp:jingle:1"
@@ -101,6 +115,42 @@
   "urn:xmpp:jingle:apps:rtp:audio"
 #define WOCKY_XMPP_NS_JINGLE_RTP_VIDEO \
   "urn:xmpp:jingle:apps:rtp:video"
+
+/* ProtoXEPs for rtcp-fb and rtp-hdrext */
+#define WOCKY_XMPP_NS_JINGLE_RTCP_FB       "urn:xmpp:jingle:apps:rtp:rtcp-fb:0"
+#define WOCKY_XMPP_NS_JINGLE_RTP_HDREXT    "urn:xmpp:jingle:apps:rtp:rtp-hdrext:0"
+
+/* Google's Jingle dialect */
+#define WOCKY_XMPP_NS_GOOGLE_SESSION       "http://www.google.com/session"
+/* Audio capability in Google Jingle dialect */
+#define WOCKY_XMPP_NS_GOOGLE_SESSION_PHONE "http://www.google.com/session/phone"
+/* Video capability in Google's Jingle dialect */
+#define WOCKY_XMPP_NS_GOOGLE_SESSION_VIDEO "http://www.google.com/session/video"
+/* File transfer capability in Google's Jingle dialect */
+#define WOCKY_XMPP_NS_GOOGLE_SESSION_SHARE "http://www.google.com/session/share"
+
+/* google-p2p transport */
+#define WOCKY_XMPP_NS_GOOGLE_TRANSPORT_P2P "http://www.google.com/transport/p2p"
+/* Jingle RAW-UDP transport */
+#define WOCKY_XMPP_NS_JINGLE_TRANSPORT_RAWUDP "urn:xmpp:jingle:transports:raw-udp:1"
+/* Jingle ICE-UDP transport */
+#define WOCKY_XMPP_NS_JINGLE_TRANSPORT_ICEUDP "urn:xmpp:jingle:transports:ice-udp:1"
+
+/* Here are some "quirk" pseudo-namespaces imported from Gabble with the Jingle
+ * code and used to work around known bugs in particular Jingle
+ * implementations. ASCII BEL is illegal in XML, so these cannot appear in real
+ * XMPP capabilities.
+ */
+/* Gabble 0.7.x with 16 <= x < 29 omits @creator on <content/> */
+#define WOCKY_QUIRK_OMITS_CONTENT_CREATORS "\x07omits-content-creators"
+/* The Google Webmail client doesn't support some features */
+#define WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT "\x07google-webmail-client"
+/* The Android GTalk client needs a quirk for component names */
+#define WOCKY_QUIRK_ANDROID_GTALK_CLIENT "\x07android-gtalk-client"
+
+/* Google's extension for retrieving STUN and relay information from the
+ * server. */
+#define WOCKY_XMPP_NS_GOOGLE_JINGLE_INFO   "google:jingleinfo"
 
 /* legacy namespaces */
 #define WOCKY_JABBER_NS_AUTH \
