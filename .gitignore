@@ -75,6 +75,7 @@ m4/lt~obsolete.m4
 wocky/*-signals-marshal.*
 wocky/*-enumtypes.*
 wocky/wocky-uninstalled.pc
+wocky/wocky.pc
 
 tests/sasl-test.db
 tests/test-report.xml

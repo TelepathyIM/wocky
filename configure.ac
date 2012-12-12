@@ -243,6 +243,7 @@ GTK_DOC_CHECK([1.17],[--flavour no-tmpl])
 AC_OUTPUT( Makefile            \
            wocky/Makefile      \
            wocky/wocky-uninstalled.pc \
+           wocky/wocky.pc \
            m4/Makefile         \
            tools/Makefile      \
            examples/Makefile   \

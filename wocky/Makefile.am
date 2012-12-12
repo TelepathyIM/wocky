@@ -178,6 +178,11 @@ libwocky_la_SOURCES = $(handwritten_sources) $(built_sources) \
 if INSTALL_HEADERS
   libwocky_la_HEADERS = $(handwritten_headers) $(built_headers)
   libwocky_ladir = $(HEADER_DIR)/wocky
+
+if ENABLE_SHARED_SUFFIX
+  pkgconfigdir = ${libdir}/pkgconfig
+  pkgconfig_DATA = wocky.pc
+endif
 endif
 
 # Coding style checks
