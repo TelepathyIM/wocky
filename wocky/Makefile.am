@@ -246,6 +246,7 @@ wocky-signals-marshal.list: $(handwritten_sources) Makefile.am
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) \
             @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @SQLITE_CFLAGS@ @TLS_CFLAGS@ \
             @LIBIPHB_CFLAGS@ \
+            @SOUP_CFLAGS@ \
             -DG_LOG_DOMAIN=\"wocky\" \
             -DWOCKY_COMPILATION
 
@@ -257,6 +258,7 @@ libwocky_la_LIBADD = \
   @SQLITE_LIBS@ \
   @TLS_LIBS@ \
   @LIBIPHB_LIBS@ \
+  @SOUP_LIBS@ \
   $(NULL)
 
 # rules for making the glib enum objects

@@ -215,6 +215,19 @@ PKG_CHECK_MODULES(LIBIPHB, [libiphb >= 0.61.31],
 AC_SUBST(LIBIPHB_CFLAGS)
 AC_SUBST(LIBIPHB_LIBS)
 
+AC_ARG_ENABLE(google-relay,
+  AC_HELP_STRING([--disable-google-relay],
+                 [disable Google Jingle relay support]),
+    [enable_google_relay=$enableval], [enable_google_relay=yes])
+
+if test x$enable_google_relay = xyes; then
+  AC_DEFINE(ENABLE_GOOGLE_RELAY, [], [Enable Google Jingle relay support])
+
+  dnl Check for libsoup
+  PKG_CHECK_MODULES(SOUP, libsoup-2.4)
+fi
+AM_CONDITIONAL([ENABLE_GOOGLE_RELAY], [test "x$enable_google_relay" = xyes])
+
 AC_ARG_ENABLE(coverage, AC_HELP_STRING([--enable-coverage],
       [compile with coverage profiling instrumentation (gcc only)]),
     [
@@ -267,4 +280,5 @@ Configure summary:
         SASL2 Tests..........: ${HAVE_LIBSASL2}
         gtk-doc documentation: ${enable_gtk_doc}
         libiphb integration..: ${have_iphb}
+        Google relay support.: ${enable_google_relay}
 "
