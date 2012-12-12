@@ -31,7 +31,7 @@
 
 #include <gio/gio.h>
 
-#include "wocky-tls-enumtypes.h"
+#include "wocky-enumtypes.h"
 
 #define WOCKY_TYPE_TLS_CONNECTION (wocky_tls_connection_get_type ())
 #define WOCKY_TYPE_TLS_SESSION    (wocky_tls_session_get_type ())

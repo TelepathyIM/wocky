@@ -26,7 +26,7 @@
 
 #include <glib-object.h>
 
-#include "wocky-muc-enumtypes.h"
+#include "wocky-enumtypes.h"
 #include "wocky-namespaces.h"
 #include "wocky-porter.h"
 

@@ -27,7 +27,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "wocky-xmpp-error-enumtypes.h"
+#include "wocky-enumtypes.h"
 #include "wocky-node.h"
 
 /**

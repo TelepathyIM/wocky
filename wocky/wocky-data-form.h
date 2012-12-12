@@ -26,7 +26,7 @@
 
 #include <glib-object.h>
 
-#include "wocky-data-form-enumtypes.h"
+#include "wocky-enumtypes.h"
 #include "wocky-node.h"
 
 G_BEGIN_DECLS

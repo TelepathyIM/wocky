@@ -9,7 +9,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 #include "wocky-auth-handler.h"
-#include "wocky-auth-registry-enumtypes.h"
+#include "wocky-enumtypes.h"
 
 G_BEGIN_DECLS
 

@@ -13,30 +13,26 @@ endif
 
 EXTRA_DIST =
 
-built_headers = \
-  wocky-auth-registry-enumtypes.h \
-  wocky-connector-enumtypes.h \
-  wocky-data-form-enumtypes.h \
-  wocky-muc-enumtypes.h \
-  wocky-pubsub-node-enumtypes.h \
-  wocky-pubsub-service-enumtypes.h \
+enumtype_sources = \
+  wocky-auth-registry.h \
+  wocky-connector.h \
+  wocky-data-form.h \
+  wocky-muc.h \
+  wocky-pubsub-node.h \
+  wocky-pubsub-service.h \
   wocky-signals-marshal.h \
-  wocky-tls-enumtypes.h \
-  wocky-xmpp-error-enumtypes.h \
-  wocky-xmpp-reader-enumtypes.h
+  wocky-tls.h \
+  wocky-xmpp-error.h \
+  wocky-xmpp-reader.h
+
+built_headers = \
+  wocky-enumtypes.h \
+  wocky-signals-marshal.h
 
 built_sources = \
-  wocky-auth-registry-enumtypes.c \
-  wocky-connector-enumtypes.c \
-  wocky-data-form-enumtypes.c \
-  wocky-muc-enumtypes.c \
-  wocky-pubsub-node-enumtypes.c \
-  wocky-pubsub-service-enumtypes.c \
+  wocky-enumtypes.c \
   wocky-signals-marshal.c \
-  wocky-signals-marshal.list \
-  wocky-tls-enumtypes.c \
-  wocky-xmpp-error-enumtypes.c \
-  wocky-xmpp-reader-enumtypes.c
+  wocky-signals-marshal.list
 
 BUILT_SOURCES = $(built_headers) $(built_sources)
 
@@ -236,28 +232,23 @@ libwocky_la_LIBADD = \
   $(NULL)
 
 # rules for making the glib enum objects
-# The shell variable $long is something like WOCKY_XMPP_ERROR for
-# wocky-xmpp-error-enumtypes.h, and $short is WOCKY.
-$(filter %-enumtypes.h,$(built_headers)): %-enumtypes.h: %.h Makefile.in
-	$(AM_V_GEN)set -e; \
-	long=`echo $(notdir $*) | tr [:lower:]- [:upper:]_`; \
-	short=$${long%%_*}; \
-	guard="__$${long}_ENUM_TYPES_H__"; \
-	glib-mkenums \
-	--fhead "#ifndef $${guard}\n#define $${guard}\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
-	--fprod "/* enumerations from \"@filename@\" */\n" \
-	--vhead "GType @enum_name@_get_type (void);\n#define $${short}_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n"         \
-	--ftail "G_END_DECLS\n\n#endif" \
-	$< > $@
-
-$(filter %-enumtypes.c,$(built_sources)): %-enumtypes.c: %.h Makefile.in
+wocky-enumtypes.h: $(enumtype_sources) Makefile.am
 	$(AM_V_GEN)glib-mkenums \
-	--fhead "#include <$*.h>\n#include <$*-enumtypes.h>" \
-	--fprod "\n/* enumerations from \"@filename@\" */" \
+	--fhead "#ifndef __WOCKY_ENUM_TYPES_H__\n#define __WOCKY_ENUM_TYPES_H__\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
+	--fprod "/* enumerations from \"@filename@\" */\n" \
+	--vhead "GType @enum_name@_get_type (void);\n#define WOCKY_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n"         \
+	--ftail "G_END_DECLS\n\n#endif /* __WOCKY_ENUM_TYPES_H__ */" \
+	$(enumtype_sources) > $@
+
+wocky-enumtypes.c: $(enumtype_sources) Makefile.am
+	$(AM_V_GEN)glib-mkenums \
+	--fhead "#include \"config.h\"\n" \
+	--fhead "#include <$*.h>" \
+	--fprod "\n/* enumerations from \"@filename@\" */\n#include \"@filename@\"" \
 	--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {"     \
 	--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
 	--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (\"@EnumName@\", values);\n  }\n  return etype;\n}\n" \
-	$< > $@
+	$(enumtype_sources) > $@
 
 Android.mk: Makefile.am $(built_sources) $(built_headers)
 	androgenizer -:PROJECT wocky -:SHARED wocky -:TAGS eng debug \

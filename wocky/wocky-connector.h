@@ -26,7 +26,7 @@
 
 #include <glib-object.h>
 
-#include "wocky-connector-enumtypes.h"
+#include "wocky-enumtypes.h"
 #include "wocky-sasl-auth.h"
 #include "wocky-xmpp-connection.h"
 #include "wocky-stanza.h"
