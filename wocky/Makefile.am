@@ -63,6 +63,7 @@ handwritten_headers = \
   jingle-transport-iceudp.h \
   jingle-transport-iface.h \
   jingle-transport-rawudp.h \
+  jingle-types.h \
   wocky.h \
   wocky-auth-handler.h \
   wocky-auth-registry.h \
