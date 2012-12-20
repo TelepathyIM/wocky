@@ -84,7 +84,7 @@ WockyJingleSession *wocky_jingle_factory_create_session (
 WockyJingleInfo *wocky_jingle_factory_get_jingle_info (
     WockyJingleFactory *fac);
 
-G_END_DECLS;
+G_END_DECLS
 
 #endif /* __JINGLE_FACTORY_H__ */
 
