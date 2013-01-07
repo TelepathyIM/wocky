@@ -1955,8 +1955,6 @@ try_session_initiate_or_accept (WockyJingleSession *sess)
           return;
         }
 
-      g_signal_emit (sess, signals[ABOUT_TO_INITIATE], 0);
-
       action = WOCKY_JINGLE_ACTION_SESSION_INITIATE;
       new_state = WOCKY_JINGLE_STATE_PENDING_INITIATE_SENT;
       handler = _on_initiate_reply;
@@ -1989,6 +1987,9 @@ try_session_initiate_or_accept (WockyJingleSession *sess)
       DEBUG ("Contents not yet ready, not initiating/accepting now..");
       return;
     }
+
+  if (action == WOCKY_JINGLE_ACTION_SESSION_INITIATE)
+    g_signal_emit (sess, signals[ABOUT_TO_INITIATE], 0);
 
   msg = wocky_jingle_session_new_message (sess, action, &sess_node);
 
