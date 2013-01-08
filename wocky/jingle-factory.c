@@ -524,6 +524,24 @@ create_session (WockyJingleFactory *fac,
   return sess;
 }
 
+
+/**
+ * wocky_jingle_factory_create_session:
+ * @fac: the factory
+ * @jid: the full JID (typically including a resource) to establish a session
+ *  with
+ * @dialect: the variant of the Jingle protocol to use
+ * @local_hold: whether the call should start out on hold; if in doubt, pass %FALSE
+ *
+ * Creates a new #WockyJingleSession to the specified contact. Note that the
+ * session will not be initiated until at least one content is added with
+ * wocky_jingle_session_add_content(), and those contents are ready.
+ *
+ * You would typically determine which @dialect to use from the peer's
+ * capabilities.
+ *
+ * Returns: (transfer none): the new session, which will not be %NULL
+ */
 WockyJingleSession *
 wocky_jingle_factory_create_session (WockyJingleFactory *fac,
     const gchar *jid,

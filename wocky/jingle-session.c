@@ -2226,6 +2226,28 @@ wocky_jingle_session_remove_content (WockyJingleSession *sess,
     }
 }
 
+
+/**
+ * wocky_jingle_session_add_content:
+ * @sess: the session
+ * @mtype: what kind of media will be exchanged on the content
+ * @senders: which directions media should initially flow in.
+ * @name: (allow-none): a descriptive name to use for the content; this is
+ *  typically not shown to users
+ * @content_ns: the namespace to use for the content's description
+ * @transport_ns: the namespace of the media transport to use for the call
+ *
+ * Adds a content to the session. Once it has its codecs and transport
+ * candidates filled in, it will be signalled to the peer (either as part of
+ * the session-initiate, if it has not been sent yet, or as a content-add if
+ * @sess has already been initiated).
+ *
+ * Legal values for @content_ns and @transport_ns depend on the Jingle dialect
+ * in use for this session (and in some cases on @mtype); sensible values
+ * depend on the peer's capabilities.
+ *
+ * Returns: (transfer none): the new content, which is guaranteed not to be %NULL.
+ */
 WockyJingleContent *
 wocky_jingle_session_add_content (WockyJingleSession *sess,
     WockyJingleMediaType mtype,

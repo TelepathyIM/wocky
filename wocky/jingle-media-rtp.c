@@ -1403,6 +1403,7 @@ wocky_jingle_feedback_message_compare (const WockyJingleFeedbackMessage *fb1,
 
 /**
  * wocky_jingle_media_description_simplify:
+ * @md: a description to simplify
  *
  * Removes duplicated Feedback message and put them in the global structure
  *
@@ -1411,7 +1412,6 @@ wocky_jingle_feedback_message_compare (const WockyJingleFeedbackMessage *fb1,
  * put the in the list in the description and remove them from the childs.
  * This limits the amount of duplication in the resulting XML.
  */
-
 void
 wocky_jingle_media_description_simplify (WockyJingleMediaDescription *md)
 {
