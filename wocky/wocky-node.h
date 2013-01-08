@@ -38,6 +38,7 @@ G_BEGIN_DECLS
  * @WOCKY_NODE_ATTRIBUTE: A node attribute
  * @WOCKY_NODE_XMLNS: A node XML namespace
  * @WOCKY_NODE_ASSIGN_TO: a #WockyNode to assign
+ * @WOCKY_NODE_LANGUAGE: <literal>xml:lang</literal> of a node
  *
  * Tags for building a stanza using wocky_stanza_build() or
  * wocky_node_add_build().
