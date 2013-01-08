@@ -29,12 +29,6 @@
 
 G_BEGIN_DECLS
 
-typedef enum
-{
-  MODE_GOOGLE,
-  MODE_JINGLE
-} GabbleMediaSessionMode;
-
 typedef struct _WockyJingleSessionClass WockyJingleSessionClass;
 
 GType wocky_jingle_session_get_type (void);
