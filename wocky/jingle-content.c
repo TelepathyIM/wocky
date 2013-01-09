@@ -895,7 +895,16 @@ wocky_jingle_content_parse_transport_info (WockyJingleContent *self,
   wocky_jingle_transport_iface_parse_candidates (priv->transport, trans_node, error);
 }
 
-/* Takes in a list of slice-allocated WockyJingleCandidate structs */
+
+/**
+ * wocky_jingle_content_add_candidates:
+ * @self: the content
+ * @li: (element-type WockyJingleCandidate) (transfer full): a list of
+ *  #WockyJingleCandidate structs, allocated with wocky_jingle_candidate_new().
+ *
+ * Adds the candidates listed in @li to the content, communicating them to the
+ * peer if appropriate.
+ */
 void
 wocky_jingle_content_add_candidates (WockyJingleContent *self, GList *li)
 {

@@ -94,9 +94,32 @@ wocky_jingle_media_rtp_init (WockyJingleMediaRtp *obj)
   priv->dispose_has_run = FALSE;
 }
 
+
+/**
+ * jingle_media_rtp_codec_new:
+ * @id: a codec ID, as specified in tables 4 and 5 of RFC 3551.
+ * @name: (allow-none): the codec's name. This is optional if @id is one of the
+ *  statically-defined codec identifiers, and required if @id is in the range
+ *  96–127. (This is not enforced by this library.)
+ * @clockrate: the clock rate for this codec, or 0 to not specify a clock rate.
+ * @channels: the number of channels, or 0 to leave this unspecified (which the
+ *  peer should interpret as the default value, 1).
+ * @params: (element-type utf8 utf8) (transfer none) (allow-none): parameters
+ *  for this codec. This is referenced, not copied, so you should avoid
+ *  modifying this parameter after calling this function.
+ *
+ * Creates a new structure describing a codec, suitable for including in a
+ * #WockyJingleMediaDescription.
+ *
+ * Returns: (transfer full): the codec description.
+ */
 WockyJingleCodec *
-jingle_media_rtp_codec_new (guint id, const gchar *name,
-    guint clockrate, guint channels, GHashTable *params)
+jingle_media_rtp_codec_new (
+    guint id,
+    const gchar *name,
+    guint clockrate,
+    guint channels,
+    GHashTable *params)
 {
   WockyJingleCodec *p = g_slice_new0 (WockyJingleCodec);
 
