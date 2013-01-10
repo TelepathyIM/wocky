@@ -2078,6 +2078,20 @@ set_state (WockyJingleSession *sess,
         termination_reason, text);
 }
 
+
+/**
+ * wocky_jingle_session_accept:
+ * @sess: the session.
+ *
+ * For incoming calls, accepts the call. For outgoing calls, indicates that the
+ * initial contents for the call have been created and the offer can be sent to
+ * the peer.
+ *
+ * The acceptance or offer will only be signalled to the peer once all contents
+ * are ready (as returned by wocky_jingle_content_is_ready()). For an RTP
+ * session with #WockyJingleMediaRtp contents, this translates to a media
+ * description and transport candidates having been provided to all contents.
+ */
 void
 wocky_jingle_session_accept (WockyJingleSession *sess)
 {
