@@ -1218,7 +1218,8 @@ out:
   return ret;
 }
 
-/*
+/**
+ * jingle_media_rtp_set_local_media_description:
  * @self: a content in an RTP session
  * @md: (transfer full): new media description for this content
  * @ready: whether the codecs can regarded as ready to sent from now on
