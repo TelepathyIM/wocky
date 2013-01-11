@@ -494,6 +494,18 @@ wocky_jingle_session_class_init (WockyJingleSessionClass *cls)
         0, NULL, NULL, g_cclosure_marshal_VOID__OBJECT,
         G_TYPE_NONE, 1, G_TYPE_OBJECT);
 
+  /**
+   * WockyJingleSession::terminated:
+   * @session: the session
+   * @locally_terminated: %TRUE if the session ended due to a call to
+   *  wocky_jingle_session_terminate(); %FALSE if the peer ended the session.
+   * @reason: a #WockyJingleReason describing why the session terminated
+   * @text: a possibly-%NULL human-readable string describing why the session
+   *  terminated
+   *
+   * Emitted when the session ends, just after #WockyJingleSession:state moves
+   * to #WOCKY_JINGLE_STATE_ENDED.
+   */
   signals[TERMINATED] = g_signal_new ("terminated",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
         0, NULL, NULL, _wocky_signals_marshal_VOID__BOOLEAN_UINT_STRING,
@@ -2113,11 +2125,31 @@ wocky_jingle_session_get_reason_name (WockyJingleReason reason)
   return enum_value->value_nick;
 }
 
+
+/**
+ * wocky_jingle_session_terminate:
+ * @sess: the session
+ * @reason: the reason the session should be terminated
+ * @text: (allow-none): human-readable information about why the session
+ *  terminated
+ * @error: Unused, because this function never fails.
+ *
+ * Ends a session.
+ *
+ * If called for an outgoing session which has not yet been signalled to the
+ * peer (perhaps because wocky_jingle_session_accept() has not been called, or
+ * codecs or candidates have not been provided), the session will quietly
+ * terminate without the peer hearing anything about it.
+ *
+ * If called for an already-terminated session, this is a no-op.
+ *
+ * Returns: %TRUE.
+ */
 gboolean
 wocky_jingle_session_terminate (WockyJingleSession *sess,
                                  WockyJingleReason reason,
                                  const gchar *text,
-                                 GError **error)
+                                 GError **error G_GNUC_UNUSED)
 {
   WockyJingleSessionPrivate *priv = sess->priv;
   const gchar *reason_elt;

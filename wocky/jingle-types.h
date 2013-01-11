@@ -45,14 +45,34 @@ typedef enum { /*< skip >*/
 #define WOCKY_JINGLE_DIALECT_IS_GOOGLE(d)\
     ((d == WOCKY_JINGLE_DIALECT_GTALK3) || (d == WOCKY_JINGLE_DIALECT_GTALK4))
 
+/**
+ * WockyJingleState:
+ * @WOCKY_JINGLE_STATE_PENDING_CREATED: on outgoing sessions, no offer has been
+ *  sent to the peer yet.
+ * @WOCKY_JINGLE_STATE_PENDING_INITIATE_SENT: on outgoing sessions, we have sent
+ *  the session-initiate and are awaiting the peer's acknowledgement.
+ * @WOCKY_JINGLE_STATE_PENDING_INITIATED: on outgoing sessions, the peer has
+ *  received our session-initiate and we're waiting for them to accept; on
+ *  incoming sessions, the peer is waiting for us to accept.
+ * @WOCKY_JINGLE_STATE_PENDING_ACCEPT_SENT: on incoming sessions, we have sent
+ *  session-accept and are waiting for the peer to acknowledge it.
+ * @WOCKY_JINGLE_STATE_ACTIVE: the session is active.
+ * @WOCKY_JINGLE_STATE_ENDED: the session has ended. The
+ *  #WockyJingleSession::terminated signal describes how the session ended.
+ *
+ * Possible states of a #WockyJingleSession.
+ */
 typedef enum { /*< skip >*/
+  /*< private >*/
   WOCKY_JINGLE_STATE_INVALID = -1,
+  /*< public >*/
   WOCKY_JINGLE_STATE_PENDING_CREATED = 0,
   WOCKY_JINGLE_STATE_PENDING_INITIATE_SENT,
   WOCKY_JINGLE_STATE_PENDING_INITIATED,
   WOCKY_JINGLE_STATE_PENDING_ACCEPT_SENT,
   WOCKY_JINGLE_STATE_ACTIVE,
   WOCKY_JINGLE_STATE_ENDED,
+  /*< private >*/
   WOCKY_N_JINGLE_STATES
 } WockyJingleState;
 
