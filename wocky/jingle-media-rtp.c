@@ -1329,6 +1329,28 @@ wocky_jingle_media_rtp_get_remote_media_description (
   return priv->remote_media_description;
 }
 
+
+/**
+ * WockyJingleMediaDescription:
+ * @codecs: a list of #WockyJingleCodec<!-- -->s, allocated with
+ *  jingle_media_rtp_codec_new()
+ * @hdrexts: a list of #WockyJingleRtpHeaderExtension<!-- -->s, allocated with
+ *  wocky_jingle_rtp_header_extension_new()
+ * @trr_int: number of milliseconds between regular RTCP reports
+ * @feedback_msgs: a list of #WockyJingleFeedbackMessage<!-- -->s, allocated
+ *  with wocky_jingle_feedback_message_new()
+ *
+ * Media description for a #WockyJingleMediaRtp content.
+ */
+
+
+/**
+ * wocky_jingle_media_description_new:
+ *
+ * Allocates a new media description. You should fill in all the fields yourself.
+ *
+ * Returns: a new, empty, media description
+ */
 WockyJingleMediaDescription *
 wocky_jingle_media_description_new (void)
 {

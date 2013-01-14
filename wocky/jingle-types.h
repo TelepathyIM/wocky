@@ -119,6 +119,15 @@ typedef enum { /*< skip >*/
   WOCKY_JINGLE_CANDIDATE_TYPE_RELAY
 } WockyJingleCandidateType;
 
+/**
+ * WockyJingleReason:
+ * @WOCKY_JINGLE_REASON_UNKNOWN: no known reason
+ *
+ * The reason for a Jingle action occurring—specifically, the reason for
+ * terminating a call. See <ulink
+ * url="http://xmpp.org/extensions/xep-0166.html#def-reason">XEP-0166 Jingle
+ * §7.4</ulink> for definitions of the codes.
+ */
 typedef enum
 {
   WOCKY_JINGLE_REASON_UNKNOWN,
