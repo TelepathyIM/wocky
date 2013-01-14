@@ -467,7 +467,6 @@ group_and_transmit_candidates (WockyJingleTransportGoogle *transport,
 {
   WockyJingleTransportGooglePrivate *priv = transport->priv;
   GList *all_candidates = NULL;
-  WockyJingleMediaType media;
   GList *li;
   GList *cands;
 
@@ -492,8 +491,6 @@ group_and_transmit_candidates (WockyJingleTransportGoogle *transport,
 
       cands->data = g_list_prepend (cands->data, c);
     }
-
-  g_object_get (priv->content, "media-type", &media, NULL);
 
   for (cands = all_candidates; cands != NULL;  cands = g_list_next (cands))
     {
