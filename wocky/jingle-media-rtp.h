@@ -120,5 +120,7 @@ WockyJingleFeedbackMessage *wocky_jingle_feedback_message_new (const gchar *type
 void wocky_jingle_feedback_message_free (WockyJingleFeedbackMessage *fb);
 void wocky_jingle_media_description_simplify (WockyJingleMediaDescription *md);
 
+G_END_DECLS
+
 #endif /* __JINGLE_MEDIA_RTP_H__ */
 

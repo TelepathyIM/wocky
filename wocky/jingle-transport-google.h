@@ -64,5 +64,7 @@ gboolean jingle_transport_google_set_component_name (
     WockyJingleTransportGoogle *transport,
     const gchar *name, guint component_id);
 
+G_END_DECLS
+
 #endif /* __JINGLE_TRANSPORT_GOOGLE_H__ */
 

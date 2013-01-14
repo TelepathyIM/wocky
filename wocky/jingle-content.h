@@ -159,5 +159,7 @@ void wocky_jingle_content_request_receiving (WockyJingleContent *self,
 
 void wocky_jingle_content_send_complete (WockyJingleContent *self);
 
+G_END_DECLS
+
 #endif /* __JINGLE_CONTENT_H__ */
 

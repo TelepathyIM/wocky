@@ -60,5 +60,7 @@ struct _WockyJingleTransportIceUdp {
 
 void jingle_transport_iceudp_register (WockyJingleFactory *factory);
 
+G_END_DECLS
+
 #endif /* __JINGLE_TRANSPORT_ICEUDP_H__ */
 
