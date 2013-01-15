@@ -340,6 +340,13 @@ wocky_jingle_content_class_init (WockyJingleContentClass *cls)
     g_cclosure_marshal_VOID__VOID,
     G_TYPE_NONE, 0);
 
+  /**
+   * WockyJingleContent::new-candidates:
+   * @content: the content
+   * @candidates: (type GList) (element-type WockyJingleCandidate): a #GList of new candidates
+   *
+   * Emitted when new candidates are received from the peer.
+   */
   signals[NEW_CANDIDATES] = g_signal_new (
     "new-candidates",
     G_TYPE_FROM_CLASS (cls),

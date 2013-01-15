@@ -336,6 +336,13 @@ wocky_jingle_media_rtp_class_init (WockyJingleMediaRtpClass *cls)
 
   /* signal definitions */
 
+  /**
+   * WockyJingleMediaRtp::remote-media-description:
+   * @content: the RTP content
+   * @md: a #WockyJingleMediaDescription
+   *
+   * Emitted when the remote media description is received or subsequently updated.
+   */
   signals[REMOTE_MEDIA_DESCRIPTION] = g_signal_new ("remote-media-description",
         G_TYPE_FROM_CLASS (cls), G_SIGNAL_RUN_LAST,
         0, NULL, NULL, g_cclosure_marshal_VOID__POINTER,
@@ -1320,6 +1327,18 @@ jingle_media_rtp_register (WockyJingleFactory *factory)
  * the signal is emitted immediately upon JingleContent creation,
  * and parsing, which is before a corresponding MediaStream is
  * created. */
+
+/**
+ * wocky_jingle_media_rtp_get_remote_media_description:
+ * @self : the RTP content
+ *
+ * Gets the current remote media description, if known. The
+ * #WockyJingleMediaRtp:remote-media-description signal is emitted when this
+ * value changes.
+ *
+ * Returns: (transfer none): the current remote media description, which may be
+ *  %NULL for outgoing calls until it is first received.
+ */
 WockyJingleMediaDescription *
 wocky_jingle_media_rtp_get_remote_media_description (
     WockyJingleMediaRtp *self)
@@ -1375,6 +1394,15 @@ wocky_jingle_media_description_free (WockyJingleMediaDescription *md)
   g_slice_free (WockyJingleMediaDescription, md);
 }
 
+
+/**
+ * wocky_jingle_media_description_copy:
+ * @md: a media description
+ *
+ * Performs a deep copy of a media description.
+ *
+ * Returns: (transfer full): a deep copy of @md
+ */
 WockyJingleMediaDescription *
 wocky_jingle_media_description_copy (WockyJingleMediaDescription *md)
 {
