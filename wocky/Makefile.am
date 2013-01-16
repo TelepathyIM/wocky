@@ -14,11 +14,11 @@ endif
 EXTRA_DIST =
 
 enumtype_sources = \
-  jingle-types.h \
-  jingle-info-internal.h \
   wocky-auth-registry.h \
   wocky-connector.h \
   wocky-data-form.h \
+  wocky-jingle-info-internal.h \
+  wocky-jingle-types.h \
   wocky-muc.h \
   wocky-pubsub-node.h \
   wocky-pubsub-service.h \
@@ -52,18 +52,6 @@ PROXY_SRC = \
   wocky-http-proxy.c
 
 handwritten_headers = \
-  google-relay.h \
-  jingle-content.h \
-  jingle-factory.h \
-  jingle-info-internal.h \
-  jingle-info.h \
-  jingle-media-rtp.h \
-  jingle-session.h \
-  jingle-transport-google.h \
-  jingle-transport-iceudp.h \
-  jingle-transport-iface.h \
-  jingle-transport-rawudp.h \
-  jingle-types.h \
   wocky.h \
   wocky-auth-handler.h \
   wocky-auth-registry.h \
@@ -78,9 +66,21 @@ handwritten_headers = \
   wocky-data-form.h \
   wocky-debug.h \
   wocky-disco-identity.h \
+  wocky-google-relay.h \
   wocky-jabber-auth.h \
   wocky-jabber-auth-digest.h \
   wocky-jabber-auth-password.h \
+  wocky-jingle-content.h \
+  wocky-jingle-factory.h \
+  wocky-jingle-info-internal.h \
+  wocky-jingle-info.h \
+  wocky-jingle-media-rtp.h \
+  wocky-jingle-session.h \
+  wocky-jingle-transport-google.h \
+  wocky-jingle-transport-iceudp.h \
+  wocky-jingle-transport-iface.h \
+  wocky-jingle-transport-rawudp.h \
+  wocky-jingle-types.h \
   wocky-ll-connector.h \
   wocky-ll-contact.h \
   wocky-loopback-stream.h \
@@ -118,16 +118,6 @@ handwritten_headers = \
   wocky-xmpp-writer.h
 
 handwritten_sources = \
-  google-relay.c \
-  jingle-content.c \
-  jingle-factory.c \
-  jingle-info.c \
-  jingle-media-rtp.c \
-  jingle-session.c \
-  jingle-transport-google.c \
-  jingle-transport-iceudp.c \
-  jingle-transport-iface.c \
-  jingle-transport-rawudp.c \
   wocky.c \
   wocky-auth-handler.c \
   wocky-auth-registry.c \
@@ -145,9 +135,19 @@ handwritten_sources = \
   wocky-disco-identity.c \
   wocky-heartbeat-source.c \
   wocky-heartbeat-source.h \
+  wocky-google-relay.c \
   wocky-jabber-auth.c \
   wocky-jabber-auth-digest.c \
   wocky-jabber-auth-password.c \
+  wocky-jingle-content.c \
+  wocky-jingle-factory.c \
+  wocky-jingle-info.c \
+  wocky-jingle-media-rtp.c \
+  wocky-jingle-session.c \
+  wocky-jingle-transport-google.c \
+  wocky-jingle-transport-iceudp.c \
+  wocky-jingle-transport-iface.c \
+  wocky-jingle-transport-rawudp.c \
   wocky-ll-connector.c \
   wocky-ll-contact.c \
   wocky-loopback-stream.c \

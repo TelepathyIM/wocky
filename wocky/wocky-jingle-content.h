@@ -22,9 +22,9 @@
 
 #include <glib-object.h>
 
-#include "jingle-factory.h"
-#include "jingle-transport-iface.h"
-#include "jingle-types.h"
+#include "wocky-jingle-factory.h"
+#include "wocky-jingle-transport-iface.h"
+#include "wocky-jingle-types.h"
 
 G_BEGIN_DECLS
 

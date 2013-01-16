@@ -23,9 +23,9 @@
 #include <glib-object.h>
 #include <wocky/wocky.h>
 
-#include "jingle-content.h"
-#include "jingle-factory.h"
-#include "jingle-types.h"
+#include "wocky-jingle-content.h"
+#include "wocky-jingle-factory.h"
+#include "wocky-jingle-types.h"
 
 G_BEGIN_DECLS
 

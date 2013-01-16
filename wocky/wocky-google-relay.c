@@ -19,7 +19,7 @@
  */
 
 #include "config.h"
-#include "google-relay.h"
+#include "wocky-google-relay.h"
 
 #include <string.h>
 

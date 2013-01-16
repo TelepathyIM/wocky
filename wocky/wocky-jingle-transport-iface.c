@@ -18,12 +18,12 @@
  */
 
 #include "config.h"
-#include "jingle-transport-iface.h"
+#include "wocky-jingle-transport-iface.h"
 
 #include <glib.h>
 
-#include "jingle-content.h"
-#include "jingle-session.h"
+#include "wocky-jingle-content.h"
+#include "wocky-jingle-session.h"
 
 WockyJingleTransportIface *
 wocky_jingle_transport_iface_new (GType type,

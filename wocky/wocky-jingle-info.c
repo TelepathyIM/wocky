@@ -19,14 +19,14 @@
 
 #include "config.h"
 
-#include "jingle-info.h"
-#include "jingle-info-internal.h"
+#include "wocky-jingle-info.h"
+#include "wocky-jingle-info-internal.h"
 
 #include <stdlib.h>
 
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 #include "wocky-debug-internal.h"
-#include "google-relay.h"
+#include "wocky-google-relay.h"
 #include "wocky-enumtypes.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"

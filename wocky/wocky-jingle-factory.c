@@ -19,7 +19,7 @@
  */
 
 #include "config.h"
-#include "jingle-factory.h"
+#include "wocky-jingle-factory.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,14 +31,14 @@
 
 #include "wocky-debug-internal.h"
 #include "wocky-signals-marshal.h"
-#include "jingle-media-rtp.h"
-#include "jingle-session.h"
-#include "jingle-transport-google.h"
-#include "jingle-transport-rawudp.h"
-#include "jingle-transport-iceudp.h"
+#include "wocky-jingle-media-rtp.h"
+#include "wocky-jingle-session.h"
+#include "wocky-jingle-transport-google.h"
+#include "wocky-jingle-transport-rawudp.h"
+#include "wocky-jingle-transport-iceudp.h"
 #include "wocky-namespaces.h"
 
-#include "google-relay.h"
+#include "wocky-google-relay.h"
 
 G_DEFINE_TYPE(WockyJingleFactory, wocky_jingle_factory, G_TYPE_OBJECT);
 

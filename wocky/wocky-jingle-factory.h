@@ -22,8 +22,8 @@
 
 #include <glib-object.h>
 
-#include "jingle-info.h"
-#include "jingle-types.h"
+#include "wocky-jingle-info.h"
+#include "wocky-jingle-types.h"
 
 G_BEGIN_DECLS
 

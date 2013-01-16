@@ -18,7 +18,7 @@
  */
 
 #include "config.h"
-#include "jingle-content.h"
+#include "wocky-jingle-content.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,11 +28,11 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
 #include "wocky-debug-internal.h"
-#include "jingle-factory.h"
-#include "jingle-session.h"
-#include "jingle-transport-iface.h"
-#include "jingle-transport-google.h"
-#include "jingle-media-rtp.h"
+#include "wocky-jingle-factory.h"
+#include "wocky-jingle-session.h"
+#include "wocky-jingle-transport-iface.h"
+#include "wocky-jingle-transport-google.h"
+#include "wocky-jingle-media-rtp.h"
 #include "wocky-namespaces.h"
 #include "wocky-signals-marshal.h"
 

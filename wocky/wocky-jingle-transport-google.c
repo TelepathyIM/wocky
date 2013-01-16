@@ -19,7 +19,7 @@
  */
 
 #include "config.h"
-#include "jingle-transport-google.h"
+#include "wocky-jingle-transport-google.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,9 +29,9 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
 #include "wocky-debug-internal.h"
-#include "jingle-content.h"
-#include "jingle-factory.h"
-#include "jingle-session.h"
+#include "wocky-jingle-content.h"
+#include "wocky-jingle-factory.h"
+#include "wocky-jingle-session.h"
 #include "wocky-namespaces.h"
 
 static void

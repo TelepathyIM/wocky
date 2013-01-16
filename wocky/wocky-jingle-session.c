@@ -18,7 +18,7 @@
  */
 
 #include "config.h"
-#include "jingle-session.h"
+#include "wocky-jingle-session.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,12 +32,12 @@
 #include "wocky-debug-internal.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-enumtypes.h"
-#include "jingle-content.h"
-#include "jingle-factory.h"
+#include "wocky-jingle-content.h"
+#include "wocky-jingle-factory.h"
 /* FIXME: the RTP-specific bits of this file should be separated from the
  *        generic Jingle code.
  */
-#include "jingle-media-rtp.h"
+#include "wocky-jingle-media-rtp.h"
 #include "wocky-namespaces.h"
 
 G_DEFINE_TYPE(WockyJingleSession, wocky_jingle_session, G_TYPE_OBJECT);

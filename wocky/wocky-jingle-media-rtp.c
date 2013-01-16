@@ -23,7 +23,7 @@
  * (libjingle 0.3/0.4). */
 
 #include "config.h"
-#include "jingle-media-rtp.h"
+#include "wocky-jingle-media-rtp.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,11 +33,11 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
 #include "wocky-debug-internal.h"
-#include "jingle-content.h"
-#include "jingle-factory.h"
-#include "jingle-session.h"
+#include "wocky-jingle-content.h"
+#include "wocky-jingle-factory.h"
+#include "wocky-jingle-session.h"
 #include "wocky-namespaces.h"
-#include "jingle-transport-google.h"
+#include "wocky-jingle-transport-google.h"
 
 G_DEFINE_TYPE (WockyJingleMediaRtp,
     wocky_jingle_media_rtp, WOCKY_TYPE_JINGLE_CONTENT);
