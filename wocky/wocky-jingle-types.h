@@ -20,8 +20,8 @@
 # error "Only <wocky/wocky.h> can be included directly."
 #endif
 
-#ifndef GABBLE_JINGLE_ENUMS_H
-#define GABBLE_JINGLE_ENUMS_H
+#ifndef __WOCKY_JINGLE_TYPES_H__
+#define __WOCKY_JINGLE_TYPES_H__
 
 typedef struct _WockyJingleFactory WockyJingleFactory;
 typedef struct _WockyJingleSession WockyJingleSession;
@@ -154,4 +154,4 @@ typedef enum
 } WockyJingleReason;
 
 
-#endif /* GABBLE_JINGLE_ENUMS_H */
+#endif /* __WOCKY_JINGLE_TYPES_H__ */

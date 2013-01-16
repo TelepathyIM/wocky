@@ -1,5 +1,5 @@
 /*
- * gabble-jingle-content.c - Source for WockyJingleContent
+ * wocky-jingle-content.c - Source for WockyJingleContent
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

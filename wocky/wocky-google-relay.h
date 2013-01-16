@@ -22,8 +22,8 @@
 # error "This is an internal header."
 #endif
 
-#ifndef __GABBLE_GOOGLE_RELAY_H__
-#define __GABBLE_GOOGLE_RELAY_H__
+#ifndef __WOCKY_GOOGLE_RELAY_H__
+#define __WOCKY_GOOGLE_RELAY_H__
 
 #include <glib.h>
 
@@ -45,4 +45,4 @@ void wocky_google_relay_resolver_resolve (WockyGoogleRelayResolver *self,
 
 G_END_DECLS
 
-#endif  /* __GABBLE_GOOGLE_RELAY_H__ */
+#endif  /* __WOCKY_GOOGLE_RELAY_H__ */

@@ -608,7 +608,8 @@ parse_rtp_header_extension (WockyNode *node)
 
 /**
  * codec_update_coherent:
- * @old_c: Gabble's old cache of the codec, or %NULL if it hasn't heard of it.
+ * @old_c: this content's old cache of the codec, or %NULL if it hasn't heard
+ *         of it.
  * @new_c: the proposed update, whose id must equal that of @old_c if the
  *         latter is non-NULL.
  * @domain: the error domain to set @e to if necessary

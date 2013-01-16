@@ -1,5 +1,5 @@
 /*
- * gabble-jingle-session.c - Source for WockyJingleSession
+ * wocky-jingle-session.c - Source for WockyJingleSession
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
@@ -854,7 +854,7 @@ create_content (WockyJingleSession *sess, GType content_type,
 
   DEBUG ("session creating new content name %s, type %d", name, type);
 
-  /* FIXME: media-type is introduced by GabbleJingleMediaRTP, not by the
+  /* FIXME: media-type is introduced by WockyJingleMediaRTP, not by the
    * superclass, so this call is unsafe in the general case */
   c = g_object_new (content_type,
                     "session", sess,
