@@ -1,5 +1,5 @@
 /*
- * jingle-media-rtp.c - Source for WockyJingleMediaRtp
+ * wocky-jingle-media-rtp.c - Source for WockyJingleMediaRtp
  *
  * Copyright (C) 2008 Collabora Ltd.
  *

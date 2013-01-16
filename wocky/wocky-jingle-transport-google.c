@@ -1,5 +1,5 @@
 /*
- * jingle-transport-google.c - Source for WockyJingleTransportGoogle
+ * wocky-jingle-transport-google.c - Source for WockyJingleTransportGoogle
  *
  * Copyright (C) 2008 Collabora Ltd.
  *

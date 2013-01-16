@@ -1,5 +1,5 @@
 /*
- * jingle-media-rtp.h - Header for WockyJingleMediaRtp
+ * wocky-jingle-media-rtp.h - Header for WockyJingleMediaRtp
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

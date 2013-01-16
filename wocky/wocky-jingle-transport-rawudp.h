@@ -1,5 +1,5 @@
 /*
- * jingle-transport-rawudp.h - Header for WockyJingleTransportRawUdp
+ * wocky-jingle-transport-rawudp.h - Header for WockyJingleTransportRawUdp
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

@@ -1,5 +1,5 @@
 /*
- * jingle-transport-iceudp.c - Source for WockyJingleTransportIceUdp
+ * wocky-jingle-transport-iceudp.c - Source for WockyJingleTransportIceUdp
  *
  * Copyright (C) 2008 Collabora Ltd.
  *

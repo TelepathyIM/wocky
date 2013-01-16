@@ -1,5 +1,5 @@
 /*
- * jingle-transport-iceudp.h - Header for WockyJingleTransportIceUdp
+ * wocky-jingle-transport-iceudp.h - Header for WockyJingleTransportIceUdp
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

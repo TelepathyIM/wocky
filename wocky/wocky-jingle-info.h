@@ -1,5 +1,5 @@
 /*
- * jingle-info.h - exciting times with Google's jingleinfo extension
+ * wocky-jingle-info.h - exciting times with Google's jingleinfo extension
  * Copyright © 2008–2012 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

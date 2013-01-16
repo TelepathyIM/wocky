@@ -1,5 +1,5 @@
 /*
- * jingle-transport-iface.h - Header for WockyJingleTransportIface
+ * wocky-jingle-transport-iface.h - Header for WockyJingleTransportIface
  * Copyright (C) 2007-2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

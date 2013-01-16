@@ -1,5 +1,5 @@
 /*
- * jingle-factory.c - Support for XEP-0166 (Jingle)
+ * wocky-jingle-factory.c - Support for XEP-0166 (Jingle)
  *
  * Copyright (C) 2006-2008 Collabora Ltd.
  *

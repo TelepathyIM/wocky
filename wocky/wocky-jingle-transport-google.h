@@ -1,5 +1,5 @@
 /*
- * jingle-transport-google.h - Header for WockyJingleTransportGoogle
+ * wocky-jingle-transport-google.h - Header for WockyJingleTransportGoogle
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

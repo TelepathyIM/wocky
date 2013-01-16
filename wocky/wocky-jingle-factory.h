@@ -1,5 +1,5 @@
 /*
- * jingle-factory.h - Header for WockyJingleFactory
+ * wocky-jingle-factory.h - Header for WockyJingleFactory
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

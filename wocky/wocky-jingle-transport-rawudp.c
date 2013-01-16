@@ -1,5 +1,5 @@
 /*
- * jingle-transport-rawudp.c - Source for WockyJingleTransportRawUdp
+ * wocky-jingle-transport-rawudp.c - Source for WockyJingleTransportRawUdp
  *
  * Copyright (C) 2008 Collabora Ltd.
  *

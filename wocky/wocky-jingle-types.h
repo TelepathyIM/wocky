@@ -1,5 +1,5 @@
 /*
- * jingle-types.h - Header for Jingle-related enums and typedefs
+ * wocky-jingle-types.h - Header for Jingle-related enums and typedefs
  * Copyright © 2008–2012 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

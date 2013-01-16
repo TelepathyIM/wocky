@@ -1,5 +1,5 @@
 /*
- * jingle-session.h - Header for WockyJingleSession
+ * wocky-jingle-session.h - Header for WockyJingleSession
  * Copyright (C) 2008 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or

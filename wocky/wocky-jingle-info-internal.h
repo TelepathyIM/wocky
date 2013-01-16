@@ -1,5 +1,5 @@
 /*
- * jingle-info-internal.h - internal types for WockyJingleInfo
+ * wocky-jingle-info-internal.h - internal types for WockyJingleInfo
  * Copyright © 2012 Collabora Ltd.
  *
  * This library is free software; you can redistribute it and/or
