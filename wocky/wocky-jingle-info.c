@@ -30,6 +30,8 @@
 #include "wocky-enumtypes.h"
 #include "wocky-signals-marshal.h"
 #include "wocky-namespaces.h"
+#include "wocky-utils.h"
+#include "wocky-c2s-porter.h"
 
 static gboolean jingle_info_cb (
     WockyPorter *porter,

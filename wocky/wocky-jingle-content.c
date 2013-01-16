@@ -35,6 +35,7 @@
 #include "wocky-jingle-media-rtp.h"
 #include "wocky-namespaces.h"
 #include "wocky-signals-marshal.h"
+#include "wocky-utils.h"
 
 /* signal enum */
 enum

@@ -38,6 +38,7 @@
 #include "wocky-jingle-session.h"
 #include "wocky-namespaces.h"
 #include "wocky-jingle-transport-google.h"
+#include "wocky-utils.h"
 
 G_DEFINE_TYPE (WockyJingleMediaRtp,
     wocky_jingle_media_rtp, WOCKY_TYPE_JINGLE_CONTENT);

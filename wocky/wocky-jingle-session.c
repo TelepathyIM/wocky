@@ -25,8 +25,6 @@
 #include <string.h>
 #include <glib.h>
 
-#include <wocky/wocky.h>
-
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_JINGLE
 
 #include "wocky-debug-internal.h"
@@ -39,6 +37,8 @@
  */
 #include "wocky-jingle-media-rtp.h"
 #include "wocky-namespaces.h"
+#include "wocky-resource-contact.h"
+#include "wocky-utils.h"
 
 G_DEFINE_TYPE(WockyJingleSession, wocky_jingle_session, G_TYPE_OBJECT);
 

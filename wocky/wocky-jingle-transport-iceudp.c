@@ -33,6 +33,7 @@
 #include "wocky-jingle-factory.h"
 #include "wocky-jingle-session.h"
 #include "wocky-namespaces.h"
+#include "wocky-utils.h"
 
 static void
 transport_iface_init (gpointer g_iface, gpointer iface_data);
