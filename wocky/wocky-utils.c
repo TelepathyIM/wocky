@@ -94,19 +94,20 @@ validate_jid_domain (const gchar *domain)
 /**
  * wocky_decode_jid:
  * @jid: a JID
- * @node: address to which return the username/room part of the JID
- * @domain: address to which return the server/service part of the JID
- * @resource: address to which return the resource/nick part of the JID
+ * @node: (allow-none): address to store the normalised localpart of the JID
+ * @domain: (allow-none): address to store the normalised domainpart of the JID
+ * @resource: address to store the resourcepart of the JID
  *
- *  If the JID is valid, returns TRUE and sets the caller's
- * node/domain/resource pointers if they are not NULL. The node and resource
- * pointers will be set to NULL if the respective part is not present in the
- * JID. The node and domain are lower-cased because the Jabber protocol treats
- * them case-insensitively.
+ * If @jid is valid, returns %TRUE and sets the caller's @node, @domain and
+ * @resource pointers. @node and @resource will be set to %NULL if the
+ * respective part is not present in @jid. If @jid is invalid, sets @node,
+ * @domain and @resource to %NULL and returns %FALSE.
  *
- * XXX: Do nodeprep/resourceprep and length checking.
- *
- * See RFC 3920 §3.
+ * In theory, the returned parts will be normalised as specified in <ulink
+ * url='http://xmpp.org/rfcs/rfc6122.html'>RFC 6122 (XMPP Address
+ * Format)</ulink>; in practice, Wocky does not fully implement the
+ * normalisation and validation algorithms. FIXME: Do nodeprep/resourceprep and
+ * length checking.
  *
  * Returns: %TRUE if the JID is valid
  */
@@ -234,13 +235,14 @@ strlen0 (const gchar *s)
 
 /**
  * wocky_compose_jid:
- * @node: the node part of a JID, possibly empty or %NULL
+ * @node: (allow-none): the node part of a JID, possibly empty or %NULL
  * @domain: the non-%NULL domain part of a JID
- * @resource: the resource part of a JID, possibly empty or %NULL
+ * @resource: (allow-none): the resource part of a JID, possibly empty or %NULL
  *
  * Composes a JID from its parts. If @node is empty or %NULL, the '&commat;'
  * separator is also omitted; if @resource is empty or %NULL, the '/' separator
- * is also omitted.
+ * is also omitted. @node and @domain are assumed to have already been
+ * normalised.
  *
  * Returns: a JID constructed from @node, @domain and @resource
  */
