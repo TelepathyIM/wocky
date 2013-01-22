@@ -136,7 +136,6 @@ connected_cb (
     GAsyncResult *res,
     gpointer user_data)
 {
-  g_printerr ("bye, bye\n");
   g_main_loop_quit (mainloop);
 }
 
