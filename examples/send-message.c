@@ -105,19 +105,38 @@ connected_cb (
     }
 }
 
+static gboolean ignore_ssl_errors = FALSE;
+
+static GOptionEntry entries[] =
+{
+  { "ignore-ssl-errors", 0, 0, G_OPTION_ARG_NONE, &ignore_ssl_errors,
+    "Continue connecting, even if the server provides an invalid SSL certificate",
+    NULL },
+  { NULL }
+};
+
 int
 main (int argc,
     char **argv)
 {
+  GError *error = NULL;
+  GOptionContext *context;
   char *jid, *password;
+  WockyTLSHandler *tls_handler = NULL;
   WockyConnector *connector;
 
   g_type_init ();
   wocky_init ();
 
-  if (argc != 5)
+  context = g_option_context_new ("<jid> <password> <receipient> <message> - signs in as <jid> and sends <message> to <recipient>");
+  g_option_context_add_main_entries (context, entries, NULL);
+  if (!g_option_context_parse (context, &argc, &argv, &error) ||
+      argc != 5)
     {
-      printf ("Usage: %s <jid> <password> <recipient> <message>\n", argv[0]);
+      if (error != NULL)
+        printf ("option parsing failed: %s\n", error->message);
+
+      printf ("%s", g_option_context_get_help (context, FALSE, NULL));
       return -1;
     }
 
@@ -126,13 +145,17 @@ main (int argc,
   recipient = argv[3];
   message = argv[4];
 
+  if (ignore_ssl_errors)
+    tls_handler = wocky_tls_handler_new (TRUE);
+
   mainloop = g_main_loop_new (NULL, FALSE);
-  connector = wocky_connector_new (jid, password, NULL, NULL, NULL);
+  connector = wocky_connector_new (jid, password, NULL, NULL, tls_handler);
   wocky_connector_connect_async (connector, NULL, connected_cb, NULL);
 
   g_main_loop_run (mainloop);
 
   g_object_unref (connector);
+  g_clear_object (&tls_handler);
   g_main_loop_unref (mainloop);
   return 0;
 }
