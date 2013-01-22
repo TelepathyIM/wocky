@@ -320,6 +320,24 @@ wocky_tls_handler_add_ca (WockyTLSHandler *self,
   return abspath != NULL;
 }
 
+
+/**
+ * wocky_tls_handler_forget_cas:
+ * @self: a #WockyTLSHandler instance
+ *
+ * Removes all known locations for CA certificates, including the system-wide
+ * certificate directory and any paths added by previous calls to
+ * wocky_tls_handler_add_ca(). This is only useful if you want Wocky to
+ * distrust your system CAs for some reason.
+ */
+void
+wocky_tls_handler_forget_cas (WockyTLSHandler *self)
+{
+  g_slist_free_full (self->priv->cas, g_free);
+  self->priv->cas = NULL;
+}
+
+
 /**
  * wocky_tls_handler_add_crl:
  * @self: a #WockyTLSHandler instance
