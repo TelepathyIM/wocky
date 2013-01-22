@@ -343,15 +343,16 @@ wocky_tls_handler_forget_cas (WockyTLSHandler *self)
  * @self: a #WockyTLSHandler instance
  * @path: a path to a directory or file containing PEM encoded CRL certificates
  *
- * There are no standard locations as there are for CAs, but dirmngr
- * (for example) will cache CRLs in:
+ * Adds a single certificate revocation list file, or a directory of CRLs, to
+ * the set used to check certificates. Unlike for CA certificates, there is
+ * typically no good default path, so no CRLs are used by default. The path to
+ * use depends on the CRL-management software you use; `dirmngr`
+ * (for example) will cache CRLs in `/var/cache/dirmngr/crls.d`.
  *
- * /var/cache/dirmngr/crls.d
- *
- * Returns: a #gboolean indicating whether the path was resolved.
- * Does not indicate that there was actually a file or directory there
- * or that any CRLs were actually found. The CRLs won't actually be loaded
- * until just before the TLS session setup is attempted.
+ * Returns: %TRUE if @path could be resolved to an absolute path. Note that
+ *  this does not indicate that there was actually a file or directory there or
+ *  that any CRLs were actually found. The CRLs won't actually be loaded until
+ *  just before the TLS session setup is attempted.
  */
 gboolean
 wocky_tls_handler_add_crl (WockyTLSHandler *self,
@@ -365,6 +366,16 @@ wocky_tls_handler_add_crl (WockyTLSHandler *self,
   return abspath != NULL;
 }
 
+
+/**
+ * wocky_tls_handler_get_cas:
+ * @self: a #WockyTLSHandler instance
+ *
+ * Gets the CA certificate search path, including any extra paths added with
+ * wocky_tls_handler_add_ca().
+ *
+ * Returns: (transfer none) (element-type utf8): the paths to search for CA certificates.
+ */
 GSList *
 wocky_tls_handler_get_cas (WockyTLSHandler *self)
 {
@@ -373,6 +384,16 @@ wocky_tls_handler_get_cas (WockyTLSHandler *self)
   return self->priv->cas;
 }
 
+
+/**
+ * wocky_tls_handler_get_crl:
+ * @self: a #WockyTLSHandler instance
+ *
+ * Gets the CRL search path, consisting of all paths added with
+ * wocky_tls_handler_add_crl().
+ *
+ * Returns: (transfer none) (element-type utf8): the CRL search path.
+ */
 GSList *
 wocky_tls_handler_get_crl (WockyTLSHandler *self)
 {
