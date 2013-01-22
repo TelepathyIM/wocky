@@ -144,6 +144,10 @@ wocky_tls_handler_init (WockyTLSHandler *self)
 {
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_TLS_HANDLER,
       WockyTLSHandlerPrivate);
+
+#ifdef GTLS_SYSTEM_CA_CERTIFICATES
+  wocky_tls_handler_add_ca (self, GTLS_SYSTEM_CA_CERTIFICATES);
+#endif
 }
 
 static void
@@ -294,18 +298,15 @@ wocky_tls_handler_new (gboolean ignore_ssl_errors)
  * @self: a #WockyTLSHandler instance
  * @path: a path to a directory or file containing PEM encoded CA certificates
  *
- * Sensible default paths (under Debian derived distributions) are:
+ * Adds a single CA certificate, or directory full of CA certificates, to the
+ * set used to check certificates. By default, Wocky will check the system-wide
+ * certificate directory (as determined at compile time), so you need only add
+ * additional CA paths if you want to trust additional CAs.
  *
- * * for gnutls:  /etc/ssl/certs/ca-certificates.crt
- * * for openssl: /etc/ssl/certs
- *
- * Certificates my also be found under /usr/share/ca-certificates/...
- * if the user wishes to pick and choose which CAs to use.
- *
- * Returns: a #gboolean indicating whether the path was resolved.
- * Does not indicate that there was actually a file or directory there
- * or that any CAs were actually found. The CAs won't actually be loaded
- * until just before the TLS session setup is attempted.
+ * Returns: %TRUE if @path could be resolved to an absolute path. Note that
+ *  this does not indicate that there was actually a file or directory there or
+ *  that any CAs were actually found. The CAs won't actually be loaded until
+ *  just before the TLS session setup is attempted.
  */
 gboolean
 wocky_tls_handler_add_ca (WockyTLSHandler *self,
