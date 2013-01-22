@@ -92,7 +92,7 @@ wocky_tls_connector_set_property (GObject *object,
     {
       case PROP_HANDLER:
         if (g_value_get_object (value) == NULL)
-          self->priv->handler = wocky_tls_handler_new (TRUE);
+          self->priv->handler = wocky_tls_handler_new (FALSE);
         else
           self->priv->handler = g_value_dup_object (value);
         break;

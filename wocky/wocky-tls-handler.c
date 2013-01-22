@@ -134,7 +134,7 @@ wocky_tls_handler_class_init (WockyTLSHandlerClass *klass)
    * insecurity/expiry etc).
    */
   pspec = g_param_spec_boolean ("ignore-ssl-errors", "ignore-ssl-errors",
-      "Whether recoverable TLS errors should be ignored", TRUE,
+      "Whether recoverable TLS errors should be ignored", FALSE,
       (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_TLS_INSECURE_OK, pspec);
 }
