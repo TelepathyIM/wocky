@@ -3541,6 +3541,10 @@ run_test (gpointer data)
       "tls-handler"             , handler,
       NULL);
 
+  /* Make sure we only use the test CAs, not system-wide ones. */
+  wocky_tls_handler_forget_cas (handler);
+  g_assert (wocky_tls_handler_get_cas (handler) == NULL);
+
   /* check if the cert paths are valid */
   g_assert (g_file_test (TLS_CA_CRT_FILE, G_FILE_TEST_EXISTS));
 
