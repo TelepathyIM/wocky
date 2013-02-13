@@ -207,5 +207,7 @@
 #define WOCKY_NS_GOOGLE_SESSION_VIDEO \
   "http://www.google.com/session/video"
 
+#define WOCKY_NS_VCARD_TEMP           "vcard-temp"
+#define WOCKY_NS_VCARD_TEMP_UPDATE    "vcard-temp:x:update"
 
 #endif /* #ifndef __WOCKY_NAMESPACES_H__ */
