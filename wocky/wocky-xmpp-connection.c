@@ -23,7 +23,7 @@
  * @title: WockyXmppConnection
  * @short_description: Low-level XMPP connection.
  *
- * Sends and receives #WockyStanzas from an underlying GIOStream.
+ * Sends and receives #WockyStanza<!-- -->s from an underlying #GIOStream.
  */
 
 #ifdef HAVE_CONFIG_H

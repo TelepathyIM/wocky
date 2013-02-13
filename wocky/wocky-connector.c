@@ -26,7 +26,7 @@
  *
  * See: RFC3920 XEP-0077
  *
- * Sends and receives #WockyStanzas from an underlying #GIOStream.
+ * Sends and receives #WockyStanza<!-- -->s from an underlying #GIOStream.
  * negotiating TLS if possible and completing authentication with the server
  * by the "most suitable" method available.
  * Returns a #WockyXmppConnection object to the user on successful completion.
