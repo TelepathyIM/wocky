@@ -465,18 +465,21 @@ wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
  *
  * If @from is a bare JID, then the resource of the JID in the from attribute
  * will be ignored: In other words, a handler registered against a bare JID
- * will match _all_ stanzas from a JID with the same node and domain:
- * "foo@<!-- -->bar.org" will match
- * "foo@<!-- -->bar.org", "foo@<!-- -->bar.org/moose" and so forth.
+ * will match <emphasis>all</emphasis> stanzas from a JID with the same node
+ * and domain:
+ * <code>"foo&commat;bar.org"</code> will match
+ * <code>"foo&commat;bar.org"</code>,
+ * <code>"foo&commat;bar.org/moose"</code> and so forth.
  *
  * To register an IQ handler from Juliet for all the Jingle stanzas related
  * to one Jingle session:
  *
  * |[
- * id = wocky_porter_register_handler (porter,
- *   WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE, NULL,
- *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL, jingle_cb,
+ * id = wocky_porter_register_handler_from (porter,
+ *   WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_NONE,
  *   "juliet@example.com/Balcony",
+ *   WOCKY_PORTER_HANDLER_PRIORITY_NORMAL,
+ *   jingle_cb,
  *   '(', "jingle",
  *     ':', "urn:xmpp:jingle:1",
  *     '@', "sid", "my_sid",
