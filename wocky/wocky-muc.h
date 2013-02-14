@@ -251,16 +251,17 @@ typedef struct {
 
 GType wocky_muc_get_type (void);
 
-struct _WockyMucClass {
-    /*<private>*/
-    GObjectClass parent_class;
-};
-
 struct _WockyMuc {
     /*<private>*/
     GObject parent;
     WockyMucPrivate *priv;
 };
+
+struct _WockyMucClass {
+    /*<private>*/
+    GObjectClass parent_class;
+};
+
 
 /* TYPE MACROS */
 #define WOCKY_TYPE_MUC (wocky_muc_get_type ())
