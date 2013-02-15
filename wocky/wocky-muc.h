@@ -295,16 +295,6 @@ WockyStanza *wocky_muc_create_presence (WockyMuc *muc,
     WockyStanzaSubType type,
     const gchar *status);
 
-/* initiate */
-void wocky_muc_initiate_async (WockyMuc *muc,
-    GAsyncReadyCallback callback,
-    GCancellable *cancel,
-    gpointer data);
-
-gboolean wocky_muc_initiate_finish (GObject *source,
-    GAsyncResult *res,
-    GError **error);
-
 /* join */
 void wocky_muc_join (WockyMuc *muc,
     GCancellable *cancel);
