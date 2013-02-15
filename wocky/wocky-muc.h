@@ -230,8 +230,8 @@ typedef enum {
 
 /**
  * WockyMucMember:
- * @from: the JID of the member (room@server/nick)
- * @jid: the JID of the owner (owner@domain/resource)
+ * @from: the JID of the member (room&commat;server/nick)
+ * @jid: the JID of the owner (owner&commat;domain/resource)
  * @nick: the nickname of the member
  * @role: the #WockyMucRole of the member
  * @affiliation: the #WockyMucAffiliation of the member

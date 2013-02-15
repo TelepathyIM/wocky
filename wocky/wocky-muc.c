@@ -18,6 +18,18 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * SECTION: wocky-muc
+ * @title: WockyMuc
+ * @short_description: multi-user chat rooms
+ * @include: wocky/wocky.h
+ *
+ * Represents a multi-user chat room. Because the MUC protocol is so terrible,
+ * you will find yourself consulting <ulink
+ * url='http://xmpp.org/extensions/xep-0045.html'>XEP-0045</ulink> and shedding
+ * more than a few tears while using this class.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -367,26 +379,74 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_TYPE_NONE, 2,
       WOCKY_TYPE_STANZA, G_TYPE_UINT);
 
+  /**
+   * WockyMuc::joined:
+   * @muc: the MUC
+   * @stanza: the presence stanza
+   * @codes: bitwise OR of %WockyMucStatusCode flags with miscellaneous
+   *  information about the MUC
+   *
+   * Emitted when the local user successfully joins @muc.
+   */
   signals[SIG_JOINED] = g_signal_new ("joined", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__POINTER_UINT,
       G_TYPE_NONE, 2,
-      WOCKY_TYPE_STANZA, G_TYPE_UINT);
+      WOCKY_TYPE_STANZA,
+      G_TYPE_UINT);
 
+  /**
+   * WockyMuc::error:
+   * @muc: the MUC
+   * @stanza: the presence stanza
+   * @error_code: the error code extracted from @stanza
+   * @error_message: a human-readable message describing the error, or %NULL if
+   *  none was provided
+   *
+   * Emitted when a presence error is received from the MUC, which is generally
+   * in response to trying to join the MUC.
+   */
   signals[SIG_PRESENCE_ERROR] = g_signal_new ("error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING,
       G_TYPE_NONE, 3,
-      WOCKY_TYPE_STANZA, WOCKY_TYPE_XMPP_ERROR, G_TYPE_STRING);
+      WOCKY_TYPE_STANZA,
+      WOCKY_TYPE_XMPP_ERROR,
+      G_TYPE_STRING);
 
-  /* These signals convey actor(jid) + reason */
+  /**
+   * WockyMuc::permissions:
+   * @muc: the muc
+   * @stanza: the presence stanza heralding the change
+   * @codes: bitwise OR of %WockyMucStatusCode flags
+   * @actor_jid: the JID of the user who changed our permissions, or %NULL
+   * @reason: a human-readable reason for the change, or %NULL
+   *
+   * Emitted when our permissions within the MUC are changed.
+   */
   signals[SIG_PERM_CHANGE] = g_signal_new ("permissions", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__POINTER_UINT_POINTER_POINTER,
       G_TYPE_NONE, 4,
-      WOCKY_TYPE_STANZA, G_TYPE_UINT, G_TYPE_STRING, G_TYPE_STRING);
+      WOCKY_TYPE_STANZA,
+      G_TYPE_UINT,
+      G_TYPE_STRING,
+      G_TYPE_STRING);
 
-  /* and these two pass on any message as well: */
+  /**
+   * WockyMuc::parted:
+   * @muc: the MUC
+   * @stanza: the presence stanza
+   * @codes: bitwise OR of %WockyMucStatusCode flags describing why the user
+   *  left the MUC
+   * @actor: if the user was removed from the MUC by another participant, that
+   *  participant's JID
+   * @reason: if the user was removed from the MUC by another participant, a
+   *  human-readable reason given by that participant
+   * @message: a parting message we provided to other participants, or %NULL
+   *
+   * Emitted when the local user leaves the MUC, whether by choice or by force.
+   */
   signals[SIG_PARTED] = g_signal_new ("parted", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_UINT_STRING_STRING_STRING,
@@ -397,42 +457,100 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_TYPE_STRING,  /* reason    */
       G_TYPE_STRING); /* message: usually none, but allowed by spec */
 
+  /**
+   * WockyMuc::left:
+   * @muc: the MUC
+   * @stanza: the presence stanza
+   * @codes: bitwise OR of %WockyMucStatusCode flags describing why @member
+   *  left the MUC
+   * @member: the (now ex-)member of the MUC who left
+   * @actor: if @member was removed from the MUC by another participant, that
+   *  participant's JID
+   * @reason: if @member was removed from the MUC by another participant, a
+   *  human-readable reason given by that participant
+   * @message: a parting message provided by @member, or %NULL
+   *
+   * Emitted when another participant leaves, or is kicked from, the MUC
+   */
   signals[SIG_LEFT] = g_signal_new ("left", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_UINT_POINTER_STRING_STRING_STRING,
       G_TYPE_NONE, 6,
       WOCKY_TYPE_STANZA,
       G_TYPE_UINT,
-      G_TYPE_POINTER,  /* member struct   */
-      G_TYPE_STRING,   /* actor jid       */
-      G_TYPE_STRING,   /* reason          */
-      G_TYPE_STRING);  /* message, if any */
+      G_TYPE_POINTER,
+      G_TYPE_STRING,
+      G_TYPE_STRING,
+      G_TYPE_STRING);
 
+  /**
+   * WockyMuc::message:
+   * @muc: the MUC
+   * @stanza: the incoming message stanza
+   * @message_type: the message's type
+   * @id: the stanza's identifier (which may be %NULL if neither the sender nor
+   *  the MUC specified one)
+   * @timestamp: for messages received as scrollback when joining the MUC, the
+   *  time the message was sent; %NULL for messages received while in the MUC
+   * @sender: a %WockyMucMember struct describing the sender of the message
+   * @body: the body of the message, or %NULL
+   * @subject: the new subject for the MUC, or %NULL
+   * @state: whether @sender is currently typing.
+   *
+   * Emitted when a non-error message stanza is received. This may indicate:
+   *
+   * <itemizedlist>
+   * <listitem>if @body is not %NULL, a message sent by @sender to the
+   *  MUC;</listitem>
+   * <listitem>or, if @subject is not %NULL, @sender changed the subject of the
+   *  MUC;</listitem>
+   * <listitem>additionally, that @sender is typing, or maybe stopped typing,
+   *  depending on @state.</listitem>
+   * </itemizedlist>
+   */
   signals[SIG_MSG] = g_signal_new ("message", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_STRING_ENUM,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_STANZA,
-      WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
-      G_TYPE_STRING,  /* XMPP msg ID      */
-      G_TYPE_DATE_TIME, /* timestamp      */
-      G_TYPE_POINTER, /* WockyMucMember * */
-      G_TYPE_STRING,  /* content          */
-      G_TYPE_STRING,  /* subject          */
-      WOCKY_TYPE_MUC_MSG_STATE);   /* WockyMucMsgState */
+      WOCKY_TYPE_MUC_MSG_TYPE,
+      G_TYPE_STRING,
+      G_TYPE_DATE_TIME,
+      G_TYPE_POINTER,
+      G_TYPE_STRING,
+      G_TYPE_STRING,
+      WOCKY_TYPE_MUC_MSG_STATE);
 
+  /**
+   * WockyMuc::message-error:
+   * @muc: the MUC
+   * @stanza: the incoming %WOCKY_STANZA_SUB_TYPE_ERROR message
+   * @message_type: the type of the message which was rejected
+   * @id: the identifier for the original message and this error (which may be
+   *  %NULL)
+   * @timestamp: the timestamp attached to the original message, which is
+   *  probably %NULL because timestamps are only attached to scrollback messages
+   * @member: a %WockyMucMember struct describing the sender of the original
+   *  message (which is, we presume, us)
+   * @body: the body of the message which failed to send
+   * @error_code: the code describing why the message was rejected
+   * @error_type: the type of error
+   *
+   * Emitted when we receive an error from the MUC in response to sending a
+   * message stanza to the MUC.
+   */
   signals[SIG_MSG_ERR] = g_signal_new ("message-error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
       _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_ENUM,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_STANZA,
-      WOCKY_TYPE_MUC_MSG_TYPE,    /* WockyMucMsgType  */
-      G_TYPE_STRING,  /* XMPP msg ID      */
-      G_TYPE_DATE_TIME, /* timestamp      */
-      G_TYPE_POINTER, /* WockyMucMember * */
-      G_TYPE_STRING,  /* content          */
-      WOCKY_TYPE_XMPP_ERROR,    /* WockyXmppError   */
-      WOCKY_TYPE_XMPP_ERROR_TYPE); /* error type       */
+      WOCKY_TYPE_MUC_MSG_TYPE,
+      G_TYPE_STRING,
+      G_TYPE_DATE_TIME,
+      G_TYPE_POINTER,
+      G_TYPE_STRING,
+      WOCKY_TYPE_XMPP_ERROR,
+      WOCKY_TYPE_XMPP_ERROR_TYPE);
 
   signals[SIG_FILL_PRESENCE] = g_signal_new ("fill-presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
