@@ -586,6 +586,52 @@ test_extract_errors_legacy_code (void)
   g_object_unref (stanza);
 }
 
+
+static void
+test_extract_errors_unrecognised_condition (void)
+{
+  WockyNodeTree *error_tree;
+  WockyXmppErrorType type;
+  GError *core = NULL, *specialized = NULL;
+  WockyNode *specialized_node = NULL;
+  const gchar *text = "The room is currently overactive, please try again later";
+
+  /* I got a <policy-violation> error back from prosody with type='wait', but
+   * Wocky didn't know about policy-violation (which was introduced in
+   * RFC6120). Not only did it ignore <policy-violation>, it also ignored
+   * type='wait' and returned the default, WOCKY_XMPP_ERROR_TYPE_CANCEL.
+   */
+  g_test_bug ("43166#c9");
+
+  error_tree = wocky_node_tree_new ("error", WOCKY_XMPP_NS_JABBER_CLIENT,
+      '@', "type", "wait",
+      '(', "typo-violation", ':', WOCKY_XMPP_NS_STANZAS, ')',
+      '(', "text", ':', WOCKY_XMPP_NS_STANZAS,
+        '$', text,
+      ')', NULL);
+
+  wocky_xmpp_error_extract (wocky_node_tree_get_top_node (error_tree),
+      &type, &core, &specialized, &specialized_node);
+
+  g_assert_cmpuint (type, ==, WOCKY_XMPP_ERROR_TYPE_WAIT);
+
+  /* Wocky should default to undefined-condition when the server returns an
+   * unknown core error element.
+   */
+  g_assert_error (core, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_UNDEFINED_CONDITION);
+  g_assert_cmpstr (core->message, ==, text);
+  g_clear_error (&core);
+
+  /* The unrecognised error element was in the :xmpp-stanzas namespace, so it
+   * shouldn't be returned as a specialized error.
+   */
+  g_assert_no_error (specialized);
+  g_assert (specialized_node == NULL);
+
+  g_object_unref (error_tree);
+}
+
+
 static void
 test_extract_errors_no_sense (void)
 {
@@ -805,6 +851,8 @@ main (int argc, char **argv)
       test_extract_errors_extra_application_specific);
   g_test_add_func ("/xmpp-stanza/errors/legacy-code",
       test_extract_errors_legacy_code);
+  g_test_add_func ("/xmpp-stanza/errors/unrecognised-condition",
+      test_extract_errors_unrecognised_condition);
   g_test_add_func ("/xmpp-stanza/errors/no-sense",
       test_extract_errors_no_sense);
   g_test_add_func ("/xmpp-stanza/errors/not-really",
