@@ -3529,7 +3529,6 @@ main (int argc, char **argv)
   int result;
 
   test_init (argc, argv);
-  g_test_bug_base ("http://bugs.freedesktop.org/show_bug.cgi?id=");
 
   g_test_add_func ("/xmpp-porter/initiation", test_instantiation);
   g_test_add_func ("/xmpp-porter/send", test_send);
