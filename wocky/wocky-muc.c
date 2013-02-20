@@ -399,20 +399,20 @@ wocky_muc_class_init (WockyMucClass *klass)
    * WockyMuc::error:
    * @muc: the MUC
    * @stanza: the presence stanza
-   * @error_code: the error code extracted from @stanza
-   * @error_message: a human-readable message describing the error, or %NULL if
-   *  none was provided
+   * @error_type: the type of error
+   * @error: an error in domain #WOCKY_XMPP_ERROR, whose message (if not %NULL)
+   *  is a human-readable message from the server
    *
    * Emitted when a presence error is received from the MUC, which is generally
    * in response to trying to join the MUC.
    */
   signals[SIG_PRESENCE_ERROR] = g_signal_new ("error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_BOXED,
       G_TYPE_NONE, 3,
       WOCKY_TYPE_STANZA,
-      WOCKY_TYPE_XMPP_ERROR,
-      G_TYPE_STRING);
+      WOCKY_TYPE_XMPP_ERROR_TYPE,
+      G_TYPE_ERROR);
 
   /**
    * WockyMuc::permissions:
@@ -533,15 +533,16 @@ wocky_muc_class_init (WockyMucClass *klass)
    * @member: a %WockyMucMember struct describing the sender of the original
    *  message (which is, we presume, us)
    * @body: the body of the message which failed to send
-   * @error_code: the code describing why the message was rejected
    * @error_type: the type of error
+   * @error: an error in domain %WOCKY_XMPP_ERROR, whose message (if not %NULL)
+   *  is a human-readable message from the server
    *
    * Emitted when we receive an error from the MUC in response to sending a
    * message stanza to the MUC.
    */
   signals[SIG_MSG_ERR] = g_signal_new ("message-error", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
-      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_ENUM,
+      _wocky_signals_marshal_VOID__OBJECT_ENUM_STRING_LONG_POINTER_STRING_ENUM_BOXED,
       G_TYPE_NONE, 8,
       WOCKY_TYPE_STANZA,
       WOCKY_TYPE_MUC_MSG_TYPE,
@@ -549,8 +550,8 @@ wocky_muc_class_init (WockyMucClass *klass)
       G_TYPE_DATE_TIME,
       G_TYPE_POINTER,
       G_TYPE_STRING,
-      WOCKY_TYPE_XMPP_ERROR,
-      WOCKY_TYPE_XMPP_ERROR_TYPE);
+      WOCKY_TYPE_XMPP_ERROR_TYPE,
+      G_TYPE_ERROR);
 
   signals[SIG_FILL_PRESENCE] = g_signal_new ("fill-presence", ctype,
       G_SIGNAL_RUN_LAST, 0, NULL, NULL,
@@ -1313,9 +1314,10 @@ handle_presence_error (WockyMuc *muc,
 {
   gboolean ok = FALSE;
   WockyMucPrivate *priv = muc->priv;
+  WockyXmppErrorType type;
   GError *error = NULL;
 
-  wocky_stanza_extract_errors (stanza, NULL, &error, NULL, NULL);
+  wocky_stanza_extract_errors (stanza, &type, &error, NULL, NULL);
 
   if (priv->state >= WOCKY_MUC_JOINED)
     {
@@ -1325,8 +1327,7 @@ handle_presence_error (WockyMuc *muc,
           error->message);
     }
 
-  g_signal_emit (muc, signals[SIG_PRESENCE_ERROR], 0, stanza, error->code,
-      error->message);
+  g_signal_emit (muc, signals[SIG_PRESENCE_ERROR], 0, stanza, type, error);
   g_clear_error (&error);
 
   return ok;
@@ -1546,7 +1547,7 @@ handle_message (WockyPorter *porter,
 
       wocky_stanza_extract_errors (stanza, &etype, &error, NULL, NULL);
       g_signal_emit (muc, signals[SIG_MSG_ERR], 0,
-          stanza, mtype, id, datetime, who, body, error->code, etype);
+          stanza, mtype, id, datetime, who, body, etype, error);
       g_clear_error (&error);
     }
   else
