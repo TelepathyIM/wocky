@@ -55,7 +55,7 @@ typedef enum
 
 /**
  * WockyXmppError:
- * @WOCKY_XMPP_ERROR_UNDEFINED_CONDITION: he error condition is not one
+ * @WOCKY_XMPP_ERROR_UNDEFINED_CONDITION: the error condition is not one
  *   of those defined by the other conditions in this list
  * @WOCKY_XMPP_ERROR_REDIRECT: the recipient or server is redirecting
  *   requests for this information to another entity
@@ -72,10 +72,12 @@ typedef enum
  *   provided improper credentials
  * @WOCKY_XMPP_ERROR_PAYMENT_REQUIRED: the requesting entity is not
  *   authorized to access the requested service because payment is
- *   required
+ *   required. This code is no longer defined in RFC 6120, the current version
+ *   of XMPP Core. It's preserved here for interoperability, but new
+ *   applications should not send it.
  * @WOCKY_XMPP_ERROR_FORBIDDEN: the requesting entity does not possess
  *   the required permissions to perform the action
- * @WOCKY_XMPP_ERROR_ITEM_NOT_FOUND: he addressed JID or item requested
+ * @WOCKY_XMPP_ERROR_ITEM_NOT_FOUND: the addressed JID or item requested
  *   cannot be found
  * @WOCKY_XMPP_ERROR_RECIPIENT_UNAVAILABLE: the intended recipient is
  *   temporarily unavailable
@@ -109,8 +111,16 @@ typedef enum
  *   be processed
  * @WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE: the server or recipient does
  *   not currently provide the requested service
+ * @WOCKY_XMPP_ERROR_POLICY_VIOLATION: the entity has violated some local
+ *   service policy (e.g., a message contains words that are prohibited by the
+ *   service) and the server MAY choose to specify the policy as the text of
+ *   the error or in an application-specific condition element; the associated
+ *   error type SHOULD be %WOCKY_XMPP_ERROR_TYPE_MODIFY or
+ *   %WOCKY_XMPP_ERROR_TYPE_WAIT depending on the policy being violated.
  *
- * Possible XMPP stream errors, as defined by RFC 3920 §9.3.3.
+ * Possible stanza-level errors, as defined by <ulink
+ * url='http://xmpp.org/rfcs/rfc6120.html#stanzas-error-conditions'>RFC 6210
+ * §8.3.3</ulink>.
  */
 
 /*< prefix=WOCKY_XMPP_ERROR >*/
@@ -151,6 +161,8 @@ typedef enum {
     WOCKY_XMPP_ERROR_FEATURE_NOT_IMPLEMENTED, /* 501 */
 
     WOCKY_XMPP_ERROR_SERVICE_UNAVAILABLE,     /* 502, 503, 510 */
+
+    WOCKY_XMPP_ERROR_POLICY_VIOLATION,
 
     /*< private >*/
     NUM_WOCKY_XMPP_ERRORS /*< skip >*/ /* don't want this in the GEnum */
