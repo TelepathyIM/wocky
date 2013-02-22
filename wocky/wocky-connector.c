@@ -322,12 +322,24 @@ state_message (WockyConnectorPrivate *priv)
 }
 
 static void
+complete_operation (WockyConnector *connector)
+{
+  WockyConnectorPrivate *priv = connector->priv;
+  GSimpleAsyncResult *tmp;
+
+  tmp = priv->result;
+  priv->result = NULL;
+  g_simple_async_result_complete (tmp);
+  g_object_unref (tmp);
+}
+
+
+static void
 abort_connect_error (WockyConnector *connector,
     GError **error,
     const char *fmt,
     ...)
 {
-  GSimpleAsyncResult *tmp = NULL;
   WockyConnectorPrivate *priv = NULL;
   va_list args;
 
@@ -359,18 +371,14 @@ abort_connect_error (WockyConnector *connector,
       priv->cancellable = NULL;
     }
 
-  tmp = priv->result;
-  priv->result = NULL;
-  g_simple_async_result_set_from_error (tmp, *error);
-  g_simple_async_result_complete (tmp);
-  g_object_unref (tmp);
+  g_simple_async_result_set_from_error (priv->result, *error);
+  complete_operation (connector);
 }
 
 static void
 abort_connect (WockyConnector *connector,
     GError *error)
 {
-  GSimpleAsyncResult *tmp = NULL;
   WockyConnectorPrivate *priv = connector->priv;
 
   if (priv->sock != NULL)
@@ -386,11 +394,8 @@ abort_connect (WockyConnector *connector,
       priv->cancellable = NULL;
     }
 
-  tmp = priv->result;
-  priv->result = NULL;
-  g_simple_async_result_set_from_error (tmp, error);
-  g_simple_async_result_complete (tmp);
-  g_object_unref (tmp);
+  g_simple_async_result_set_from_error (priv->result, error);
+  complete_operation (connector);
 }
 
 static void
@@ -1569,7 +1574,7 @@ xep77_cancel_recv (GObject *source,
       g_object_unref (priv->cancellable);
       priv->cancellable = NULL;
     }
-  g_simple_async_result_complete (priv->result);
+  complete_operation (self);
   priv->state = WCON_DISCONNECTED;
 }
 
@@ -2068,17 +2073,13 @@ establish_session (WockyConnector *self)
     }
   else
     {
-      GSimpleAsyncResult *tmp = priv->result;
-
       if (priv->cancellable != NULL)
         {
           g_object_unref (priv->cancellable);
           priv->cancellable = NULL;
         }
 
-      priv->result = NULL;
-      g_simple_async_result_complete (tmp);
-      g_object_unref (tmp);
+      complete_operation (self);
     }
 }
 
@@ -2138,7 +2139,6 @@ establish_session_recv_cb (GObject *source,
   switch (sub)
     {
       WockyConnectorError code;
-      GSimpleAsyncResult *tmp;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
         wocky_stanza_extract_errors (reply, NULL, &error, NULL, NULL);
@@ -2178,9 +2178,7 @@ establish_session_recv_cb (GObject *source,
                 priv->cancellable = NULL;
               }
 
-            tmp = priv->result;
-            g_simple_async_result_complete (tmp);
-            g_object_unref (tmp);
+            complete_operation (self);
           }
         break;
 
