@@ -3,7 +3,6 @@
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #include <string.h>
 
@@ -167,12 +166,16 @@ connected_cb (
 }
 
 static gboolean ignore_ssl_errors = FALSE;
+static gchar *resource = NULL;
 
 static GOptionEntry entries[] =
 {
   { "ignore-ssl-errors", 0, 0, G_OPTION_ARG_NONE, &ignore_ssl_errors,
     "Continue connecting, even if the server provides an invalid SSL certificate",
     NULL },
+  { "resource", 'r', 0, G_OPTION_ARG_STRING, &resource,
+    "Connect as a specific resource (default: let the server decide)",
+    "RESOURCE" },
   { NULL }
 };
 
@@ -208,7 +211,7 @@ main (int argc,
     tls_handler = wocky_tls_handler_new (TRUE);
 
   mainloop = g_main_loop_new (NULL, FALSE);
-  connector = wocky_connector_new (jid, password, NULL, NULL, tls_handler);
+  connector = wocky_connector_new (jid, password, resource, NULL, tls_handler);
   wocky_connector_connect_async (connector, NULL, connected_cb, NULL);
 
   g_main_loop_run (mainloop);
