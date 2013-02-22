@@ -466,7 +466,7 @@ wocky_connector_set_property (GObject *object,
             *g_value_get_string (value) != '\0')
           priv->resource = g_value_dup_string (value);
         else
-          priv->resource = g_strdup_printf ("Wocky_%x", rand());
+          priv->resource = NULL;
         break;
       case PROP_XMPP_PORT:
         priv->xmpp_port = g_value_get_uint (value);
@@ -644,9 +644,9 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   /**
    * WockyConnector:resource:
    *
-   * The resource (sans '/') for this connection. Will be generated
-   * automatically if not set. May be altered by the server anyway
-   * upon successful binding.
+   * The resource (sans '/') for this connection. If %NULL or the empty string,
+   * Wocky will let the server decide. Even if you specify a particular
+   * resource, the server may modify it.
    */
   spec = g_param_spec_string ("resource", "resource",
       "XMPP resource to append to the jid", NULL,
