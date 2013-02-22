@@ -3610,7 +3610,7 @@ run_test (gpointer data)
       if (!strcmp (test->desc, CONNECTOR_INTERNALS_TEST))
         {
           int i;
-          gchar *identity = NULL;
+          gchar *identity, *session_id, *resource;
           WockyConnector *tmp =
             wocky_connector_new ("foo@bar.org", "abc", "xyz", NULL, NULL);
           WockyStanza *feat = NULL;
@@ -3636,17 +3636,17 @@ run_test (gpointer data)
           g_object_unref (feat);
           identity = NULL;
 
-          g_object_get (wcon, "session-id", &identity, NULL);
-          g_assert (identity != NULL);
-          g_assert (*identity != '\0');
-          g_free (identity);
+          g_object_get (wcon, "session-id", &session_id, NULL);
+          g_assert (session_id != NULL);
+          g_assert (*session_id != '\0');
+          g_free (session_id);
 
-          g_object_get (wcon, "resource", &identity, NULL);
-          /* TODO: really? :identity gets updated to contain the actual
+          g_object_get (wcon, "resource", &resource, NULL);
+          /* TODO: really? :resource gets updated to contain the actual
            * post-bind resource, but perhaps :resource should be updated too?
            */
-          g_assert_cmpstr (identity, ==, NULL);
-          g_free (identity);
+          g_assert_cmpstr (resource, ==, NULL);
+          g_free (resource);
 
           g_object_get (wcon, "legacy", &jabber, "old-ssl", &oldssl, NULL);
           g_assert (jabber == (gboolean)(xproblem & XMPP_PROBLEM_OLD_SERVER));
