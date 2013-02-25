@@ -224,6 +224,14 @@ wocky_caps_hash_compute_from_lists (
 
           field = l->data;
 
+          if (field->var == NULL)
+            {
+              DEBUG ("can't hash form '%s': it has an anonymous field",
+                  form_name);
+              g_slist_free (fields);
+              goto cleanup;
+            }
+
           if (!wocky_strdiff (field->var, "FORM_TYPE"))
             continue;
 
