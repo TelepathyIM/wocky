@@ -486,6 +486,51 @@ test_dataforms_invalid (void)
   g_free (out);
 }
 
+
+static void
+test_dataforms_fixed_and_no_var (void)
+{
+  WockyStanza *stanza;
+  gchar *out;
+
+  g_test_bug ("61433");
+
+  /* <field type='fixed'> with no var='' attribute is legal in data forms in
+   * general, but the hashing algorithm doesn't specify what to do in this
+   * case. We choose to make it fail; previously, we crashed.
+   */
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+          '(', "value", '$', "urn:xmpp:dataforms:softwareinfo", ')',
+        ')',
+        '(', "field",
+          '@', "type", "fixed",
+          '(', "value", '$', "trolololol", ')',
+        ')',
+      ')',
+      NULL);
+
+  out = wocky_caps_hash_compute_from_node (
+      wocky_stanza_get_top_node (stanza));
+  g_object_unref (stanza);
+
+  g_assert_cmpstr (out, ==, NULL);
+  g_free (out);
+}
+
+
 static void
 test_dataforms_same_type (void)
 {
@@ -652,6 +697,8 @@ main (int argc, char **argv)
   g_test_add_func ("/caps-hash/sorting/simple", test_sorting_simple);
   g_test_add_func ("/caps-hash/sorting/complex", test_sorting_complex);
   g_test_add_func ("/caps-hash/dataforms/invalid", test_dataforms_invalid);
+  g_test_add_func ("/caps-hash/dataforms/invalid/fixed-and-no-var",
+      test_dataforms_fixed_and_no_var);
   g_test_add_func ("/caps-hash/dataforms/same-type", test_dataforms_same_type);
   g_test_add_func ("/caps-hash/dataforms/boolean-values",
       test_dataforms_boolean_values);
