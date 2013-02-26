@@ -532,6 +532,125 @@ test_dataforms_fixed_and_no_var (void)
 
 
 static void
+test_dataforms_form_type_wrong_type (void)
+{
+  WockyStanza *stanza;
+
+  /* 6. If the response includes an extended service discovery information
+   *    form where the FORM_TYPE field is not of type "hidden" or the form
+   *    does not include a FORM_TYPE field, ignore the form but continue
+   *    processing.
+   *
+   * This form's FORM_TYPE is of type boolean. This used to crash the hashing
+   * code.
+   */
+  g_test_bug ("61433");
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "boolean",
+          '(', "value", '$', "true", ')',
+        ')',
+      ')',
+      NULL);
+
+  check_hash (stanza, "9LXnSGAOqGkjoewMq7WHTF4wK/U=");
+}
+
+
+static void
+test_dataforms_form_type_without_value (void)
+{
+  WockyStanza *stanza;
+
+  /* XEP-0115 says:
+   *
+   *     5. If the response includes more than one extended service discovery
+   *        information form with the same FORM_TYPE or the FORM_TYPE field
+   *        contains more than one <value/> element with different XML
+   *        character data, consider the entire response to be ill-formed.
+   *     6. If the response includes an extended service discovery information
+   *        form where the FORM_TYPE field is not of type "hidden" or the form
+   *        does not include a FORM_TYPE field, ignore the form but continue
+   *        processing.
+   *
+   * Neither item covers the case where there is a FORM_TYPE field of type
+   * "hidden" with no <value/>. I choose to treat it as 5 above.
+   */
+  g_test_bug ("61433");
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+        ')',
+      ')',
+      NULL);
+
+  check_hash (stanza, NULL);
+}
+
+
+static void
+test_dataforms_form_type_two_both_with_no_value (void)
+{
+  WockyStanza *stanza;
+
+  /* This ought to be equivalent to test_dataforms_form_type_without_value but
+   * there was a crash in the form-sorting code, which of course doesn't
+   * trigger if there's only one form.
+   */
+  g_test_bug ("61433");
+  stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
+      WOCKY_STANZA_SUB_TYPE_NONE, NULL, "badger",
+      '(', "identity",
+        '@', "category", "client",
+        '@', "name", "Psi 0.11",
+        '@', "type", "pc",
+        '#', "en",
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+        ')',
+      ')',
+      '(', "x",
+        ':', "jabber:x:data",
+        '@', "type", "result",
+        '(', "field",
+          '@', "var", "FORM_TYPE",
+          '@', "type", "hidden",
+        ')',
+      ')',
+      NULL);
+
+  check_hash (stanza, NULL);
+}
+
+
+static void
 test_dataforms_same_type (void)
 {
   gchar *out;
@@ -699,6 +818,13 @@ main (int argc, char **argv)
   g_test_add_func ("/caps-hash/dataforms/invalid", test_dataforms_invalid);
   g_test_add_func ("/caps-hash/dataforms/invalid/fixed-and-no-var",
       test_dataforms_fixed_and_no_var);
+  g_test_add_func ("/caps-hash/dataforms/invalid/form_type/wrong-type",
+      test_dataforms_form_type_wrong_type);
+  g_test_add_func ("/caps-hash/dataforms/invalid/form_type/no-value",
+      test_dataforms_form_type_without_value);
+  g_test_add_func ("/caps-hash/dataforms/invalid/form_type/two-both-with-no-value",
+      test_dataforms_form_type_two_both_with_no_value);
+
   g_test_add_func ("/caps-hash/dataforms/same-type", test_dataforms_same_type);
   g_test_add_func ("/caps-hash/dataforms/boolean-values",
       test_dataforms_boolean_values);
