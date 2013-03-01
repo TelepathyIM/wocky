@@ -1050,7 +1050,7 @@ gint
 wocky_data_form_field_cmp (const WockyDataFormField *left,
     const WockyDataFormField *right)
 {
-  return strcmp (left->var, right->var);
+  return g_strcmp0 (left->var, right->var);
 }
 
 static void

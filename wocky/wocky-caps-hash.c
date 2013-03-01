@@ -80,8 +80,17 @@ dataforms_cmp (gconstpointer a,
   else if (left_type != NULL && right_type == NULL)
     return 1;
   else /* left_type != NULL && right_type != NULL */
-    return strcmp (g_value_get_string (left_type->default_value),
-        g_value_get_string (right_type->default_value));
+    {
+      const gchar *left_value = NULL, *right_value = NULL;
+
+      if (left_type->raw_value_contents != NULL)
+        left_value = left_type->raw_value_contents[0];
+
+      if (right_type->raw_value_contents != NULL)
+        right_value = right_type->raw_value_contents[0];
+
+      return g_strcmp0 (left_value, right_value);
+    }
 }
 
 static GPtrArray *
@@ -190,15 +199,21 @@ wocky_caps_hash_compute_from_lists (
           continue;
         }
 
-      form_name = g_value_get_string (field->default_value);
-
       if (field->type != WOCKY_DATA_FORM_FIELD_TYPE_HIDDEN)
         {
-          DEBUG ("FORM_TYPE field of form '%s' is not hidden; "
-              "ignoring form and moving onto next one",
-                 form_name);
+          DEBUG ("FORM_TYPE field is not hidden; "
+              "ignoring form and moving onto next one");
           continue;
         }
+
+      if (field->raw_value_contents == NULL ||
+          g_strv_length (field->raw_value_contents) != 1)
+        {
+          DEBUG ("FORM_TYPE field does not have exactly one value; failing");
+          goto cleanup;
+        }
+
+      form_name = field->raw_value_contents[0];
 
       if (g_hash_table_lookup (form_names, form_name) != NULL)
         {
@@ -223,6 +238,14 @@ wocky_caps_hash_compute_from_lists (
           GStrv tmp;
 
           field = l->data;
+
+          if (field->var == NULL)
+            {
+              DEBUG ("can't hash form '%s': it has an anonymous field",
+                  form_name);
+              g_slist_free (fields);
+              goto cleanup;
+            }
 
           if (!wocky_strdiff (field->var, "FORM_TYPE"))
             continue;
