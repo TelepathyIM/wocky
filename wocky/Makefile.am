@@ -14,18 +14,17 @@ endif
 EXTRA_DIST =
 
 enumtype_sources = \
-  wocky-auth-registry.h \
-  wocky-connector.h \
-  wocky-data-form.h \
-  wocky-jingle-info-internal.h \
-  wocky-jingle-types.h \
-  wocky-muc.h \
-  wocky-pubsub-node.h \
-  wocky-pubsub-service.h \
-  wocky-signals-marshal.h \
-  wocky-tls.h \
-  wocky-xmpp-error.h \
-  wocky-xmpp-reader.h
+  $(srcdir)/wocky-auth-registry.h \
+  $(srcdir)/wocky-connector.h \
+  $(srcdir)/wocky-data-form.h \
+  $(srcdir)/wocky-jingle-info-internal.h \
+  $(srcdir)/wocky-jingle-types.h \
+  $(srcdir)/wocky-muc.h \
+  $(srcdir)/wocky-pubsub-node.h \
+  $(srcdir)/wocky-pubsub-service.h \
+  $(srcdir)/wocky-tls.h \
+  $(srcdir)/wocky-xmpp-error.h \
+  $(srcdir)/wocky-xmpp-reader.h
 
 built_headers = \
   wocky-enumtypes.h \
