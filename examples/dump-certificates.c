@@ -105,7 +105,7 @@ dump_tls_handler_verify_async (WockyTLSHandler *self,
       gnutls_x509_crt_deinit (cert);
     }
 
-  g_ptr_array_free (chain, TRUE);
+  g_ptr_array_unref (chain);
 
   res = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
       dump_tls_handler_verify_async);

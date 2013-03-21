@@ -38,7 +38,9 @@ AM_CFLAGS = \
     $(ERROR_CFLAGS) \
     @GLIB_CFLAGS@
 
-check_c_sources = $(wocky_send_message_SOURCES)    \
+check_c_sources = \
+                  $(wocky_dump_certificates_SOURCES) \
+                  $(wocky_send_message_SOURCES)    \
                   $(wocky_receive_messages_SOURCES) \
                   $(wocky_register_SOURCES)   \
                   $(wocky_unregister_SOURCES)
