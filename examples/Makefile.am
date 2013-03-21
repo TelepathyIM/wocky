@@ -39,11 +39,11 @@ AM_CFLAGS = \
     @GLIB_CFLAGS@
 
 check_c_sources = \
-                  $(wocky_dump_certificates_SOURCES) \
-                  $(wocky_send_message_SOURCES)    \
-                  $(wocky_receive_messages_SOURCES) \
-                  $(wocky_register_SOURCES)   \
-                  $(wocky_unregister_SOURCES)
+    $(wocky_dump_certificates_SOURCES) \
+    $(wocky_send_message_SOURCES) \
+    $(wocky_receive_messages_SOURCES) \
+    $(wocky_register_SOURCES) \
+    $(wocky_unregister_SOURCES)
 
 include $(top_srcdir)/tools/check-coding-style.mk
 check-local: check-coding-style
