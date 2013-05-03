@@ -147,16 +147,26 @@ main (int argc,
   WockyConnector *connector;
   WockyTLSHandler *handler;
 
+  gchar* server = NULL;
+  guint port = 5222;
+
   g_type_init ();
   wocky_init ();
 
-  if (argc != 2)
+  if (!(argc == 2 || argc == 4))
     {
-      g_printerr ("Usage: %s <jid>\n", argv[0]);
+      g_printerr ("Usage: %s <jid> [<server> <port>]\n", argv[0]);
       return -1;
     }
 
   jid = argv[1];
+  
+  if (argc == 4)
+    {
+      server = argv[2];
+      port = atoi(argv[3]);
+    }
+
   /* This example doesn't use your real password because it does not actually
    * validate certificates: it just dumps them then declares them valid.
    */
@@ -165,6 +175,8 @@ main (int argc,
   mainloop = g_main_loop_new (NULL, FALSE);
   handler = g_object_new (dump_tls_handler_get_type (), NULL);
   connector = wocky_connector_new (jid, password, NULL, NULL, handler);
+  if (argc == 4)
+    g_object_set (G_OBJECT (connector), "xmpp-server", server, "xmpp-port", port, NULL);
   wocky_connector_connect_async (connector, NULL, connected_cb, NULL);
 
   g_main_loop_run (mainloop);
