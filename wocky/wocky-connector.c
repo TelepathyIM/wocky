@@ -1135,6 +1135,9 @@ xmpp_init_recv_cb (GObject *source,
       if (!priv->legacy_support)
         abort_connect_code (self, WOCKY_CONNECTOR_ERROR_NON_XMPP_V1_SERVER,
             "Server not XMPP 1.0 Compliant");
+      else if (priv->tls_required && !priv->encrypted)
+        abort_connect_code (data, WOCKY_CONNECTOR_ERROR_TLS_UNAVAILABLE,
+            "TLS requested but server is not XMPP 1.0 compliant (try using \"old SSL\")");
       else
         jabber_request_auth (self);
     }
