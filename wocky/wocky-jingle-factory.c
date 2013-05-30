@@ -420,7 +420,7 @@ jingle_cb (
     g_signal_emit (self, signals[NEW_SESSION], 0, sess, FALSE);
 
   /* all went well, we can acknowledge the IQ */
-  wocky_porter_acknowledge_iq (porter, msg, NULL);
+  wocky_jingle_session_acknowledge_iq (sess, msg);
 
   return TRUE;
 

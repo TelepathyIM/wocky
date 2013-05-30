@@ -37,6 +37,7 @@
  */
 #include "wocky-jingle-media-rtp.h"
 #include "wocky-namespaces.h"
+#include "wocky-node-private.h"
 #include "wocky-resource-contact.h"
 #include "wocky-utils.h"
 
@@ -1566,11 +1567,12 @@ detect_google_dialect (WockyNode *session_node)
   return WOCKY_JINGLE_DIALECT_GTALK4;
 }
 
-const gchar *
-wocky_jingle_session_detect (
+static const gchar *
+wocky_jingle_session_detect_internal (
     WockyStanza *stanza,
     WockyJingleAction *action,
-    WockyJingleDialect *dialect)
+    WockyJingleDialect *dialect,
+    WockyNode **session_node_out)
 {
   const gchar *actxt, *sid;
   WockyNode *iq_node, *session_node;
@@ -1593,7 +1595,8 @@ wocky_jingle_session_detect (
 
   if (session_node != NULL)
     {
-      *dialect = WOCKY_JINGLE_DIALECT_V032;
+      if (dialect != NULL)
+        *dialect = WOCKY_JINGLE_DIALECT_V032;
     }
   else
     {
@@ -1602,7 +1605,8 @@ wocky_jingle_session_detect (
 
       if (session_node != NULL)
         {
-          *dialect = WOCKY_JINGLE_DIALECT_V015;
+          if (dialect != NULL)
+            *dialect = WOCKY_JINGLE_DIALECT_V015;
         }
       else
         {
@@ -1612,7 +1616,9 @@ wocky_jingle_session_detect (
 
           if (session_node != NULL)
             {
-              *dialect = detect_google_dialect (session_node);
+              if (dialect != NULL)
+                *dialect = detect_google_dialect (session_node);
+
               google_mode = TRUE;
             }
           else
@@ -1633,9 +1639,22 @@ wocky_jingle_session_detect (
       sid = wocky_node_get_attribute (session_node, "sid");
     }
 
-  *action = parse_action (actxt);
+  if (session_node_out != NULL)
+    *session_node_out = session_node;
+
+  if (action != NULL)
+    *action = parse_action (actxt);
 
   return sid;
+}
+
+const gchar *
+wocky_jingle_session_detect (
+    WockyStanza *stanza,
+    WockyJingleAction *action,
+    WockyJingleDialect *dialect)
+{
+  return wocky_jingle_session_detect_internal (stanza, action, dialect, NULL);
 }
 
 gboolean
@@ -2512,4 +2531,44 @@ WockyPorter *
 wocky_jingle_session_get_porter (WockyJingleSession *self)
 {
   return self->priv->porter;
+}
+
+void
+wocky_jingle_session_acknowledge_iq (WockyJingleSession *self,
+    WockyStanza *stanza)
+{
+  if (wocky_jingle_session_peer_has_cap (self, WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT))
+    {
+      WockyJingleAction action = WOCKY_JINGLE_ACTION_UNKNOWN;
+      WockyNode *used_node = NULL;
+
+      /* As of 2013-05-29, the Google webmail client sends a session-initiate
+       * IQ with two child nodes (which is not valid XMPP Core but never mind)
+       * and replies to session-initiate by echoing the child for the dialect
+       * it chose. We have to do the same echoing, otherwise it can't call us.
+       *
+       * It doesn't seem to reply to our other IQs at all; we still reply
+       * here (we'd be violating XMPP Core if we didn't), but we don't
+       * bother putting content in the IQ, to reduce bandwidth. */
+      if (wocky_jingle_session_detect_internal (stanza, &action, NULL,
+            &used_node) != NULL &&
+          action == WOCKY_JINGLE_ACTION_SESSION_INITIATE)
+        {
+          WockyStanza *reply = wocky_stanza_build_iq_result (stanza, NULL);
+
+          if (reply != NULL)
+            {
+              WockyNode *reply_node = wocky_stanza_get_top_node (reply);
+
+              reply_node->children = g_slist_append (reply_node->children,
+                  _wocky_node_copy (used_node));
+              wocky_porter_send (self->priv->porter, reply);
+              g_object_unref (reply);
+              return;
+            }
+        }
+    }
+
+  /* normal Jingle just says "OK" without echoing */
+  wocky_porter_acknowledge_iq (self->priv->porter, stanza, NULL);
 }

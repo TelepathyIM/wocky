@@ -131,6 +131,9 @@ const gchar *wocky_jingle_session_get_reason_name (WockyJingleReason reason);
 WockyJingleFactory *wocky_jingle_session_get_factory (WockyJingleSession *self);
 WockyPorter *wocky_jingle_session_get_porter (WockyJingleSession *self);
 
+void wocky_jingle_session_acknowledge_iq (WockyJingleSession *self,
+    WockyStanza *stanza);
+
 G_END_DECLS
 
 #endif /* __JINGLE_SESSION_H__ */
