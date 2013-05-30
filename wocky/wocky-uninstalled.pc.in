@@ -6,6 +6,6 @@ abs_top_builddir=@abs_top_builddir@
 Name: Wocky (uninstalled copy)
 Description: XMPP library
 Version: @VERSION@
-Requires.private: glib-2.0 >= 2.16, gobject-2.0 >= 2.16, gio-2.0 >= 2.26
+Requires.private: glib-2.0 >= 2.32, gobject-2.0 >= 2.32, gio-2.0 >= 2.32
 Libs: ${abs_top_builddir}/wocky/libwocky.la
 Cflags: -I${abs_top_srcdir} -I${abs_top_builddir} -I${abs_top_builddir}/wocky

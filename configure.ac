@@ -118,11 +118,11 @@ dnl Check endianness (Needed for the sha1 implementation)
 AC_C_BIGENDIAN
 
 dnl Check for Glib
-PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.28, gobject-2.0 >= 2.16, gthread-2.0 >=
-2.4, gio-2.0 >= 2.26])
+PKG_CHECK_MODULES(GLIB,
+  [glib-2.0 >= 2.32, gobject-2.0 >= 2.32, gthread-2.0 >= 2.32, gio-2.0 >= 2.32])
 
-AC_DEFINE(GLIB_VERSION_MIN_REQUIRED, GLIB_VERSION_2_28, [Ignore post 2.28 deprecations])
-AC_DEFINE(GLIB_VERSION_MAX_ALLOWED, GLIB_VERSION_2_28, [Prevent post 2.28 APIs])
+AC_DEFINE([GLIB_VERSION_MIN_REQUIRED], [GLIB_VERSION_2_32], [Ignore post 2.32 deprecations])
+AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [GLIB_VERSION_2_32], [Prevent post 2.32 APIs])
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)

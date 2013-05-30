@@ -87,10 +87,6 @@ main (int argc,
 
   memset (&server, 0, sizeof (server));
 
-#if !GLIB_CHECK_VERSION (2, 31, 0)
-  g_thread_init (NULL);
-#endif
-
   g_type_init ();
 
   loop = g_main_loop_new (NULL, FALSE);
