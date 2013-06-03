@@ -405,6 +405,11 @@ jingle_cb (
 
   if (sess == NULL)
     goto REQUEST_ERROR;
+  else
+    /* One of the possible outcomes of wocky_jingle_session_parse() is that
+     * the Jingle session is terminated, which removes it from our
+     * hash table, which could release its last ref. */
+    g_object_ref (sess);
 
   /* now act on the message */
   if (!wocky_jingle_session_parse (sess, action, msg, &error))
@@ -422,6 +427,7 @@ jingle_cb (
   /* all went well, we can acknowledge the IQ */
   wocky_jingle_session_acknowledge_iq (sess, msg);
 
+  g_object_unref (sess);
   return TRUE;
 
 REQUEST_ERROR:
@@ -430,8 +436,13 @@ REQUEST_ERROR:
   wocky_porter_send_iq_gerror (porter, msg, error);
   g_error_free (error);
 
-  if (sess != NULL && new_session)
-    wocky_jingle_session_terminate (sess, WOCKY_JINGLE_REASON_UNKNOWN, NULL, NULL);
+  if (sess != NULL)
+    {
+      if (new_session)
+        wocky_jingle_session_terminate (sess, WOCKY_JINGLE_REASON_UNKNOWN, NULL, NULL);
+
+      g_object_unref (sess);
+    }
 
   return TRUE;
 }
@@ -510,7 +521,7 @@ create_session (WockyJingleFactory *fac,
   g_signal_connect (sess, "terminated",
     (GCallback) session_terminated_cb, fac);
 
-  /* Takes ownership of key */
+  /* Takes ownership of key and sess */
   g_hash_table_insert (priv->sessions, key, sess);
 
   DEBUG ("new session (%s, %s) @ %p", jid, sid_, sess);
