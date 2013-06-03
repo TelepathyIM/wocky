@@ -690,11 +690,13 @@ wocky_jingle_session_peer_has_cap (
     WockyJingleSession *self,
     const gchar *cap_or_quirk)
 {
-  WockyJingleSessionPrivate *priv = self->priv;
   gboolean ret;
 
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (self), FALSE);
+  g_return_val_if_fail (cap_or_quirk != NULL, FALSE);
+
   g_signal_emit (self, signals[QUERY_CAP], 0,
-      priv->peer_contact, cap_or_quirk,
+      self->priv->peer_contact, cap_or_quirk,
       &ret);
   return ret;
 }
@@ -1654,6 +1656,8 @@ wocky_jingle_session_detect (
     WockyJingleAction *action,
     WockyJingleDialect *dialect)
 {
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), NULL);
+
   return wocky_jingle_session_detect_internal (stanza, action, dialect, NULL);
 }
 
@@ -1664,9 +1668,15 @@ wocky_jingle_session_parse (
     WockyStanza *stanza,
     GError **error)
 {
-  WockyJingleSessionPrivate *priv = sess->priv;
+  WockyJingleSessionPrivate *priv;
   WockyNode *iq_node, *session_node;
   const gchar *from, *action_name;
+
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), FALSE);
+  g_return_val_if_fail (WOCKY_IS_STANZA (stanza), FALSE);
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
+  priv = sess->priv;
 
   /* IQ from/to can come in handy */
   from = wocky_stanza_get_from (stanza);
@@ -1742,11 +1752,11 @@ wocky_jingle_session_new_message (WockyJingleSession *sess,
   gchar *el = NULL, *ns = NULL;
   gboolean gtalk_mode = FALSE;
 
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
   g_return_val_if_fail (action != WOCKY_JINGLE_ACTION_UNKNOWN, NULL);
 
   g_assert ((action == WOCKY_JINGLE_ACTION_SESSION_INITIATE) ||
             (priv->state > WOCKY_JINGLE_STATE_PENDING_CREATED));
-  g_assert (WOCKY_IS_JINGLE_SESSION (sess));
 
   switch (priv->dialect)
     {
@@ -1870,6 +1880,9 @@ void
 wocky_jingle_session_send (WockyJingleSession *sess,
     WockyStanza *stanza)
 {
+  g_return_if_fail (WOCKY_IS_JINGLE_SESSION (sess));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
   wocky_porter_send_iq_async (sess->priv->porter,
       stanza, NULL, NULL, NULL);
   g_object_unref (stanza);
@@ -2126,9 +2139,9 @@ set_state (WockyJingleSession *sess,
 void
 wocky_jingle_session_accept (WockyJingleSession *sess)
 {
-  WockyJingleSessionPrivate *priv = sess->priv;
+  g_return_if_fail (WOCKY_IS_JINGLE_SESSION (sess));
 
-  priv->locally_accepted = TRUE;
+  sess->priv->locally_accepted = TRUE;
 
   try_session_initiate_or_accept (sess);
 }
@@ -2170,8 +2183,12 @@ wocky_jingle_session_terminate (WockyJingleSession *sess,
                                  const gchar *text,
                                  GError **error G_GNUC_UNUSED)
 {
-  WockyJingleSessionPrivate *priv = sess->priv;
+  WockyJingleSessionPrivate *priv;
   const gchar *reason_elt;
+
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), FALSE);
+
+  priv = sess->priv;
 
   if (priv->state == WOCKY_JINGLE_STATE_ENDED)
     {
@@ -2279,6 +2296,9 @@ void
 wocky_jingle_session_remove_content (WockyJingleSession *sess,
     WockyJingleContent *c)
 {
+  g_return_if_fail (WOCKY_IS_JINGLE_SESSION (sess));
+  g_return_if_fail (WOCKY_IS_JINGLE_CONTENT (c));
+
   if (count_active_contents (sess) > 1)
     {
       wocky_jingle_content_remove (c, TRUE);
@@ -2321,13 +2341,19 @@ wocky_jingle_session_add_content (WockyJingleSession *sess,
     const gchar *content_ns,
     const gchar *transport_ns)
 {
-  WockyJingleSessionPrivate *priv = sess->priv;
+  WockyJingleSessionPrivate *priv;
   WockyJingleContent *c;
   GType content_type;
-  GHashTable *contents = priv->local_initiator ? priv->initiator_contents
-      : priv->responder_contents;
-  guint id = g_hash_table_size (contents) + 1;
+  GHashTable *contents;
+  guint id;
   gchar *cname = NULL;
+
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
+
+  priv = sess->priv;
+  contents = priv->local_initiator ? priv->initiator_contents
+      : priv->responder_contents;
+  id = g_hash_table_size (contents) + 1;
 
   if (name == NULL || *name == '\0')
     name = (mtype == WOCKY_JINGLE_MEDIA_TYPE_AUDIO ?  "Audio" : "Video");
@@ -2384,7 +2410,11 @@ _get_any_content (WockyJingleSession *session)
 GType
 wocky_jingle_session_get_content_type (WockyJingleSession *sess)
 {
-  WockyJingleContent *c = _get_any_content (sess);
+  WockyJingleContent *c;
+
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), G_TYPE_INVALID);
+
+  c = _get_any_content (sess);
 
   if (c == NULL)
       return 0;
@@ -2396,7 +2426,11 @@ wocky_jingle_session_get_content_type (WockyJingleSession *sess)
 GList *
 wocky_jingle_session_get_contents (WockyJingleSession *sess)
 {
-  WockyJingleSessionPrivate *priv = sess->priv;
+  WockyJingleSessionPrivate *priv;
+
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
+
+  priv = sess->priv;
 
   return g_list_concat (g_hash_table_get_values (priv->initiator_contents),
       g_hash_table_get_values (priv->responder_contents));
@@ -2405,18 +2439,24 @@ wocky_jingle_session_get_contents (WockyJingleSession *sess)
 const gchar *
 wocky_jingle_session_get_peer_resource (WockyJingleSession *sess)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
+
   return sess->priv->peer_resource;
 }
 
 const gchar *
 wocky_jingle_session_get_initiator (WockyJingleSession *sess)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
+
   return sess->priv->initiator;
 }
 
 const gchar *
 wocky_jingle_session_get_sid (WockyJingleSession *sess)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
+
   return sess->priv->sid;
 }
 
@@ -2471,13 +2511,15 @@ void
 wocky_jingle_session_set_local_hold (WockyJingleSession *sess,
     gboolean held)
 {
+  g_return_if_fail (WOCKY_IS_JINGLE_SESSION (sess));
+
   g_object_set (sess, "local-hold", held, NULL);
 }
 
 gboolean
 wocky_jingle_session_get_remote_hold (WockyJingleSession *sess)
 {
-  g_assert (WOCKY_IS_JINGLE_SESSION (sess));
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), FALSE);
 
   return sess->priv->remote_hold;
 }
@@ -2485,7 +2527,7 @@ wocky_jingle_session_get_remote_hold (WockyJingleSession *sess)
 gboolean
 wocky_jingle_session_get_remote_ringing (WockyJingleSession *sess)
 {
-  g_assert (WOCKY_IS_JINGLE_SESSION (sess));
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), FALSE);
 
   return sess->priv->remote_ringing;
 }
@@ -2493,6 +2535,8 @@ wocky_jingle_session_get_remote_ringing (WockyJingleSession *sess)
 gboolean
 wocky_jingle_session_can_modify_contents (WockyJingleSession *sess)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), FALSE);
+
   return !WOCKY_JINGLE_DIALECT_IS_GOOGLE (sess->priv->dialect) &&
       !wocky_jingle_session_peer_has_cap (sess, WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT);
 }
@@ -2500,12 +2544,17 @@ wocky_jingle_session_can_modify_contents (WockyJingleSession *sess)
 WockyJingleDialect
 wocky_jingle_session_get_dialect (WockyJingleSession *sess)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess),
+      WOCKY_JINGLE_DIALECT_ERROR);
+
   return sess->priv->dialect;
 }
 
 WockyContact *
 wocky_jingle_session_get_peer_contact (WockyJingleSession *self)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (self), NULL);
+
   return self->priv->peer_contact;
 }
 
@@ -2518,18 +2567,24 @@ wocky_jingle_session_get_peer_contact (WockyJingleSession *self)
 const gchar *
 wocky_jingle_session_get_peer_jid (WockyJingleSession *sess)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), NULL);
+
   return sess->priv->peer_jid;
 }
 
 WockyJingleFactory *
 wocky_jingle_session_get_factory (WockyJingleSession *self)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (self), NULL);
+
   return self->priv->jingle_factory;
 }
 
 WockyPorter *
 wocky_jingle_session_get_porter (WockyJingleSession *self)
 {
+  g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (self), NULL);
+
   return self->priv->porter;
 }
 
@@ -2537,6 +2592,9 @@ void
 wocky_jingle_session_acknowledge_iq (WockyJingleSession *self,
     WockyStanza *stanza)
 {
+  g_return_if_fail (WOCKY_IS_JINGLE_SESSION (self));
+  g_return_if_fail (WOCKY_IS_STANZA (stanza));
+
   if (wocky_jingle_session_peer_has_cap (self, WOCKY_QUIRK_GOOGLE_WEBMAIL_CLIENT))
     {
       WockyJingleAction action = WOCKY_JINGLE_ACTION_UNKNOWN;
