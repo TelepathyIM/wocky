@@ -173,7 +173,7 @@ if test x$prefer_stream_ciphers = xyes; then
     # We do this check here and not earlier to avoid accidentally falling
     # back to openssl because of the use of --enable-prefer-stream-ciphers.
     PKG_CHECK_MODULES(GNUTLS_FOR_STREAM_CIPHERS, [gnutls >= 2.12.0],[],
-      AC_MSG_ERROR([gnutls 2.12.0 is needed to use --enable-prefer-stream-cihpers]))
+      AC_MSG_ERROR([gnutls 2.12.0 is needed to use --enable-prefer-stream-ciphers]))
   fi
 fi
 
