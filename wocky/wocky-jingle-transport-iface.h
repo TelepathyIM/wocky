@@ -97,6 +97,10 @@ gboolean jingle_transport_get_credentials (WockyJingleTransportIface *,
 WockyJingleTransportIface *wocky_jingle_transport_iface_new (
     GType type, WockyJingleContent *content, const gchar *transport_ns);
 
+#define WOCKY_TYPE_JINGLE_CANDIDATE \
+  (wocky_jingle_candidate_get_type ())
+GType wocky_jingle_candidate_get_type (void);
+
 WockyJingleCandidate *wocky_jingle_candidate_new (WockyJingleTransportProtocol protocol,
     WockyJingleCandidateType type, const gchar *id, int component,
     const gchar *address, int port, int generation, int preference,

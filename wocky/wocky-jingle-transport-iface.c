@@ -235,6 +235,10 @@ wocky_jingle_transport_iface_get_type (void)
   return type;
 }
 
+G_DEFINE_BOXED_TYPE (WockyJingleCandidate, wocky_jingle_candidate,
+    wocky_jingle_candidate_copy,
+    wocky_jingle_candidate_free)
+
 WockyJingleCandidate *
 wocky_jingle_candidate_new (WockyJingleTransportProtocol protocol,
     WockyJingleCandidateType type, const gchar *id, int component,
