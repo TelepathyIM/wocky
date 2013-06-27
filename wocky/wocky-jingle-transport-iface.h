@@ -102,6 +102,7 @@ WockyJingleCandidate *wocky_jingle_candidate_new (WockyJingleTransportProtocol p
     const gchar *address, int port, int generation, int preference,
     const gchar *username, const gchar *password, int network);
 
+WockyJingleCandidate *wocky_jingle_candidate_copy (WockyJingleCandidate *c);
 void wocky_jingle_candidate_free (WockyJingleCandidate *c);
 void jingle_transport_free_candidates (GList *candidates);
 

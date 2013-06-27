@@ -258,6 +258,14 @@ wocky_jingle_candidate_new (WockyJingleTransportProtocol protocol,
   return c;
 }
 
+WockyJingleCandidate *
+wocky_jingle_candidate_copy (WockyJingleCandidate *c)
+{
+  return wocky_jingle_candidate_new (c->protocol, c->type, c->id,
+      c->component, c->address, c->port, c->generation, c->preference,
+      c->username, c->password, c->network);
+}
+
 void
 wocky_jingle_candidate_free (WockyJingleCandidate *c)
 {
