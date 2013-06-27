@@ -1921,9 +1921,6 @@ _on_initiate_reply (
           priv->remote_ringing = TRUE;
           g_signal_emit (sess, signals[REMOTE_STATE_CHANGED], 0);
         }
-
-      /* now all initial contents can transmit their candidates */
-      _map_initial_contents (sess, _transmit_candidates, NULL);
     }
   else
     {
@@ -2078,6 +2075,9 @@ try_session_initiate_or_accept (WockyJingleSession *sess)
       msg, NULL, handler, g_object_ref (sess));
   g_object_unref (msg);
   set_state (sess, new_state, 0, NULL);
+
+  /* now all initial contents can transmit their candidates */
+  _map_initial_contents (sess, _transmit_candidates, NULL);
 }
 
 /**
