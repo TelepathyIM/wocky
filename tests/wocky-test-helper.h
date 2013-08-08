@@ -45,6 +45,8 @@ void test_expected_stanza_received (test_data_t *test,
 
 void test_close_both_porters (test_data_t *test);
 
+void test_cancel_in_idle (GCancellable *cancellable);
+
 #define test_assert_nodes_equal(n1, n2) \
   G_STMT_START { \
     if (!wocky_node_equal ((n1), (n2))) \

@@ -1190,7 +1190,7 @@ test_cancel_sent_stanza_cb (WockyPorter *porter,
   test_data_t *test = (test_data_t *) user_data;
   test_expected_stanza_received (test, stanza);
 
-  g_cancellable_cancel (test->cancellable);
+  test_cancel_in_idle (test->cancellable);
   return TRUE;
 }
 
