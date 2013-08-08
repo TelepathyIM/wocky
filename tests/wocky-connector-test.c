@@ -3259,11 +3259,6 @@ client_connected (GIOChannel *channel,
   int csock = accept (ssock, (struct sockaddr *) &client, &clen);
   GSocket *gsock = g_socket_new_from_fd (csock, NULL);
   ConnectorProblem *cproblem = &srv->problem.conn;
-#ifdef G_OS_WIN32
-  u_long mode = 0;
-#else
-  long flags;
-#endif
 
   GSocketConnection *gconn;
 
@@ -3277,14 +3272,6 @@ client_connected (GIOChannel *channel,
   if (!srv->features.tls)
       cproblem->xmpp |= XMPP_PROBLEM_NO_TLS;
 
-#ifdef G_OS_WIN32
-  WSAEventSelect (csock, 0, 0);
-  ioctlsocket (csock, FIONBIO, &mode);
-#else
-  flags = fcntl (csock, F_GETFL );
-  flags = flags & ~O_NONBLOCK;
-  fcntl (csock, F_SETFL, flags);
-#endif
   gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
   g_object_unref (gsock);
 
