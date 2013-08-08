@@ -40,7 +40,6 @@ client_connected (GIOChannel *channel,
   GSocketConnection *gconn;
   pid_t pid = 0;
   TestConnectorServer *server;
-  long flags;
 
   if (csock < 0)
     {
@@ -58,9 +57,6 @@ client_connected (GIOChannel *channel,
     case 0:
       while (g_source_remove_by_user_data (loop));
       g_io_channel_shutdown (channel, TRUE, NULL);
-      flags = fcntl (csock, F_GETFL );
-      flags = flags & ~O_NONBLOCK;
-      fcntl (csock, F_SETFL, flags);
       gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
       server = test_connector_server_new (G_IO_STREAM (gconn),
           NULL, "foo", "bar", "1.0",
