@@ -50,6 +50,7 @@ send_stanza_received_cb (GObject *source, GAsyncResult *res,
   WockyStanza *expected;
 
   s = wocky_xmpp_connection_recv_stanza_finish (connection, res, &error);
+  g_assert_no_error (error);
   g_assert (s != NULL);
 
   expected = g_queue_pop_head (data->expected_stanzas);
@@ -78,8 +79,12 @@ static void
 send_stanza_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  g_assert (wocky_porter_send_finish (
-      WOCKY_PORTER (source), res, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_porter_send_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
@@ -91,12 +96,12 @@ send_stanza_cancelled_cb (GObject *source, GAsyncResult *res,
 {
   test_data_t *data = (test_data_t *) user_data;
   GError *error = NULL;
+  gboolean ok;
 
-  g_assert (!wocky_porter_send_finish (
-      WOCKY_PORTER (source), res, &error));
-  g_assert (error->domain == G_IO_ERROR);
-  g_assert (error->code == G_IO_ERROR_CANCELLED);
+  ok = wocky_porter_send_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
   g_error_free (error);
+  g_assert (!ok);
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
@@ -200,8 +205,12 @@ sched_close_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_porter_close_finish (
-      WOCKY_PORTER (source), res, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_porter_close_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -213,9 +222,13 @@ close_sent_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+  gboolean ok;
 
-  g_assert (wocky_xmpp_connection_send_close_finish (
-    WOCKY_XMPP_CONNECTION (source), res, NULL));
+  ok = wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
+      res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -397,8 +410,12 @@ test_close_sched_close_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_porter_close_finish (
-      WOCKY_PORTER (source), res, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_porter_close_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -573,9 +590,13 @@ test_remote_close_in_close_send_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
+  GError *error = NULL;
+  gboolean ok;
 
-  g_assert (wocky_xmpp_connection_send_close_finish (
-    WOCKY_XMPP_CONNECTION (source), res, NULL));
+  ok = wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
+      res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
@@ -635,10 +656,12 @@ test_close_cancel_force_closed_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
+  gboolean ok;
 
-  wocky_porter_force_close_finish (
+  ok = wocky_porter_force_close_finish (
       WOCKY_PORTER (source), res, &error);
   g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -826,7 +849,7 @@ test_handler_priority_10 (WockyPorter *porter,
 
   wocky_stanza_get_type_info (stanza, NULL, &sub_type);
   /* This handler is supposed to only handle the get stanza */
-  g_assert (sub_type == WOCKY_STANZA_SUB_TYPE_GET);
+  g_assert_cmpint (sub_type, ==, WOCKY_STANZA_SUB_TYPE_GET);
   return TRUE;
 }
 
@@ -1063,7 +1086,7 @@ test_handler_stanza_terminate_cb (WockyPorter *porter,
   test_expected_stanza_received (test, stanza);
   id = wocky_node_get_attribute (wocky_stanza_get_top_node (stanza),
       "id");
-  g_assert (!wocky_strdiff (id, "5"));
+  g_assert_cmpstr (id, ==, "5");
   return TRUE;
 }
 
@@ -1200,10 +1223,13 @@ test_cancel_sent_stanza_cancelled (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
+  GError *error = NULL;
+  gboolean ok;
 
   /* Stanza has already be sent to _finish success */
-  g_assert (wocky_porter_send_finish (
-      WOCKY_PORTER (source), res, NULL));
+  ok = wocky_porter_send_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -1289,8 +1315,12 @@ test_send_iq_sent_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *data = (test_data_t *) user_data;
-  g_assert (wocky_porter_send_finish (
-      WOCKY_PORTER (source), res, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_porter_send_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   data->outstanding--;
   g_main_loop_quit (data->loop);
@@ -1407,9 +1437,11 @@ test_send_iq_reply_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   WockyStanza *reply;
+  GError *error = NULL;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source),
-      res, NULL);
+      res, &error);
+  g_assert_no_error (error);
   g_assert (reply != NULL);
 
   test_expected_stanza_received (test, reply);
@@ -2076,7 +2108,7 @@ test_handler_filter_from_juliet_cb (WockyPorter *porter,
   const gchar *from;
 
   from = wocky_stanza_get_from (stanza);
-  g_assert (!wocky_strdiff (from, "juliet@example.com"));
+  g_assert_cmpstr (from, ==, "juliet@example.com");
 
   test_expected_stanza_received (test, stanza);
   return TRUE;
@@ -2311,8 +2343,12 @@ test_unref_when_closed_cb (GObject *source,
     gpointer user_data)
 {
   test_data_t *test = (test_data_t *) user_data;
-  g_assert (wocky_porter_close_finish (
-      WOCKY_PORTER (source), res, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_porter_close_finish (WOCKY_PORTER (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   /* Porter has been closed, unref it */
   g_object_unref (test->session_in);
@@ -2492,10 +2528,11 @@ test_stream_error_force_close_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
+  gboolean ok;
 
-  wocky_porter_force_close_finish (
-      WOCKY_PORTER (source), res, &error);
+  ok = wocky_porter_force_close_finish (WOCKY_PORTER (source), res, &error);
   g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -2595,10 +2632,11 @@ test_close_force_force_closed_cb (GObject *source,
 {
   test_data_t *test = (test_data_t *) user_data;
   GError *error = NULL;
+  gboolean ok;
 
-  wocky_porter_force_close_finish (
-      WOCKY_PORTER (source), res, &error);
+  ok = wocky_porter_force_close_finish (WOCKY_PORTER (source), res, &error);
   g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -3278,9 +3316,11 @@ sent_second_or_third_stanza_cb (
 {
   test_data_t *test = user_data;
   GError *error = NULL;
+  gboolean ok;
 
-  wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
+  ok = wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
   g_assert_no_error (error);
+  g_assert (ok);
 
   test->outstanding--;
   g_main_loop_quit (test->loop);
@@ -3295,9 +3335,11 @@ sent_first_stanza_cb (
   test_data_t *test = user_data;
   WockyStanza *third_stanza;
   GError *error = NULL;
+  gboolean ok;
 
-  wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
+  ok = wocky_porter_send_finish (WOCKY_PORTER (source), result, &error);
   g_assert_no_error (error);
+  g_assert (ok);
 
   third_stanza = wocky_stanza_build (WOCKY_STANZA_TYPE_MESSAGE,
       WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,

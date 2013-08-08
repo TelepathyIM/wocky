@@ -195,9 +195,13 @@ features_sent (GObject *source,
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (user_data);
   TestSaslAuthServerPrivate *priv = self->priv;
+  gboolean ok;
+  GError *error = NULL;
 
-  g_assert (wocky_xmpp_connection_send_stanza_finish (
-    WOCKY_XMPP_CONNECTION (source), res, NULL));
+  ok = wocky_xmpp_connection_send_stanza_finish (
+    WOCKY_XMPP_CONNECTION (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
     priv->cancellable, received_stanza, user_data);
@@ -212,9 +216,13 @@ stream_open_sent (GObject *source,
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
   TestSaslAuthServerPrivate * priv = self->priv;
   WockyStanza *stanza;
+  gboolean ok;
+  GError *error = NULL;
 
-  g_assert (wocky_xmpp_connection_send_open_finish (
-    WOCKY_XMPP_CONNECTION (source), res, NULL));
+  ok = wocky_xmpp_connection_send_open_finish (
+    WOCKY_XMPP_CONNECTION (source), res, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   /* Send stream features */
   stanza = wocky_stanza_new ("features", WOCKY_XMPP_NS_STREAM);
@@ -233,11 +241,15 @@ stream_open_received (GObject *source,
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
   TestSaslAuthServerPrivate * priv = self->priv;
+  GError *error = NULL;
+  gboolean ok;
 
-  g_assert (wocky_xmpp_connection_recv_open_finish (
+  ok = wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), res,
     NULL, NULL, NULL, NULL, NULL,
-    NULL));
+    &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   wocky_xmpp_connection_send_open_async (priv->conn,
     NULL, "testserver", "1.0", NULL, "0-HA2",
@@ -249,8 +261,13 @@ post_auth_close_sent (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  g_assert (wocky_xmpp_connection_send_close_finish (
-      WOCKY_XMPP_CONNECTION (source), result, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_xmpp_connection_send_close_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 }
 
 static void
@@ -308,8 +325,13 @@ post_auth_features_sent (GObject *source,
 {
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER(user_data);
   TestSaslAuthServerPrivate * priv = self->priv;
-  g_assert (wocky_xmpp_connection_send_stanza_finish (
-    WOCKY_XMPP_CONNECTION (source), result, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_xmpp_connection_send_stanza_finish (
+    WOCKY_XMPP_CONNECTION (source), result, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   wocky_xmpp_connection_recv_stanza_async (WOCKY_XMPP_CONNECTION (source),
       priv->cancellable, post_auth_recv_stanza, user_data);
@@ -322,8 +344,13 @@ post_auth_open_sent (GObject *source,
 {
   TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
   TestSaslAuthServerPrivate *priv = tsas->priv;
-  g_assert (wocky_xmpp_connection_send_open_finish (
-    WOCKY_XMPP_CONNECTION (source), result, NULL));
+  gboolean ok;
+  GError *error = NULL;
+
+  ok = wocky_xmpp_connection_send_open_finish (
+    WOCKY_XMPP_CONNECTION (source), result, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   /* if our caller wanted control back, hand it back here: */
   if (priv->result != NULL)
@@ -354,10 +381,15 @@ post_auth_open_received (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  g_assert (wocky_xmpp_connection_recv_open_finish (
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_xmpp_connection_recv_open_finish (
     WOCKY_XMPP_CONNECTION (source), result,
     NULL, NULL, NULL, NULL, NULL,
-    user_data));
+    &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   wocky_xmpp_connection_send_open_async ( WOCKY_XMPP_CONNECTION (source),
     NULL, "testserver", "1.0", NULL, "0-HA1",
@@ -369,8 +401,13 @@ success_sent (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  g_assert (wocky_xmpp_connection_send_stanza_finish (
-      WOCKY_XMPP_CONNECTION (source), result, NULL));
+  GError *error = NULL;
+  gboolean ok;
+
+  ok = wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   wocky_xmpp_connection_reset (WOCKY_XMPP_CONNECTION (source));
 
@@ -384,7 +421,7 @@ auth_succeeded (TestSaslAuthServer *self, const gchar *challenge)
   TestSaslAuthServerPrivate *priv = self->priv;
   WockyStanza *s;
 
-  g_assert (priv->state < AUTH_STATE_AUTHENTICATED);
+  g_assert_cmpint (priv->state, <, AUTH_STATE_AUTHENTICATED);
   priv->state = AUTH_STATE_AUTHENTICATED;
 
   s = wocky_stanza_new ("success", WOCKY_XMPP_NS_SASL_AUTH);
@@ -404,10 +441,14 @@ failure_sent (GObject *source,
   TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
   TestSaslAuthServerPrivate *priv = tsas->priv;
   GSimpleAsyncResult *r = priv->result;
+  GError *error = NULL;
+  gboolean ok;
 
   priv->result = NULL;
-  g_assert (wocky_xmpp_connection_send_stanza_finish (
-      WOCKY_XMPP_CONNECTION (source), result, NULL));
+  ok = wocky_xmpp_connection_send_stanza_finish (
+      WOCKY_XMPP_CONNECTION (source), result, &error);
+  g_assert_no_error (error);
+  g_assert (ok);
 
   if (r != NULL)
     {
@@ -426,7 +467,7 @@ not_authorized (TestSaslAuthServer *self)
   TestSaslAuthServerPrivate *priv = self->priv;
   WockyStanza *s;
 
-  g_assert (priv->state < AUTH_STATE_AUTHENTICATED);
+  g_assert_cmpint (priv->state, <, AUTH_STATE_AUTHENTICATED);
   priv->state = AUTH_STATE_AUTHENTICATED;
 
   s = wocky_stanza_build (WOCKY_STANZA_TYPE_FAILURE,
@@ -450,12 +491,12 @@ check_sasl_return (TestSaslAuthServer *self, int ret)
     {
       case SASL_BADAUTH:
         /* Bad password provided */
-        g_assert (priv->problem == SERVER_PROBLEM_INVALID_PASSWORD);
+        g_assert_cmpint (priv->problem, ==, SERVER_PROBLEM_INVALID_PASSWORD);
         not_authorized (self);
         return FALSE;
       case SASL_NOUSER:
         /* Unknown user */
-        g_assert (priv->problem == SERVER_PROBLEM_INVALID_USERNAME);
+        g_assert_cmpint (priv->problem, ==, SERVER_PROBLEM_INVALID_USERNAME);
         not_authorized (self);
         return FALSE;
       default:
@@ -623,7 +664,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
           &response_len);
     }
 
-  g_assert (priv->state == AUTH_STATE_STARTED);
+  g_assert_cmpint (priv->state, ==, AUTH_STATE_STARTED);
   gjdd = wocky_node_get_attribute_ns (auth,
       "client-uses-full-bind-result", WOCKY_GOOGLE_NS_AUTH);
   switch (priv->problem)
@@ -664,7 +705,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
 #else
       challenge = "";
       challenge_len = 0;
-      g_assert (!wocky_strdiff ("PLAIN", priv->selected_mech));
+      g_assert_cmpstr ("PLAIN", ==, priv->selected_mech);
       /* response format: ^@ u s e r ^@ p a s s    */
       /* require at least 1 char user and password */
       if (response_len >= 4)
@@ -751,7 +792,7 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
       return;
     }
 
-  g_assert (priv->state == AUTH_STATE_CHALLENGE);
+  g_assert_cmpint (priv->state, ==, AUTH_STATE_CHALLENGE);
 
   if (wocky_stanza_get_top_node (stanza)->content != NULL)
     {
