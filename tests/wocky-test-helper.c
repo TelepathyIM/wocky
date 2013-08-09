@@ -305,3 +305,19 @@ test_deinit (void)
 {
   wocky_deinit ();
 }
+
+static gboolean
+cancel_in_idle_cb (gpointer cancellable)
+{
+  g_cancellable_cancel (cancellable);
+  return FALSE;
+}
+
+void
+test_cancel_in_idle (GCancellable *cancellable)
+{
+  g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+      cancel_in_idle_cb,
+      g_object_ref (cancellable),
+      g_object_unref);
+}

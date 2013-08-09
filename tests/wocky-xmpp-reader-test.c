@@ -94,12 +94,17 @@
 "    <body>" WHITESPACE_ONLY_BODY "</body>" \
 "  </message>"
 
-#define NON_CHARACTER_CODEPOINTS_REPLACEMENT "�🙈�"
+#define U_FDEF "\xe7\xb7\xaf"     /* a non-character */
+#define REPLACE "\xef\xbf\xbd"    /* U+FFFD REPLACEMENT CHARACTER */
+#define MONKEY "\xf0\x9f\x99\x88" /* U+1F648 SEE-NO-EVIL MONKEY */
+
+#define NON_CHARACTER_CODEPOINTS U_FDEF MONKEY U_FDEF
+#define NON_CHARACTER_CODEPOINTS_REPLACEMENT REPLACE MONKEY REPLACE
 
 #define MESSAGE_WITH_NON_CHARACTER_CODEPOINTS \
 "  <message to='morse@thamesvalley.police.uk' " \
 "           from='lewis@thamesvalley.police.uk'> " \
-"    <body>\xef\xb7\xaf🙈\xef\xb7\xaf</body>" \
+"    <body>" NON_CHARACTER_CODEPOINTS "</body>" \
 "  </message>"
 
 
@@ -336,9 +341,10 @@ test_invalid_namespace (void)
 
 /* Helper function for the whitespace body tests */
 static void
-test_body (
+test_body_with_alternative (
     const gchar *xml,
-    const gchar *expected_body_text)
+    const gchar *expected_body_text,
+    const gchar *alt_body_text)
 {
   WockyXmppReader *reader = wocky_xmpp_reader_new_no_stream ();
   WockyStanza *stanza;
@@ -353,10 +359,30 @@ test_body (
   g_assert (body != NULL);
 
   g_assert (g_utf8_validate (body->content, -1, NULL));
-  g_assert_cmpstr (body->content, ==, expected_body_text);
+
+  if (alt_body_text == NULL)
+    {
+      g_assert_cmpstr (body->content, ==, expected_body_text);
+    }
+  else
+    {
+      if (wocky_strdiff (body->content, expected_body_text) &&
+          wocky_strdiff (body->content, alt_body_text))
+        {
+          g_error ("Body text «%s» was neither «%s» nor «%s»",
+              body->content, expected_body_text, alt_body_text);
+        }
+    }
 
   g_object_unref (stanza);
   g_object_unref (reader);
+}
+
+static void
+test_body (const gchar *xml,
+    const gchar *exp)
+{
+  test_body_with_alternative (xml, exp, NULL);
 }
 
 /* Test that whitespace around the text contents of a message isn't ignored */
@@ -373,11 +399,14 @@ test_whitespace_only (void)
   test_body (MESSAGE_WITH_WHITESPACE_ONLY_BODY, WHITESPACE_ONLY_BODY);
 }
 
-/* Test that a message body consisting entirely of whitespace isn't ignored */
+/* Test that a message body containing non-character codepoints is
+ * handled "appropriately". Older GLib replaces them with U+FFFD,
+ * newer GLib keeps them as-is. */
 static void
 test_non_character_codepoints (void)
 {
-  test_body (MESSAGE_WITH_NON_CHARACTER_CODEPOINTS,
+  test_body_with_alternative (MESSAGE_WITH_NON_CHARACTER_CODEPOINTS,
+    NON_CHARACTER_CODEPOINTS,
     NON_CHARACTER_CODEPOINTS_REPLACEMENT);
 }
 

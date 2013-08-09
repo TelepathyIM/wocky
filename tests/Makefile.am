@@ -125,6 +125,8 @@ wocky_data_form_test_SOURCES = \
 wocky_dummy_xmpp_server_DEPENDENCIES = $(LIBWOCKY)
 wocky_dummy_xmpp_server_SOURCES = wocky-dummy-xmpp-server.c \
    wocky-test-connector-server.c wocky-test-connector-server.h \
+   wocky-test-helper.c wocky-test-helper.h \
+   wocky-test-stream.c wocky-test-stream.h \
    wocky-test-sasl-auth-server.c wocky-test-sasl-auth-server.h
 wocky_dummy_xmpp_server_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_dummy_xmpp_server_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
