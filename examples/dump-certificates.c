@@ -160,11 +160,11 @@ main (int argc,
     }
 
   jid = argv[1];
-  
+
   if (argc == 4)
     {
       server = argv[2];
-      port = atoi(argv[3]);
+      port = atoi (argv[3]);
     }
 
   /* This example doesn't use your real password because it does not actually
