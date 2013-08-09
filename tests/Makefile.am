@@ -352,5 +352,8 @@ EXTRA_DIST = $(SUPPRESSIONS)     \
 	$(wildcard $(srcdir)/certs/*.cfg)      \
 	$(wildcard $(srcdir)/certs/*.pem)      \
 	$(wildcard $(srcdir)/certs/cas/*.pem)  \
-	$(wildcard $(srcdir)/certs/cas/*.0)
+	$(wildcard $(srcdir)/certs/cas/*.0)    \
+	$(wildcard $(srcdir)/certs/crl/*.pem)  \
+	$(wildcard $(srcdir)/certs/crl/*.r0)   \
+	$(NULL)
 
