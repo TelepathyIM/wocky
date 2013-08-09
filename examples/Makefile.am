@@ -12,21 +12,16 @@ EXAMPLES += wocky-unregister
 INCLUDES := -I$(top_builddir)/wocky
 
 wocky_dump_certificates_SOURCES = dump-certificates.c
-wocky_dump_certificates_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 wocky_dump_certificates_CFLAGS = $(TLS_CFLAGS) $(AM_CFLAGS)
 wocky_dump_certificates_LDADD = $(TLS_LIBS) $(LDADD)
 
 wocky_send_message_SOURCES = send-message.c
-wocky_send_message_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 
 wocky_receive_messages_SOURCES = receive-messages.c
-wocky_receive_messages_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 
 wocky_register_SOURCES = register.c
-wocky_register_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 
 wocky_unregister_SOURCES = unregister.c
-wocky_unregister_DEPENDENCIES = $(top_builddir)/wocky/libwocky.la
 
 
 LDADD = \

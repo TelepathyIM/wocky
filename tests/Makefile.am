@@ -23,7 +23,6 @@ CA_DIR   := $(CERT_DIR)/cas
 CRL_DIR  := $(CERT_DIR)/crl
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
-LIBWOCKY := $(top_builddir)/wocky/libwocky.la
 INCLUDES := -I$(top_builddir)/wocky
 TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CA_CRT_FILE='"$(CA_CERT)"'     \
@@ -85,18 +84,16 @@ if HAVE_GIO_PROXY
   TEST_PROGS += wocky-http-proxy-test
 endif
 
-wocky_bare_contact_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_bare_contact_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-bare-contact-test.c
 
-wocky_caps_hash_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_caps_hash_test_SOURCES = wocky-caps-hash-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_connector_test_DEPENDENCIES = $(CA_DIR) certs $(LIBWOCKY)
+EXTRA_wocky_connector_test_DEPENDENCIES = $(CA_DIR) certs
 wocky_connector_test_SOURCES = \
    wocky-connector-test.c \
    wocky-test-sasl-auth-server.c \
@@ -110,19 +107,16 @@ wocky_connector_test_SOURCES = \
 wocky_connector_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_connector_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
 
-wocky_contact_factory_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_contact_factory_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-contact-factory-test.c
 
-wocky_data_form_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_data_form_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-data-form-test.c
 
-wocky_dummy_xmpp_server_DEPENDENCIES = $(LIBWOCKY)
 wocky_dummy_xmpp_server_SOURCES = wocky-dummy-xmpp-server.c \
    wocky-test-connector-server.c wocky-test-connector-server.h \
    wocky-test-helper.c wocky-test-helper.h \
@@ -131,94 +125,78 @@ wocky_dummy_xmpp_server_SOURCES = wocky-dummy-xmpp-server.c \
 wocky_dummy_xmpp_server_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_dummy_xmpp_server_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
 
-wocky_http_proxy_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_http_proxy_test_SOURCES = wocky-http-proxy-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_jid_validation_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_jid_validation_test_SOURCES = \
   wocky-jid-validation-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_loopback_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_loopback_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-loopback-test.c
 
-wocky_node_tree_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_node_tree_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-node-tree-test.c
 
-wocky_pep_service_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_pep_service_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-pep-service-test.c
 
-wocky_ping_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_ping_test_SOURCES = \
   wocky-ping-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_porter_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_porter_test_SOURCES = \
   wocky-porter-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_pubsub_node_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_pubsub_node_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-pubsub-test-helpers.c wocky-pubsub-test-helpers.h \
   wocky-pubsub-node-test.c
 
-wocky_pubsub_service_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_pubsub_service_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-pubsub-test-helpers.c wocky-pubsub-test-helpers.h \
   wocky-pubsub-service-test.c
 
-wocky_resource_contact_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_resource_contact_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-resource-contact-test.c
 
-wocky_roster_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_roster_test_SOURCES = \
   wocky-roster-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_sasl_utils_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_sasl_utils_test_SOURCES = wocky-sasl-utils-test.c
 
-wocky_scram_sha1_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_scram_sha1_test_SOURCES = wocky-scram-sha1-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_session_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_session_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-session-test.c
 
-wocky_stanza_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_stanza_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-stanza-test.c
 
-wocky_test_sasl_auth_DEPENDENCIES = $(LIBWOCKY)
 wocky_test_sasl_auth_SOURCES = \
    wocky-test-helper.c wocky-test-helper.h \
    wocky-test-sasl-auth.c \
@@ -231,35 +209,29 @@ wocky_test_sasl_auth_SOURCES = \
 wocky_test_sasl_auth_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_test_sasl_auth_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@
 
-wocky_tls_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_tls_test_SOURCES = \
   wocky-tls-test.c        \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 wocky_tls_test_CFLAGS = $(AM_CFLAGS) $(TLSDEFS)
 
-wocky_utils_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_utils_test_SOURCES = wocky-utils-test.c
 
-wocky_xmpp_connection_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_connection_test_SOURCES = \
   wocky-xmpp-connection-test.c \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h
 
-wocky_xmpp_node_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_node_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-node-test.c
 
-wocky_xmpp_reader_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_reader_test_SOURCES = \
   wocky-test-helper.c wocky-test-helper.h \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-xmpp-reader-test.c
 
-wocky_xmpp_readwrite_test_DEPENDENCIES = $(LIBWOCKY)
 wocky_xmpp_readwrite_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h \
   wocky-test-helper.c wocky-test-helper.h \
