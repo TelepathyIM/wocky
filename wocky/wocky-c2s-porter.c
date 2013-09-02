@@ -859,6 +859,16 @@ check_spoofing (WockyC2SPorter *self,
         goto finally;
     }
 
+  /* If we sent an IQ to the server itself, allow it to
+   * omit 'from' in its reply, which is normally used
+   * for messages from the server on behalf of our own
+   * account (as of 2013-09-02, the Facebook beta server
+   * does this). See fd.o #68829 */
+
+  if (from == NULL && !wocky_strdiff (should_be_from, self->priv->domain)) {
+      goto finally;
+  }
+
   /* if we sent an IQ to our full or bare JID, allow our server to omit 'to'
    * in the reply (Prosody 0.6.1 does this with the resulting error if we
    * send disco#info to our own bare JID), or to use our full JID. */
