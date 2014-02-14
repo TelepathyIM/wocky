@@ -485,6 +485,8 @@ send_gtalk4_transport_accept (gpointer user_data)
 
   wocky_jingle_session_send (c->session, msg);
 
+  priv->gtalk4_event_id = 0;
+
   return FALSE;
 }
 
