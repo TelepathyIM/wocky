@@ -90,10 +90,12 @@ struct _WockyDataFormFieldOption
  * @default_value: the default of the field
  * @raw_value_contents: a %NULL-terminated array holding the literal value(s) as
  *  specified in the original XML. For example, this might be something like
- *  <code language="c">{ "1", NULL }</code> or <code language="c">{ "false",
- *  NULL }</code> for a #WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN field, or
- *  <code language="c">{ "hi", "there", NULL }</code> for a
- *  #WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI field.
+ *  <code language="c">{ "1", NULL }</code>
+ *  or
+ *  <code language="c">{ "false", NULL }</code>
+ *  for a #WOCKY_DATA_FORM_FIELD_TYPE_BOOLEAN field, or
+ *  <code language="c">{ "hi", "there", NULL }</code>
+ *  for a #WOCKY_DATA_FORM_FIELD_TYPE_TEXT_MULTI field.
  * @value: the field value
  * @options: a #GSList of #WockyDataFormFieldOption<!-- -->s if @type
  *   if %WOCKY_DATA_FORM_FIELD_TYPE_LIST_MULTI or
