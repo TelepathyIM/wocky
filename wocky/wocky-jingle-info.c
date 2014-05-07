@@ -274,7 +274,6 @@ stun_server_resolved_cb (GObject *resolver,
 {
   PendingStunServer *data = user_data;
   WockyJingleInfo *self = data->factory;
-  WockyJingleInfoPrivate *priv = self->priv;
   GError *e = NULL;
   WockyStunServer *stun_server;
   gchar *address;
@@ -311,13 +310,13 @@ stun_server_resolved_cb (GObject *resolver,
 
   if (data->source == WOCKY_STUN_SERVER_FALLBACK)
     {
-      wocky_stun_server_free (priv->fallback_stun_server);
-      priv->fallback_stun_server = stun_server;
+      wocky_stun_server_free (self->priv->fallback_stun_server);
+      self->priv->fallback_stun_server = stun_server;
     }
   else
     {
-      wocky_stun_server_free (priv->stun_server);
-      priv->stun_server = stun_server;
+      wocky_stun_server_free (self->priv->stun_server);
+      self->priv->stun_server = stun_server;
 
       g_signal_emit (self, signals[STUN_SERVER_CHANGED], 0,
           stun_server, data->stun_port);
