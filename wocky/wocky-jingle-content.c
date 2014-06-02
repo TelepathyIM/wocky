@@ -519,9 +519,7 @@ wocky_jingle_content_parse_add (WockyJingleContent *c,
       /* the google protocols don't give the contents names, so put in a dummy
        * value if none was set by the session*/
       if (priv->name == NULL)
-        name = priv->name = g_strdup ("gtalk");
-      else
-        name = priv->name;
+        priv->name = g_strdup ("gtalk");
 
       if (trans_node == NULL)
         {
