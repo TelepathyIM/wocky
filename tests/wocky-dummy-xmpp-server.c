@@ -100,5 +100,5 @@ main (int argc,
   g_io_add_watch (channel, G_IO_ERR|G_IO_NVAL, server_quit, loop);
 
   g_main_loop_run (loop);
+  return 0;
 }
-
