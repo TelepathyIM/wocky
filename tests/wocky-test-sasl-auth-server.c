@@ -885,7 +885,7 @@ received_stanza (GObject *source,
   struct {
     const gchar *name;
     void (*func)(TestSaslAuthServer *self, WockyStanza *stanza);
-  } handlers[] = { HANDLE(auth), HANDLE(response) };
+  } handlers[] = { HANDLE(auth), HANDLE(response), { NULL, NULL } };
 
   stanza = wocky_xmpp_connection_recv_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), result, &error);
