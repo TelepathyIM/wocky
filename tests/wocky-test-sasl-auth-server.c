@@ -523,7 +523,7 @@ enum
 static gchar * space_challenge (const gchar *challenge, unsigned *len)
 {
   GString *spaced = g_string_new_len (challenge, (gssize) *len);
-  gchar *c = spaced->str;
+  gchar *c;
   gchar q = '\0';
   gsize pos;
   gulong state = BEFORE_KEY;
@@ -591,7 +591,7 @@ static gchar * space_challenge (const gchar *challenge, unsigned *len)
 static gchar * slash_challenge (const gchar *challenge, unsigned *len)
 {
   GString *slashed = g_string_new_len (challenge, (gssize) *len);
-  gchar *c = slashed->str;
+  gchar *c;
   gchar q = '\0';
   gsize pos;
   gulong state = BEFORE_KEY;
