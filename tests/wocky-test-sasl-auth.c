@@ -270,6 +270,7 @@ main (int argc,
     char **argv)
 {
   int result;
+  guint i;
   test_t tests[] = {
     SUCCESS("/xmpp-sasl/normal-auth", NULL, TRUE),
     SUCCESS("/xmpp-sasl/no-plain", NULL, FALSE),
@@ -335,7 +336,7 @@ main (int argc,
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
-  for (guint i = 0; i < G_N_ELEMENTS (tests); i++)
+  for (i = 0; i < G_N_ELEMENTS (tests); i++)
     g_test_add_data_func (tests[i].description,
         &tests[i], run_test);
 

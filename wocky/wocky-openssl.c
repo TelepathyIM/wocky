@@ -1013,6 +1013,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
   STACK_OF(X509) *cert_chain = NULL;
   guint cls = 0;
   GPtrArray *certificates;
+  guint i;
 
   certificates =
     g_ptr_array_new_with_free_func ((GDestroyNotify) g_array_unref);
@@ -1027,7 +1028,7 @@ wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
 
   cls = sk_X509_num (cert_chain);
 
-  for (guint i = 0; i < cls; i++)
+  for (i = 0; i < cls; i++)
     {
       GArray *certificate;
       X509 *peer;
