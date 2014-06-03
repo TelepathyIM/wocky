@@ -1538,19 +1538,28 @@ static HandlerFunc handlers[] = {
   on_info
 };
 
-static void
+static gboolean
 wocky_jingle_state_machine_dance (WockyJingleSession *sess,
     WockyJingleAction action,
     WockyNode *node,
     GError **error)
 {
   WockyJingleSessionPrivate *priv = sess->priv;
+  GError *e = NULL;
 
   /* parser should've checked this already */
   g_assert (action_is_allowed (action, priv->state));
   g_assert (handlers[action] != NULL);
 
-  handlers[action] (sess, node, error);
+  handlers[action] (sess, node, &e);
+
+  if (e != NULL)
+    {
+      g_propagate_error (error, e);
+      return FALSE;
+    }
+
+  return TRUE;
 }
 
 static WockyJingleDialect
@@ -1671,7 +1680,6 @@ wocky_jingle_session_parse (
   WockyJingleSessionPrivate *priv;
   WockyNode *iq_node, *session_node;
   const gchar *from, *action_name;
-  GError *e = NULL;
 
   g_return_val_if_fail (WOCKY_IS_JINGLE_SESSION (sess), FALSE);
   g_return_val_if_fail (WOCKY_IS_STANZA (stanza), FALSE);
@@ -1735,15 +1743,7 @@ wocky_jingle_session_parse (
       return FALSE;
     }
 
-  wocky_jingle_state_machine_dance (sess, action, session_node, &e);
-
-  if (e != NULL)
-    {
-      g_propagate_error (error, e);
-      return FALSE;
-    }
-
-  return TRUE;
+  return wocky_jingle_state_machine_dance (sess, action, session_node, error);
 }
 
 WockyStanza *
