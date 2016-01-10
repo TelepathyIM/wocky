@@ -3587,7 +3587,7 @@ main (int argc, char **argv)
   g_test_add_func ("/xmpp-porter/unregister-handler",
       test_unregister_handler);
   g_test_add_func ("/xmpp-porter/handler-bare-jid", test_handler_bare_jid);
-  g_test_add_func ("/xmpp-porter/handler-bare-jid", test_handler_full_jid);
+  g_test_add_func ("/xmpp-porter/handler-full-jid", test_handler_full_jid);
   g_test_add_func ("/xmpp-porter/handler-stanza", test_handler_stanza);
   g_test_add_func ("/xmpp-porter/cancel-sent-stanza",
       test_cancel_sent_stanza);
