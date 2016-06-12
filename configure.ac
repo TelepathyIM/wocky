@@ -259,7 +259,7 @@ if test x$enable_google_relay = xyes; then
   AC_DEFINE(ENABLE_GOOGLE_RELAY, [], [Enable Google Jingle relay support])
 
   dnl Check for libsoup
-  PKG_CHECK_MODULES(SOUP, libsoup-2.4)
+  PKG_CHECK_MODULES(SOUP, libsoup-2.4 >= 2.42)
 fi
 AM_CONDITIONAL([ENABLE_GOOGLE_RELAY], [test "x$enable_google_relay" = xyes])
 

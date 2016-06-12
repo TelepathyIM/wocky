@@ -243,7 +243,7 @@ wocky_google_relay_resolver_new (void)
 
 #ifdef ENABLE_GOOGLE_RELAY
 
-  resolver->soup = soup_session_async_new ();
+  resolver->soup = soup_session_new ();
 
   /* If we don't get answer in a few seconds, relay won't do
    * us much help anyways. */
