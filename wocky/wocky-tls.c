@@ -223,7 +223,7 @@ struct _WockyTLSSession
 
   gnutls_session_t session;
 
-  gnutls_certificate_credentials gnutls_cert_cred;
+  gnutls_certificate_credentials_t gnutls_cert_cred;
 };
 
 typedef struct
