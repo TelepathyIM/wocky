@@ -83,8 +83,6 @@ main (int argc,
 
   memset (&server, 0, sizeof (server));
 
-  g_type_init ();
-
   loop = g_main_loop_new (NULL, FALSE);
 
   server.sin_family = AF_INET;

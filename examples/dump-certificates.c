@@ -147,7 +147,6 @@ main (int argc,
   WockyConnector *connector;
   WockyTLSHandler *handler;
 
-  g_type_init ();
   wocky_init ();
 
   if (argc != 2)

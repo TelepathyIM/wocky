@@ -50,8 +50,6 @@ main (int argc,
   gchar *email = NULL;
   WockyConnector *wcon = NULL;
 
-  g_type_init ();
-
   if ((argc < 4) || (argc > 5))
     {
       printf ("Usage: %s <jid> <password> <email> [host]\n", argv[0]);

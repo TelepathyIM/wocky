@@ -47,8 +47,6 @@ main (int argc,
   gchar *pass = NULL;
   WockyConnector *wcon = NULL;
 
-  g_type_init ();
-
   if ((argc < 3) || (argc > 4))
     {
       printf ("Usage: %s <jid> <password> [host]\n", argv[0]);

@@ -125,7 +125,6 @@ main (int argc,
   WockyTLSHandler *tls_handler = NULL;
   WockyConnector *connector;
 
-  g_type_init ();
   wocky_init ();
 
   context = g_option_context_new ("<jid> <password> <receipient> <message> - signs in as <jid> and sends <message> to <recipient>");
