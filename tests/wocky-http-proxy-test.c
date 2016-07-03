@@ -9,13 +9,6 @@
 
 #include <wocky/wocky.h>
 
-/* WockyHttpProxy isn't public API, so we need to be a bit sneaky to get the
- * header.
- */
-#define WOCKY_COMPILATION
-#include <wocky/wocky-http-proxy.h>
-#undef WOCKY_COMPILATION
-
 typedef enum
 {
   DOMAIN_NONE = 0,
@@ -164,7 +157,6 @@ test_http_proxy_instantiation (void)
 
   proxy = g_proxy_get_default_for_protocol ("http");
   g_assert (G_IS_PROXY (proxy));
-  g_assert (WOCKY_IS_HTTP_PROXY (proxy));
   g_object_unref (proxy);
 }
 
@@ -223,6 +215,11 @@ server_thread (gpointer user_data)
           g_free (cred);
 
           received_cred = buffer + 20;
+          while (*received_cred == ' ')
+            received_cred++;
+
+          g_assert (str_has_prefix_case (received_cred, "Basic"));
+          received_cred += 5;
           while (*received_cred == ' ')
             received_cred++;
 
@@ -376,8 +373,6 @@ int main (int argc,
   guint i;
 
   test_init (argc, argv);
-
-  _wocky_http_proxy_get_type ();
 
   g_test_add_func ("/http-proxy/instantiation",
       test_http_proxy_instantiation);

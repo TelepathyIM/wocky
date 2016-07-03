@@ -127,14 +127,6 @@ AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [GLIB_VERSION_2_32], [Prevent post 2.32 AP
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
-dnl Check GIO proxy support
-PKG_CHECK_EXISTS([gio-2.0 >= 2.25.15],
-  [HAVE_GIO_PROXY=yes
-   AC_DEFINE(HAVE_GIO_PROXY, [1], [Defined if GIO supports proxy])],
-  [HAVE_GIO_PROXY=no])
-AM_CONDITIONAL(HAVE_GIO_PROXY, [test "x${HAVE_GIO_PROXY}" = "xyes"])
-
-
 dnl Choose an SSL/TLS backend (default gnutls)
 AC_ARG_WITH([tls],
   AC_HELP_STRING([--with-tls=BACKEND],

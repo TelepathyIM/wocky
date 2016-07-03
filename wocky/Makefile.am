@@ -46,10 +46,6 @@ OPENSSL_SRC = \
 
 GNUTLS_SRC = wocky-tls.c
 
-PROXY_SRC = \
-  wocky-http-proxy.h \
-  wocky-http-proxy.c
-
 handwritten_headers = \
   wocky.h \
   wocky-auth-handler.h \
@@ -187,12 +183,6 @@ if USING_OPENSSL
 else
   handwritten_sources += $(GNUTLS_SRC)
   EXTRA_DIST += $(OPENSSL_SRC)
-endif
-
-if HAVE_GIO_PROXY
-  handwritten_sources += $(PROXY_SRC)
-else
-  EXTRA_DIST += $(PROXY_SRC)
 endif
 
 libwocky_la_SOURCES = $(handwritten_sources) $(built_sources) \

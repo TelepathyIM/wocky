@@ -101,7 +101,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_CONNECTOR
 #include "wocky-debug-internal.h"
 
-#include "wocky-http-proxy.h"
 #include "wocky-sasl-auth.h"
 #include "wocky-tls-handler.h"
 #include "wocky-tls-connector.h"
@@ -580,11 +579,6 @@ wocky_connector_class_init (WockyConnectorClass *klass)
   oclass->dispose      = wocky_connector_dispose;
   oclass->finalize     = wocky_connector_finalize;
 
-#if HAVE_GIO_PROXY
-  /* Ensure that HTTP Proxy extension is registered */
-  _wocky_http_proxy_get_type ();
-#endif
-
   /**
    * WockyConnector:plaintext-auth-allowed:
    *
@@ -837,37 +831,29 @@ connect_to_host_async (WockyConnector *connector,
     guint default_port)
 {
   WockyConnectorPrivate *priv = connector->priv;
+  const gchar *uri_format = "%s://%s";
+  gchar *uri;
 
-#if HAVE_GIO_PROXY
-  {
-    const gchar *uri_format = "%s://%s";
-    gchar *uri;
+  /* If host_and_port is an ipv6 address we must ensure it has [] around it */
+  if (host_and_port[0] != '[')
+    {
+      const gchar *p;
 
-    /* If host_and_port is an ipv6 address we must ensure it has [] around it */
-    if (host_and_port[0] != '[')
-      {
-        const gchar *p;
+      /* if host_and_port contains 2 ':' chars, it must be an ipv6 address */
+      p = g_strstr_len (host_and_port, -1, ":");
+      if (p != NULL)
+        p = g_strstr_len (p + 1, -1, ":");
+      if (p != NULL)
+        uri_format = "%s://[%s]";
+    }
 
-        /* if host_and_port contains 2 ':' chars, it must be an ipv6 address */
-        p = g_strstr_len (host_and_port, -1, ":");
-        if (p != NULL)
-          p = g_strstr_len (p + 1, -1, ":");
-        if (p != NULL)
-          uri_format = "%s://[%s]";
-      }
-
-    /* Legacy SSL mode is just like doing HTTPS, so let's trigger HTTPS
-     * proxy setting if any */
-    uri = g_strdup_printf (uri_format,
-        priv->legacy_ssl ? "https" : "xmpp-client", host_and_port);
-    g_socket_client_connect_to_uri_async (priv->client,
-        uri, default_port, NULL, tcp_host_connected, connector);
-    g_free (uri);
-  }
-#else
-  g_socket_client_connect_to_host_async (priv->client,
-      host_and_port, default_port, NULL, tcp_host_connected, connector);
-#endif
+  /* Legacy SSL mode is just like doing HTTPS, so let's trigger HTTPS
+   * proxy setting if any */
+  uri = g_strdup_printf (uri_format,
+      priv->legacy_ssl ? "https" : "xmpp-client", host_and_port);
+  g_socket_client_connect_to_uri_async (priv->client,
+      uri, default_port, NULL, tcp_host_connected, connector);
+  g_free (uri);
 }
 
 static void
