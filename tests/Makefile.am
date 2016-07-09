@@ -71,7 +71,6 @@ TEST_PROGS = \
   wocky-xmpp-node-test \
   wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
-  wocky-http-proxy-test \
   $(NULL)
 
 noinst_PROGRAMS =
@@ -121,10 +120,6 @@ wocky_dummy_xmpp_server_SOURCES = wocky-dummy-xmpp-server.c \
    wocky-test-sasl-auth-server.c wocky-test-sasl-auth-server.h
 wocky_dummy_xmpp_server_LDADD = $(LDADD) @LIBSASL2_LIBS@
 wocky_dummy_xmpp_server_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
-
-wocky_http_proxy_test_SOURCES = wocky-http-proxy-test.c \
-  wocky-test-helper.c wocky-test-helper.h \
-  wocky-test-stream.c wocky-test-stream.h
 
 wocky_jid_validation_test_SOURCES = \
   wocky-jid-validation-test.c \
