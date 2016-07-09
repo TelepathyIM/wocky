@@ -1382,12 +1382,16 @@ force_closed_cb (GObject *source,
     gpointer user_data)
 {
   TestConnectorServer *self = TEST_CONNECTOR_SERVER (user_data);
+  GError *error = NULL;
+  gboolean success;
 
   DEBUG ("Connection force closed");
 
-  g_assert (wocky_xmpp_connection_force_close_finish (
+  success = wocky_xmpp_connection_force_close_finish (
     WOCKY_XMPP_CONNECTION (source),
-    result, NULL));
+    result, &error);
+  g_assert_no_error (error);
+  g_assert (success);
 
   server_dec_outstanding (self);
 }
@@ -1398,9 +1402,13 @@ see_other_host_cb (GObject *source,
     gpointer user_data)
 {
   TestConnectorServer *self = user_data;
+  GError *error = NULL;
+  gboolean success;
 
-  g_assert (wocky_xmpp_connection_send_stanza_finish (self->priv->conn,
-      result, NULL));
+  success = wocky_xmpp_connection_send_stanza_finish (self->priv->conn,
+      result, &error);
+  g_assert_no_error (error);
+  g_assert (success);
 
   if (server_dec_outstanding (self))
     return;

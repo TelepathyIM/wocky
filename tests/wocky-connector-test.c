@@ -3366,6 +3366,13 @@ test_server_teardown_cb (GObject *source,
   g_main_loop_quit (loop);
 }
 
+static gboolean
+test_server_idle_quit_loop_cb (GMainLoop *loop)
+{
+    g_main_loop_quit (loop);
+    return G_SOURCE_REMOVE;
+}
+
 static void
 test_server_teardown (test_t *test,
     ServerParameters *srv)
@@ -3384,6 +3391,11 @@ test_server_teardown (test_t *test,
           test->result.used_mech = g_strdup (
             test_connector_server_get_used_mech (srv->server));
         }
+
+      /* let the server dispatch any pending events before
+       * forcing it to tear down */
+      g_idle_add ((GSourceFunc) test_server_idle_quit_loop_cb, loop);
+      g_main_loop_run (loop);
 
       /* Run until server is down */
       test_connector_server_teardown (srv->server,

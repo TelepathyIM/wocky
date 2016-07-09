@@ -71,6 +71,7 @@ TEST_PROGS = \
   wocky-xmpp-node-test \
   wocky-xmpp-reader-test \
   wocky-xmpp-readwrite-test \
+  wocky-http-proxy-test \
   $(NULL)
 
 noinst_PROGRAMS =
@@ -78,10 +79,6 @@ noinst_PROGRAMS =
 if HAVE_LIBSASL2
   TEST_PROGS += wocky-test-sasl-auth
   noinst_PROGRAMS += wocky-dummy-xmpp-server
-endif
-
-if HAVE_GIO_PROXY
-  TEST_PROGS += wocky-http-proxy-test
 endif
 
 wocky_bare_contact_test_SOURCES = \

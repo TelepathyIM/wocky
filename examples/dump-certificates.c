@@ -150,7 +150,6 @@ main (int argc,
   gchar* server = NULL;
   guint port = 5222;
 
-  g_type_init ();
   wocky_init ();
 
   if (!(argc == 2 || argc == 4))

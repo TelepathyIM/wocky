@@ -296,7 +296,6 @@ test_init (int argc,
 {
   g_test_init (&argc, &argv, NULL);
   g_test_bug_base ("http://bugs.freedesktop.org/show_bug.cgi?id=");
-  g_type_init ();
   wocky_init ();
 }
 
