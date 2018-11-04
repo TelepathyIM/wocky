@@ -25,12 +25,12 @@ DH *get_dh1024(void)
 		0x02,
 		};
 	DH *dh;
-#if if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
 	int r = 0;
 #endif
 
 	if ((dh=DH_new()) == NULL) return(NULL);
-#if if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
 	r = DH_set0_pqg(dh, BN_bin2bn(dh1024_p,sizeof(dh1024_p),NULL),
 					NULL, BN_bin2bn(dh1024_g,sizeof(dh1024_g),NULL));
 	if (!r)
