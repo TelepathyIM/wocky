@@ -57,11 +57,21 @@ DH *get_dh4096(void)
 		0x02,
 		};
 	DH *dh;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+	int r = 0;
+#endif
 
 	if ((dh=DH_new()) == NULL) return(NULL);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+	r = DH_set0_pqg(dh, BN_bin2bn(dh4096_p,sizeof(dh4096_p),NULL),
+						NULL, BN_bin2bn(dh4096_g,sizeof(dh4096_g),NULL));
+	if (!r)
+		{ DH_free(dh); return(NULL); }
+#else
 	dh->p=BN_bin2bn(dh4096_p,sizeof(dh4096_p),NULL);
 	dh->g=BN_bin2bn(dh4096_g,sizeof(dh4096_g),NULL);
 	if ((dh->p == NULL) || (dh->g == NULL))
 		{ DH_free(dh); return(NULL); }
+#endif
 	return(dh);
 	}

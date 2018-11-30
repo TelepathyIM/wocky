@@ -885,7 +885,11 @@ check_peer_name (const char *target, X509 *cert)
   int i;
   gboolean rval = FALSE;
   X509_NAME *subject = X509_get_subject_name (cert);
-  X509_CINF *ci = cert->cert_info;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+  const STACK_OF(X509_EXTENSION)* extensions = X509_get0_extensions(cert);
+#else
+  const STACK_OF(X509_EXTENSION)* extensions = cert->cert_info->extensions;
+#endif
   static const long nid[] = { NID_commonName, NID_subject_alt_name, NID_undef };
 
   /* first, see if the x509 name contains the info we want: */
@@ -906,16 +910,21 @@ check_peer_name (const char *target, X509 *cert)
    * and extract the subject_alt_name from the x509 v3 extensions: if that   *
    * extension is present, and a string, use that. If it is present, and     *
    * a multi-value stack, trawl it for the "DNS" entry and use that          */
-  if (!rval && (ci->extensions != NULL))
-    for (i = 0; i < sk_X509_EXTENSION_num(ci->extensions) && !rval; i++)
+  if (!rval && (extensions != NULL))
+    for (i = 0; i < sk_X509_EXTENSION_num(extensions) && !rval; i++)
       {
-        X509_EXTENSION *ext = sk_X509_EXTENSION_value (ci->extensions, i);
+        X509_EXTENSION *ext = sk_X509_EXTENSION_value (extensions, i);
         ASN1_OBJECT *obj = X509_EXTENSION_get_object (ext);
         X509V3_EXT_METHOD *convert = NULL;
         long ni = OBJ_obj2nid (obj);
         const guchar *p;
         char *value = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+        const ASN1_OCTET_STRING* ext_value = X509_EXTENSION_get_data(ext);
+        int len = ASN1_STRING_length(ext_value);
+#else
         int len = ext->value->length;
+#endif
         void *ext_str = NULL;
 
         if (ni != NID_subject_alt_name)
@@ -927,7 +936,11 @@ check_peer_name (const char *target, X509 *cert)
         if ((convert = (X509V3_EXT_METHOD *) X509V3_EXT_get (ext)) == NULL)
           continue;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+        p = ASN1_STRING_get0_data(ext_value);
+#else
         p = ext->value->data;
+#endif
         ext_str = ((convert->it != NULL) ?
                    ASN1_item_d2i (NULL, &p, len, ASN1_ITEM_ptr(convert->it)) :
                    convert->d2i (NULL, &p, len) );
@@ -1120,13 +1133,22 @@ _cert_status (WockyTLSSession *session,
           X509_STORE *store = SSL_CTX_get_cert_store(session->ctx);
           X509 *cert = SSL_get_peer_certificate (session->ssl);
           STACK_OF(X509) *chain = SSL_get_peer_cert_chain (session->ssl);
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+          X509_VERIFY_PARAM* param = X509_STORE_get0_param(store);
+          long old_flags = X509_VERIFY_PARAM_get_flags(param);
+#else
           long old_flags = store->param->flags;
+#endif
           long new_flags = old_flags;
           DEBUG("No CRL available, but not in strict mode - re-verifying");
 
           new_flags &= ~(X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+          X509_VERIFY_PARAM_set_flags(param, new_flags);
+#else
           store->param->flags = new_flags;
+#endif
           X509_STORE_CTX_init (xctx, store, cert, chain);
           X509_STORE_CTX_set_flags (xctx, new_flags);
 
@@ -1136,7 +1158,11 @@ _cert_status (WockyTLSSession *session,
               status = _cert_status (session, new_code, level, ssl_code);
             }
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+          X509_VERIFY_PARAM_set_flags(param, old_flags);
+#else
           store->param->flags = old_flags;
+#endif
           X509_STORE_CTX_free (xctx);
           X509_free (cert);
 
@@ -1675,12 +1701,16 @@ wocky_tls_session_init (WockyTLSSession *session)
 
   if G_UNLIKELY (g_once_init_enter (&initialised))
     {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+      DEBUG ("initialising SSL library and error strings");
+#else
       gint malloc_init_succeeded;
 
       DEBUG ("initialising SSL library and error strings");
 
       malloc_init_succeeded = CRYPTO_malloc_init ();
       g_warn_if_fail (malloc_init_succeeded);
+#endif
 
       SSL_library_init ();
       SSL_load_error_strings ();
