@@ -1972,7 +1972,6 @@ iq_bind_resource_recv_cb (GObject *source,
 
   switch (sub)
     {
-      WockyNode *node = NULL;
       WockyConnectorError code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
@@ -1999,7 +1998,8 @@ iq_bind_resource_recv_cb (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        node = wocky_node_get_child (
+        {
+        WockyNode *node = wocky_node_get_child (
           wocky_stanza_get_top_node (reply), "bind");
         if (node != NULL)
           node = wocky_node_get_child (node, "jid");
@@ -2013,6 +2013,7 @@ iq_bind_resource_recv_cb (GObject *source,
 
         priv->state = WCON_XMPP_BOUND;
         establish_session (self);
+        }
         break;
 
       default:

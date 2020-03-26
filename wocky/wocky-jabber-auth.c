@@ -540,7 +540,6 @@ jabber_auth_fields (GObject *source,
 
   switch (sub)
     {
-      WockyNode *node = NULL;
       WockyAuthError code;
 
       case WOCKY_STANZA_SUB_TYPE_ERROR:
@@ -558,7 +557,8 @@ jabber_auth_fields (GObject *source,
         break;
 
       case WOCKY_STANZA_SUB_TYPE_RESULT:
-        node = wocky_stanza_get_top_node (fields);
+        {
+        WockyNode *node = wocky_stanza_get_top_node (fields);
         node = wocky_node_get_child_ns (node, "query",
             WOCKY_JABBER_NS_AUTH);
         if ((node != NULL) &&
@@ -580,6 +580,7 @@ jabber_auth_fields (GObject *source,
 
             g_slist_free (mechanisms);
           }
+        }
         break;
 
       default:

@@ -388,7 +388,7 @@ get_field_value (
 
           if (ret != NULL)
             {
-              const gchar const *value_str[] = { value, NULL };
+              const gchar *value_str[] = { value, NULL };
 
               if (raw_value_contents != NULL)
                 *raw_value_contents = g_strdupv ((GStrv) value_str);
@@ -405,7 +405,7 @@ get_field_value (
       case WOCKY_DATA_FORM_FIELD_TYPE_TEXT_SINGLE:
       case WOCKY_DATA_FORM_FIELD_TYPE_LIST_SINGLE:
         {
-          const gchar const *value_str[] = { value, NULL };
+          const gchar *value_str[] = { value, NULL };
 
           if (raw_value_contents != NULL)
             *raw_value_contents = g_strdupv ((GStrv) value_str);
@@ -652,7 +652,7 @@ wocky_data_form_set_type (WockyDataForm *self,
     const gchar *form_type)
 {
   WockyDataFormField *field;
-  const gchar const *raw_value_contents[] =
+  const gchar *raw_value_contents[] =
       { form_type, NULL };
 
   g_return_val_if_fail (form_type != NULL, FALSE);
@@ -728,14 +728,14 @@ data_form_set_value (WockyDataForm *self,
   t = G_VALUE_TYPE (field->value);
   if (t == G_TYPE_STRING)
     {
-      const gchar const *value_str[] =
+      const gchar *value_str[] =
           { g_value_get_string (field->value), NULL };
 
       field->raw_value_contents = g_strdupv ((GStrv) value_str);
     }
   else if (t == G_TYPE_BOOLEAN)
     {
-      const gchar const *value_str[] =
+      const gchar *value_str[] =
           { g_value_get_boolean (field->value) ? "1" : "0", NULL };
 
       field->raw_value_contents = g_strdupv ((GStrv) value_str);

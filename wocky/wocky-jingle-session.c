@@ -169,6 +169,7 @@ wocky_jingle_session_defines_action (WockyJingleSession *sess,
         if (a == WOCKY_JINGLE_ACTION_TRANSPORT_ACCEPT ||
             a == WOCKY_JINGLE_ACTION_INFO )
           return TRUE;
+      /* fall through */
       case WOCKY_JINGLE_DIALECT_GTALK3:
         return (a == WOCKY_JINGLE_ACTION_SESSION_ACCEPT ||
             a == WOCKY_JINGLE_ACTION_SESSION_INITIATE ||

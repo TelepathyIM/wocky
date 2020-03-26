@@ -322,7 +322,7 @@ md5_prepare_response (WockySaslDigestMd5Private *priv, GHashTable *challenge,
   DEBUG ("Got username and password");
 
   nonce = g_hash_table_lookup (challenge, "nonce");
-  if (nonce == NULL || nonce == '\0')
+  if (nonce == NULL || *nonce == '\0')
     {
       g_set_error (error, WOCKY_AUTH_ERROR,
           WOCKY_AUTH_ERROR_INVALID_REPLY,
