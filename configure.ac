@@ -52,6 +52,7 @@ TP_COMPILER_WARNINGS([ERROR_CFLAGS], [test "x$official_release" = xno],
    format-security \
    init-self],
   [missing-field-initializers \
+   cast-function-type \
    unused-parameter])
 AC_SUBST([ERROR_CFLAGS])
 
