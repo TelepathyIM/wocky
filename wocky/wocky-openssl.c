@@ -1605,6 +1605,11 @@ wocky_tls_session_init (WockyTLSSession *session)
 
       DEBUG ("initialising SSL library and error strings");
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+      malloc_init_succeeded = CRYPTO_malloc_init ();
+      g_warn_if_fail (malloc_init_succeeded);
+#endif
+
       SSL_library_init ();
       SSL_load_error_strings ();
       OpenSSL_add_all_algorithms();
