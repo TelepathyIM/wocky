@@ -1035,13 +1035,21 @@ _cert_status (WockyTLSSession *session,
           X509_STORE *store = SSL_CTX_get_cert_store(session->ctx);
           X509 *cert = SSL_get_peer_certificate (session->ssl);
           STACK_OF(X509) *chain = SSL_get_peer_cert_chain (session->ssl);
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+          X509_VERIFY_PARAM *param = X509_STORE_get0_param(store);
+          long old_flags = X509_VERIFY_PARAM_get_flags(param);
+#else
           long old_flags = store->param->flags;
+#endif
           long new_flags = old_flags;
           DEBUG("No CRL available, but not in strict mode - re-verifying");
 
           new_flags &= ~(X509_V_FLAG_CRL_CHECK|X509_V_FLAG_CRL_CHECK_ALL);
-
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+          X509_VERIFY_PARAM_set_flags(param, new_flags);
+#else
           store->param->flags = new_flags;
+#endif
           X509_STORE_CTX_init (xctx, store, cert, chain);
           X509_STORE_CTX_set_flags (xctx, new_flags);
 
@@ -1050,8 +1058,11 @@ _cert_status (WockyTLSSession *session,
               int new_code = X509_STORE_CTX_get_error (xctx);
               status = _cert_status (session, new_code, level, ssl_code);
             }
-
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+          X509_VERIFY_PARAM_set_flags(param, old_flags);
+#else
           store->param->flags = old_flags;
+#endif
           X509_STORE_CTX_free (xctx);
           X509_free (cert);
 
@@ -1593,9 +1604,6 @@ wocky_tls_session_init (WockyTLSSession *session)
       gint malloc_init_succeeded;
 
       DEBUG ("initialising SSL library and error strings");
-
-      malloc_init_succeeded = CRYPTO_malloc_init ();
-      g_warn_if_fail (malloc_init_succeeded);
 
       SSL_library_init ();
       SSL_load_error_strings ();
