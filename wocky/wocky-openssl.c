@@ -534,6 +534,7 @@ ssl_read_is_complete (WockyTLSSession *session, gint result)
           /* deliberately falling through to the default case, having logged a
            * more specific warning.
            */
+          __attribute__ ((fallthrough));
         default:
           g_set_error (&session->job.read.error, WOCKY_TLS_ERROR, err,
                        "OpenSSL read: protocol error %d", err);
@@ -1297,6 +1298,7 @@ wocky_tls_output_stream_write_async (GOutputStream       *stream,
           /* deliberately falling through to the default case, having logged a
            * more specific warning.
            */
+          __attribute__ ((fallthrough));
         default:
           DEBUG ("SSL write failed, setting error %d", error);
           /* if we haven't already generated an error, set one here: */
