@@ -55,7 +55,6 @@ dump_tls_handler_init (DumpTLSHandler *self)
 static void
 dump_tls_handler_verify_async (WockyTLSHandler *self,
     WockyTLSSession *tls_session,
-    const gchar *peername,
     GStrv extra_identities,
     GAsyncReadyCallback callback,
     gpointer user_data)

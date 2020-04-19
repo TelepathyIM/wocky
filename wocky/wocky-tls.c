@@ -211,6 +211,10 @@ wocky_tls_session_get_peers_certificate (GTlsConnection *conn,
       g_array_append_vals (cert, der_data->data, der_data->len);
       g_byte_array_unref (der_data);
       g_ptr_array_add (certificates, cert);
+
+      g_object_get (G_OBJECT (tlscert),
+                    "issuer", &tlscert,
+		    NULL);
     }
 
   if (type != NULL)
@@ -234,65 +238,13 @@ contains_illegal_wildcard (const char *name, int size)
   return FALSE;
 }
 
-#define OID_X520_COMMON_NAME "2.5.4.3"
-
-static gboolean
-cert_names_are_valid (gnutls_x509_crt_t cert)
-{
-  char name[256];
-  size_t size;
-  gboolean found = FALSE;
-  int type = 0;
-  int i = 0;
-
-  /* GNUTLS allows wildcards anywhere within the certificate name, but XMPP only
-   * permits a single leading "*.".
-   */
-  for (i = 0; type >= 0; i++)
-    {
-      size = sizeof (name);
-      type = gnutls_x509_crt_get_subject_alt_name (cert, i, name, &size, NULL);
-
-      switch (type)
-        {
-        case GNUTLS_SAN_DNSNAME:
-        case GNUTLS_SAN_IPADDRESS:
-          found = TRUE;
-          if (contains_illegal_wildcard (name, size))
-              return FALSE;
-          break;
-        default:
-          break;
-        }
-    }
-
-  if (!found)
-    {
-      size = sizeof (name);
-
-      /* cert has no names at all? bizarro! */
-      if (gnutls_x509_crt_get_dn_by_oid (cert, OID_X520_COMMON_NAME, 0,
-                                         0, name, &size) < 0)
-          return FALSE;
-
-      found = TRUE;
-
-      if (contains_illegal_wildcard (name, size))
-          return FALSE;
-
-    }
-
-  /* found a name, wasn't a duff wildcard */
-  return found;
-}
-
 int
 wocky_tls_session_verify_peer (WockyTLSSession    *session,
                                GStrv               extra_identities,
                                WockyTLSVerificationLevel level,
                                WockyTLSCertStatus *status)
 {
-  int rval = -1;
+  int rval = 0;
   guint peer_cert_status = 0;
   GTlsCertificateFlags check;
 
@@ -399,7 +351,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       for (x = 0; status_map[x].gio != 0; x++)
         {
           DEBUG ("checking gio error %d", status_map[x].gio);
-          if (_stat & status_map[x].gio)
+          if (peer_cert_status & status_map[x].gio)
             {
               DEBUG ("gio error %d set", status_map[x].gio);
               *status = status_map[x].wocky;
@@ -409,7 +361,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
         }
     }
 
-  return 0;
+  return rval;
 }
 
 #ifdef DANWFIXME
