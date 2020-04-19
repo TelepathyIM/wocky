@@ -388,7 +388,8 @@ wocky_tls_session_new (GIOStream  *stream,
   GSocketConnectable *peer;
 
   peer = peername ? g_network_address_new (peername, 0) : NULL;
-  conn = g_tls_client_connection_new (stream, peer, NULL);
+  conn = (GTlsClientConnection *)
+          g_tls_client_connection_new (stream, peer, NULL);
   if (peer)
     g_object_unref (peer);
 
@@ -396,11 +397,6 @@ wocky_tls_session_new (GIOStream  *stream,
     return NULL;
 
   g_object_set (G_OBJECT (conn),
-
-		/* FIXME: just use the system certdb rather than
-		 * reimplementing it ourselves.
-		 */
-		"use-system-certdb", FALSE,
 
 		/* Accept everything; we'll check it afterwards */
 		"validation-flags", 0,
@@ -434,7 +430,8 @@ wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
     tlscert = g_tls_certificate_new_from_files (cert, key, NULL);
   else
     tlscert = NULL;
-  conn = g_tls_server_connection_new (stream, tlscert, NULL);
+  conn = (GTlsServerConnection *)
+          g_tls_server_connection_new (stream, tlscert, NULL);
   if (tlscert)
     g_object_unref (tlscert);
 
