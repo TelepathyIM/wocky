@@ -128,81 +128,10 @@ AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [GLIB_VERSION_2_44], [Prevent post 2.44 AP
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
-dnl Choose an SSL/TLS backend (default gnutls)
-AC_ARG_WITH([tls],
-  AC_HELP_STRING([--with-tls=BACKEND],
-      [which TLS backend to use (gnutls, openssl, or auto) @<:@default=auto@:>@]),
-  [],
-  [with_tls=auto])
-
-
-AS_CASE([$with_tls],
-    [gnutls],  [PKG_CHECK_MODULES(TLS, [gnutls  >= 2.8.2 ])],
-    [openssl], [USING_OPENSSL=yes
-                AC_DEFINE(USING_OPENSSL, 1, [Define if using openssl])
-                PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g])],
-    [auto],    [PKG_CHECK_MODULES(TLS, [gnutls  >= 2.8.2 ],
-                    [with_tls=gnutls],
-                    [USING_OPENSSL=yes
-                     AC_DEFINE(USING_OPENSSL, 1, [Define if using openssl])
-                     PKG_CHECK_MODULES(TLS, [openssl >= 0.9.8g],[with_tls=openssl],
-                         AC_MSG_ERROR([Neither gnutls nor openssl found]))])],
-    [*],       AC_MSG_ERROR([Must have a TLS backend (gnutls or openssl)]))
-
+PKG_CHECK_MODULES(TLS, [gnutls >= 3.0], [ HAVE_TLS=yes ], [ HAVE_TLS=no ])
 AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)
-AM_CONDITIONAL(USING_OPENSSL, test x$USING_OPENSSL = xyes)
-
-AC_ARG_ENABLE([prefer-stream-ciphers],
-  AC_HELP_STRING([--enable-prefer-stream-ciphers],
-    [prefer stream ciphers over block ciphers to save bandwidth (at the possible expense of security)]),
-    [prefer_stream_ciphers=$enableval], [prefer_stream_ciphers=no])
-
-if test x$prefer_stream_ciphers = xyes; then
-  AC_DEFINE(ENABLE_PREFER_STREAM_CIPHERS, [],
-      [Prefer stream ciphers over block ones to save bandwidth])
-  if test $with_tls = gnutls; then
-    # The *-ALL priority strings require gnutls 2.12.0.
-    # We do this check here and not earlier to avoid accidentally falling
-    # back to openssl because of the use of --enable-prefer-stream-ciphers.
-    PKG_CHECK_MODULES(GNUTLS_FOR_STREAM_CIPHERS, [gnutls >= 2.12.0],[],
-      AC_MSG_ERROR([gnutls 2.12.0 is needed to use --enable-prefer-stream-ciphers]))
-  fi
-fi
-
-
-# -----------------------------------------------------------
-# Make CA certificates path configurable
-# Stolen from GIO's TLS
-# -----------------------------------------------------------
-AC_MSG_CHECKING([location of system Certificate Authority list])
-AC_ARG_WITH(ca-certificates,
-            [AC_HELP_STRING([--with-ca-certificates=@<:@path@:>@],
-                            [path to system Certificate Authority list])])
-if test "$with_ca_certificates" = "no"; then
-    AC_MSG_RESULT([disabled])
-else
-    if test -z "$with_ca_certificates"; then
-        for f in /etc/pki/tls/certs/ca-bundle.crt \
-                 /etc/ssl/certs/ca-certificates.crt; do
-            if test -f "$f"; then
-                with_ca_certificates="$f"
-            fi
-        done
-        if test -z "$with_ca_certificates"; then
-            AC_MSG_ERROR([could not find. Use --with-ca-certificates=path to set, or --without-ca-certificates to disable])
-        fi
-    fi
-
-    AC_MSG_RESULT($with_ca_certificates)
-    AC_DEFINE_UNQUOTED([GTLS_SYSTEM_CA_CERTIFICATES], ["$with_ca_certificates"], [path to system Certificate Authority list])
-fi
-
-if test -n "$with_ca_certificates"; then
-    if ! test -f "$with_ca_certificates"; then
-        AC_MSG_WARN([Specified certificate authority file '$with_ca_certificates' does not exist])
-    fi
-fi
+AM_CONDITIONAL(HAVE_TLS, test x$HAVE_TLS = xyes)
 
 
 GLIB_GENMARSHAL=`$PKG_CONFIG --variable=glib_genmarshal glib-2.0`
@@ -309,9 +238,6 @@ Configure summary:
         Debug................: ${enable_debug}
 
     Features:
-        TLS Backend..........: ${with_tls}
-        Prefer stream ciphers: ${prefer_stream_ciphers}
-        System CA certs......: ${with_ca_certificates}
         SASL2 Tests..........: ${HAVE_LIBSASL2}
         gtk-doc documentation: ${enable_gtk_doc}
         libiphb integration..: ${have_iphb}

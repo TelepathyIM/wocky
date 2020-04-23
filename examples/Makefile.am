@@ -1,9 +1,8 @@
 EXAMPLES =
 
-if ! USING_OPENSSL
+if HAVE_TLS
 EXAMPLES += wocky-dump-certificates
 endif
-
 EXAMPLES += wocky-send-message
 EXAMPLES += wocky-receive-messages
 EXAMPLES += wocky-register
@@ -13,6 +12,7 @@ INCLUDES := -I$(top_builddir)/wocky
 
 wocky_dump_certificates_SOURCES = dump-certificates.c
 wocky_dump_certificates_CFLAGS = $(TLS_CFLAGS) $(AM_CFLAGS)
+
 wocky_dump_certificates_LDADD = $(TLS_LIBS) $(LDADD)
 
 wocky_send_message_SOURCES = send-message.c

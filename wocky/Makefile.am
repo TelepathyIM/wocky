@@ -37,15 +37,6 @@ built_sources = \
 
 BUILT_SOURCES = $(built_headers) $(built_sources)
 
-OPENSSL_SRC = \
-  wocky-openssl.c \
-  wocky-openssl-dh512.c  \
-  wocky-openssl-dh1024.c \
-  wocky-openssl-dh2048.c \
-  wocky-openssl-dh4096.c
-
-GNUTLS_SRC = wocky-tls.c
-
 handwritten_headers = \
   wocky.h \
   wocky-auth-handler.h \
@@ -168,6 +159,7 @@ handwritten_sources = \
   wocky-session.c \
   wocky-stanza.c \
   wocky-utils.c \
+  wocky-tls.c \
   wocky-tls-common.c \
   wocky-tls-handler.c \
   wocky-tls-connector.c \
@@ -176,14 +168,6 @@ handwritten_sources = \
   wocky-xmpp-error.c \
   wocky-xmpp-reader.c \
   wocky-xmpp-writer.c
-
-if USING_OPENSSL
-  handwritten_sources += $(OPENSSL_SRC)
-  EXTRA_DIST += $(GNUTLS_SRC)
-else
-  handwritten_sources += $(GNUTLS_SRC)
-  EXTRA_DIST += $(OPENSSL_SRC)
-endif
 
 libwocky_la_SOURCES = $(handwritten_sources) $(built_sources) \
                       $(handwritten_headers) $(built_headers)
@@ -234,7 +218,7 @@ wocky-signals-marshal.list: $(handwritten_sources) Makefile.am
 
 
 AM_CFLAGS = $(ERROR_CFLAGS) $(GCOV_CFLAGS) \
-            @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @SQLITE_CFLAGS@ @TLS_CFLAGS@ \
+            @GLIB_CFLAGS@ @LIBXML2_CFLAGS@ @SQLITE_CFLAGS@ \
             @LIBIPHB_CFLAGS@ \
             @SOUP_CFLAGS@ \
             -DG_LOG_DOMAIN=\"wocky\" \
@@ -246,7 +230,6 @@ libwocky_la_LIBADD = \
   @GLIB_LIBS@ \
   @LIBXML2_LIBS@ \
   @SQLITE_LIBS@ \
-  @TLS_LIBS@ \
   @LIBIPHB_LIBS@ \
   @SOUP_LIBS@ \
   $(NULL)
