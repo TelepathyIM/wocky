@@ -278,7 +278,13 @@ dnl To be used by tests and examples
 WOCKY_CFLAGS='-I${top_builddir} -I${top_srcdir}'
 AC_SUBST(WOCKY_CFLAGS)
 
+# check for gtk-doc
+m4_ifdef([GTK_DOC_CHECK], [
 GTK_DOC_CHECK([1.17],[--flavour no-tmpl])
+],[
+AM_CONDITIONAL([ENABLE_GTK_DOC], false)
+])
+
 
 AC_OUTPUT( Makefile            \
            wocky/Makefile      \
