@@ -2,6 +2,7 @@
 
 # We require automake 1.6 at least.
 AUTOMAKE_OPTIONS = 1.6
+if ENABLE_GTK_DOC
 
 # This is a blank Makefile.am for using gtk-doc.
 # Copy this to your project's API docs directory and modify the variables to
@@ -101,3 +102,4 @@ DISTCLEANFILES = wocky-sections.txt wocky.types
 # Comment this out if you want your docs-status tested during 'make check'
 #TESTS = $(GTKDOC_CHECK)
 
+endif #ENABLE_GTK_DOC

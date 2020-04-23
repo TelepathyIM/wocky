@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-gtkdocize || exit 1
+which gtkdocize && ( gtkdocize || exit 1 ) || echo "EXTRA_DIST = " > gtk-doc.make
 
 if test -n "$AUTOMAKE"; then
     : # don't override an explicit user request
