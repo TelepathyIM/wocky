@@ -947,6 +947,7 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
   } options[] = {
     { "auxprop_plugin", "sasldb"},
     { "sasldb_path", "./sasl-test.db"},
+    { "scram_secret_generate", "1"},
     { NULL, NULL },
   };
 
