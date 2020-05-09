@@ -88,6 +88,10 @@
 #include "wocky-xmpp-writer.h"
 #undef WOCKY_H_INSIDE
 
+#define WOCKY_API_VER_0_0	0x0
+#define WOCKY_API_VER_0_1	(G_ENCODE_VERSION(0,1))
+#define WOCKY_API_VERSION	WOCKY_API_VER_0_0
+
 G_BEGIN_DECLS
 
 void wocky_init (void);
