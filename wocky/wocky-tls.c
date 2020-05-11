@@ -1,5 +1,5 @@
 /*
- * Wocky TLS integration - GNUTLS implementation
+ * Wocky TLS integration - GIO-TLS implementation
  * (just named -tls for historical reasons)
  *
  * Copyright © 2008 Christian Kellner, Samuel Cormier-Iijima
@@ -15,14 +15,7 @@
  *          Christian Kellner <gicmo@gnome.org>
  *          Samuel Cormier-Iijima <sciyoshi@gmail.com>
  *          Vivek Dasmohapatra <vivek@collabora.co.uk>
- *
- * Upstream: git://git.gnome.org/gnio
- * Branched at: 42b00d143fcf644880456d06d3a20b6e990a7fa3
- *   "toss out everything that moved to glib"
- *
- * This file follows the original coding style from upstream, not house
- * collabora style: It is a copy of unmerged gnio TLS support with the
- * 'g' prefixes changes to 'wocky' and server-side TLS support added.
+ *          Dan Winship <danw@gnome.org>
  */
 
 /**
@@ -30,18 +23,23 @@
  * @title: Wocky GnuTLS TLS
  * @short_description: Establish TLS sessions
  *
- * The WOCKY_TLS_DEBUG_LEVEL environment variable can be used to print debug
- * output from GNU TLS. To enable it, set it to a value from 1 to 9.
+ * The below environment variables can be used to print debug output from GIO
+ * and GNU TLS.
+ * G_MESSAGES_DEBUG=GLib-Net|all,
+ * GNUTLS_DEBUG_LEVEL=[0..99]
  * Higher values will print more information. See the documentation of
  * gnutls_global_set_log_level for more details.
  *
- * Increasing the value past certain thresholds will also trigger increased
- * debugging output from within wocky-tls.c as well.
+ * WOCKY_DEBUG=tls|all will trigger increased debugging output from within
+ * wocky-tls.c as well.
  *
- * The WOCKY_GNUTLS_OPTIONS environment variable can be set to a gnutls
+ * The G_TLS_GNUTLS_PRIORITY environment variable can be set to a gnutls
  * priority string [See gnutls-cli(1) or the gnutls_priority_init docs]
  * to control most tls protocol details. An empty or unset value is roughly
- * equivalent to a priority string of "SECURE:+COMP-DEFLATE".
+ * equivalent to a priority string "NORMAL:%COMPAT:-VERS-TLS1.0:-VERS-TLS1.1".
+ *
+ * Finally GIO_USE_TLS=gnutls|openssl could be used to control which backend
+ * will be selected (if available) [See glib-networking docs for details].
  */
 
 #ifdef HAVE_CONFIG_H
@@ -55,46 +53,11 @@
 #include <unistd.h>
 #include <dirent.h>
 
-/* DANWFIXME: allow configuring compression options */
-#ifdef ENABLE_PREFER_STREAM_CIPHERS
-#define DEFAULT_TLS_OPTIONS \
-  /* start with nothing enabled by default */ \
-  "NONE:" \
-  /* enable all the normal algorithms */ \
-  "+VERS-TLS-ALL:+SIGN-ALL:+MAC-ALL:+CTYPE-ALL:+RSA:" \
-  /* prefer deflate compression, but fall back to null compression */ \
-  "+COMP-DEFLATE:+COMP-NULL:" \
-  /* our preferred stream ciphers */ \
-  "+ARCFOUR-128:+ARCFOUR-40:" \
-  /* all the other ciphers */ \
-  "+AES-128-CBC:+AES-256-CBC:+3DES-CBC:+DES-CBC:+RC2-40:" \
-  "+CAMELLIA-256-CBC:+CAMELLIA-128-CBC"
-#else
-#define DEFAULT_TLS_OPTIONS \
-  "NORMAL:"        /* all secure algorithms */ \
-  "-COMP-NULL:"    /* remove null compression */ \
-  "+COMP-DEFLATE:" /* prefer deflate */ \
-  "+COMP-NULL"     /* fall back to null */
-#endif
-
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_TLS
-#define DEBUG_HANDSHAKE_LEVEL 5
-#define DEBUG_ASYNC_DETAIL_LEVEL 6
 
-#ifdef DANWFIXME
-#define VERIFY_STRICT  GNUTLS_VERIFY_DO_NOT_ALLOW_SAME
-#define VERIFY_NORMAL  GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT
-#define VERIFY_LENIENT ( GNUTLS_VERIFY_ALLOW_X509_V1_CA_CRT     | \
-                         GNUTLS_VERIFY_ALLOW_ANY_X509_V1_CA_CRT | \
-                         GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD2       | \
-                         GNUTLS_VERIFY_ALLOW_SIGN_RSA_MD5       | \
-                         GNUTLS_VERIFY_DISABLE_TIME_CHECKS      | \
-                         GNUTLS_VERIFY_DISABLE_CA_SIGN          )
-#else
 #define VERIFY_STRICT G_TLS_CERTIFICATE_VALIDATE_ALL
 #define VERIFY_NORMAL G_TLS_CERTIFICATE_VALIDATE_ALL
 #define VERIFY_LENIENT 0
-#endif
 
 #include "wocky-debug-internal.h"
 #include "wocky-utils.h"
@@ -177,12 +140,46 @@ wocky_tls_session_add_ca (GTlsConnection *conn,
       DEBUG ("+ %s: %d certs from file", ca_path, n);
     }
   g_object_set_data_full (G_OBJECT (conn), "wocky-ca-list", cas, free_cas);
+  if (cas)
+    {
+      /* Generating GTlsDatabase for cert verification */
+      GFileIOStream *fio = NULL;
+      GFile *anchor = g_file_new_tmp (NULL, &fio, NULL);
+      GOutputStream *o = g_io_stream_get_output_stream (G_IO_STREAM (fio));
+      for (c = cas; c; c = c->next)
+        {
+          char *buf = NULL;
+          g_object_get (G_OBJECT (c->data), "certificate-pem", &buf, NULL);
+          if (!buf || !g_output_stream_write_all (o, buf, strlen (buf), NULL, NULL, NULL))
+            {
+              DEBUG ("Cannot write temp file to aggregate Trust Anchor");
+              // Flag failed anchor aggregation
+              o = NULL;
+              g_free (buf);
+              break;
+            }
+	  g_free (buf);
+        }
+      g_io_stream_close (G_IO_STREAM (fio), NULL, NULL);
+      if (o)
+        {
+          char *fn = g_file_get_path (anchor);
+          GTlsDatabase *fdb = g_tls_file_database_new (fn, NULL);
+          g_free (fn);
+          if (fdb)
+            g_tls_connection_set_database (G_TLS_CONNECTION (conn), fdb);
+          g_object_unref (fdb);
+        }
+      g_file_delete (anchor, NULL, NULL);
+      g_object_unref (anchor);
+      g_object_unref (fio);
+    }
 }
 
 void
 wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *crl_path)
 {
-  /* DANWFIXME */
+  DEBUG ("GIO-TLS currently doesn't support custom CRLs, ignoring %s", crl_path);
 }
 
 GPtrArray *
@@ -260,9 +257,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       { G_TLS_CERTIFICATE_NOT_ACTIVATED,WOCKY_TLS_CERT_NOT_ACTIVE          },
       { G_TLS_CERTIFICATE_EXPIRED,      WOCKY_TLS_CERT_EXPIRED             },
       { G_TLS_CERTIFICATE_UNKNOWN_CA,   WOCKY_TLS_CERT_SIGNER_UNKNOWN      },
-#ifdef DANWFIXME /* does it matter? */
-      { GNUTLS_CERT_SIGNER_NOT_CA,      WOCKY_TLS_CERT_SIGNER_UNAUTHORISED },
-#endif
       { G_TLS_CERTIFICATE_INSECURE,     WOCKY_TLS_CERT_INSECURE            },
       { G_TLS_CERTIFICATE_GENERIC_ERROR,WOCKY_TLS_CERT_INVALID             },
       { ~((long) 0),                    WOCKY_TLS_CERT_UNKNOWN_ERROR       },
@@ -288,66 +282,14 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       break;
     }
 
-#ifdef DANWFIXME
-  DEBUG ("setting gnutls verify flags level to: %s",
-      wocky_enum_to_nick (WOCKY_TYPE_TLS_VERIFICATION_LEVEL, level));
-  gnutls_certificate_set_verify_flags (session->gnutls_cert_cred, check);
-  rval = gnutls_certificate_verify_peers2 (session->session, &peer_cert_status);
-
-  if (rval != GNUTLS_E_SUCCESS)
-    {
-      switch (rval)
-        {
-        case GNUTLS_E_NO_CERTIFICATE_FOUND:
-        case GNUTLS_E_INVALID_REQUEST:
-          *status = WOCKY_TLS_CERT_NO_CERTIFICATE;
-          break;
-        case GNUTLS_E_INSUFFICIENT_CREDENTIALS:
-          *status = WOCKY_TLS_CERT_INSECURE;
-          break;
-        case GNUTLS_E_CONSTRAINT_ERROR:
-          *status = WOCKY_TLS_CERT_MAYBE_DOS;
-          break;
-        case GNUTLS_E_MEMORY_ERROR:
-          *status = WOCKY_TLS_CERT_INTERNAL_ERROR;
-          break;
-        default:
-          *status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
-	}
-
-      return rval;
-    }
-#endif
-
-
+  /* Use system default or custom provided Trust Anchor to perform certificate validation *
+   * and then translate GIO validation error to Wocky language with the above dictionary  */
   peer_cert_status = g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (session));
-  if (check & G_TLS_CERTIFICATE_UNKNOWN_CA)
-    {
-      GTlsCertificate *peer = g_tls_connection_get_peer_certificate (G_TLS_CONNECTION (session));
-      GList *cas = g_object_get_data (G_OBJECT (session), "wocky-ca-list"), *c;
-      GTlsCertificateFlags flags;
-
-      for (c = cas; c; c = c->next)
-	{
-	  flags = g_tls_certificate_verify (peer, NULL, c->data);
-	  if (flags == 0)
-	    {
-	      peer_cert_status &= ~G_TLS_CERTIFICATE_UNKNOWN_CA;
-	      break;
-	    }
-	  else if (flags & G_TLS_CERTIFICATE_GENERIC_ERROR)
-	    {
-	      peer_cert_status = flags;
-	      break;
-	    }
-	}
-    }
 
   if (peer_cert_status & check)
     { /* gio cert checking can return multiple errors bitwise &ed together    *
        * but we are realy only interested in the "most important" error:      */
       int x;
-      *status = WOCKY_TLS_CERT_OK;
       for (x = 0; status_map[x].gio != 0; x++)
         {
           DEBUG ("checking gio error %d", status_map[x].gio);
@@ -363,22 +305,6 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
   return rval;
 }
-
-#ifdef DANWFIXME
-static void
-tls_debug (int level,
-    const char *msg)
-{
-  DEBUG ("[%d] [%02d] %s", getpid(), level, msg);
-}
-
-static const char *
-tls_options (void)
-{
-  const char *options = g_getenv ("WOCKY_GNUTLS_OPTIONS");
-  return (options != NULL && *options != '\0') ? options : DEFAULT_TLS_OPTIONS;
-}
-#endif
 
 WockyTLSSession *
 wocky_tls_session_new (GIOStream  *stream,
@@ -409,7 +335,7 @@ wocky_tls_session_new (GIOStream  *stream,
 /**
  * wocky_tls_session_server_new:
  * @stream: a GIOStream on which we expect to receive the client TLS handshake
- * @dhbits: size of the DH parameters (see gnutls for valid settings)
+ * @dhbits: size of the DH parameters (Deprecated since GnuTLS 3.6.0)
  * @key: the path to the X509 PEM key file
  * @cert: the path to the X509 PEM certificate
  *
@@ -418,13 +344,11 @@ wocky_tls_session_new (GIOStream  *stream,
  * Returns: a #WockyTLSSession object
  */
 WockyTLSSession *
-wocky_tls_session_server_new (GIOStream *stream, guint dhbits,
+wocky_tls_session_server_new (GIOStream *stream, G_GNUC_UNUSED guint dhbits,
                               const gchar* key, const gchar* cert)
 {
   GTlsServerConnection *conn;
   GTlsCertificate *tlscert;
-
-  /* DANWFIXME: dhbits */
 
   if (key && cert)
     tlscert = g_tls_certificate_new_from_files (cert, key, NULL);
