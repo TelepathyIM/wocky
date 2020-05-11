@@ -26,11 +26,11 @@ def process(testbinary):
     return (cases, failures)
 
 doc = minidom.parse(sys.argv[1])
-
+rep = doc.childNodes[0] if doc.childNodes[0].nodeType == doc.childNodes[0].ELEMENT_NODE else doc.childNodes[1]
 okay = True
 
 tests = {}
-for e in doc.childNodes[0].childNodes:
+for e in rep.childNodes:
     if e.nodeType != e.ELEMENT_NODE or e.localName != 'testbinary':
         continue
     path = e.getAttribute("path")
@@ -39,17 +39,17 @@ for e in doc.childNodes[0].childNodes:
     ocases, ofailures = tests.get (path, [ 0, []])
     tests[path] = [ ocases + cases, ofailures + failures ]
 
-for name, [cases, failures] in tests.iteritems():
+for name, [cases, failures] in tests.items():
     if failures == []:
         result = 'PASS'
     else:
         result = 'FAIL'
         okay = False
 
-    print "%s: %s: %u/%u tests passed" % (result, name, cases - len (failures), cases)
+    print("%s: %s: %u/%u tests passed" % (result, name, cases - len (failures), cases))
     for f in failures:
-        print "\tFailure: %s" % f
+        print("\tFailure: %s" % f)
 
 if not okay:
-    print "Disaster! Calamity!"
+    print("Disaster! Calamity!")
     sys.exit(1)

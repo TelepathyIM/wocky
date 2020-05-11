@@ -44,6 +44,13 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_BADWILD_KEY_FILE='"$(BADWILD_KEY)"'  \
             -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
+
+CA0S = $(BADWILD_CERT) $(WILD_CERT) $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(REV_CERT) $(SS_CERT)
+
+certs: $(CA0S)
+
+$(CA0S): $(CERT_DIR)/%-cert.pem: $(CERT_DIR)/%-cert.cfg $(CA_CERT) $(CA_KEY)
+	certtool --generate-certificate --template $< --outfile $@ --load-privkey certs/$*-key.pem --load-ca-certificate $(CA_CERT) --load-ca-privkey $(CA_KEY)
 ############################################################################
 TEST_PROGS = \
   wocky-bare-contact-test \
@@ -248,7 +255,8 @@ test-report: test-report.xml
 test-report.xml: ${TEST_PROGS} test
 
 test: ${TEST_PROGS}
-	gtester -o test-report.xml -k --verbose ${TEST_PROGS}
+	G_TLS_GNUTLS_PRIORITY='NORMAL:%COMPAT:-VERS-TLS1.3' \
+	  gtester -o test-report.xml -k --verbose ${TEST_PROGS}
 	@if [ -x $(which python) ] ; then \
 		$(SUMMARY) $@-report.xml ; \
 	else \

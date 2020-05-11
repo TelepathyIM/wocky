@@ -494,6 +494,13 @@ check_sasl_return (TestSaslAuthServer *self, int ret)
         g_assert_cmpint (priv->problem, ==, SERVER_PROBLEM_INVALID_PASSWORD);
         not_authorized (self);
         return FALSE;
+#if SASL_VERSION_FULL <= 0x02011B
+      case SASL_BADPROT:
+        /* Bad password provided - scram pre #545 */
+        g_assert_cmpint (priv->problem, ==, SERVER_PROBLEM_INVALID_PASSWORD);
+        not_authorized (self);
+        return FALSE;
+#endif /* SASL_VERSION_FULL */
       case SASL_NOUSER:
         /* Unknown user */
         g_assert_cmpint (priv->problem, ==, SERVER_PROBLEM_INVALID_USERNAME);

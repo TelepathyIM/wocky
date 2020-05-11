@@ -2821,6 +2821,7 @@ test_t tests[] =
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_STRICT, TLS_CA_DIR } } },
 
+#ifdef GIO_TLS_CRL_ENABLED
     { "/connector/cert-verification/tls/revoked/fail",
       QUIET,
       { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
@@ -2844,6 +2845,7 @@ test_t tests[] =
         { TLS_REQUIRED,
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, STARTTLS, CERT_CHECK_LENIENT, TLS_CA_DIR } } },
+#endif /* GIO_TLS_CRL_ENABLED */
 
     /* ********************************************************************* */
     /* as above but with legacy ssl                                          */
@@ -2991,6 +2993,7 @@ test_t tests[] =
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_STRICT, TLS_CA_DIR } } },
 
+#ifdef GIO_TLS_CRL_ENABLED
     { "/connector/cert-verification/ssl/revoked/fail",
       QUIET,
       { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_REVOKED, -1 },
@@ -3014,6 +3017,7 @@ test_t tests[] =
         { TLS_REQUIRED,
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, OLD_SSL, CERT_CHECK_LENIENT, TLS_CA_DIR } } },
+#endif /* GIO_TLS_CRL_ENABLED */
 
     /* ********************************************************************* */
     /* certificate non-verification tests                                    */
