@@ -13,6 +13,8 @@ EXP_KEY  := $(CERT_DIR)/exp-key.pem
 EXP_CERT := $(CERT_DIR)/exp-cert.pem
 NEW_KEY  := $(CERT_DIR)/new-key.pem
 NEW_CERT := $(CERT_DIR)/new-cert.pem
+INS_KEY  := $(CERT_DIR)/ins-key.pem
+INS_CERT := $(CERT_DIR)/ins-cert.pem
 TLS_KEY  := $(CERT_DIR)/tls-key.pem
 TLS_CERT := $(CERT_DIR)/tls-cert.pem
 WILD_KEY := $(CERT_DIR)/wild-key.pem
@@ -34,6 +36,8 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_NEW_CRT_FILE='"$(NEW_CERT)"'   \
             -DTLS_REV_KEY_FILE='"$(REV_KEY)"'    \
             -DTLS_REV_CRT_FILE='"$(REV_CERT)"'   \
+            -DTLS_INS_KEY_FILE='"$(INS_KEY)"'    \
+            -DTLS_INS_CRT_FILE='"$(INS_CERT)"'   \
             -DTLS_UNKNOWN_KEY_FILE='"$(UNKNOWN_KEY)"'  \
             -DTLS_UNKNOWN_CRT_FILE='"$(UNKNOWN_CERT)"' \
             -DTLS_SERVER_KEY_FILE='"$(TLS_KEY)"' \
@@ -45,12 +49,15 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
             -DTLS_CRL_DIR='"$(CRL_DIR)"'         \
             -DTLS_CA_DIR='"$(CA_DIR)"'
 
-CA0S = $(BADWILD_CERT) $(WILD_CERT) $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(REV_CERT) $(SS_CERT)
+CA0S = $(BADWILD_CERT) $(WILD_CERT) $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(REV_CERT) $(SS_CERT) $(INS_CERT)
 
 certs: $(CA0S)
 
 $(CA0S): $(CERT_DIR)/%-cert.pem: $(CERT_DIR)/%-cert.cfg $(CA_CERT) $(CA_KEY)
 	certtool --generate-certificate --template $< --outfile $@ --load-privkey certs/$*-key.pem --load-ca-certificate $(CA_CERT) --load-ca-privkey $(CA_KEY)
+
+$(INS_CERT): $(CERT_DIR)/ins-cert.cfg $(INS_KEY) $(CA_CERT) $(CA_KEY)
+	certtool --generate-certificate --template $< --outfile $@ --load-privkey certs/$*-key.pem --load-ca-certificate $(CA_CERT) --load-ca-privkey $(CA_KEY) --hash SHA1
 ############################################################################
 TEST_PROGS = \
   wocky-bare-contact-test \

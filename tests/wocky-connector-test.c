@@ -2909,6 +2909,18 @@ test_t tests[] =
           { "moose@weasel-juice.org", "something", PLAIN, TLS },
           { NULL, 0, XMPP_V1, OLD_SSL } } },
 
+    { "/connector/cert-verification/ssl/insecure/fail",
+      QUIET,
+      { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_INSECURE, -1 },
+      { { TLS, NULL },
+        { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
+        { "moose", "something" },
+        PORT_XMPP, CERT_INSECURE },
+        { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+        { PLAINTEXT_OK,
+          { "moose@weasel-juice.org", "something", PLAIN, TLS },
+          { NULL, 0, XMPP_V1, OLD_SSL } } },
+
     { "/connector/cert-verification/ssl/inactive/fail",
       QUIET,
       { S_WOCKY_TLS_CERT_ERROR, WOCKY_TLS_CERT_NOT_ACTIVE, -1 },

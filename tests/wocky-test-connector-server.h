@@ -122,6 +122,7 @@ typedef enum
   CERT_REVOKED,
   CERT_WILDCARD,
   CERT_BADWILD,
+  CERT_INSECURE,
   CERT_NONE,
 } CertSet;
 
