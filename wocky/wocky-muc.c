@@ -1498,7 +1498,7 @@ extract_chat_state (WockyNode *msg)
 
   if (child == NULL ||
       !wocky_enum_from_nick (WOCKY_TYPE_MUC_MSG_STATE, child->name, &mstate))
-    mstate = WOCKY_MUC_MSG_NONE;
+    mstate = (WockyMucMsgState) WOCKY_MUC_MSG_NONE;
 
   return mstate;
 }
