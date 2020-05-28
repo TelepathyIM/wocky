@@ -659,6 +659,53 @@ wocky_sasl_auth_start_cb (GObject *source_object,
   g_object_unref (stanza);
 }
 
+/**
+ * wocky_tls_get_cb_data:
+ * @conn: a #WockyXmppConnection wrapping WockyTLSSession aka GTlsConnection
+ * @type: a #WockyTLSBindingType to return bidning data
+ */
+static gchar *
+wocky_tls_get_cb_data (WockyXmppConnection *conn, WockyTLSBindingType type)
+{
+  GIOStream *ios = NULL;
+  GTlsConnection *tc = NULL;
+  gchar *cb_data = NULL;
+
+  g_assert (conn != NULL);
+  g_object_get (conn, "base-stream", &ios, NULL);
+  g_return_val_if_fail (ios != NULL, NULL);
+  tc = G_TLS_CONNECTION (ios);
+  g_object_unref (ios);
+
+  if (type == WOCKY_TLS_BINDING_TLS_SERVER_END_POINT)
+    {
+      GTlsCertificate *ps = g_tls_connection_get_peer_certificate (tc);
+
+      if (ps != NULL)
+        {
+          GByteArray *der = NULL;
+          /* FIXME: bold assumption and hardcoded limitation */
+          GChecksum *cs = g_checksum_new (G_CHECKSUM_SHA256);
+          guint8 sha[32]; // 32 bytes, 64 hex, 44 b64
+          gsize sl = 32;
+
+          g_object_get (ps, "certificate", &der, NULL);
+          g_assert (der != NULL);
+
+          g_checksum_update (cs, der->data, der->len);
+          g_checksum_get_digest (cs, sha, &sl);
+          cb_data = g_base64_encode (sha, sl);
+
+          g_checksum_free (cs);
+          g_byte_array_unref (der);
+        }
+    }
+  else
+    DEBUG ("Requested binding type[%d] is not supported", type);
+  return cb_data;
+}
+
+
 /* Initiate sasl auth. features should contain the stream features stanza as
  * receiver from the server */
 void
@@ -690,6 +737,21 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
           WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_SUPPORTED,
           "Server doesn't have any sasl mechanisms");
       goto out;
+    }
+
+  if (is_secure)
+    {
+      WockyTLSBindingType cb_type = WOCKY_TLS_BINDING_TLS_SERVER_END_POINT;
+      gchar *cb_data = wocky_tls_get_cb_data (priv->connection, cb_type);
+      if (cb_data != NULL)
+        {
+          DEBUG ("Using TLS Channel Binding Data: %s", cb_data);
+          g_object_set (priv->auth_registry,
+                          "tls-binding-type", cb_type,
+                          "tls-binding-data", cb_data,
+                          NULL);
+          g_free (cb_data);
+        }
     }
 
   priv->result = g_simple_async_result_new (G_OBJECT (sasl),

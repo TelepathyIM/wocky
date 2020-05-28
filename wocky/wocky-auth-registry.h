@@ -59,6 +59,24 @@ typedef enum
 #define WOCKY_AUTH_MECH_SASL_DIGEST_MD5 "DIGEST-MD5"
 #define WOCKY_AUTH_MECH_SASL_PLAIN "PLAIN"
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1 "SCRAM-SHA-1"
+#define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS "SCRAM-SHA-1-PLUS"
+
+/**
+ * WockyTLSBindingType
+ * @WOCKY_TLS_BINDING_DISABLED   : binding is not supported by the client
+ * @WOCKY_TLS_BINDING_NONE       : binding is not supported by the server
+ * @WOCKY_TLS_BINDING_TLS_UNIQUE           : tls-unique binding type
+ * @WOCKY_TLS_BINDING_TLS_SERVER_END_POINT : tls-server-end-point type
+ *
+ * Possible TLS Channel Binding states
+ */
+typedef enum
+{
+  WOCKY_TLS_BINDING_DISABLED,
+  WOCKY_TLS_BINDING_NONE,
+  WOCKY_TLS_BINDING_TLS_UNIQUE,
+  WOCKY_TLS_BINDING_TLS_SERVER_END_POINT
+} WockyTLSBindingType;
 
 /**
  * WockyAuthRegistryStartData:
