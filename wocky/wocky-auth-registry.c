@@ -288,6 +288,7 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
         }
     }
 
+  /* FIXME: should we skip PLUS if cb is disabled? Works with Prosody */
   if (wocky_auth_registry_has_mechanism (mechanisms,
           WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS))
     {
@@ -317,7 +318,7 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
           *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
               server, username, password));
           g_object_set (G_OBJECT (*out_handler),
-              "cb-type", WOCKY_TLS_BINDING_NONE,
+              "cb-type", MIN (priv->cb_type, WOCKY_TLS_BINDING_NONE),
               NULL);
         }
       return TRUE;

@@ -278,34 +278,33 @@ scram_initial_response (WockyAuthHandler *handler,
       return FALSE;
     }
 
-  if (priv->cb_type != WOCKY_TLS_BINDING_DISABLED)
-    { /* we support channel binding, let's inform the other side */
-      switch (priv->cb_type)
-        {
-          case WOCKY_TLS_BINDING_NONE:
-            /* no server support, wipe cb data, just in case */
-            priv->gs2_flag = "y,,";
-            g_free (priv->cb_data);
-            priv->cb_data = NULL;
-            break;
-          case WOCKY_TLS_BINDING_TLS_UNIQUE:
-            priv->gs2_flag = "p=tls-unique,,";
-            g_assert (priv->cb_data != NULL);
-            break;
-          case WOCKY_TLS_BINDING_TLS_SERVER_END_POINT:
-            priv->gs2_flag = "p=tls-server-end-point,,";
-            g_assert (priv->cb_data != NULL);
-            break;
-          default:
-            g_assert_not_reached ();
-        }
+  switch (priv->cb_type)
+    {
+      /* no client cb support, make sure we don't stuff cb_data in */
+      case WOCKY_TLS_BINDING_DISABLED:
+        priv->gs2_flag = "n,,";
+        g_free (priv->cb_data);
+        priv->cb_data = NULL;
+        break;
+      /* we support channel binding, let's inform the other side */
+      case WOCKY_TLS_BINDING_NONE:
+        /* no server support, wipe cb data, just in case */
+        priv->gs2_flag = "y,,";
+        g_free (priv->cb_data);
+        priv->cb_data = NULL;
+        break;
+      case WOCKY_TLS_BINDING_TLS_UNIQUE:
+        priv->gs2_flag = "p=tls-unique,,";
+        g_assert (priv->cb_data != NULL);
+        break;
+      case WOCKY_TLS_BINDING_TLS_SERVER_END_POINT:
+        priv->gs2_flag = "p=tls-server-end-point,,";
+        g_assert (priv->cb_data != NULL);
+        break;
+      default:
+        g_assert_not_reached ();
     }
-  else
-    { /* no client cb support, make sure we don't stuff cb_data in */
-      priv->gs2_flag = "n,,";
-      g_free (priv->cb_data);
-      priv->cb_data = NULL;
-    }
+
   g_assert (priv->client_nonce == NULL);
   priv->client_nonce = sasl_generate_base64_nonce ();
 

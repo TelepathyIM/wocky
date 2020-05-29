@@ -137,11 +137,25 @@ wocky_sasl_auth_get_property (GObject *object,
     }
 }
 
+static WockyTLSBindingType default_cb_type = WOCKY_TLS_BINDING_TLS_UNIQUE;
+
 static void
 wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_sasl_auth_class);
   GParamSpec *spec;
+  /* Initialize default binding type once */
+  const gchar *cb_str = g_getenv ("WOCKY_CHANNEL_BINDING_TYPE");
+
+  if (cb_str != NULL)
+    {
+      GEnumClass *gec = g_type_class_ref (WOCKY_TYPE_TLS_BINDING_TYPE);
+      GEnumValue *gev = g_enum_get_value_by_nick (gec, cb_str);
+
+      if (gev)
+        default_cb_type = gev->value;
+      g_type_class_unref (gec);
+    }
 
   g_type_class_add_private (wocky_sasl_auth_class,
       sizeof (WockySaslAuthPrivate));
@@ -741,7 +755,7 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
 
   if (is_secure)
     {
-      WockyTLSBindingType cb_type = WOCKY_TLS_BINDING_TLS_SERVER_END_POINT;
+      WockyTLSBindingType cb_type = default_cb_type;
       gchar *cb_data = wocky_tls_get_cb_data (priv->connection, cb_type);
       if (cb_data != NULL)
         {
