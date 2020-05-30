@@ -135,7 +135,8 @@ digest_test hmac_sha1_tests[] = {
 static void
 test_sasl_utils_hmac_sha1 (digest_test *t)
 {
-  GByteArray *result = sasl_calculate_hmac_sha1 (t->key, t->key_len,
+  GByteArray *result = sasl_calculate_hmac (G_CHECKSUM_SHA1,
+    t->key, t->key_len,
     t->data, t->data_len);
   int i;
 

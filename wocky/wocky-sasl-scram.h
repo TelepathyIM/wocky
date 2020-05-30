@@ -1,6 +1,7 @@
 /*
- * wocky-sasl-scram.h - SCRAM-SHA1 implementation (to be RFC 5802)
+ * wocky-sasl-scram.h - SCRAM-SHA1 implementation (RFC 5802, 7677)
  * Copyright (C) 2010 Sjoerd Simons <sjoerd@luon.net>
+ * Copyright (C) 2020 Ruslan N. Marchenko <me@ruff.mobi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

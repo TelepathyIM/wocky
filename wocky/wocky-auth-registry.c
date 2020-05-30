@@ -270,6 +270,25 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
 {
   WockyAuthRegistryPrivate *priv = self->priv;
   GSList *k;
+  /* Define order of SCRAM hashing algorithm preferences according to ...   *
+   * ... various recommendations                                            */
+  struct {
+    gchar *mech;
+    gboolean is_plus;
+    GChecksumType algo;
+  } scram_handlers[] = {
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512_PLUS, TRUE, G_CHECKSUM_SHA512 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512, FALSE, G_CHECKSUM_SHA512 },
+#ifdef WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384_PLUS, TRUE, G_CHECKSUM_SHA384 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384, FALSE, G_CHECKSUM_SHA384 },
+#endif
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256_PLUS, TRUE, G_CHECKSUM_SHA256 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256, FALSE, G_CHECKSUM_SHA256 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS, TRUE, G_CHECKSUM_SHA1 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1, FALSE, G_CHECKSUM_SHA1 },
+    { NULL, FALSE, G_CHECKSUM_SHA1 }
+  };
 
   for (k = priv->handlers; k != NULL; k = k->next)
     {
@@ -288,40 +307,35 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
         }
     }
 
-  /* FIXME: should we skip PLUS if cb is disabled? Works with Prosody */
-  if (wocky_auth_registry_has_mechanism (mechanisms,
-          WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS))
-    {
-      if (out_handler != NULL)
-        {
-          /* XXX: check for username and password here? */
-          DEBUG ("Choosing SCRAM-SHA-1-PLUS as auth mechanism");
-          *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
-              server, username, password));
-          WOCKY_AUTH_HANDLER_GET_IFACE (*out_handler)->mechanism =
-                                       WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS;
-          g_object_set (G_OBJECT (*out_handler),
-              "cb-type", priv->cb_type,
-              "cb-data", priv->cb_data,
-              NULL);
-        }
-      return TRUE;
-    }
+  /* All the below mechanisms require password so if we have none
+   * let's just stop here */
+  g_return_val_if_fail (out_handler == NULL || password != NULL, FALSE);
 
-  if (wocky_auth_registry_has_mechanism (mechanisms,
-          WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1))
+  for (int i = 0; scram_handlers[i].mech != NULL ; i++)
     {
-      if (out_handler != NULL)
+      if (wocky_auth_registry_has_mechanism (mechanisms,
+                                       scram_handlers[i].mech))
         {
-          /* XXX: check for username and password here? */
-          DEBUG ("Choosing SCRAM-SHA-1 as auth mechanism");
-          *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
-              server, username, password));
-          g_object_set (G_OBJECT (*out_handler),
-              "cb-type", MIN (priv->cb_type, WOCKY_TLS_BINDING_NONE),
-              NULL);
+          if (out_handler != NULL && username != NULL)
+            {
+              /* For PLUS it's whatever we found/support, otherwise NONE or  *
+               * DISABLED. NONE is when we support some but server doesn't.  */
+              WockyTLSBindingType cb_type = (scram_handlers[i].is_plus ?
+                               priv->cb_type
+                             : MIN (priv->cb_type, WOCKY_TLS_BINDING_NONE));
+              DEBUG ("Choosing %s as auth mechanism", scram_handlers[i].mech);
+              *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
+                  server, username, password));
+              WOCKY_AUTH_HANDLER_GET_IFACE (*out_handler)->mechanism =
+                                                       scram_handlers[i].mech;
+              g_object_set (G_OBJECT (*out_handler),
+                  "hash-algo", scram_handlers[i].algo,
+                  "cb-type", cb_type,
+                  "cb-data", priv->cb_data,
+                  NULL);
+            }
+          return TRUE;
         }
-      return TRUE;
     }
 
   if (wocky_auth_registry_has_mechanism (mechanisms,
