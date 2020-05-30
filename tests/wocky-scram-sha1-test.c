@@ -49,6 +49,8 @@ test_scram_sha1 (testcase *test)
   scram = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
     test->server, test->user, test->password));
 
+  g_object_set (scram, "hash-algo", G_CHECKSUM_SHA1, NULL);
+
   g_assert (wocky_auth_handler_get_initial_response (scram,
       &out,
       &error));

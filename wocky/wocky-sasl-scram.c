@@ -1,6 +1,7 @@
 /*
- * wocky-sasl-scram.c - SCRAM-SHA1 implementation (to be RFC 5802)
+ * wocky-sasl-scram.c - SCRAM-SHA-* implementation (RFC 5802, 7677)
  * Copyright (C) 2010 Sjoerd Simons <sjoerd@luon.net>
+ * Copyright (C) 2020 Ruslan N. Marchenko <me@ruff.mobi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -199,7 +200,7 @@ wocky_sasl_scram_class_init (
   g_object_class_install_property (object_class, PROP_HASH_ALGO,
       g_param_spec_int ("hash-algo", "hash algorithm",
           "The type of the Hash Algorithm to use for HMAC from GChecksumType",
-          G_CHECKSUM_SHA1, G_CHECKSUM_SHA512, G_CHECKSUM_SHA1,
+          G_CHECKSUM_SHA1, G_CHECKSUM_SHA512, G_CHECKSUM_SHA256,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
   g_object_class_install_property (object_class, PROP_CB_TYPE,
@@ -247,7 +248,7 @@ sasl_handler_iface_init (gpointer g_iface)
 {
   WockyAuthHandlerIface *iface = g_iface;
 
-  iface->mechanism = "SCRAM-SHA-1";
+  iface->mechanism = WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256;
   iface->plain = FALSE;
   iface->initial_response_func = scram_initial_response;
   iface->auth_data_func = scram_handle_auth_data;

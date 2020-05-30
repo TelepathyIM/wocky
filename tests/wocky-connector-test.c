@@ -63,6 +63,17 @@
 #define PLAIN  FALSE
 #define DIGEST TRUE
 
+#ifdef HAVE_LIBSASL2
+#include <sasl/sasl.h>
+#if SASL_VERSION_FULL >= 0x0002011B
+#define DEFAULT_SASL_MECH "SCRAM-SHA-256"
+#endif /* SASL_VERSION_FULL */
+#endif /* HAVE_LIBSASL2 */
+
+#ifndef DEFAULT_SASL_MECH
+#define DEFAULT_SASL_MECH "SCRAM-SHA-1"
+#endif
+
 #define PORT_XMPP 5222
 #define PORT_NONE 0
 
@@ -584,7 +595,7 @@ test_t tests[] =
 
     { "/connector/auth/secure/no-tlsplain/notls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -608,7 +619,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/no-tlsplain/notls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -770,7 +781,7 @@ test_t tests[] =
      * these should all be digest auth successes                        */
     { "/connector/auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -782,7 +793,7 @@ test_t tests[] =
 
     { "/connector/auth/secure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -794,7 +805,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -806,7 +817,7 @@ test_t tests[] =
 
     { "/connector/auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -818,7 +829,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -830,7 +841,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/secure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -842,7 +853,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -854,7 +865,7 @@ test_t tests[] =
 
     { "/connector/tls+auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -985,7 +996,7 @@ test_t tests[] =
     /* we actually tolerate > 1.0 versions */
     { "/connector/problem/xmpp/version/1.x",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL, "1.1" },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
@@ -1162,7 +1173,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/bind/no-jid",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, BIND_PROBLEM_NO_JID, OK, OK, OK } },
@@ -1175,7 +1186,7 @@ test_t tests[] =
 
     { "/connector/problem/xmpp/session/none",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_NO_SESSION, OK, OK, OK, OK } },
@@ -1323,7 +1334,7 @@ test_t tests[] =
     /* quirks                                                               */
     { "/connector/google/domain-discovery/require",
       QUIET,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_REQUIRE_GOOGLE_JDD, CONNECTOR_OK },
         { "moose", "something" },
@@ -1422,7 +1433,7 @@ test_t tests[] =
 
     { "/connector/xep77/register/email-arg-ok",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, OK, OK, OK, XEP77_PROBLEM_EMAIL_ARG } },
@@ -1499,7 +1510,7 @@ test_t tests[] =
 
     { "/connector/xep77/register/already/get",
       NOISY,
-      { S_NO_ERROR, 0 , 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0 , 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, OK, OK, OK, XEP77_PROBLEM_QUERY_ALREADY } },
@@ -1513,7 +1524,7 @@ test_t tests[] =
 
     { "/connector/xep77/register/already/set",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { OK, OK, OK, OK, OK, XEP77_PROBLEM_ALREADY } },
@@ -1772,7 +1783,7 @@ test_t tests[] =
 
     { "/connector/jabber/no-ssl/auth/old+sasl",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_AUTH_FEATURE, OK, OK, OK, OK } },
@@ -1964,7 +1975,7 @@ test_t tests[] =
 
     { "/connector/jabber/ssl/auth/old+sasl",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
           { SERVER_PROBLEM_NO_PROBLEM,
             { XMPP_PROBLEM_OLD_AUTH_FEATURE|XMPP_PROBLEM_OLD_SSL,
@@ -2006,7 +2017,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/secure/no-tlsplain/notls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2030,7 +2041,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/no-tlsplain/notls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { NOTLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2150,7 +2161,7 @@ test_t tests[] =
      * these should all be digest auth successes                        */
     { "/connector+ssl/auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2162,7 +2173,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/secure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2174,7 +2185,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2186,7 +2197,7 @@ test_t tests[] =
 
     { "/connector+ssl/auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2198,7 +2209,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/secure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2210,7 +2221,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/secure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2222,7 +2233,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/insecure/no-tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2234,7 +2245,7 @@ test_t tests[] =
 
     { "/connector+ssl/tls+auth/insecure/tlsplain/tls/digest",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2325,7 +2336,7 @@ test_t tests[] =
     /* we actually tolerate > 1.0 versions */
     { "/connector+ssl/problem/xmpp/version/1.x",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL, "1.1" },
         { SERVER_PROBLEM_NO_PROBLEM, { XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
         { "moose", "something" },
@@ -2487,7 +2498,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/bind/no-jid",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_OLD_SSL, BIND_PROBLEM_NO_JID, OK, OK, OK } },
@@ -2500,7 +2511,7 @@ test_t tests[] =
 
     { "/connector+ssl/problem/xmpp/session/none",
       NOISY,
-      { S_NO_ERROR, 0, 0, "SCRAM-SHA-1" },
+      { S_NO_ERROR, 0, 0, DEFAULT_SASL_MECH },
       { { TLS, NULL },
         { SERVER_PROBLEM_NO_PROBLEM,
           { XMPP_PROBLEM_NO_SESSION|XMPP_PROBLEM_OLD_SSL, OK, OK, OK, OK } },
@@ -3771,7 +3782,7 @@ main (int argc,
   g_message ("libsasl2 not found: skipping SCRAM SASL tests");
   for (i = 0; tests[i].desc != NULL; i++)
     {
-      if (!wocky_strdiff (tests[i].result.mech, "SCRAM-SHA-1"))
+      if (!wocky_strdiff (tests[i].result.mech, DEFAULT_SASL_MECH))
         continue;
       g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
     }
