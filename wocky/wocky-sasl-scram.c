@@ -46,6 +46,7 @@ enum
   PROP_SERVER = 1,
   PROP_CB_TYPE,
   PROP_CB_DATA,
+  PROP_HASH_ALGO,
   PROP_USERNAME,
   PROP_PASSWORD
 };
@@ -54,6 +55,7 @@ struct _WockySaslScramPrivate
 {
   WockySaslScramState state;
   WockyTLSBindingType cb_type;
+  GChecksumType hash_algo;
   const gchar *gs2_flag;
   gchar *cb_data;
   gchar *username;
@@ -87,6 +89,10 @@ wocky_sasl_scram_get_property (
 
   switch (property_id)
     {
+      case PROP_HASH_ALGO:
+        g_value_set_int (value, priv->hash_algo);
+        break;
+
       case PROP_CB_TYPE:
         g_value_set_enum (value, priv->cb_type);
         break;
@@ -121,6 +127,10 @@ wocky_sasl_scram_set_property (
 
   switch (property_id)
     {
+      case PROP_HASH_ALGO:
+        priv->hash_algo = g_value_get_int (value);
+        break;
+
       case PROP_CB_TYPE:
         priv->cb_type = g_value_get_enum (value);
         break;
@@ -185,6 +195,12 @@ wocky_sasl_scram_class_init (
   object_class->dispose = wocky_sasl_scram_dispose;
   object_class->set_property = wocky_sasl_scram_set_property;
   object_class->get_property = wocky_sasl_scram_get_property;
+
+  g_object_class_install_property (object_class, PROP_HASH_ALGO,
+      g_param_spec_int ("hash-algo", "hash algorithm",
+          "The type of the Hash Algorithm to use for HMAC from GChecksumType",
+          G_CHECKSUM_SHA1, G_CHECKSUM_SHA512, G_CHECKSUM_SHA1,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
   g_object_class_install_property (object_class, PROP_CB_TYPE,
       g_param_spec_enum ("cb-type", "binding type",
@@ -381,7 +397,8 @@ scram_calculate_salted_password (WockySaslScram *self)
   g_byte_array_append (salt, one, sizeof (one));
 
   /* Calculate U1 */
-  result = sasl_calculate_hmac_sha1 ((guint8 *) priv->password, pass_len,
+  result = sasl_calculate_hmac (priv->hash_algo,
+    (guint8 *) priv->password, pass_len,
     salt->data, salt->len);
 
   prev = g_byte_array_sized_new (result->len);
@@ -390,7 +407,8 @@ scram_calculate_salted_password (WockySaslScram *self)
   /* Calculate U2 and onwards, while keeping a rolling result */
   for (i = 1; i < priv->iterations; i++)
     {
-      GByteArray *U = sasl_calculate_hmac_sha1 ((guint8 *) priv->password,
+      GByteArray *U = sasl_calculate_hmac (priv->hash_algo,
+        (guint8 *) priv->password,
         pass_len, prev->data, prev->len);
 
       g_byte_array_unref (prev);
@@ -418,27 +436,29 @@ scram_make_client_proof (WockySaslScram *self)
   WockySaslScramPrivate *priv = self->priv;
   gchar *proof = NULL;
   GByteArray *client_key, *client_signature;
-  gsize len = WOCKY_SHA1_DIGEST_SIZE;
-  guint8 stored_key[WOCKY_SHA1_DIGEST_SIZE];
+  gsize len = g_checksum_type_get_length (priv->hash_algo);
+  guint8 *stored_key;
   GChecksum *checksum;
 
+  stored_key = g_new (guint8, len);
   /* Calculate the salted password and save it for later as we need it to
    * verify the servers reply */
   scram_calculate_salted_password (self);
 
-  client_key = sasl_calculate_hmac_sha1 (priv->salted_password->data,
+  client_key = sasl_calculate_hmac (priv->hash_algo,
+      priv->salted_password->data,
       priv->salted_password->len, (guint8 *) CLIENT_KEY_STR,
       strlen (CLIENT_KEY_STR));
 
-  checksum = g_checksum_new (G_CHECKSUM_SHA1);
+  checksum = g_checksum_new (priv->hash_algo);
   g_checksum_update (checksum, client_key->data, client_key->len);
   g_checksum_get_digest (checksum, stored_key, &len);
   g_checksum_free (checksum);
 
   DEBUG ("auth message: %s", priv->auth_message);
 
-  client_signature = sasl_calculate_hmac_sha1 (stored_key,
-      WOCKY_SHA1_DIGEST_SIZE,
+  client_signature = sasl_calculate_hmac (priv->hash_algo,
+      stored_key, len,
       (guint8 *) priv->auth_message, strlen (priv->auth_message));
 
   /* xor signature and key, overwriting key */
@@ -446,6 +466,7 @@ scram_make_client_proof (WockySaslScram *self)
 
   proof = g_base64_encode (client_key->data, client_key->len);
 
+  g_free (stored_key);
   g_byte_array_unref (client_key);
   g_byte_array_unref (client_signature);
 
@@ -570,11 +591,11 @@ scram_check_server_verification (WockySaslScram *self,
   gchar *v;
   gboolean ret;
 
-  server_key = sasl_calculate_hmac_sha1 (
+  server_key = sasl_calculate_hmac (priv->hash_algo,
     priv->salted_password->data, priv->salted_password->len,
     (guint8 *) SERVER_KEY_STR, strlen (SERVER_KEY_STR));
 
-  server_signature = sasl_calculate_hmac_sha1 (server_key->data,
+  server_signature = sasl_calculate_hmac (priv->hash_algo, server_key->data,
     server_key->len, (guint8 *) priv->auth_message,
     strlen (priv->auth_message));
 

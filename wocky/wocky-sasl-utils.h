@@ -28,7 +28,8 @@
 #define WOCKY_SHA1_DIGEST_SIZE 20
 
 gchar * sasl_generate_base64_nonce (void);
-GByteArray * sasl_calculate_hmac_sha1 (guint8 *key,
+GByteArray * sasl_calculate_hmac (GChecksumType digest_type,
+    guint8 *key,
     gsize key_len,
     guint8 *text,
     gsize text_len);

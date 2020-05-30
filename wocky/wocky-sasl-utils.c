@@ -44,64 +44,20 @@ sasl_generate_base64_nonce (void)
 }
 
 GByteArray *
-sasl_calculate_hmac_sha1 (guint8 *key,
+sasl_calculate_hmac (GChecksumType digest_type,
+    guint8 *key,
     gsize key_len,
     guint8 *text,
     gsize text_len)
 {
-/* Calculate the HMAC keyed hash algorithm as defined in RFC2104, using
- * SHA-1 as the hash algorithm */
-  GChecksum *checksum;
-  guint8 k_ipad[WOCKY_SHA1_BLOCK_SIZE];
-  guint8 k_opad[WOCKY_SHA1_BLOCK_SIZE];
-  guint8 inner_checksum[WOCKY_SHA1_DIGEST_SIZE];
-  GByteArray *result;
-  gsize len = WOCKY_SHA1_DIGEST_SIZE, i;
+  GHmac *hmac = g_hmac_new (digest_type, key, key_len);
+  gsize len = g_checksum_type_get_length (digest_type);
+  guint8 *digest = g_new (guint8, len);
 
-  memset (k_ipad, 0x36, WOCKY_SHA1_BLOCK_SIZE);
-  memset (k_opad, 0x5c, WOCKY_SHA1_BLOCK_SIZE);
+  g_hmac_update (hmac, text, text_len);
+  g_hmac_get_digest (hmac, digest, &len);
 
-  if (key_len > WOCKY_SHA1_BLOCK_SIZE)
-    {
-      guchar k[WOCKY_SHA1_DIGEST_SIZE];
-
-      checksum = g_checksum_new (G_CHECKSUM_SHA1);
-      g_checksum_update (checksum, key, key_len);
-      g_checksum_get_digest (checksum, k, &len);
-      g_checksum_free (checksum);
-
-      for (i = 0; i < WOCKY_SHA1_DIGEST_SIZE; i++)
-        {
-          k_ipad[i] ^= k[i];
-          k_opad[i] ^= k[i];
-        }
-    }
-  else
-    {
-      for (i = 0; i < key_len; i++)
-        {
-          k_ipad[i] ^= key[i];
-          k_opad[i] ^= key[i];
-        }
-    }
-
-  /* inner checksum */
-  checksum = g_checksum_new (G_CHECKSUM_SHA1);
-  g_checksum_update (checksum, k_ipad, WOCKY_SHA1_BLOCK_SIZE);
-  g_checksum_update (checksum, text, text_len);
-  g_checksum_get_digest (checksum, inner_checksum, &len);
-  g_checksum_free (checksum);
-
-  /* outer checksum */
-  result = g_byte_array_new ();
-  g_byte_array_set_size (result, WOCKY_SHA1_DIGEST_SIZE);
-
-  checksum = g_checksum_new (G_CHECKSUM_SHA1);
-  g_checksum_update (checksum, k_opad, WOCKY_SHA1_BLOCK_SIZE);
-  g_checksum_update (checksum, inner_checksum, WOCKY_SHA1_DIGEST_SIZE);
-  g_checksum_get_digest (checksum, result->data, &len);
-  g_checksum_free (checksum);
-
-  return result;
+  g_hmac_unref (hmac);
+  return g_byte_array_new_take (digest, len);
 }
 
