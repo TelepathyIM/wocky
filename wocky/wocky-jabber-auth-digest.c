@@ -11,9 +11,6 @@
 static void
 auth_handler_iface_init (gpointer g_iface);
 
-G_DEFINE_TYPE_WITH_CODE (WockyJabberAuthDigest, wocky_jabber_auth_digest, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
-
 enum
 {
   PROP_SESSION_ID = 1,
@@ -25,6 +22,10 @@ struct _WockyJabberAuthDigestPrivate
   gchar *session_id;
   gchar *password;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyJabberAuthDigest, wocky_jabber_auth_digest, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJabberAuthDigest)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 static void
 wocky_jabber_auth_digest_get_property (GObject *object, guint property_id,
@@ -88,8 +89,6 @@ wocky_jabber_auth_digest_class_init (WockyJabberAuthDigestClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (WockyJabberAuthDigestPrivate));
-
   object_class->get_property = wocky_jabber_auth_digest_get_property;
   object_class->set_property = wocky_jabber_auth_digest_set_property;
   object_class->dispose = wocky_jabber_auth_digest_dispose;
@@ -123,8 +122,7 @@ auth_handler_iface_init (gpointer g_iface)
 static void
 wocky_jabber_auth_digest_init (WockyJabberAuthDigest *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (
-      self, WOCKY_TYPE_JABBER_AUTH_DIGEST, WockyJabberAuthDigestPrivate);
+  self->priv = wocky_jabber_auth_digest_get_instance_private (self);
 }
 
 WockyJabberAuthDigest *

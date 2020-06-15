@@ -90,17 +90,11 @@ start_test (loopback_test_t *test)
   test_wait_pending (&(test->data));
 }
 
-static void
-close_cb (GObject *source,
-    GAsyncResult *res,
-    gpointer user_data)
+static gboolean
+cleanup_in_idle (gpointer user_data)
 {
   loopback_test_t *test = user_data;
 
-  g_assert (wocky_porter_close_finish (WOCKY_PORTER (source),
-          res, NULL));
-
-  test->data.outstanding--;
   g_main_loop_quit (test->data.loop);
 
   g_main_loop_unref (test->data.loop);
@@ -114,6 +108,23 @@ close_cb (GObject *source,
   g_queue_free (test->data.expected_stanzas);
 
   g_slice_free (loopback_test_t, test);
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+close_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  loopback_test_t *test = user_data;
+
+  g_assert (wocky_porter_close_finish (WOCKY_PORTER (source),
+          res, NULL));
+
+  g_idle_add (cleanup_in_idle, user_data);
+  g_main_loop_quit (test->data.loop);
+  test->data.outstanding--;
 }
 
 static void

@@ -51,8 +51,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_ROSTER
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyContactFactory, wocky_contact_factory, G_TYPE_OBJECT)
-
 #if 0
 /* properties */
 enum
@@ -84,13 +82,15 @@ struct _WockyContactFactoryPrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyContactFactory, wocky_contact_factory,
+                        G_TYPE_OBJECT, G_ADD_PRIVATE (WockyContactFactory))
+
 static void
 wocky_contact_factory_init (WockyContactFactory *self)
 {
   WockyContactFactoryPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_CONTACT_FACTORY,
-      WockyContactFactoryPrivate);
+  self->priv = wocky_contact_factory_get_instance_private (self);
   priv = self->priv;
 
   priv->bare_contacts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free,
@@ -210,9 +210,6 @@ wocky_contact_factory_class_init (
     WockyContactFactoryClass *wocky_contact_factory_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_contact_factory_class);
-
-  g_type_class_add_private (wocky_contact_factory_class,
-      sizeof (WockyContactFactoryPrivate));
 
   object_class->constructed = wocky_contact_factory_constructed;
   object_class->set_property = wocky_contact_factory_set_property;

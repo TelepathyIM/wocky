@@ -59,8 +59,6 @@ enum {
   PROP_ID,
 };
 
-G_DEFINE_TYPE (WockyXmppReader, wocky_xmpp_reader, G_TYPE_OBJECT)
-
 /* Parser prototypes */
 static void _start_element_ns (void *user_data,
     const xmlChar *localname, const xmlChar *prefix, const xmlChar *uri,
@@ -129,6 +127,9 @@ struct _WockyXmppReaderPrivate
   GQueue *stanzas;
   WockyXmppReaderState state;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyXmppReader, wocky_xmpp_reader, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyXmppReader))
 
 /**
  * wocky_xmpp_reader_error_quark
@@ -217,8 +218,7 @@ wocky_xmpp_reader_init (WockyXmppReader *self)
 {
   WockyXmppReaderPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_READER,
-      WockyXmppReaderPrivate);
+  self->priv = wocky_xmpp_reader_get_instance_private (self);
   priv = self->priv;
 
   priv->nodes = g_queue_new ();
@@ -242,8 +242,6 @@ wocky_xmpp_reader_class_init (WockyXmppReaderClass *wocky_xmpp_reader_class)
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_reader_class);
   GParamSpec *param_spec;
 
-  g_type_class_add_private (wocky_xmpp_reader_class,
-      sizeof (WockyXmppReaderPrivate));
   wocky_xmpp_reader_class->stream_element_name = "stream";
   wocky_xmpp_reader_class->stream_element_ns = WOCKY_XMPP_NS_STREAM;
 
@@ -331,6 +329,8 @@ wocky_xmpp_reader_finalize (GObject *object)
 
   if (priv->error != NULL)
     g_error_free (priv->error);
+
+  g_free (priv->default_namespace);
 
   G_OBJECT_CLASS (wocky_xmpp_reader_parent_class)->finalize (object);
 }

@@ -50,8 +50,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_ROSTER
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyBareContact, wocky_bare_contact, WOCKY_TYPE_CONTACT)
-
 /* properties */
 enum
 {
@@ -87,12 +85,13 @@ struct _WockyBareContactPrivate
   GSList *resources;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyBareContact, wocky_bare_contact,
+                WOCKY_TYPE_CONTACT, G_ADD_PRIVATE(WockyBareContact))
+
 static void
 wocky_bare_contact_init (WockyBareContact *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
-      WOCKY_TYPE_BARE_CONTACT, WockyBareContactPrivate);
-
+  self->priv = wocky_bare_contact_get_instance_private (self);
   self->priv->resources = NULL;
 }
 
@@ -227,9 +226,6 @@ wocky_bare_contact_class_init (WockyBareContactClass *wocky_bare_contact_class)
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_bare_contact_class);
   WockyContactClass *contact_class = WOCKY_CONTACT_CLASS (wocky_bare_contact_class);
   GParamSpec *spec;
-
-  g_type_class_add_private (wocky_bare_contact_class,
-      sizeof (WockyBareContactPrivate));
 
   object_class->constructed = wocky_bare_contact_constructed;
   object_class->set_property = wocky_bare_contact_set_property;

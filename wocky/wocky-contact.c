@@ -48,8 +48,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_ROSTER
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyContact, wocky_contact, G_TYPE_OBJECT)
-
 /* signal enum */
 enum
 {
@@ -66,11 +64,13 @@ struct _WockyContactPrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyContact, wocky_contact, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyContact))
+
 static void
 wocky_contact_init (WockyContact *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_CONTACT,
-    WockyContactPrivate);
+  self->priv = wocky_contact_get_instance_private (self);
 }
 
 static void
@@ -146,9 +146,6 @@ static void
 wocky_contact_class_init (WockyContactClass *wocky_contact_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_contact_class);
-
-  g_type_class_add_private (wocky_contact_class,
-      sizeof (WockyContactPrivate));
 
   object_class->constructed = wocky_contact_constructed;
   object_class->set_property = wocky_contact_set_property;

@@ -36,8 +36,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_AUTH
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE(WockySaslAuth, wocky_sasl_auth, G_TYPE_OBJECT)
-
 enum
 {
     PROP_SERVER = 1,
@@ -56,9 +54,12 @@ struct _WockySaslAuthPrivate
   gchar *password;
   gchar *server;
   GCancellable *cancel;
-  GSimpleAsyncResult *result;
+  GTask *task;
   WockyAuthRegistry *auth_registry;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockySaslAuth, wocky_sasl_auth, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockySaslAuth))
 
 static void sasl_auth_stanza_received (GObject *source, GAsyncResult *res,
     gpointer user_data);
@@ -66,8 +67,7 @@ static void sasl_auth_stanza_received (GObject *source, GAsyncResult *res,
 static void
 wocky_sasl_auth_init (WockySaslAuth *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_SASL_AUTH,
-      WockySaslAuthPrivate);
+  self->priv = wocky_sasl_auth_get_instance_private (self);
 }
 
 static void wocky_sasl_auth_dispose (GObject *object);
@@ -142,9 +142,6 @@ wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_sasl_auth_class);
   GParamSpec *spec;
-
-  g_type_class_add_private (wocky_sasl_auth_class,
-      sizeof (WockySaslAuthPrivate));
 
   object_class->set_property = wocky_sasl_auth_set_property;
   object_class->get_property = wocky_sasl_auth_get_property;
@@ -244,16 +241,16 @@ static void
 auth_succeeded (WockySaslAuth *sasl)
 {
   WockySaslAuthPrivate *priv = sasl->priv;
-  GSimpleAsyncResult *r;
+  GTask *t;
 
   DEBUG ("Authentication succeeded");
   auth_reset (sasl);
 
-  r = priv->result;
-  priv->result = NULL;
+  t = priv->task;
+  priv->task = NULL;
 
-  g_simple_async_result_complete (r);
-  g_object_unref (r);
+  g_task_return_boolean (t, TRUE);
+  g_object_unref (t);
 }
 
 static void
@@ -261,7 +258,7 @@ auth_failed (WockySaslAuth *sasl, gint code, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
-  GSimpleAsyncResult *r;
+  GTask *t;
   GError *error = NULL;
   WockySaslAuthPrivate *priv = sasl->priv;
 
@@ -273,17 +270,16 @@ auth_failed (WockySaslAuth *sasl, gint code, const gchar *format, ...)
 
   DEBUG ("Authentication failed!: %s", message);
 
-  r = priv->result;
-  priv->result = NULL;
+  t = priv->task;
+  priv->task = NULL;
 
   error = g_error_new_literal (WOCKY_AUTH_ERROR, code, message);
 
-  g_simple_async_result_set_from_error (r, error);
+  g_task_return_error (t, g_error_copy (error));
 
   wocky_auth_registry_failure (priv->auth_registry, error);
 
-  g_simple_async_result_complete (r);
-  g_object_unref (r);
+  g_object_unref (t);
 
   g_error_free (error);
   g_free (message);
@@ -610,7 +606,9 @@ wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error)
 {
-  wocky_implement_finish_void (sasl, wocky_sasl_auth_authenticate_async);
+  g_return_val_if_fail (g_task_is_valid (result, sasl), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void
@@ -685,15 +683,15 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
 
   if (G_UNLIKELY (mechanisms == NULL))
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (sasl),
-          callback, user_data,
+      g_task_report_new_error (G_OBJECT (sasl), callback, user_data,
+          wocky_sasl_auth_authenticate_async,
           WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_SUPPORTED,
           "Server doesn't have any sasl mechanisms");
       goto out;
     }
 
-  priv->result = g_simple_async_result_new (G_OBJECT (sasl),
-    callback, user_data, wocky_sasl_auth_authenticate_async);
+
+  priv->task = g_task_new (G_OBJECT (sasl), cancellable, callback, user_data);
 
   if (cancellable != NULL)
     priv->cancel = g_object_ref (cancellable);

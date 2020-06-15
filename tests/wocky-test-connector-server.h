@@ -190,7 +190,7 @@ void test_connector_server_teardown (TestConnectorServer *self,
 
 gboolean test_connector_server_teardown_finish (TestConnectorServer *self,
   GAsyncResult *result,
-  GError *error);
+  GError **error);
 
 const gchar *test_connector_server_get_used_mech (TestConnectorServer *self);
 

@@ -51,8 +51,6 @@
 
 #define GOOGLE_ROSTER_VERSION "2"
 
-G_DEFINE_TYPE (WockyRoster, wocky_roster, G_TYPE_OBJECT)
-
 typedef struct
 {
   WockyRoster *self;
@@ -84,18 +82,18 @@ typedef struct
 
 static PendingOperation *
 pending_operation_new (WockyRoster *self,
-    GSimpleAsyncResult *result,
+    GTask *task,
     const gchar *jid)
 {
   PendingOperation *pending = g_slice_new0 (PendingOperation);
 
   g_assert (self != NULL);
-  g_assert (result != NULL);
+  g_assert (task != NULL);
   g_assert (jid != NULL);
 
   pending->self = g_object_ref (self);
   pending->flying_operations = g_slist_append (pending->flying_operations,
-      result);
+      task);
   pending->jid = g_strdup (jid);
 
   pending->groups_to_add = g_hash_table_new_full (g_str_hash, g_str_equal,
@@ -180,10 +178,10 @@ pending_operation_set_remove (PendingOperation *pending)
 
 static void
 pending_operation_add_waiting_operation (PendingOperation *pending,
-    GSimpleAsyncResult *result)
+    GTask *task)
 {
   pending->waiting_operations = g_slist_append (pending->waiting_operations,
-      result);
+      task);
 }
 
 static gboolean
@@ -254,10 +252,13 @@ struct _WockyRosterPrivate
    * we already sent is acknowledged. This prevents some race conditions. */
   GHashTable *pending_operations;
 
-  GSimpleAsyncResult *fetch_result;
+  GTask *fetch_task;
 
   gboolean dispose_has_run;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyRoster, wocky_roster, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyRoster))
 
 /**
  * wocky_roster_error_quark
@@ -284,8 +285,7 @@ static void change_roster_iq_cb (GObject *source_object,
 static void
 wocky_roster_init (WockyRoster *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_ROSTER,
-      WockyRosterPrivate);
+  self->priv = wocky_roster_get_instance_private (self);
 }
 
 static void
@@ -608,9 +608,6 @@ wocky_roster_class_init (WockyRosterClass *wocky_roster_class)
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_roster_class);
   GParamSpec *spec;
 
-  g_type_class_add_private (wocky_roster_class,
-      sizeof (WockyRosterPrivate));
-
   object_class->constructed = wocky_roster_constructed;
   object_class->set_property = wocky_roster_set_property;
   object_class->get_property = wocky_roster_get_property;
@@ -659,25 +656,16 @@ roster_fetch_roster_cb (GObject *source_object,
 
   iq = wocky_porter_send_iq_finish (WOCKY_PORTER (source_object), res, &error);
 
-  if (iq == NULL)
-    goto out;
-
-  if (!roster_update (self, iq, FALSE, &error))
-    goto out;
-
-out:
-  if (error != NULL)
-    {
-      g_simple_async_result_set_from_error (priv->fetch_result, error);
-      g_error_free (error);
-    }
+  if (!iq || !roster_update (self, iq, FALSE, &error))
+    g_task_return_error (priv->fetch_task, error);
+  else
+    g_task_return_boolean (priv->fetch_task, TRUE);
 
   if (iq != NULL)
     g_object_unref (iq);
 
-  g_simple_async_result_complete (priv->fetch_result);
-  g_object_unref (priv->fetch_result);
-  priv->fetch_result = NULL;
+  g_object_unref (priv->fetch_task);
+  priv->fetch_task = NULL;
 }
 
 void
@@ -693,9 +681,10 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
 
   priv = self->priv;
 
-  if (priv->fetch_result != NULL)
+  if (priv->fetch_task != NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
+      g_task_report_new_error (G_OBJECT (self), callback,
+          wocky_roster_fetch_roster_async,
           user_data, G_IO_ERROR, G_IO_ERROR_PENDING,
           "Another fetch operation is pending");
       return;
@@ -708,8 +697,8 @@ wocky_roster_fetch_roster_async (WockyRoster *self,
         ')',
       NULL);
 
-  priv->fetch_result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_fetch_roster_async);
+  priv->fetch_task = g_task_new (G_OBJECT (self), cancellable, callback,
+                      user_data);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, roster_fetch_roster_cb, self);
@@ -721,14 +710,9 @@ wocky_roster_fetch_roster_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_roster_fetch_roster_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 WockyBareContact *
@@ -865,9 +849,9 @@ build_iq_for_pending (WockyRoster *self,
 
           for (l = pending->waiting_operations; l != NULL; l = g_slist_next (l))
             {
-              GSimpleAsyncResult *result = (GSimpleAsyncResult *) l->data;
+              GTask *task = G_TASK (l->data);
 
-              g_simple_async_result_set_error (result, WOCKY_ROSTER_ERROR,
+              g_task_return_new_error (task, WOCKY_ROSTER_ERROR,
                   WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
                   "Contact %s is not in the roster any more", pending->jid);
             }
@@ -926,9 +910,10 @@ waiting_operations_completed (WockyRoster *self,
 
   for (l = pending->waiting_operations; l != NULL; l = g_slist_next (l))
     {
-      GSimpleAsyncResult *result = (GSimpleAsyncResult *) l->data;
+      GTask *task = G_TASK (l->data);
 
-      g_simple_async_result_complete (result);
+      if (!g_task_had_error (task))
+        g_task_return_boolean (task, TRUE);
     }
 }
 
@@ -944,12 +929,12 @@ flying_operation_completed (PendingOperation *pending,
   /* Flying operations are completed */
   for (l = pending->flying_operations; l != NULL; l = g_slist_next (l))
     {
-      GSimpleAsyncResult *result = (GSimpleAsyncResult *) l->data;
+      GTask *task = G_TASK (l->data);
 
       if (error != NULL)
-        g_simple_async_result_set_from_error (result, error);
-
-      g_simple_async_result_complete (result);
+        g_task_return_error (task, error);
+      else
+        g_task_return_boolean (task, TRUE);
     }
 
   if (g_slist_length (pending->waiting_operations) == 0)
@@ -1030,10 +1015,10 @@ get_pending_operation (WockyRoster *self,
 static PendingOperation *
 add_pending_operation (WockyRoster *self,
     const gchar *jid,
-    GSimpleAsyncResult *result)
+    GTask *task)
 {
   WockyRosterPrivate *priv = self->priv;
-  PendingOperation *pending = pending_operation_new (self, result, jid);
+  PendingOperation *pending = pending_operation_new (self, task, jid);
 
   DEBUG ("Add pending operation for %s", jid);
   g_hash_table_insert (priv->pending_operations, g_strdup (jid), pending);
@@ -1051,14 +1036,13 @@ wocky_roster_add_contact_async (WockyRoster *self,
 {
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
-  GSimpleAsyncResult *result;
+  GTask *task;
   WockyBareContact *contact, *existing_contact;
   PendingOperation *pending;
 
   g_return_if_fail (jid != NULL);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_add_contact_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
@@ -1067,7 +1051,7 @@ wocky_roster_add_contact_async (WockyRoster *self,
           jid);
       pending_operation_set_new_name (pending, name);
       pending_operation_set_groups (pending, (GStrv) groups);
-      pending_operation_add_waiting_operation (pending, result);
+      pending_operation_add_waiting_operation (pending, task);
       pending_operation_set_add (pending);
       return;
     }
@@ -1090,16 +1074,16 @@ wocky_roster_add_contact_async (WockyRoster *self,
         {
           DEBUG ("Contact %s is already present in the roster; "
               "no need to change him", jid);
-          g_simple_async_result_complete_in_idle (result);
+          g_task_return_boolean (task, TRUE);
           g_object_unref (contact);
-          g_object_unref (result);
+          g_object_unref (task);
           return;
         }
     }
 
   iq = build_iq_for_contact (contact, NULL);
 
-  pending = add_pending_operation (self, jid, result);
+  pending = add_pending_operation (self, jid, task);
 
   wocky_porter_send_iq_async (priv->porter,
       iq, cancellable, change_roster_iq_cb, pending);
@@ -1115,14 +1099,9 @@ wocky_roster_add_contact_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_roster_add_contact_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static gboolean
@@ -1151,15 +1130,14 @@ wocky_roster_remove_contact_async (WockyRoster *self,
 {
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
-  GSimpleAsyncResult *result;
+  GTask *task;
   PendingOperation *pending;
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
   jid = wocky_bare_contact_get_jid (contact);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_remove_contact_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
@@ -1167,7 +1145,7 @@ wocky_roster_remove_contact_async (WockyRoster *self,
       DEBUG ("Another operation is pending for contact %s; queuing this one",
           jid);
       pending_operation_set_remove (pending);
-      pending_operation_add_waiting_operation (pending, result);
+      pending_operation_add_waiting_operation (pending, task);
       return;
     }
 
@@ -1175,12 +1153,12 @@ wocky_roster_remove_contact_async (WockyRoster *self,
     {
       DEBUG ("Contact %s is not in the roster", wocky_bare_contact_get_jid (
             contact));
-      g_simple_async_result_complete_in_idle (result);
-      g_object_unref (result);
+      g_task_return_boolean (task, TRUE);
+      g_object_unref (task);
       return;
     }
 
-  pending = add_pending_operation (self, jid, result);
+  pending = add_pending_operation (self, jid, task);
 
   iq = build_remove_contact_iq (contact);
 
@@ -1195,14 +1173,9 @@ wocky_roster_remove_contact_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_roster_remove_contact_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 void
@@ -1216,15 +1189,14 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
   WockyNode *item;
-  GSimpleAsyncResult *result;
+  GTask *task;
   PendingOperation *pending;
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
   jid = wocky_bare_contact_get_jid (contact);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_change_contact_name_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
@@ -1232,28 +1204,28 @@ wocky_roster_change_contact_name_async (WockyRoster *self,
       DEBUG ("Another operation is pending for contact %s; queuing this one",
           jid);
       pending_operation_set_new_name (pending, name);
-      pending_operation_add_waiting_operation (pending, result);
+      pending_operation_add_waiting_operation (pending, task);
       return;
     }
 
   if (!contact_in_roster (self, contact))
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
+      g_task_return_new_error (task, /* XXX - why was report and not return here? */
+          WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
           "Contact %s is not in the roster", wocky_bare_contact_get_jid (contact));
-      g_object_unref (result);
+      g_object_unref (task);
       return;
     }
 
   if (!wocky_strdiff (wocky_bare_contact_get_name (contact), name))
     {
       DEBUG ("No need to change name; complete immediately");
-      g_simple_async_result_complete_in_idle (result);
-      g_object_unref (result);
+      g_task_return_boolean (task, TRUE);
+      g_object_unref (task);
       return;
     }
 
-  pending = add_pending_operation (self, jid, result);
+  pending = add_pending_operation (self, jid, task);
 
   iq = build_iq_for_contact (contact, &item);
 
@@ -1271,15 +1243,9 @@ wocky_roster_change_contact_name_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-        G_OBJECT (self), wocky_roster_change_contact_name_async),
-      FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 void
@@ -1293,15 +1259,14 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
   WockyNode *item, *group_node;
-  GSimpleAsyncResult *result;
+  GTask *task;
   PendingOperation *pending;
   const gchar *jid;
 
   g_return_if_fail (contact != NULL);
   jid = wocky_bare_contact_get_jid (contact);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_contact_add_group_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
@@ -1309,16 +1274,16 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
       DEBUG ("Another operation is pending for contact %s; queuing this one",
           jid);
       pending_operation_add_group (pending, group);
-      pending_operation_add_waiting_operation (pending, result);
+      pending_operation_add_waiting_operation (pending, task);
       return;
     }
 
   if (!contact_in_roster (self, contact))
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
+      g_task_return_new_error (task, /* XXX - why was report and not return here? */
+          WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
           "Contact %s is not in the roster", jid);
-      g_object_unref (result);
+      g_object_unref (task);
       return;
     }
 
@@ -1326,12 +1291,12 @@ wocky_roster_contact_add_group_async (WockyRoster *self,
     {
       DEBUG ("Contact %s in already in group %s; complete immediately",
           wocky_bare_contact_get_jid (contact), group);
-      g_simple_async_result_complete_in_idle (result);
-      g_object_unref (result);
+      g_task_return_boolean (task, TRUE);
+      g_object_unref (task);
       return;
     }
 
-  pending = add_pending_operation (self, jid, result);
+  pending = add_pending_operation (self, jid, task);
 
   iq = build_iq_for_contact (contact, &item);
 
@@ -1350,15 +1315,9 @@ wocky_roster_contact_add_group_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-        G_OBJECT (self), wocky_roster_contact_add_group_async),
-      FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 void
@@ -1372,7 +1331,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
   WockyRosterPrivate *priv = self->priv;
   WockyStanza *iq;
   WockyNode *item;
-  GSimpleAsyncResult *result;
+  GTask *task;
   GSList *l;
   PendingOperation *pending;
   const gchar *jid;
@@ -1380,8 +1339,7 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
   g_return_if_fail (contact != NULL);
   jid = wocky_bare_contact_get_jid (contact);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_roster_contact_remove_group_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   pending = get_pending_operation (self, jid);
   if (pending != NULL)
@@ -1389,28 +1347,28 @@ wocky_roster_contact_remove_group_async (WockyRoster *self,
       DEBUG ("Another operation is pending for contact %s; queuing this one",
           jid);
       pending_operation_remove_group (pending, group);
-      pending_operation_add_waiting_operation (pending, result);
+      pending_operation_add_waiting_operation (pending, task);
       return;
     }
 
   if (!contact_in_roster (self, contact))
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
+      g_task_return_new_error (task, /* XXX see similar above */
+          WOCKY_ROSTER_ERROR, WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
           "Contact %s is not in the roster", jid);
-      g_object_unref (result);
+      g_object_unref (task);
       return;
     }
 
   if (!wocky_bare_contact_in_group (contact, group))
     {
       DEBUG ("Contact %s is not in group %s; complete immediately", jid, group);
-      g_simple_async_result_complete_in_idle (result);
-      g_object_unref (result);
+      g_task_return_boolean (task, TRUE);
+      g_object_unref (task);
       return;
     }
 
-  pending = add_pending_operation (self, jid, result);
+  pending = add_pending_operation (self, jid, task);
 
   iq = build_iq_for_contact (contact, &item);
 
@@ -1442,13 +1400,7 @@ wocky_roster_contact_remove_group_finish (WockyRoster *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-        G_OBJECT (self), wocky_roster_contact_remove_group_async),
-      FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }

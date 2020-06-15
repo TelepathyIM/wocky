@@ -33,8 +33,6 @@
 
 #include "wocky-node-private.h"
 
-G_DEFINE_TYPE(WockyStanza, wocky_stanza, WOCKY_TYPE_NODE_TREE)
-
 /* private structure */
 struct _WockyStanzaPrivate
 {
@@ -43,6 +41,9 @@ struct _WockyStanzaPrivate
 
   gboolean dispose_has_run;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyStanza, wocky_stanza, WOCKY_TYPE_NODE_TREE,
+          G_ADD_PRIVATE (WockyStanza))
 
 typedef struct
 {
@@ -139,8 +140,7 @@ static const StanzaSubTypeName sub_type_names[NUM_WOCKY_STANZA_SUB_TYPE] =
 static void
 wocky_stanza_init (WockyStanza *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_STANZA,
-      WockyStanzaPrivate);
+  self->priv = wocky_stanza_get_instance_private (self);
 
   self->priv->from_contact = NULL;
   self->priv->to_contact = NULL;
@@ -153,8 +153,6 @@ static void
 wocky_stanza_class_init (WockyStanzaClass *wocky_stanza_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_stanza_class);
-
-  g_type_class_add_private (wocky_stanza_class, sizeof (WockyStanzaPrivate));
 
   object_class->dispose = wocky_stanza_dispose;
   object_class->finalize = wocky_stanza_finalize;

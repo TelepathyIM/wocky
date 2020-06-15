@@ -45,8 +45,6 @@
 #include "wocky-c2s-porter.h"
 #include "wocky-meta-porter.h"
 
-G_DEFINE_TYPE (WockySession, wocky_session, G_TYPE_OBJECT)
-
 /* properties */
 enum
 {
@@ -77,11 +75,13 @@ struct _WockySessionPrivate
   WockyContactFactory *contact_factory;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockySession, wocky_session, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockySession))
+
 static void
 wocky_session_init (WockySession *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_SESSION,
-      WockySessionPrivate);
+  self->priv = wocky_session_get_instance_private (self);
 
   self->priv->contact_factory = wocky_contact_factory_new ();
 }
@@ -195,9 +195,6 @@ wocky_session_class_init (WockySessionClass *wocky_session_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_session_class);
   GParamSpec *spec;
-
-  g_type_class_add_private (wocky_session_class,
-      sizeof (WockySessionPrivate));
 
   object_class->constructed = wocky_session_constructed;
   object_class->set_property = wocky_session_set_property;

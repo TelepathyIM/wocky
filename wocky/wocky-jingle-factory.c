@@ -40,8 +40,6 @@
 
 #include "wocky-google-relay.h"
 
-G_DEFINE_TYPE(WockyJingleFactory, wocky_jingle_factory, G_TYPE_OBJECT);
-
 /* signal enum */
 enum
 {
@@ -75,6 +73,9 @@ struct _WockyJingleFactoryPrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyJingleFactory, wocky_jingle_factory, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJingleFactory));
+
 static gboolean jingle_cb (
     WockyPorter *porter,
     WockyStanza *msg,
@@ -102,8 +103,7 @@ static void
 wocky_jingle_factory_init (WockyJingleFactory *obj)
 {
   WockyJingleFactoryPrivate *priv =
-     G_TYPE_INSTANCE_GET_PRIVATE (obj, WOCKY_TYPE_JINGLE_FACTORY,
-         WockyJingleFactoryPrivate);
+      wocky_jingle_factory_get_instance_private (obj);
   obj->priv = priv;
 
   priv->sessions = g_hash_table_new_full (g_str_hash, g_str_equal,
@@ -212,8 +212,6 @@ wocky_jingle_factory_class_init (WockyJingleFactoryClass *cls)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (cls);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (cls, sizeof (WockyJingleFactoryPrivate));
 
   object_class->constructed = wocky_jingle_factory_constructed;
   object_class->get_property = wocky_jingle_factory_get_property;

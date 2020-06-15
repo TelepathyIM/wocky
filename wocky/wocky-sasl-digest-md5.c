@@ -20,10 +20,6 @@ typedef enum {
 static void
 auth_handler_iface_init (gpointer g_iface);
 
-G_DEFINE_TYPE_WITH_CODE (WockySaslDigestMd5, wocky_sasl_digest_md5,
-    G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (
-        WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
-
 enum
 {
   PROP_SERVER = 1,
@@ -39,6 +35,10 @@ struct _WockySaslDigestMd5Private
   gchar *server;
   gchar *digest_md5_rspauth;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockySaslDigestMd5, wocky_sasl_digest_md5,
+    G_TYPE_OBJECT, G_ADD_PRIVATE (WockySaslDigestMd5)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 static void
 wocky_sasl_digest_md5_get_property (
@@ -115,8 +115,6 @@ wocky_sasl_digest_md5_class_init (
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (WockySaslDigestMd5Private));
-
   object_class->dispose = wocky_sasl_digest_md5_dispose;
   object_class->set_property = wocky_sasl_digest_md5_set_property;
   object_class->get_property = wocky_sasl_digest_md5_get_property;
@@ -159,8 +157,7 @@ auth_handler_iface_init (gpointer g_iface)
 static void
 wocky_sasl_digest_md5_init (WockySaslDigestMd5 *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
-      WOCKY_TYPE_SASL_DIGEST_MD5, WockySaslDigestMd5Private);
+  self->priv = wocky_sasl_digest_md5_get_instance_private (self);
   self->priv->state = WOCKY_SASL_DIGEST_MD5_STATE_STARTED;
 }
 

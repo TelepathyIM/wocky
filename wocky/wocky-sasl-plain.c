@@ -12,9 +12,6 @@
 static void
 auth_handler_iface_init (gpointer g_iface);
 
-G_DEFINE_TYPE_WITH_CODE (WockySaslPlain, wocky_sasl_plain, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
-
 enum
 {
   PROP_USERNAME = 1,
@@ -26,6 +23,10 @@ struct _WockySaslPlainPrivate
   gchar *username;
   gchar *password;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockySaslPlain, wocky_sasl_plain, G_TYPE_OBJECT,
+    G_ADD_PRIVATE (WockySaslPlain)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, auth_handler_iface_init))
 
 static void
 wocky_sasl_plain_get_property (GObject *object, guint property_id,
@@ -89,8 +90,6 @@ wocky_sasl_plain_class_init (WockySaslPlainClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (WockySaslPlainPrivate));
-
   object_class->get_property = wocky_sasl_plain_get_property;
   object_class->set_property = wocky_sasl_plain_set_property;
   object_class->dispose = wocky_sasl_plain_dispose;
@@ -124,8 +123,7 @@ auth_handler_iface_init (gpointer g_iface)
 static void
 wocky_sasl_plain_init (WockySaslPlain *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (
-      self, WOCKY_TYPE_SASL_PLAIN, WockySaslPlainPrivate);
+  self->priv = wocky_sasl_plain_get_instance_private (self);
 }
 
 WockySaslPlain *

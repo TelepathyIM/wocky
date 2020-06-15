@@ -40,8 +40,6 @@
 
 #include "wocky-xmpp-writer.h"
 
-G_DEFINE_TYPE (WockyXmppWriter, wocky_xmpp_writer, G_TYPE_OBJECT)
-
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_XMPP_WRITER
 #include "wocky-debug-internal.h"
 
@@ -61,13 +59,15 @@ struct _WockyXmppWriterPrivate
   xmlBufferPtr buffer;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyXmppWriter, wocky_xmpp_writer, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyXmppWriter))
+
 static void
 wocky_xmpp_writer_init (WockyXmppWriter *self)
 {
   WockyXmppWriterPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_WRITER,
-      WockyXmppWriterPrivate);
+  self->priv = wocky_xmpp_writer_get_instance_private (self);
   priv = self->priv;
 
   priv->current_ns = 0;
@@ -94,9 +94,6 @@ wocky_xmpp_writer_class_init (WockyXmppWriterClass *wocky_xmpp_writer_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_writer_class);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (wocky_xmpp_writer_class,
-      sizeof (WockyXmppWriterPrivate));
 
   object_class->dispose = wocky_xmpp_writer_dispose;
   object_class->finalize = wocky_xmpp_writer_finalize;

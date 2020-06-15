@@ -39,8 +39,6 @@ real_verify_finish (WockyTLSHandler *self,
     GAsyncResult *result,
     GError **error);
 
-G_DEFINE_TYPE (WockyTLSHandler, wocky_tls_handler, G_TYPE_OBJECT)
-
 enum {
   PROP_TLS_INSECURE_OK = 1,
 };
@@ -51,6 +49,9 @@ struct _WockyTLSHandlerPrivate {
   GSList *cas;
   GSList *crl;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyTLSHandler, wocky_tls_handler, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyTLSHandler))
 
 static void
 wocky_tls_handler_get_property (GObject *object,
@@ -117,8 +118,6 @@ wocky_tls_handler_class_init (WockyTLSHandlerClass *klass)
   GObjectClass *oclass = G_OBJECT_CLASS (klass);
   GParamSpec *pspec;
 
-  g_type_class_add_private (klass, sizeof (WockyTLSHandlerPrivate));
-
   klass->verify_async_func = real_verify_async;
   klass->verify_finish_func = real_verify_finish;
 
@@ -141,8 +140,7 @@ wocky_tls_handler_class_init (WockyTLSHandlerClass *klass)
 static void
 wocky_tls_handler_init (WockyTLSHandler *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_TLS_HANDLER,
-      WockyTLSHandlerPrivate);
+  self->priv = wocky_tls_handler_get_instance_private (self);
 
 #ifdef GTLS_SYSTEM_CA_CERTIFICATES
   wocky_tls_handler_add_ca (self, GTLS_SYSTEM_CA_CERTIFICATES);
@@ -156,15 +154,14 @@ real_verify_async (WockyTLSHandler *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GSimpleAsyncResult *result;
+  GTask *task;
   glong flags = WOCKY_TLS_VERIFY_NORMAL;
   WockyTLSCertStatus status = WOCKY_TLS_CERT_UNKNOWN_ERROR;
   GSocketConnectable *identity;
   const gchar *peername = NULL;
   GStrv verify_extra_identities = NULL;
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_tls_handler_verify_async);
+  task = g_task_new (G_OBJECT (self), NULL, callback, user_data);
 
   /* When ignore_ssl_errors is true, don't check the peername. Otherwise:
    * - Under legacy SSL, the connect hostname is the preferred peername;
@@ -234,12 +231,9 @@ real_verify_async (WockyTLSHandler *self,
 
           cert_error = g_error_new (WOCKY_TLS_CERT_ERROR, status, msg,
               peername);
-          g_simple_async_result_set_from_error (result, cert_error);
+          g_task_return_error (task, cert_error);
 
-          g_error_free (cert_error);
-          g_simple_async_result_complete_in_idle (result);
-          g_object_unref (result);
-
+          g_object_unref (task);
           return;
         }
       else
@@ -252,8 +246,8 @@ real_verify_async (WockyTLSHandler *self,
         }
     }
 
-  g_simple_async_result_complete_in_idle (result);
-  g_object_unref (result);
+  g_task_return_boolean (task, TRUE);
+  g_object_unref (task);
 }
 
 static gboolean
@@ -261,7 +255,9 @@ real_verify_finish (WockyTLSHandler *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_tls_handler_verify_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 void

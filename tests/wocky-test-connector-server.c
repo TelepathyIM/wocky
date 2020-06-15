@@ -40,8 +40,6 @@
 #include <wocky/wocky-debug-internal.h>
 #undef WOCKY_COMPILATION
 
-G_DEFINE_TYPE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT);
-
 typedef void (*stanza_func)(TestConnectorServer *self, WockyStanza *xml);
 typedef struct _stanza_handler stanza_handler;
 struct _stanza_handler {
@@ -109,13 +107,16 @@ struct _TestConnectorServerPrivate
 
   GCancellable *cancellable;
   gint outstanding;
-  GSimpleAsyncResult *teardown_result;
+  GTask *teardown_task;
 
   struct { ServerProblem sasl; ConnectorProblem *connector; } problem;
 
   gchar *other_host;
   guint other_port;
 };
+
+G_DEFINE_TYPE_WITH_CODE (TestConnectorServer, test_connector_server, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (TestConnectorServer));
 
 static void
 test_connector_server_dispose (GObject *object)
@@ -145,6 +146,8 @@ test_connector_server_dispose (GObject *object)
     g_object_unref (priv->tls_sess);
   priv->tls_sess = NULL;
 
+  g_clear_pointer (&(priv->other_host), g_free);
+
   if (G_OBJECT_CLASS (test_connector_server_parent_class)->dispose)
     G_OBJECT_CLASS (test_connector_server_parent_class)->dispose (object);
 }
@@ -169,8 +172,7 @@ test_connector_server_init (TestConnectorServer *self)
 {
   TestConnectorServerPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, TEST_TYPE_CONNECTOR_SERVER,
-      TestConnectorServerPrivate);
+  self->priv = test_connector_server_get_instance_private (self);
   priv = self->priv;
 
   priv->tls_started = FALSE;
@@ -182,8 +184,6 @@ static void
 test_connector_server_class_init (TestConnectorServerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (TestConnectorServerPrivate));
 
   object_class->dispose  = test_connector_server_dispose;
   object_class->finalize = test_connector_server_finalise;
@@ -1522,6 +1522,7 @@ xmpp_init (GObject *source,
               self->priv->cancellable, see_other_host_cb, self);
 
           g_object_unref (stanza);
+          g_free (host_and_port);
         }
       else
         {
@@ -1615,15 +1616,15 @@ server_dec_outstanding (TestConnectorServer *self)
   priv->outstanding--;
   g_assert (priv->outstanding >= 0);
 
-  if (priv->teardown_result != NULL && priv->outstanding == 0)
+  if (priv->teardown_task != NULL && priv->outstanding == 0)
     {
-      GSimpleAsyncResult *r = priv->teardown_result;
-      priv->teardown_result = NULL;
+      GTask *t = priv->teardown_task;
+      priv->teardown_task = NULL;
 
       DEBUG ("Tearing down, bye bye");
 
-      g_simple_async_result_complete (r);
-      g_object_unref (r);
+      g_task_return_boolean (t, TRUE);
+      g_object_unref (t);
       DEBUG ("Unreffed!");
       return TRUE;
     }
@@ -1633,14 +1634,25 @@ server_dec_outstanding (TestConnectorServer *self)
   return FALSE;
 }
 
+static gboolean
+test_connector_server_complete_in_idle (gpointer data)
+{
+  GTask *task = G_TASK (data);
+
+  g_task_return_boolean (task, TRUE);
+
+  g_object_unref (task);
+  return G_SOURCE_REMOVE;
+}
+
 void
 test_connector_server_teardown (TestConnectorServer *self,
   GAsyncReadyCallback callback,
   gpointer user_data)
 {
   TestConnectorServerPrivate *priv = self->priv;
-  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, test_connector_server_teardown);
+  GTask *task = g_task_new (G_OBJECT (self), priv->cancellable, callback,
+                    user_data);
 
   /* For now, we'll assert if this gets called twice */
   g_assert (priv->cancellable != NULL);
@@ -1653,21 +1665,33 @@ test_connector_server_teardown (TestConnectorServer *self,
 
   if (priv->outstanding == 0)
     {
-      g_simple_async_result_complete_in_idle (result);
-      g_object_unref (result);
+      g_idle_add (test_connector_server_complete_in_idle, task);
     }
   else
     {
-      priv->teardown_result = result;
+      priv->teardown_task = task;
     }
 }
 
 gboolean
 test_connector_server_teardown_finish (TestConnectorServer *self,
   GAsyncResult *result,
-  GError *error)
+  GError **error)
 {
-  return TRUE;
+  GError *e = NULL;
+  gboolean r = g_task_propagate_boolean (G_TASK (result), &e);
+  if (!r && e)
+    {
+      DEBUG ("Teardown Error: %s[%d] %s",
+          g_quark_to_string (e->domain), e->code, e->message);
+      if (g_error_matches (e, G_IO_ERROR, G_IO_ERROR_CANCELLED))
+        r = TRUE;
+      if (error != NULL)
+        *error = e;
+      else
+        g_error_free (e);
+    }
+  return r;
 }
 
 

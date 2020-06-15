@@ -3419,6 +3419,7 @@ test_server_teardown (test_t *test,
       g_main_loop_run (loop);
 
       g_clear_object (&srv->server);
+      g_main_loop_unref (loop);
     }
 
   if (srv->watch != 0)

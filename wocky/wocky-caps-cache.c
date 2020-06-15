@@ -40,8 +40,6 @@
 
 #define DB_USER_VERSION 2
 
-G_DEFINE_TYPE (WockyCapsCache, wocky_caps_cache, G_TYPE_OBJECT)
-
 static WockyCapsCache *shared_cache = NULL;
 
 struct _WockyCapsCachePrivate
@@ -53,6 +51,9 @@ struct _WockyCapsCachePrivate
   WockyXmppReader *reader;
   WockyXmppWriter *writer;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyCapsCache, wocky_caps_cache, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyCapsCache))
 
 enum
 {
@@ -139,8 +140,6 @@ static void
 wocky_caps_cache_class_init (WockyCapsCacheClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (WockyCapsCachePrivate));
 
   object_class->constructed = wocky_caps_cache_constructed;
   object_class->get_property = wocky_caps_cache_get_property;
@@ -359,8 +358,7 @@ wocky_caps_cache_constructed (GObject *object)
 static void
 wocky_caps_cache_init (WockyCapsCache *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (
-      self, WOCKY_TYPE_CAPS_CACHE, WockyCapsCachePrivate);
+  self->priv = wocky_caps_cache_get_instance_private (self);
 }
 
 /**

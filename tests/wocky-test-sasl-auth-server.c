@@ -67,8 +67,6 @@ G_STMT_START   {                                       \
 
 #endif
 
-G_DEFINE_TYPE(TestSaslAuthServer, test_sasl_auth_server, G_TYPE_OBJECT)
-
 #if 0
 /* signal enum */
 enum
@@ -101,9 +99,12 @@ struct _TestSaslAuthServerPrivate
   gchar *selected_mech;
   AuthState state;
   ServerProblem problem;
-  GSimpleAsyncResult *result;
+  GTask *task;
   GCancellable *cancellable;
 };
+
+G_DEFINE_TYPE_WITH_CODE (TestSaslAuthServer, test_sasl_auth_server, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (TestSaslAuthServer))
 
 static void
 received_stanza (GObject *source, GAsyncResult *result, gpointer user_data);
@@ -113,8 +114,7 @@ test_sasl_auth_server_init (TestSaslAuthServer *self)
 {
   TestSaslAuthServerPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, TEST_TYPE_SASL_AUTH_SERVER,
-      TestSaslAuthServerPrivate);
+  self->priv = test_sasl_auth_server_get_instance_private (self);
   priv = self->priv;
 
   priv->username = NULL;
@@ -131,9 +131,6 @@ test_sasl_auth_server_class_init (
     TestSaslAuthServerClass *test_sasl_auth_server_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (test_sasl_auth_server_class);
-
-  g_type_class_add_private (test_sasl_auth_server_class,
-      sizeof (TestSaslAuthServerPrivate));
 
   object_class->dispose = test_sasl_auth_server_dispose;
   object_class->finalize = test_sasl_auth_server_finalize;
@@ -166,7 +163,7 @@ test_sasl_auth_server_dispose (GObject *object)
   priv->sasl_conn = NULL;
 #endif
 
-  g_warn_if_fail (priv->result == NULL);
+  g_warn_if_fail (priv->task == NULL);
   g_warn_if_fail (priv->cancellable == NULL);
 
   if (G_OBJECT_CLASS (test_sasl_auth_server_parent_class)->dispose)
@@ -293,20 +290,18 @@ post_auth_recv_stanza (GObject *source,
     }
   else if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
     {
-      GSimpleAsyncResult *r = priv->result;
+      GTask *t = priv->task;
 
-      priv->result = NULL;
+      priv->task = NULL;
 
       if (priv->cancellable != NULL)
         g_object_unref (priv->cancellable);
 
       priv->cancellable = NULL;
 
-      g_simple_async_result_set_from_error (r, error);
+      g_task_return_error (t, error);
 
-      g_simple_async_result_complete (r);
-      g_object_unref (r);
-      g_error_free (error);
+      g_object_unref (t);
     }
   else
     {
@@ -353,19 +348,19 @@ post_auth_open_sent (GObject *source,
   g_assert (ok);
 
   /* if our caller wanted control back, hand it back here: */
-  if (priv->result != NULL)
+  if (priv->task != NULL)
     {
-      GSimpleAsyncResult *r = priv->result;
+      GTask *t = priv->task;
 
-      priv->result = NULL;
+      priv->task = NULL;
 
       if (priv->cancellable != NULL)
         g_object_unref (priv->cancellable);
 
       priv->cancellable = NULL;
 
-      g_simple_async_result_complete (r);
-      g_object_unref (r);
+      g_task_return_boolean (t, TRUE);
+      g_object_unref (t);
     }
   else
     {
@@ -440,25 +435,27 @@ failure_sent (GObject *source,
 {
   TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
   TestSaslAuthServerPrivate *priv = tsas->priv;
-  GSimpleAsyncResult *r = priv->result;
+  GTask *t = priv->task;
   GError *error = NULL;
   gboolean ok;
 
-  priv->result = NULL;
+  priv->task = NULL;
   ok = wocky_xmpp_connection_send_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), result, &error);
   g_assert_no_error (error);
   g_assert (ok);
 
-  if (r != NULL)
+  if (t != NULL)
     {
       if (priv->cancellable != NULL)
         g_object_unref (priv->cancellable);
 
       priv->cancellable = NULL;
-      g_simple_async_result_complete (r);
-      g_object_unref (r);
+      g_task_return_boolean (t, TRUE);
+      g_object_unref (t);
     }
+  /* release the grip, we're done */
+  g_object_unref (tsas);
 }
 
 static void
@@ -474,7 +471,9 @@ not_authorized (TestSaslAuthServer *self)
     WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
       '(', "not-authorized", ')',
     NULL);
-  wocky_xmpp_connection_send_stanza_async (priv->conn, s, NULL,
+  /* Ensure we have something to handle the callback at the end of the test */
+  g_object_ref (self);
+  wocky_xmpp_connection_send_stanza_async (priv->conn, s, priv->cancellable,
     failure_sent, self);
 
   g_object_unref (s);
@@ -957,6 +956,7 @@ test_sasl_server_auth_getopt (void *context, const char *plugin_name,
     { "scram_secret_generate", "1"},
     { NULL, NULL },
   };
+  *result = NULL;
 
   for (i = 0; options[i].name != NULL; i++)
     {
@@ -1053,19 +1053,11 @@ test_sasl_auth_server_auth_finish (TestSaslAuthServer *self,
     GAsyncResult *res,
     GError **error)
 {
-  gboolean ok = FALSE;
-  TestSaslAuthServerPrivate *priv = self->priv;
+  g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
 
-  if (g_simple_async_result_propagate_error (
-      G_SIMPLE_ASYNC_RESULT (res), error))
-    return FALSE;
+  g_return_val_if_fail (g_task_propagate_boolean (G_TASK (res), error), FALSE);
 
-  ok = g_simple_async_result_is_valid (G_ASYNC_RESULT (res),
-      G_OBJECT (self),
-      test_sasl_auth_server_auth_async);
-  g_return_val_if_fail (ok, FALSE);
-
-  return (priv->state == AUTH_STATE_AUTHENTICATED);
+  return (self->priv->state == AUTH_STATE_AUTHENTICATED);
 }
 
 void
@@ -1091,8 +1083,7 @@ test_sasl_auth_server_auth_async (GObject *obj,
       if (cancellable != NULL)
         priv->cancellable = g_object_ref (cancellable);
 
-      priv->result = g_simple_async_result_new (obj, cb, data,
-          test_sasl_auth_server_auth_async);
+      priv->task = g_task_new (obj, cancellable, cb, data);
     }
 
   handle_auth (self, auth);

@@ -740,12 +740,12 @@ test_error_is_open_or_closed (void)
     WOCKY_STANZA_SUB_TYPE_CHAT, "a"," b", NULL);
 
 
+  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (test->out),
+    NULL, is_open_recv_open_cb, test);
+
   wocky_xmpp_connection_send_open_async (WOCKY_XMPP_CONNECTION (test->in),
     NULL, NULL, NULL, NULL, NULL,
     NULL, is_open_send_open_cb, test);
-
-  wocky_xmpp_connection_recv_open_async (WOCKY_XMPP_CONNECTION (test->out),
-    NULL, is_open_recv_open_cb, test);
 
   test->outstanding = 2;
   test_wait_pending (test);

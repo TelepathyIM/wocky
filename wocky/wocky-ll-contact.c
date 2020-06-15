@@ -35,8 +35,6 @@
 
 #include "wocky-utils.h"
 
-G_DEFINE_TYPE (WockyLLContact, wocky_ll_contact, WOCKY_TYPE_CONTACT)
-
 /* properties */
 enum
 {
@@ -57,11 +55,13 @@ struct _WockyLLContactPrivate
   gchar *jid;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyLLContact, wocky_ll_contact, WOCKY_TYPE_CONTACT,
+          G_ADD_PRIVATE (WockyLLContact))
+
 static void
 wocky_ll_contact_init (WockyLLContact *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
-      WOCKY_TYPE_LL_CONTACT, WockyLLContactPrivate);
+  self->priv = wocky_ll_contact_get_instance_private (self);
 }
 
 static void
@@ -136,9 +136,6 @@ wocky_ll_contact_class_init (WockyLLContactClass *wocky_ll_contact_class)
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_ll_contact_class);
   WockyContactClass *contact_class = WOCKY_CONTACT_CLASS (wocky_ll_contact_class);
   GParamSpec *spec;
-
-  g_type_class_add_private (wocky_ll_contact_class,
-      sizeof (WockyLLContactPrivate));
 
   object_class->constructed = wocky_ll_contact_constructed;
   object_class->set_property = wocky_ll_contact_set_property;

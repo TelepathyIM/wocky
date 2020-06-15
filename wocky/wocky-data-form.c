@@ -42,8 +42,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_DATA_FORM
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyDataForm, wocky_data_form, G_TYPE_OBJECT)
-
 /* properties */
 enum
 {
@@ -62,6 +60,9 @@ struct _WockyDataFormPrivate
 
   gboolean dispose_has_run;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyDataForm, wocky_data_form, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyDataForm))
 
 GQuark
 wocky_data_form_error_quark (void)
@@ -150,8 +151,7 @@ wocky_data_form_field_free (WockyDataFormField *field)
 static void
 wocky_data_form_init (WockyDataForm *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_DATA_FORM,
-      WockyDataFormPrivate);
+  self->priv = wocky_data_form_get_instance_private (self);
 
   self->fields = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
   self->fields_list = NULL;
@@ -256,9 +256,6 @@ wocky_data_form_class_init (
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_data_form_class);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (wocky_data_form_class,
-      sizeof (WockyDataFormPrivate));
 
   object_class->set_property = wocky_data_form_set_property;
   object_class->get_property = wocky_data_form_get_property;

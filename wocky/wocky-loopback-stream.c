@@ -60,7 +60,7 @@ typedef struct
   GAsyncQueue *queue;
   guint offset;
   GArray *out_array;
-  GSimpleAsyncResult *read_result;
+  GTask *read_task;
   GCancellable *read_cancellable;
   gulong read_cancellable_sig_id;
   void *buffer;
@@ -75,8 +75,8 @@ typedef struct
 } WockyLoopbackInputStreamClass;
 
 
-G_DEFINE_TYPE (WockyLoopbackStream, wocky_loopback_stream,
-    G_TYPE_IO_STREAM);
+G_DEFINE_TYPE_WITH_CODE (WockyLoopbackStream, wocky_loopback_stream,
+    G_TYPE_IO_STREAM, G_ADD_PRIVATE (WockyLoopbackStream));
 G_DEFINE_TYPE (WockyLoopbackInputStream, wocky_loopback_input_stream,
   G_TYPE_INPUT_STREAM);
 G_DEFINE_TYPE (WockyLoopbackOutputStream, wocky_loopback_output_stream,
@@ -108,8 +108,7 @@ wocky_loopback_stream_init (WockyLoopbackStream *self)
 {
   WockyLoopbackStreamPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LOOPBACK_STREAM,
-      WockyLoopbackStreamPrivate);
+  self->priv = wocky_loopback_stream_get_instance_private (self);
   priv = self->priv;
 
   priv->output = g_object_new (WOCKY_TYPE_LOOPBACK_OUTPUT_STREAM, NULL);
@@ -178,9 +177,6 @@ wocky_loopback_stream_class_init (
   GObjectClass *obj_class = G_OBJECT_CLASS (wocky_loopback_stream_class);
   GIOStreamClass *stream_class = G_IO_STREAM_CLASS (
       wocky_loopback_stream_class);
-
-  g_type_class_add_private (wocky_loopback_stream_class,
-      sizeof (WockyLoopbackStreamPrivate));
 
   obj_class->dispose = wocky_loopback_stream_dispose;
   obj_class->get_property = wocky_loopback_stream_get_property;
@@ -262,7 +258,7 @@ wocky_loopback_input_stream_read (GInputStream *stream,
 static void
 read_async_complete (WockyLoopbackInputStream *self)
 {
-  GSimpleAsyncResult *r = self->read_result;
+  GTask *r = self->read_task;
 
   if (self->read_cancellable != NULL)
     {
@@ -272,9 +268,10 @@ read_async_complete (WockyLoopbackInputStream *self)
       self->read_cancellable = NULL;
     }
 
-  self->read_result = NULL;
+  self->read_task = NULL;
 
-  g_simple_async_result_complete_in_idle (r);
+  if (!g_task_had_error (r))
+    g_task_return_boolean (r, TRUE);
   g_object_unref (r);
 }
 
@@ -282,7 +279,7 @@ static void
 read_cancelled_cb (GCancellable *cancellable,
     WockyLoopbackInputStream *self)
 {
-  g_simple_async_result_set_error (self->read_result,
+  g_task_return_new_error (self->read_task,
       G_IO_ERROR, G_IO_ERROR_CANCELLED, "Reading cancelled");
 
   self->buffer = NULL;
@@ -301,21 +298,19 @@ wocky_loopback_input_stream_read_async (GInputStream *stream,
   WockyLoopbackInputStream *self = WOCKY_LOOPBACK_INPUT_STREAM (stream);
 
   g_assert (self->buffer == NULL);
-  g_assert (self->read_result == NULL);
+  g_assert (self->read_task == NULL);
   g_assert (self->read_cancellable == NULL);
 
   self->buffer = buffer;
   self->count = count;
 
-  self->read_result = g_simple_async_result_new (G_OBJECT (stream),
-      callback, user_data, wocky_loopback_input_stream_read_async);
+  self->read_task = g_task_new (G_OBJECT (stream), cancellable, callback,
+                                user_data);
 
   if (self->read_error != NULL)
     {
-      g_simple_async_result_set_from_error (self->read_result,
-          self->read_error);
+      g_task_return_error (self->read_task, self->read_error);
 
-      g_error_free (self->read_error);
       self->read_error = NULL;
       read_async_complete (self);
       return;
@@ -339,12 +334,11 @@ wocky_loopback_input_stream_read_finish (GInputStream *stream,
   WockyLoopbackInputStream *self = WOCKY_LOOPBACK_INPUT_STREAM (stream);
   gssize len = -1;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
+  if (!g_task_is_valid (result, self))
     goto out;
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_loopback_input_stream_read_async), -1);
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    goto out;
 
   len = wocky_loopback_input_stream_read (stream, self->buffer, self->count, NULL,
       error);
@@ -358,7 +352,7 @@ wocky_loopback_input_stream_read_finish (GInputStream *stream,
 static gboolean
 wocky_loopback_input_stream_try_read (WockyLoopbackInputStream *self)
 {
-  if (self->read_result == NULL)
+  if (self->read_task == NULL)
     /* No pending read operation */
     return FALSE;
 
@@ -393,7 +387,7 @@ wocky_loopback_input_stream_dispose (GObject *object)
     g_async_queue_unref (self->queue);
   self->queue = NULL;
 
-  g_warn_if_fail (self->read_result == NULL);
+  g_warn_if_fail (self->read_task == NULL);
   g_warn_if_fail (self->read_cancellable == NULL);
 
   /* release any references held by the object here */
@@ -453,28 +447,21 @@ wocky_loopback_output_stream_write_async (GOutputStream *stream,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple;
+  GTask *task;
   GError *error = NULL;
   gssize result;
 
   result = wocky_loopback_output_stream_write (stream, buffer, count, cancellable,
       &error);
 
-  simple = g_simple_async_result_new (G_OBJECT (stream), callback, user_data,
-      wocky_loopback_output_stream_write_async);
+  task = g_task_new (G_OBJECT (stream), cancellable, callback, user_data);
 
   if (result == -1)
-    {
-      g_simple_async_result_set_from_error (simple, error);
-      g_error_free (error);
-    }
+    g_task_return_error (task, error);
   else
-    {
-      g_simple_async_result_set_op_res_gssize (simple, result);
-    }
+    g_task_return_int (task, result);
 
-  g_simple_async_result_complete_in_idle (simple);
-  g_object_unref (simple);
+  g_object_unref (task);
 }
 
 static gssize
@@ -482,15 +469,9 @@ wocky_loopback_output_stream_write_finish (GOutputStream *stream,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-          error))
-    return -1;
+  g_return_val_if_fail (g_task_is_valid (result, stream), -1);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (stream), wocky_loopback_output_stream_write_async), -1);
-
-  return g_simple_async_result_get_op_res_gssize (
-      G_SIMPLE_ASYNC_RESULT (result));
+  return g_task_propagate_int (G_TASK (result), error);
 }
 
 static void

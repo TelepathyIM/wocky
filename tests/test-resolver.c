@@ -114,30 +114,11 @@ find_fake_hosts (TestResolver *tr, const char *name)
   return rval;
 }
 
-static GList *
-srv_target_list_copy (GList *addr)
-{
-  GList *copy = NULL;
-  GList *l;
-
-  for (l = addr; l != NULL; l = l->next)
-    copy = g_list_prepend (copy, g_srv_target_copy (l->data));
-
-  return g_list_reverse (copy);
-}
-
 static void
 srv_target_list_free (GList *addr)
 {
   g_list_foreach (addr, (GFunc) g_srv_target_free, NULL);
   g_list_free (addr);
-}
-
-static GList *
-object_list_copy (GList *objs)
-{
-  g_list_foreach (objs, (GFunc) g_object_ref, NULL);
-  return g_list_copy (objs);
 }
 
 static void
@@ -157,7 +138,7 @@ lookup_service_async (GResolver *resolver,
   TestResolver *tr = TEST_RESOLVER (resolver);
   GList *addr = find_fake_services (tr, rr);
   GObject *source = G_OBJECT (resolver);
-  GSimpleAsyncResult *res = NULL;
+  GTask *task = g_task_new (source, cancellable, cb, data);
 #ifdef DEBUG_FAKEDNS
   GList *x;
 #endif
@@ -172,19 +153,16 @@ lookup_service_async (GResolver *resolver,
             g_srv_target_get_priority ((GSrvTarget *) x->data),
             g_srv_target_get_weight ((GSrvTarget *) x->data));
 #endif
-      res = g_simple_async_result_new (source, cb, data, lookup_service_async);
+      g_task_return_pointer (task, addr, (GDestroyNotify) srv_target_list_free);
     }
   else
     {
-      res = g_simple_async_result_new_error (source, cb, data,
+      g_task_return_new_error (task,
           G_RESOLVER_ERROR, G_RESOLVER_ERROR_NOT_FOUND,
           "No fake SRV record registered");
     }
 
-  g_simple_async_result_set_op_res_gpointer (res, addr,
-      (GDestroyNotify) srv_target_list_free);
-  g_simple_async_result_complete (res);
-  g_object_unref (res);
+  g_object_unref (task);
 }
 
 static GList *
@@ -192,16 +170,16 @@ lookup_service_finish (GResolver *resolver,
                        GAsyncResult *result,
                        GError **error)
 {
-  GList *res = NULL;
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
+  g_return_val_if_fail (g_task_is_valid (result, resolver), NULL);
 
-  if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
-
-  res = g_simple_async_result_get_op_res_gpointer (simple);
-  return srv_target_list_copy (res);
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 
+#if GLIB_VERSION_CUR_STABLE < G_ENCODE_VERSION(2,60)
+typedef enum {
+  G_RESOLVER_NAME_LOOKUP_FLAGS_DEFAULT
+} GResolverNameLookupFlags;
+#endif
 static void
 lookup_by_name_with_flags_async (GResolver                *resolver,
                                  const gchar              *hostname,
@@ -213,7 +191,7 @@ lookup_by_name_with_flags_async (GResolver                *resolver,
   TestResolver *tr = TEST_RESOLVER (resolver);
   GList *addr = find_fake_hosts (tr, hostname);
   GObject *source = G_OBJECT (resolver);
-  GSimpleAsyncResult *res = NULL;
+  GTask *task = g_task_new (source, cancellable, cb, data);
 #ifdef DEBUG_FAKEDNS
   GList *x;
   char a[32];
@@ -227,20 +205,16 @@ lookup_by_name_with_flags_async (GResolver                *resolver,
             inet_ntop (AF_INET,
               g_inet_address_to_bytes (x->data), a, sizeof (a)));
 #endif
-      res = g_simple_async_result_new (source, cb, data,
-                                       lookup_by_name_with_flags_async);
+      g_task_return_pointer (task, addr, (GDestroyNotify) object_list_free);
     }
   else
     {
-      res = g_simple_async_result_new_error (source, cb, data,
+      g_task_return_new_error (task,
           G_RESOLVER_ERROR, G_RESOLVER_ERROR_NOT_FOUND,
           "No fake hostname record registered");
     }
 
-  g_simple_async_result_set_op_res_gpointer (res, addr,
-      (GDestroyNotify) object_list_free);
-  g_simple_async_result_complete_in_idle (res);
-  g_object_unref (res);
+  g_object_unref (task);
 }
 
 static void
@@ -260,14 +234,9 @@ lookup_by_name_finish (GResolver *resolver,
     GAsyncResult *result,
     GError **error)
 {
-  GList *res = NULL;
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
+  g_return_val_if_fail (g_task_is_valid (result, resolver), NULL);
 
-  if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
-
-  res = g_simple_async_result_get_op_res_gpointer (simple);
-  return object_list_copy (res);
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 #if GLIB_VERSION_CUR_STABLE >= (G_ENCODE_VERSION (2, 60))

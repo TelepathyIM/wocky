@@ -52,10 +52,6 @@ typedef uint16_t u_int16_t;
 static void wocky_porter_iface_init (gpointer g_iface,
     gpointer iface_data);
 
-G_DEFINE_TYPE_WITH_CODE (WockyMetaPorter, wocky_meta_porter, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_PORTER,
-        wocky_porter_iface_init));
-
 /* properties */
 enum
 {
@@ -115,6 +111,11 @@ typedef struct
   gpointer user_data;
   WockyStanza *stanza;
 } StanzaHandler;
+
+G_DEFINE_TYPE_WITH_CODE (WockyMetaPorter, wocky_meta_porter, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyMetaPorter)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_PORTER,
+        wocky_porter_iface_init));
 
 GQuark
 wocky_meta_porter_error_quark (void)
@@ -437,8 +438,8 @@ wocky_meta_porter_unhold (WockyMetaPorter *self,
 static void
 wocky_meta_porter_init (WockyMetaPorter *self)
 {
-  WockyMetaPorterPrivate *priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
-      WOCKY_TYPE_META_PORTER, WockyMetaPorterPrivate);
+  WockyMetaPorterPrivate *priv =
+      wocky_meta_porter_get_instance_private (self);
 
   self->priv = priv;
 }
@@ -842,9 +843,6 @@ wocky_meta_porter_class_init (
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_meta_porter_class);
   GParamSpec *param_spec;
 
-  g_type_class_add_private (wocky_meta_porter_class,
-      sizeof (WockyMetaPorterPrivate));
-
   object_class->dispose = wocky_meta_porter_dispose;
   object_class->finalize = wocky_meta_porter_finalize;
   object_class->constructed = wocky_meta_porter_constructed;
@@ -918,7 +916,7 @@ typedef void (*OpenPorterIfNecessaryFunc) (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    GSimpleAsyncResult *simple,
+    GTask *task,
     gpointer user_data);
 
 typedef struct
@@ -927,7 +925,7 @@ typedef struct
   WockyLLContact *contact;
   OpenPorterIfNecessaryFunc callback;
   GCancellable *cancellable;
-  GSimpleAsyncResult *simple;
+  GTask *task;
   gpointer user_data;
 } OpenPorterData;
 
@@ -949,7 +947,7 @@ made_connection_connect_cb (GObject *source_object,
     {
       DEBUG ("failed to connect: %s", error->message);
       data->callback (data->self, NULL, NULL, error,
-          data->simple, data->user_data);
+          data->task, data->user_data);
       g_clear_error (&error);
       goto out;
     }
@@ -959,7 +957,7 @@ made_connection_connect_cb (GObject *source_object,
   porter = create_porter (data->self, connection, WOCKY_CONTACT (data->contact));
 
   data->callback (data->self, porter, data->cancellable, NULL,
-      data->simple, data->user_data);
+      data->task, data->user_data);
 
   g_object_unref (connection);
 
@@ -987,7 +985,7 @@ make_connection_cb (GObject *source_object,
       DEBUG ("making connection failed: %s", error->message);
 
       data->callback (data->self, NULL, NULL, error,
-          data->simple, data->user_data);
+          data->task, data->user_data);
 
       g_clear_error (&error);
 
@@ -1011,7 +1009,7 @@ open_porter_if_necessary (WockyMetaPorter *self,
     WockyLLContact *contact,
     GCancellable *cancellable,
     OpenPorterIfNecessaryFunc callback,
-    GSimpleAsyncResult *simple,
+    GTask *task,
     gpointer user_data)
 {
   WockyMetaPorterPrivate *priv = self->priv;
@@ -1020,7 +1018,7 @@ open_porter_if_necessary (WockyMetaPorter *self,
 
   if (porter_data != NULL && porter_data->porter != NULL)
     {
-      callback (self, porter_data->porter, cancellable, NULL, simple, user_data);
+      callback (self, porter_data->porter, cancellable, NULL, task, user_data);
       return;
     }
 
@@ -1029,7 +1027,7 @@ open_porter_if_necessary (WockyMetaPorter *self,
   data->contact = g_object_ref (contact);
   data->callback = callback;
   data->cancellable = cancellable;
-  data->simple = simple;
+  data->task = task;
   data->user_data = user_data;
 
   wocky_ll_connection_factory_make_connection_async (priv->connection_factory,
@@ -1041,17 +1039,15 @@ meta_porter_send_cb (GObject *source_object,
     GAsyncResult *result,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple = user_data;
+  GTask *task = user_data;
   GError *error = NULL;
 
   if (!wocky_porter_send_finish (WOCKY_PORTER (source_object), result, &error))
-    {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
-    }
+    g_task_return_error (task, error);
+  else
+    g_task_return_boolean (task, TRUE);
 
-  g_simple_async_result_complete (simple);
-  g_object_unref (simple);
+  g_object_unref (task);
 }
 
 static void
@@ -1059,21 +1055,20 @@ meta_porter_send_got_porter_cb (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    GSimpleAsyncResult *simple,
+    GTask *task,
     gpointer user_data)
 {
   WockyStanza *stanza = user_data;
 
   if (error != NULL)
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_simple_async_result_complete (simple);
-      g_object_unref (simple);
+      g_task_return_error (task, g_error_copy (error));
+      g_object_unref (task);
     }
   else
     {
       wocky_porter_send_async (porter, stanza, cancellable,
-          meta_porter_send_cb, simple);
+          meta_porter_send_cb, task);
     }
 
   g_object_unref (stanza);
@@ -1088,11 +1083,10 @@ wocky_meta_porter_send_async (WockyPorter *porter,
 {
   WockyMetaPorter *self = WOCKY_META_PORTER (porter);
   WockyMetaPorterPrivate *priv = self->priv;
-  GSimpleAsyncResult *simple;
+  GTask *task;
   WockyContact *to;
 
-  simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      wocky_meta_porter_send_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   to = wocky_stanza_get_to_contact (stanza);
 
@@ -1106,7 +1100,7 @@ wocky_meta_porter_send_async (WockyPorter *porter,
     }
 
   open_porter_if_necessary (self, WOCKY_LL_CONTACT (to), cancellable,
-      meta_porter_send_got_porter_cb, simple, g_object_ref (stanza));
+      meta_porter_send_got_porter_cb, task, g_object_ref (stanza));
 }
 
 static gboolean
@@ -1114,9 +1108,9 @@ wocky_meta_porter_send_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  g_return_val_if_fail (WOCKY_IS_META_PORTER (self), FALSE);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  wocky_implement_finish_void (self, wocky_meta_porter_send_async);
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static guint16
@@ -1272,7 +1266,7 @@ stanza_handler_new (WockyMetaPorter *self,
   out->porters = g_hash_table_new (NULL, NULL);
 
   if (contact != NULL)
-    out->contact = g_object_ref (contact);
+    out->contact = WOCKY_CONTACT (g_object_ref (contact));
 
   out->type = type;
   out->sub_type = sub_type;
@@ -1381,7 +1375,7 @@ typedef void (* ClosePorterAsyncFunc) (WockyPorter *,
 
 typedef struct
 {
-  GSimpleAsyncResult *simple;
+  GTask *task;
   guint remaining;
   gboolean failed;
   ClosePorterFinishFunc close_finish;
@@ -1413,14 +1407,16 @@ porter_close_cb (GObject *source_object,
 
   if (data->failed)
     {
-      g_simple_async_result_set_error (data->simple, WOCKY_META_PORTER_ERROR,
+      g_task_return_new_error (data->task, WOCKY_META_PORTER_ERROR,
           WOCKY_META_PORTER_ERROR_FAILED_TO_CLOSE,
           "Failed to close at least one porter");
     }
+  else
+    {
+      g_task_return_boolean (data->task, TRUE);
+    }
 
-  g_simple_async_result_complete (data->simple);
-
-  g_object_unref (data->simple);
+  g_object_unref (data->task);
   g_slice_free (ClosePorterData, data);
 }
 
@@ -1434,14 +1430,13 @@ close_all_porters (WockyMetaPorter *self,
     gpointer user_data)
 {
   WockyMetaPorterPrivate *priv = self->priv;
-  GSimpleAsyncResult *simple;
+  GTask *task;
   GList *porters, *l;
   gboolean close_called = FALSE;
 
   porters = g_hash_table_get_values (priv->porters);
 
-  simple = g_simple_async_result_new (G_OBJECT (self), callback,
-      user_data, source_tag);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   g_signal_emit_by_name (self, "closing");
 
@@ -1450,7 +1445,7 @@ close_all_porters (WockyMetaPorter *self,
       ClosePorterData *data = g_slice_new0 (ClosePorterData);
       data->close_finish = close_finish_func;
       data->remaining = 0;
-      data->simple = simple;
+      data->task = task;
 
       for (l = porters; l != NULL; l = l->next)
         {
@@ -1475,8 +1470,8 @@ close_all_porters (WockyMetaPorter *self,
   if (!close_called)
     {
       /* there were no porters to close anyway */
-      g_simple_async_result_complete (simple);
-      g_object_unref (simple);
+      g_task_return_boolean (task, TRUE);
+      g_object_unref (task);
     }
 
   g_list_free (porters);
@@ -1500,13 +1495,15 @@ wocky_meta_porter_close_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_meta_porter_close_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 typedef struct
 {
-  WockyMetaPorter *self; /* already reffed by simple */
-  GSimpleAsyncResult *simple;
+  WockyMetaPorter *self; /* already reffed by task */
+  GTask *task;
   WockyContact *contact;
 } SendIQData;
 
@@ -1516,7 +1513,7 @@ meta_porter_send_iq_cb (GObject *source_object,
     gpointer user_data)
 {
   SendIQData *data = user_data;
-  GSimpleAsyncResult *simple = data->simple;
+  GTask *task = data->task;
   GError *error = NULL;
   WockyStanza *stanza;
 
@@ -1525,22 +1522,19 @@ meta_porter_send_iq_cb (GObject *source_object,
 
   if (stanza == NULL)
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
+      g_task_return_error (task, error);
     }
   else
     {
       wocky_stanza_set_from_contact (stanza, data->contact);
-      g_simple_async_result_set_op_res_gpointer (simple, stanza, g_object_unref);
+      g_task_return_pointer (task, stanza, g_object_unref);
     }
-
-  g_simple_async_result_complete (simple);
 
   wocky_meta_porter_unhold (data->self, data->contact);
 
   /* unref simple here as we depend on it holding potentially the last
    * ref on self */
-  g_object_unref (data->simple);
+  g_object_unref (data->task);
   g_object_unref (data->contact);
   g_slice_free (SendIQData, data);
 }
@@ -1550,7 +1544,7 @@ meta_porter_send_iq_got_porter_cb (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    GSimpleAsyncResult *simple,
+    GTask *task,
     gpointer user_data)
 {
   WockyStanza *stanza = user_data;
@@ -1560,20 +1554,19 @@ meta_porter_send_iq_got_porter_cb (WockyMetaPorter *self,
 
   if (error != NULL)
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_simple_async_result_complete (simple);
+      g_task_return_error (task, g_error_copy (error));
 
       wocky_meta_porter_unhold (self, contact);
 
       /* unref simple here as we depend on it potentially holding the
        * last ref to self */
-      g_object_unref (simple);
+      g_object_unref (task);
     }
   else
     {
       SendIQData *data = g_slice_new0 (SendIQData);
       data->self = self;
-      data->simple = simple;
+      data->task = task;
       data->contact = g_object_ref (contact);
 
       wocky_porter_send_iq_async (porter, stanza, cancellable,
@@ -1592,15 +1585,14 @@ wocky_meta_porter_send_iq_async (WockyPorter *porter,
 {
   WockyMetaPorter *self = WOCKY_META_PORTER (porter);
   WockyMetaPorterPrivate *priv = self->priv;
-  GSimpleAsyncResult *simple;
+  GTask *task;
   WockyContact *to;
 
   to = wocky_stanza_get_to_contact (stanza);
 
   g_return_if_fail (WOCKY_IS_LL_CONTACT (to));
 
-  simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      wocky_meta_porter_send_iq_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   wocky_meta_porter_hold (self, to);
 
@@ -1613,7 +1605,7 @@ wocky_meta_porter_send_iq_async (WockyPorter *porter,
     }
 
   open_porter_if_necessary (self, WOCKY_LL_CONTACT (to), cancellable,
-      meta_porter_send_iq_got_porter_cb, simple, g_object_ref (stanza));
+      meta_porter_send_iq_got_porter_cb, task, g_object_ref (stanza));
 }
 
 static WockyStanza *
@@ -1621,8 +1613,9 @@ wocky_meta_porter_send_iq_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_return_copy_pointer (self, wocky_meta_porter_send_iq_async,
-      g_object_ref);
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
+
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 static void
@@ -1643,7 +1636,9 @@ wocky_meta_porter_force_close_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_meta_porter_force_close_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**
@@ -1701,21 +1696,23 @@ meta_porter_open_got_porter_cb (WockyMetaPorter *self,
     WockyPorter *porter,
     GCancellable *cancellable,
     const GError *error,
-    GSimpleAsyncResult *simple,
+    GTask *task,
     gpointer user_data)
 {
   WockyContact *contact = user_data;
 
   if (error != NULL)
     {
-      g_simple_async_result_set_from_error (simple, error);
+      g_task_return_error (task, g_error_copy (error));
       wocky_meta_porter_unhold (self, contact);
     }
-
-  g_simple_async_result_complete (simple);
+  else
+    {
+      g_task_return_boolean (task, TRUE);
+    }
 
   g_object_unref (contact);
-  g_object_unref (simple);
+  g_object_unref (task);
 }
 
 /**
@@ -1742,19 +1739,18 @@ wocky_meta_porter_open_async (WockyMetaPorter *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple;
+  GTask *task;
 
   g_return_if_fail (WOCKY_IS_META_PORTER (self));
   g_return_if_fail (WOCKY_IS_LL_CONTACT (contact));
   g_return_if_fail (callback != NULL);
 
-  simple = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      wocky_meta_porter_open_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   wocky_meta_porter_hold (self, WOCKY_CONTACT (contact));
 
   open_porter_if_necessary (self, contact,
-      cancellable, meta_porter_open_got_porter_cb, simple,
+      cancellable, meta_porter_open_got_porter_cb, task,
       g_object_ref (contact));
 }
 
@@ -1774,7 +1770,9 @@ wocky_meta_porter_open_finish (WockyMetaPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_meta_porter_open_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**
