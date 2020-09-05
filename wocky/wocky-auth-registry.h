@@ -75,6 +75,7 @@ typedef enum
  * @WOCKY_TLS_BINDING_NONE       : binding is not supported by the server
  * @WOCKY_TLS_BINDING_TLS_UNIQUE           : tls-unique binding type
  * @WOCKY_TLS_BINDING_TLS_SERVER_END_POINT : tls-server-end-point type
+ * @WOCKY_TLS_BINDING_TLS_EXPORTER         : tls-exporter type
  *
  * Possible TLS Channel Binding states
  */
@@ -83,7 +84,8 @@ typedef enum
   WOCKY_TLS_BINDING_DISABLED,
   WOCKY_TLS_BINDING_NONE,
   WOCKY_TLS_BINDING_TLS_UNIQUE,
-  WOCKY_TLS_BINDING_TLS_SERVER_END_POINT
+  WOCKY_TLS_BINDING_TLS_SERVER_END_POINT,
+  WOCKY_TLS_BINDING_INVALID_TYPE
 } WockyTLSBindingType;
 
 /**
