@@ -44,6 +44,8 @@ sasl_handler_iface_init (gpointer g_iface);
 enum
 {
   PROP_SERVER = 1,
+  PROP_CB_TYPE,
+  PROP_CB_DATA,
   PROP_USERNAME,
   PROP_PASSWORD
 };
@@ -51,6 +53,9 @@ enum
 struct _WockySaslScramPrivate
 {
   WockySaslScramState state;
+  WockyTLSBindingType cb_type;
+  const gchar *gs2_flag;
+  gchar *cb_data;
   gchar *username;
   gchar *password;
   gchar *server;
@@ -82,6 +87,14 @@ wocky_sasl_scram_get_property (
 
   switch (property_id)
     {
+      case PROP_CB_TYPE:
+        g_value_set_enum (value, priv->cb_type);
+        break;
+
+      case PROP_CB_DATA:
+        g_value_set_string (value, priv->cb_data);
+        break;
+
       case PROP_USERNAME:
         g_value_set_string (value, priv->username);
         break;
@@ -108,6 +121,15 @@ wocky_sasl_scram_set_property (
 
   switch (property_id)
     {
+      case PROP_CB_TYPE:
+        priv->cb_type = g_value_get_enum (value);
+        break;
+
+      case PROP_CB_DATA:
+        g_free (priv->cb_data);
+        priv->cb_data = g_value_dup_string (value);
+        break;
+
       case PROP_SERVER:
         g_free (priv->server);
         priv->server = g_value_dup_string (value);
@@ -137,6 +159,7 @@ wocky_sasl_scram_dispose (GObject *object)
   g_free (priv->server);
   g_free (priv->username);
   g_free (priv->password);
+  g_free (priv->cb_data);
 
   g_free (priv->client_nonce);
   g_free (priv->nonce);
@@ -162,6 +185,17 @@ wocky_sasl_scram_class_init (
   object_class->dispose = wocky_sasl_scram_dispose;
   object_class->set_property = wocky_sasl_scram_set_property;
   object_class->get_property = wocky_sasl_scram_get_property;
+
+  g_object_class_install_property (object_class, PROP_CB_TYPE,
+      g_param_spec_enum ("cb-type", "binding type",
+          "The type of the TLS Channel Binding to use in SASL negotiation",
+          WOCKY_TYPE_TLS_BINDING_TYPE, WOCKY_TLS_BINDING_DISABLED,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+
+  g_object_class_install_property (object_class, PROP_CB_DATA,
+      g_param_spec_string ("cb-data", "binding data",
+          "Base64 encoded TLS Channel binding data for the set type", NULL,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (object_class, PROP_SERVER,
       g_param_spec_string ("server", "server",
@@ -241,14 +275,42 @@ scram_initial_response (WockyAuthHandler *handler,
       return FALSE;
     }
 
+  switch (priv->cb_type)
+    {
+      /* no client cb support, make sure we don't stuff cb_data in */
+      case WOCKY_TLS_BINDING_DISABLED:
+        priv->gs2_flag = "n,,";
+        g_free (priv->cb_data);
+        priv->cb_data = NULL;
+        break;
+      /* we support channel binding, let's inform the other side */
+      case WOCKY_TLS_BINDING_NONE:
+        /* no server support, wipe cb data, just in case */
+        priv->gs2_flag = "y,,";
+        g_free (priv->cb_data);
+        priv->cb_data = NULL;
+        break;
+      case WOCKY_TLS_BINDING_TLS_UNIQUE:
+        priv->gs2_flag = "p=tls-unique,,";
+        g_assert (priv->cb_data != NULL);
+        break;
+      case WOCKY_TLS_BINDING_TLS_SERVER_END_POINT:
+        priv->gs2_flag = "p=tls-server-end-point,,";
+        g_assert (priv->cb_data != NULL);
+        break;
+      default:
+        g_assert_not_reached ();
+    }
+
   g_assert (priv->client_nonce == NULL);
   priv->client_nonce = sasl_generate_base64_nonce ();
 
-  priv->client_first_bare = g_strdup_printf ("n,,n=%s,r=%s",
+  priv->client_first_bare = g_strdup_printf ("n=%s,r=%s",
     priv->username,
     priv->client_nonce);
 
   *response = g_string_new (priv->client_first_bare);
+  g_string_prepend (*response, priv->gs2_flag);
 
   priv->state = WOCKY_SASL_SCRAM_STATE_SERVER_FIRST_MESSAGE;
 
@@ -400,6 +462,8 @@ scram_handle_server_first_message (WockySaslScram *self,
   WockySaslScramPrivate *priv = self->priv;
   gchar attr, *value = NULL;
   gchar *proof = NULL;
+  GByteArray *cb = NULL;
+  gchar *cb_b64 = NULL;
   GString *client_reply;
 
   if (!scram_get_next_attr_value (&message, &attr, &value))
@@ -435,11 +499,23 @@ scram_handle_server_first_message (WockySaslScram *self,
   /* We got everything we needed for our response without proof
    * base64("n,,") => biws */
   client_reply = g_string_new (NULL);
-  g_string_append_printf (client_reply, "c=biws,r=%s", priv->nonce);
+  if (priv->cb_data)
+    {
+      gsize len = 0;
+      guchar *buf = g_base64_decode (priv->cb_data, &len);
+      cb = g_byte_array_new_take (buf, len);
+    }
+  else
+    cb = g_byte_array_new ();
+  cb = g_byte_array_prepend (cb, (const guint8 *)priv->gs2_flag, strlen (priv->gs2_flag));
+  cb_b64 = g_base64_encode (cb->data, cb->len);
+  g_byte_array_unref (cb);
+  g_string_append_printf (client_reply, "c=%s,r=%s", cb_b64, priv->nonce);
+  g_free (cb_b64);
 
   /* So we can make the auth message */
   priv->auth_message = g_strdup_printf ("%s,%s,%s",
-    priv->client_first_bare + 3,
+    priv->client_first_bare,
     priv->server_first_bare,
     client_reply->str);
 
