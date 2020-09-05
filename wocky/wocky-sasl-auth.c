@@ -690,7 +690,12 @@ wocky_tls_get_cb_data (WockyXmppConnection *conn, WockyTLSBindingType type)
   tc = G_TLS_CONNECTION (ios);
   g_object_unref (ios);
 
-#if GLIB_VERSION_CUR_STABLE >= G_ENCODE_VERSION(2,66)
+  /* Unfortunatelly backend didn'make it into 2.66 so we need next minor */
+#if G_ENCODE_VERSION (GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION) > G_ENCODE_VERSION(2,66)
+  /* We need this conversion and cast until Exporter is adopted by IETF and
+   * gets officially into public API. So far it is hidden experimental type.
+   * Once adopted we can simpy typedef WockyTLSBindingType to
+   * GTlsChannelBindingType */
   switch (type)
     {
     case WOCKY_TLS_BINDING_TLS_UNIQUE:
@@ -698,6 +703,9 @@ wocky_tls_get_cb_data (WockyXmppConnection *conn, WockyTLSBindingType type)
       break;
     case WOCKY_TLS_BINDING_TLS_SERVER_END_POINT:
       g_tls_cb_t = G_TLS_CHANNEL_BINDING_TLS_SERVER_END_POINT;
+      break;
+    case WOCKY_TLS_BINDING_TLS_EXPORTER:
+      g_tls_cb_t = 100500;
       break;
     default:
       DEBUG ("TLS channel binding is disabled or not supported[%d]", type);

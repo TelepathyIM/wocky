@@ -315,6 +315,10 @@ scram_initial_response (WockyAuthHandler *handler,
         priv->gs2_flag = "p=tls-server-end-point,,";
         g_assert (priv->cb_data != NULL);
         break;
+      case WOCKY_TLS_BINDING_TLS_EXPORTER:
+        priv->gs2_flag = "p=tls-exporter,,";
+        g_assert (priv->cb_data != NULL);
+        break;
       default:
         g_assert_not_reached ();
     }
