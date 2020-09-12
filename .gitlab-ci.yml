@@ -1,0 +1,42 @@
+stages:
+  - style-check
+  - build
+  - test
+
+variables:
+  FEDORA_IMG: registry.freedesktop.org/ruff/wocky/master:v1
+  WOCKY_DEBUG: all
+  #G_MESSAGES_DEBUG: all
+
+.default:
+  before_script:
+    - bash autogen.sh
+  cache:
+    key: "$CI_JOB_IMAGE:$CI_COMMIT_SHA"
+    untracked: true
+
+
+style-check:
+  image: $FEDORA_IMG
+  extends: .default
+  stage: style-check
+  script:
+    - make -C wocky check-local
+
+fedora-x86_64-build:
+  image: $FEDORA_IMG
+  extends: .default
+  stage: build
+  script:
+    - make
+
+fedora-x86_64-test:
+  image: $FEDORA_IMG
+  stage: test
+  extends: .default
+  script:
+    - make check
+  artifacts:
+    when: always
+    paths:
+      - "tests/test-report.xml"
