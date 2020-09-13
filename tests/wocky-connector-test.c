@@ -3385,8 +3385,19 @@ test_server_teardown_cb (GObject *source,
 static gboolean
 test_server_idle_quit_loop_cb (GMainLoop *loop)
 {
-    g_main_loop_quit (loop);
-    return G_SOURCE_REMOVE;
+  static int retries = 0;
+
+  if (retries == 5)
+    {
+      g_main_loop_quit (loop);
+      retries = 0;
+      return G_SOURCE_REMOVE;
+    }
+  else
+    {
+      retries ++;
+      return G_SOURCE_CONTINUE;
+    }
 }
 
 static void

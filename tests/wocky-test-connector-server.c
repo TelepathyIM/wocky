@@ -1390,8 +1390,17 @@ force_closed_cb (GObject *source,
   success = wocky_xmpp_connection_force_close_finish (
     WOCKY_XMPP_CONNECTION (source),
     result, &error);
-  g_assert_no_error (error);
-  g_assert (success);
+  if (success)
+    {
+      g_assert_no_error (error);
+    }
+  else if (self->priv->teardown_task && self->priv->cancellable == NULL)
+    {
+      g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+      g_error_free (error);
+    }
+  else
+    g_assert_not_reached ();
 
   server_dec_outstanding (self);
 }
