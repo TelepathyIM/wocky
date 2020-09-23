@@ -94,7 +94,8 @@ struct _WockyJingleContentPrivate
 
 /* lookup tables */
 
-G_DEFINE_TYPE(WockyJingleContent, wocky_jingle_content, G_TYPE_OBJECT);
+G_DEFINE_TYPE_WITH_CODE (WockyJingleContent, wocky_jingle_content, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJingleContent));
 
 static void new_transport_candidates_cb (WockyJingleTransportIface *trans,
     GList *candidates, WockyJingleContent *content);
@@ -105,8 +106,7 @@ static void
 wocky_jingle_content_init (WockyJingleContent *obj)
 {
   WockyJingleContentPrivate *priv =
-     G_TYPE_INSTANCE_GET_PRIVATE (obj, WOCKY_TYPE_JINGLE_CONTENT,
-         WockyJingleContentPrivate);
+      wocky_jingle_content_get_instance_private (obj);
   obj->priv = priv;
 
   DEBUG ("%p", obj);
@@ -273,8 +273,6 @@ wocky_jingle_content_class_init (WockyJingleContentClass *cls)
 {
   GParamSpec *param_spec;
   GObjectClass *object_class = G_OBJECT_CLASS (cls);
-
-  g_type_class_add_private (cls, sizeof (WockyJingleContentPrivate));
 
   object_class->get_property = wocky_jingle_content_get_property;
   object_class->set_property = wocky_jingle_content_set_property;

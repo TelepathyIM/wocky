@@ -38,11 +38,6 @@
 static void
 transport_iface_init (gpointer g_iface, gpointer iface_data);
 
-G_DEFINE_TYPE_WITH_CODE (WockyJingleTransportIceUdp,
-    wocky_jingle_transport_iceudp, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_JINGLE_TRANSPORT_IFACE,
-        transport_iface_init));
-
 /* signal enum */
 enum
 {
@@ -85,12 +80,17 @@ struct _WockyJingleTransportIceUdpPrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyJingleTransportIceUdp,
+    wocky_jingle_transport_iceudp, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJingleTransportIceUdp)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_JINGLE_TRANSPORT_IFACE,
+        transport_iface_init));
+
 static void
 wocky_jingle_transport_iceudp_init (WockyJingleTransportIceUdp *obj)
 {
   WockyJingleTransportIceUdpPrivate *priv =
-     G_TYPE_INSTANCE_GET_PRIVATE (obj, WOCKY_TYPE_JINGLE_TRANSPORT_ICEUDP,
-         WockyJingleTransportIceUdpPrivate);
+      wocky_jingle_transport_iceudp_get_instance_private (obj);
   obj->priv = priv;
 
   priv->id_sequence = 1;
@@ -184,8 +184,6 @@ wocky_jingle_transport_iceudp_class_init (WockyJingleTransportIceUdpClass *cls)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (cls);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (cls, sizeof (WockyJingleTransportIceUdpPrivate));
 
   object_class->get_property = wocky_jingle_transport_iceudp_get_property;
   object_class->set_property = wocky_jingle_transport_iceudp_set_property;

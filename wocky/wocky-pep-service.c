@@ -41,8 +41,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PUBSUB
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyPepService, wocky_pep_service, G_TYPE_OBJECT)
-
 /* signal enum */
 enum
 {
@@ -72,11 +70,13 @@ struct _WockyPepServicePrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyPepService, wocky_pep_service, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyPepService))
+
 static void
 wocky_pep_service_init (WockyPepService *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_PEP_SERVICE,
-      WockyPepServicePrivate);
+  self->priv = wocky_pep_service_get_instance_private (self);
 }
 
 static void
@@ -176,9 +176,6 @@ wocky_pep_service_class_init (WockyPepServiceClass *wocky_pep_service_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_pep_service_class);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (wocky_pep_service_class,
-      sizeof (WockyPepServicePrivate));
 
   object_class->set_property = wocky_pep_service_set_property;
   object_class->get_property = wocky_pep_service_get_property;
@@ -336,23 +333,21 @@ send_query_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (user_data);
+  GTask *task = G_TASK (user_data);
   GError *error = NULL;
   WockyStanza *reply;
 
   reply = wocky_porter_send_iq_finish (WOCKY_PORTER (source), res, &error);
   if (reply == NULL)
     {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
+      g_task_return_error (task, error);
     }
   else
     {
-      g_simple_async_result_set_op_res_gpointer (result, reply, g_object_unref);
+      g_task_return_pointer (task, reply, g_object_unref);
     }
 
-  g_simple_async_result_complete (result);
-  g_object_unref (result);
+  g_object_unref (task);
 }
 
 /**
@@ -378,13 +373,14 @@ wocky_pep_service_get_async (WockyPepService *self,
 {
   WockyPepServicePrivate *priv = self->priv;
   WockyStanza *msg;
-  GSimpleAsyncResult *result;
+  GTask *task;
   const gchar *jid;
 
   if (priv->porter == NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_NOT_STARTED,
+      g_task_report_new_error (G_OBJECT (self), callback,
+          user_data, wocky_pep_service_get_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_NOT_STARTED,
           "Service has not been started");
       return;
     }
@@ -401,11 +397,10 @@ wocky_pep_service_get_async (WockyPepService *self,
         ')',
       ')', NULL);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_pep_service_get_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   wocky_porter_send_iq_async (priv->porter, msg, cancellable, send_query_cb,
-      result);
+      task);
 
   g_object_unref (msg);
 }
@@ -430,17 +425,12 @@ wocky_pep_service_get_finish (WockyPepService *self,
     WockyNode **item,
     GError **error)
 {
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
   WockyStanza *reply;
 
-  if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
+  reply = WOCKY_STANZA (g_task_propagate_pointer (G_TASK (result), error));
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_pep_service_get_async), NULL);
-  reply = WOCKY_STANZA (g_simple_async_result_get_op_res_gpointer (simple));
-
-  if (item != NULL)
+  if (reply != NULL && item != NULL)
     {
       WockyNode *pubsub_node = wocky_node_get_child_ns (
           wocky_stanza_get_top_node (reply), "pubsub", WOCKY_XMPP_NS_PUBSUB);
@@ -455,7 +445,7 @@ wocky_pep_service_get_finish (WockyPepService *self,
         *item = NULL;
     }
 
-  return g_object_ref (reply);
+  return reply;
 }
 
 /**

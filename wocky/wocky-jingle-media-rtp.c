@@ -40,9 +40,6 @@
 #include "wocky-jingle-transport-google.h"
 #include "wocky-utils.h"
 
-G_DEFINE_TYPE (WockyJingleMediaRtp,
-    wocky_jingle_media_rtp, WOCKY_TYPE_JINGLE_CONTENT);
-
 /* signal enum */
 enum
 {
@@ -85,12 +82,15 @@ struct _WockyJingleMediaRtpPrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyJingleMediaRtp,
+    wocky_jingle_media_rtp, WOCKY_TYPE_JINGLE_CONTENT,
+          G_ADD_PRIVATE (WockyJingleMediaRtp));
+
 static void
 wocky_jingle_media_rtp_init (WockyJingleMediaRtp *obj)
 {
   WockyJingleMediaRtpPrivate *priv =
-     G_TYPE_INSTANCE_GET_PRIVATE (obj, WOCKY_TYPE_JINGLE_MEDIA_RTP,
-         WockyJingleMediaRtpPrivate);
+      wocky_jingle_media_rtp_get_instance_private (obj);
   obj->priv = priv;
   priv->dispose_has_run = FALSE;
 }
@@ -313,8 +313,6 @@ wocky_jingle_media_rtp_class_init (WockyJingleMediaRtpClass *cls)
   GObjectClass *object_class = G_OBJECT_CLASS (cls);
   WockyJingleContentClass *content_class = WOCKY_JINGLE_CONTENT_CLASS (cls);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (cls, sizeof (WockyJingleMediaRtpPrivate));
 
   object_class->get_property = wocky_jingle_media_rtp_get_property;
   object_class->set_property = wocky_jingle_media_rtp_set_property;

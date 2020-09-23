@@ -29,8 +29,6 @@
 #include "wocky-node-tree.h"
 #include "wocky-node-private.h"
 
-G_DEFINE_TYPE(WockyNodeTree, wocky_node_tree, G_TYPE_OBJECT)
-
 /* properties */
 enum {
   PROP_TOP_NODE = 1,
@@ -42,11 +40,13 @@ struct _WockyNodeTreePrivate
   WockyNode *node;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyNodeTree, wocky_node_tree, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyNodeTree))
+
 static void
 wocky_node_tree_init (WockyNodeTree *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_NODE_TREE,
-      WockyNodeTreePrivate);
+  self->priv = wocky_node_tree_get_instance_private (self);
 }
 
 static void wocky_node_tree_dispose (GObject *object);
@@ -96,9 +96,6 @@ wocky_node_tree_class_init (WockyNodeTreeClass *wocky_node_tree_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_node_tree_class);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (wocky_node_tree_class,
-    sizeof (WockyNodeTreePrivate));
 
   object_class->dispose = wocky_node_tree_dispose;
   object_class->finalize = wocky_node_tree_finalize;

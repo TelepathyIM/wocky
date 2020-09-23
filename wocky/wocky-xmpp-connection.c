@@ -55,8 +55,6 @@ static void _xmpp_connection_received_data (GObject *source,
     GAsyncResult *result, gpointer user_data);
 static void wocky_xmpp_connection_do_write (WockyXmppConnection *self);
 
-G_DEFINE_TYPE(WockyXmppConnection, wocky_xmpp_connection, G_TYPE_OBJECT)
-
 /* properties */
 enum
 {
@@ -74,14 +72,14 @@ struct _WockyXmppConnectionPrivate
 
   /* received open from the input stream */
   gboolean input_open;
-  GSimpleAsyncResult *input_result;
+  GTask *input_task;
   GCancellable *input_cancellable;
 
   /* sent open to the output stream */
   gboolean output_open;
   /* sent close to the output stream */
   gboolean output_closed;
-  GSimpleAsyncResult *output_result;
+  GTask *output_task;
   GCancellable *output_cancellable;
 
   guint8 input_buffer[BUFFER_SIZE];
@@ -90,10 +88,11 @@ struct _WockyXmppConnectionPrivate
   gsize offset;
   gsize length;
 
-  GSimpleAsyncResult *force_close_result;
-
-  guint last_id;
+  GTask *force_close_task;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyXmppConnection, wocky_xmpp_connection, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyXmppConnection))
 
 /**
  * wocky_xmpp_connection_error_quark
@@ -118,8 +117,7 @@ wocky_xmpp_connection_init (WockyXmppConnection *self)
 {
   WockyXmppConnectionPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_XMPP_CONNECTION,
-      WockyXmppConnectionPrivate);
+  self->priv = wocky_xmpp_connection_get_instance_private (self);
   priv = self->priv;
 
   priv->writer = wocky_xmpp_writer_new ();
@@ -180,9 +178,6 @@ wocky_xmpp_connection_class_init (
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_xmpp_connection_class);
   GParamSpec *spec;
 
-  g_type_class_add_private (wocky_xmpp_connection_class,
-      sizeof (WockyXmppConnectionPrivate));
-
   object_class->set_property = wocky_xmpp_connection_set_property;
   object_class->get_property = wocky_xmpp_connection_get_property;
   object_class->dispose = wocky_xmpp_connection_dispose;
@@ -207,51 +202,18 @@ wocky_xmpp_connection_dispose (GObject *object)
   if (priv->dispose_has_run)
     return;
 
-  g_warn_if_fail (priv->input_result == NULL);
-  g_warn_if_fail (priv->output_result == NULL);
+  g_warn_if_fail (priv->input_task == NULL);
+  g_warn_if_fail (priv->output_task == NULL);
 
   priv->dispose_has_run = TRUE;
-  if (priv->stream != NULL)
-    {
-      g_object_unref (priv->stream);
-      priv->stream = NULL;
-    }
 
-  if (priv->reader != NULL)
-    {
-      g_object_unref (priv->reader);
-      priv->reader = NULL;
-    }
-
-  if (priv->writer != NULL)
-    {
-      g_object_unref (priv->writer);
-      priv->writer = NULL;
-    }
-
-  if (priv->output_result != NULL)
-  {
-    g_object_unref (priv->output_result);
-    priv->output_result = NULL;
-  }
-
-  if (priv->output_cancellable != NULL)
-  {
-    g_object_unref (priv->output_cancellable);
-    priv->output_cancellable = NULL;
-  }
-
-  if (priv->input_result != NULL)
-  {
-    g_object_unref (priv->input_result);
-    priv->input_result = NULL;
-  }
-
-  if (priv->input_cancellable != NULL)
-  {
-    g_object_unref (priv->input_cancellable);
-    priv->input_cancellable = NULL;
-  }
+  g_clear_object (&(priv->stream));
+  g_clear_object (&(priv->reader));
+  g_clear_object (&(priv->writer));
+  g_clear_object (&(priv->output_task));
+  g_clear_object (&(priv->output_cancellable));
+  g_clear_object (&(priv->input_task));
+  g_clear_object (&(priv->input_cancellable));
 
   /* release any references held by the object here */
 
@@ -300,15 +262,13 @@ wocky_xmpp_connection_write_cb (GObject *source,
 
   if (G_UNLIKELY (written < 0))
     {
-      g_simple_async_result_set_from_error (priv->output_result, error);
-      g_error_free (error);
-
+      g_task_return_error (priv->output_task, error);
       goto finished;
     }
 
   if (G_UNLIKELY (written == 0))
     {
-      g_simple_async_result_set_error (priv->output_result,
+      g_task_return_new_error (priv->output_task,
         WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_EOS,
         "Connection got disconnected" );
       goto finished;
@@ -327,16 +287,18 @@ wocky_xmpp_connection_write_cb (GObject *source,
 
 finished:
   {
-    GSimpleAsyncResult *r = priv->output_result;
+    GTask *t = priv->output_task;
 
     if (priv->output_cancellable != NULL)
       g_object_unref (priv->output_cancellable);
 
     priv->output_cancellable = NULL;
-    priv->output_result = NULL;
+    priv->output_task = NULL;
 
-    g_simple_async_result_complete (r);
-    g_object_unref (r);
+    if (!g_task_had_error (t))
+      g_task_return_boolean (t, TRUE);
+
+    g_object_unref (t);
   }
 }
 
@@ -389,20 +351,37 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       connection->priv;
 
-  if (G_UNLIKELY (priv->output_result != NULL))
-    goto pending;
+  if (G_UNLIKELY (priv->output_task != NULL))
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_open_async, G_IO_ERROR,
+          G_IO_ERROR_PENDING, "Another send operation is pending");
+      return;
+    }
 
   if (G_UNLIKELY (priv->output_closed))
-    goto is_closed;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_open_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+          "Connection is already open");
+      return;
+    }
 
   if (G_UNLIKELY (priv->output_open))
-    goto is_open;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_open_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
+          "Connection is closed for sending");
+      return;
+    }
 
-  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_task == NULL);
   g_assert (priv->output_cancellable == NULL);
 
-  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_open_async);
+  priv->output_task = g_task_new (G_OBJECT (connection), cancellable,
+    callback, user_data);
 
   if (cancellable != NULL)
     priv->output_cancellable = g_object_ref (cancellable);
@@ -415,26 +394,6 @@ wocky_xmpp_connection_send_open_async (WockyXmppConnection *connection,
 
   wocky_xmpp_connection_do_write (connection);
 
-  return;
-
-pending:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
-  return;
-
-is_open:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
-    "Connection is already open");
-  return;
-
-is_closed:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
-    "Connection is closed for sending");
   return;
 }
 
@@ -453,15 +412,12 @@ wocky_xmpp_connection_send_open_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error)
 {
-  WockyXmppConnectionPrivate *priv =
-      connection->priv;
+  WockyXmppConnectionPrivate *priv = connection->priv;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
+  g_return_val_if_fail (g_task_is_valid (result, connection), FALSE);
+
+  if (!g_task_propagate_boolean (G_TASK (result), error))
     return FALSE;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_send_open_async), FALSE);
 
   priv->output_open = TRUE;
 
@@ -507,15 +463,13 @@ _xmpp_connection_received_data (GObject *source,
 
   if (G_UNLIKELY (size < 0))
     {
-      g_simple_async_result_set_from_error (priv->input_result, error);
-      g_error_free (error);
-
+      g_task_return_error (priv->input_task, error);
       goto finished;
     }
 
   if (G_UNLIKELY (size == 0))
     {
-      g_simple_async_result_set_error (priv->input_result,
+      g_task_return_new_error (priv->input_task,
         WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_EOS,
         "Connection got disconnected" );
       goto finished;
@@ -551,16 +505,18 @@ _xmpp_connection_received_data (GObject *source,
 
 finished:
   {
-    GSimpleAsyncResult *r = priv->input_result;
+    GTask *t = priv->input_task;
 
     if (priv->input_cancellable != NULL)
       g_object_unref (priv->input_cancellable);
 
     priv->input_cancellable = NULL;
-    priv->input_result = NULL;
+    priv->input_task = NULL;
 
-    g_simple_async_result_complete (r);
-    g_object_unref (r);
+    if (!g_task_had_error (t))
+      g_task_return_boolean (t, TRUE);
+
+    g_object_unref (t);
   }
 }
 
@@ -585,46 +541,43 @@ wocky_xmpp_connection_recv_open_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
     connection->priv;
 
-  if (G_UNLIKELY (priv->input_result != NULL))
-    goto pending;
+  if (G_UNLIKELY (priv->input_task != NULL))
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_recv_open_async, G_IO_ERROR,
+          G_IO_ERROR_PENDING, "Another receive operation is pending");
+      return;
+    }
 
   if (G_UNLIKELY (input_is_closed (connection)))
-    goto is_closed;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_recv_open_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+          "Connection is closed for receiving");
+      return;
+    }
 
   if (G_UNLIKELY (priv->input_open))
-    goto is_open;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_recv_open_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
+          "Connection has already received open");
+      return;
+    }
 
-  g_assert (priv->input_result == NULL);
+  g_assert (priv->input_task == NULL);
   g_assert (priv->input_cancellable == NULL);
 
-  priv->input_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_recv_open_async);
+  priv->input_task = g_task_new (G_OBJECT (connection), cancellable,
+    callback, user_data);
 
   if (cancellable != NULL)
     priv->input_cancellable = g_object_ref (cancellable);
 
   wocky_xmpp_connection_do_read (connection);
 
-  return;
-
-pending:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    G_IO_ERROR, G_IO_ERROR_PENDING, "Another receive operation is pending");
-  return;
-
-is_closed:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
-    "Connection is closed for receiving");
-  return;
-
-is_open:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_OPEN,
-    "Connection has already received open");
   return;
 }
 
@@ -660,12 +613,10 @@ wocky_xmpp_connection_recv_open_finish (WockyXmppConnection *connection,
 {
   WockyXmppConnectionPrivate *priv;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, connection), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_recv_open_async), FALSE);
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    return FALSE;
 
   priv = connection->priv;
   priv->input_open = TRUE;
@@ -715,21 +666,39 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       connection->priv;
 
-  if (G_UNLIKELY (priv->output_result != NULL))
-    goto pending;
+  if (G_UNLIKELY (priv->output_task != NULL))
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_stanza_async, G_IO_ERROR,
+          G_IO_ERROR_PENDING, "Another send operation is pending");
+      return;
+    }
+
 
   if (G_UNLIKELY (!priv->output_open))
-    goto not_open;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_stanza_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+          "Connections hasn't been opened for sending");
+      return;
+    }
 
   if (G_UNLIKELY (priv->output_closed))
-    goto is_closed;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_stanza_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+          "Connections has been closed for sending");
+      return;
+    }
 
   g_assert (!priv->output_closed);
-  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_task == NULL);
   g_assert (priv->output_cancellable == NULL);
 
-  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_stanza_async);
+  priv->output_task = g_task_new (G_OBJECT (connection), cancellable,
+      callback, user_data);
 
   if (cancellable != NULL)
     priv->output_cancellable = g_object_ref (cancellable);
@@ -741,26 +710,6 @@ wocky_xmpp_connection_send_stanza_async (WockyXmppConnection *connection,
 
   wocky_xmpp_connection_do_write (connection);
 
-  return;
-
-pending:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
-  return;
-
-not_open:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-    "Connections hasn't been opened for sending");
-  return;
-
-is_closed:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
-    "Connections has been closed for sending");
   return;
 }
 
@@ -780,15 +729,9 @@ wocky_xmpp_connection_send_stanza_finish (
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, connection), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (connection), wocky_xmpp_connection_send_stanza_async),
-      FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**
@@ -815,30 +758,47 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
     connection->priv;
 
-  if (G_UNLIKELY (priv->input_result != NULL))
-    goto pending;
+  if (G_UNLIKELY (priv->input_task != NULL))
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_recv_stanza_async, G_IO_ERROR,
+          G_IO_ERROR_PENDING, "Another receive operation is pending");
+      return;
+    }
 
   if (G_UNLIKELY (!priv->input_open))
-    goto not_open;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_recv_stanza_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+          "Connection hasn't been opened for reading stanzas");
+      return;
+    }
 
   if (G_UNLIKELY (input_is_closed (connection)))
-    goto is_closed;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_recv_stanza_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+          "Connection has been closed for reading stanzas");
+      return;
+    }
 
-  g_assert (priv->input_result == NULL);
+  g_assert (priv->input_task == NULL);
   g_assert (priv->input_cancellable == NULL);
 
-  priv->input_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_recv_stanza_async);
+  priv->input_task = g_task_new (G_OBJECT (connection), cancellable,
+    callback, user_data);
 
   /* There is already a stanza waiting, no need to read */
   if (wocky_xmpp_reader_peek_stanza (priv->reader) != NULL)
     {
-      GSimpleAsyncResult *r = priv->input_result;
+      GTask *t = priv->input_task;
 
-      priv->input_result = NULL;
+      priv->input_task = NULL;
 
-      g_simple_async_result_complete_in_idle (r);
-      g_object_unref (r);
+      g_task_return_boolean (t, TRUE);
+      g_object_unref (t);
       return;
     }
 
@@ -846,26 +806,6 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
     priv->input_cancellable = g_object_ref (cancellable);
 
   wocky_xmpp_connection_do_read (connection);
-  return;
-
-pending:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    G_IO_ERROR, G_IO_ERROR_PENDING, "Another receive operation is pending");
-  return;
-
-not_open:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-    "Connection hasn't been opened for reading stanzas");
-  return;
-
-is_closed:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
-    "Connection has been closed for reading stanzas");
   return;
 }
 
@@ -888,12 +828,10 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv;
   WockyStanza *stanza = NULL;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return NULL;
+  g_return_val_if_fail (g_task_is_valid (result, connection), NULL);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_recv_stanza_async), NULL);
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    return NULL;
 
   priv = connection->priv;
 
@@ -952,20 +890,37 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
       connection->priv;
 
-  if (G_UNLIKELY (priv->output_result != NULL))
-    goto pending;
+  if (G_UNLIKELY (priv->output_task != NULL))
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_close_async, G_IO_ERROR,
+          G_IO_ERROR_PENDING, "Another send operation is pending");
+      return;
+    }
 
   if (G_UNLIKELY (priv->output_closed))
-    goto is_closed;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_close_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+          "Connections has been closed sending");
+      return;
+    }
 
   if (G_UNLIKELY (!priv->output_open))
-    goto not_open;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_close_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+          "Connections hasn't been opened for sending");
+      return;
+    }
 
-  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_task == NULL);
   g_assert (priv->output_cancellable == NULL);
 
-  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_close_async);
+  priv->output_task = g_task_new (G_OBJECT (connection), cancellable,
+    callback, user_data);
 
   if (cancellable != NULL)
     priv->output_cancellable = g_object_ref (cancellable);
@@ -978,26 +933,6 @@ wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
 
   wocky_xmpp_connection_do_write (connection);
 
-  return;
-
-pending:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
-  return;
-
-not_open:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-    "Connections hasn't been opened for sending");
-  return;
-
-is_closed:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
-    "Connections has been closed sending");
   return;
 }
 
@@ -1016,15 +951,12 @@ wocky_xmpp_connection_send_close_finish (WockyXmppConnection *connection,
     GAsyncResult *result,
     GError **error)
 {
-  WockyXmppConnectionPrivate *priv =
-      connection->priv;
+  WockyXmppConnectionPrivate *priv = connection->priv;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
+  g_return_val_if_fail (g_task_is_valid (result, connection), FALSE);
+
+  if (!g_task_propagate_boolean (G_TASK (result), error))
     return FALSE;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_send_close_async), FALSE);
 
   priv->output_closed = TRUE;
 
@@ -1055,21 +987,38 @@ wocky_xmpp_connection_send_whitespace_ping_async (WockyXmppConnection *connectio
   WockyXmppConnectionPrivate *priv =
       connection->priv;
 
-  if (G_UNLIKELY (priv->output_result != NULL))
-    goto pending;
+  if (G_UNLIKELY (priv->output_task != NULL))
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_whitespace_ping_async, G_IO_ERROR,
+          G_IO_ERROR_PENDING, "Another send operation is pending");
+      return;
+    }
 
   if (G_UNLIKELY (!priv->output_open))
-    goto not_open;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_whitespace_ping_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
+          "Connections hasn't been opened for sending");
+      return;
+    }
 
   if (G_UNLIKELY (priv->output_closed))
-    goto is_closed;
+    {
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_send_whitespace_ping_async,
+          WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
+          "Connections has been closed for sending");
+      return;
+    }
 
   g_assert (!priv->output_closed);
-  g_assert (priv->output_result == NULL);
+  g_assert (priv->output_task == NULL);
   g_assert (priv->output_cancellable == NULL);
 
-  priv->output_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_send_whitespace_ping_async);
+  priv->output_task = g_task_new (G_OBJECT (connection), cancellable,
+      callback, user_data);
 
   if (cancellable != NULL)
     priv->output_cancellable = g_object_ref (cancellable);
@@ -1080,26 +1029,6 @@ wocky_xmpp_connection_send_whitespace_ping_async (WockyXmppConnection *connectio
 
   wocky_xmpp_connection_do_write (connection);
 
-  return;
-
-pending:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    G_IO_ERROR, G_IO_ERROR_PENDING, "Another send operation is pending");
-  return;
-
-not_open:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_NOT_OPEN,
-    "Connections hasn't been opened for sending");
-  return;
-
-is_closed:
-  g_simple_async_report_error_in_idle (G_OBJECT (connection),
-    callback, user_data,
-    WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_IS_CLOSED,
-    "Connections has been closed for sending");
   return;
 }
 
@@ -1119,8 +1048,9 @@ wocky_xmpp_connection_send_whitespace_ping_finish (
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (connection,
-      wocky_xmpp_connection_send_whitespace_ping_async);
+  g_return_val_if_fail (g_task_is_valid (result, connection), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**
@@ -1138,8 +1068,8 @@ wocky_xmpp_connection_reset (WockyXmppConnection *connection)
     connection->priv;
 
   /* There can't be any pending operations */
-  g_assert (priv->input_result == NULL);
-  g_assert (priv->output_result == NULL);
+  g_assert (priv->input_task == NULL);
+  g_assert (priv->output_task == NULL);
 
   priv->input_open = FALSE;
 
@@ -1159,15 +1089,7 @@ wocky_xmpp_connection_reset (WockyXmppConnection *connection)
 gchar *
 wocky_xmpp_connection_new_id (WockyXmppConnection *self)
 {
-  WockyXmppConnectionPrivate *priv =
-    self->priv;
-  GTimeVal tv;
-  glong val;
-
-  g_get_current_time (&tv);
-  val = (tv.tv_sec & tv.tv_usec) + priv->last_id++;
-
-  return g_strdup_printf ("%ld%ld", val, tv.tv_usec);
+  return g_uuid_string_random ();
 }
 
 static void
@@ -1179,17 +1101,15 @@ stream_close_cb (GObject *source,
   WockyXmppConnectionPrivate *priv =
     connection->priv;
   GError *error = NULL;
-  GSimpleAsyncResult *r = priv->force_close_result;
+  GTask *t = priv->force_close_task;
 
   if (!g_io_stream_close_finish (G_IO_STREAM (source), res, &error))
-    {
-      g_simple_async_result_set_from_error (priv->force_close_result, error);
-      g_error_free (error);
-    }
+    g_task_return_error (t, error);
+  else
+    g_task_return_boolean (t, TRUE);
 
-  priv->force_close_result = NULL;
-  g_simple_async_result_complete (r);
-  g_object_unref (r);
+  priv->force_close_task = NULL;
+  g_object_unref (t);
 }
 
 void
@@ -1201,16 +1121,16 @@ wocky_xmpp_connection_force_close_async (WockyXmppConnection *connection,
   WockyXmppConnectionPrivate *priv =
     connection->priv;
 
-  if (G_UNLIKELY (priv->force_close_result != NULL))
+  if (G_UNLIKELY (priv->force_close_task != NULL))
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (connection),
-          callback, user_data,
+      g_task_report_new_error (G_OBJECT (connection), callback, user_data,
+          wocky_xmpp_connection_force_close_async,
           G_IO_ERROR, G_IO_ERROR_PENDING, "Another close operation is pending");
       return;
     }
 
-  priv->force_close_result = g_simple_async_result_new (G_OBJECT (connection),
-    callback, user_data, wocky_xmpp_connection_force_close_async);
+  priv->force_close_task = g_task_new (G_OBJECT (connection), cancellable,
+      callback, user_data);
 
   g_io_stream_close_async (priv->stream, G_PRIORITY_HIGH, cancellable,
       stream_close_cb, connection);
@@ -1222,12 +1142,7 @@ wocky_xmpp_connection_force_close_finish (
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, connection), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (connection), wocky_xmpp_connection_force_close_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }

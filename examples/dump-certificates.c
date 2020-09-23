@@ -59,7 +59,7 @@ dump_tls_handler_verify_async (WockyTLSHandler *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GSimpleAsyncResult *res;
+  GTask *task;
   GPtrArray *chain;
   gnutls_x509_crt_t cert;
   gnutls_datum_t datum;
@@ -106,10 +106,9 @@ dump_tls_handler_verify_async (WockyTLSHandler *self,
 
   g_ptr_array_unref (chain);
 
-  res = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      dump_tls_handler_verify_async);
-  g_simple_async_result_complete_in_idle (res);
-  g_object_unref (res);
+  task = g_task_new (G_OBJECT (self), NULL, callback, user_data);
+  g_task_return_boolean (task, TRUE);
+  g_object_unref (task);
 }
 
 static gboolean
@@ -117,8 +116,9 @@ dump_tls_handler_verify_finish (WockyTLSHandler *self,
     GAsyncResult *result,
     GError **error)
 {
-  return !g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void

@@ -102,13 +102,13 @@ wocky_stun_server_free (WockyStunServer *stun_server)
     }
 }
 
-G_DEFINE_TYPE (WockyJingleInfo, wocky_jingle_info, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_CODE (WockyJingleInfo, wocky_jingle_info, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJingleInfo))
 
 static void
 wocky_jingle_info_init (WockyJingleInfo *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_JINGLE_INFO,
-      WockyJingleInfoPrivate);
+  self->priv = wocky_jingle_info_get_instance_private (self);
 
   self->priv->relay_http_port = 80;
   self->priv->get_stun_from_jingle = TRUE;
@@ -221,8 +221,6 @@ wocky_jingle_info_class_init (WockyJingleInfoClass *klass)
   object_class->set_property = wocky_jingle_info_set_property;
   object_class->constructed = wocky_jingle_info_constructed;
   object_class->dispose = wocky_jingle_info_dispose;
-
-  g_type_class_add_private (klass, sizeof (WockyJingleInfoPrivate));
 
   param_spec = g_param_spec_object ("porter", "WockyC2SPorter",
       "Porter for the current connection",

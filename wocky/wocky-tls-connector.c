@@ -45,7 +45,7 @@ struct _WockyTLSConnectorPrivate {
   WockyXmppConnection *connection;
   WockyXmppConnection *tls_connection;
 
-  GSimpleAsyncResult *secure_result;
+  GTask *secure_task;
   GCancellable *cancellable;
 };
 
@@ -59,7 +59,8 @@ session_handshake_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data);
 
-G_DEFINE_TYPE (WockyTLSConnector, wocky_tls_connector, G_TYPE_OBJECT);
+G_DEFINE_TYPE_WITH_CODE (WockyTLSConnector, wocky_tls_connector, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyTLSConnector));
 
 static void
 wocky_tls_connector_get_property (GObject *object,
@@ -137,8 +138,6 @@ wocky_tls_connector_class_init (WockyTLSConnectorClass *klass)
   GObjectClass *oclass = G_OBJECT_CLASS (klass);
   GParamSpec *pspec;
 
-  g_type_class_add_private (klass, sizeof (WockyTLSConnectorPrivate));
-
   oclass->get_property = wocky_tls_connector_get_property;
   oclass->set_property = wocky_tls_connector_set_property;
   oclass->finalize = wocky_tls_connector_finalize;
@@ -158,10 +157,9 @@ wocky_tls_connector_class_init (WockyTLSConnectorClass *klass)
 static void
 wocky_tls_connector_init (WockyTLSConnector *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_TLS_CONNECTOR,
-      WockyTLSConnectorPrivate);
+  self->priv = wocky_tls_connector_get_instance_private (self);
 
-  self->priv->secure_result = NULL;
+  self->priv->secure_task = NULL;
 }
 
 static void
@@ -215,18 +213,13 @@ report_error_in_idle (WockyTLSConnector *self,
 
   DEBUG ("%s", error->message);
 
-  g_simple_async_result_set_from_error (self->priv->secure_result,
-      error);
-  g_error_free (error);
-  g_simple_async_result_complete_in_idle (self->priv->secure_result);
-
-  g_object_unref (self->priv->secure_result);
-
   if (self->priv->cancellable != NULL)
     {
       g_object_unref (self->priv->cancellable);
       self->priv->cancellable = NULL;
     }
+  g_task_return_error (self->priv->secure_task, error);
+  g_object_unref (self->priv->secure_task);
 }
 
 static void
@@ -235,17 +228,14 @@ report_error_in_idle_gerror (WockyTLSConnector *self,
 {
   DEBUG ("Reporting error %s", error->message);
 
-  g_simple_async_result_set_from_error (self->priv->secure_result,
-      error);
-  g_simple_async_result_complete_in_idle (self->priv->secure_result);
-
-  g_object_unref (self->priv->secure_result);
-
   if (self->priv->cancellable != NULL)
     {
       g_object_unref (self->priv->cancellable);
       self->priv->cancellable = NULL;
     }
+
+  g_task_return_error (self->priv->secure_task, g_error_copy (error));
+  g_object_unref (self->priv->secure_task);
 }
 
 static void
@@ -294,18 +284,17 @@ tls_handler_verify_async_cb (GObject *source,
       return;
     }
 
-  g_simple_async_result_set_op_res_gpointer (self->priv->secure_result,
-      self->priv->tls_connection, (GDestroyNotify) g_object_unref);
-  self->priv->tls_connection = NULL;
-  g_simple_async_result_complete_in_idle (self->priv->secure_result);
-
-  g_object_unref (self->priv->secure_result);
-
   if (self->priv->cancellable != NULL)
     {
       g_object_unref (self->priv->cancellable);
       self->priv->cancellable = NULL;
     }
+
+  g_task_return_pointer (self->priv->secure_task,
+      self->priv->tls_connection, (GDestroyNotify) g_object_unref);
+  self->priv->tls_connection = NULL;
+
+  g_object_unref (self->priv->secure_task);
 }
 
 static void
@@ -468,19 +457,18 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GSimpleAsyncResult *async_result;
+  GTask *task;
 
-  g_assert (self->priv->secure_result == NULL);
+  g_assert (self->priv->secure_task == NULL);
   g_assert (self->priv->cancellable == NULL);
 
-  async_result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_tls_connector_secure_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   if (cancellable != NULL)
     self->priv->cancellable = g_object_ref (cancellable);
 
   self->priv->connection = connection;
-  self->priv->secure_result = async_result;
+  self->priv->secure_task = task;
   self->priv->legacy_ssl = old_style_ssl;
   self->priv->peername = g_strdup (peername);
   self->priv->extra_identities = g_strdupv (extra_identities);
@@ -496,6 +484,7 @@ wocky_tls_connector_secure_finish (WockyTLSConnector *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_return_copy_pointer (self,
-      wocky_tls_connector_secure_async, g_object_ref);
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
+
+  return g_task_propagate_pointer (G_TASK (result), error);
 }

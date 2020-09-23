@@ -41,10 +41,6 @@ typedef enum {
 static void
 sasl_handler_iface_init (gpointer g_iface);
 
-G_DEFINE_TYPE_WITH_CODE (WockySaslScram, wocky_sasl_scram,
-    G_TYPE_OBJECT, G_IMPLEMENT_INTERFACE (
-        WOCKY_TYPE_AUTH_HANDLER, sasl_handler_iface_init))
-
 enum
 {
   PROP_SERVER = 1,
@@ -72,6 +68,10 @@ struct _WockySaslScramPrivate
 
   GByteArray *salted_password;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockySaslScram, wocky_sasl_scram,
+    G_TYPE_OBJECT, G_ADD_PRIVATE (WockySaslScram)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_AUTH_HANDLER, sasl_handler_iface_init))
 
 static void
 wocky_sasl_scram_get_property (
@@ -159,8 +159,6 @@ wocky_sasl_scram_class_init (
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (WockySaslScramPrivate));
-
   object_class->dispose = wocky_sasl_scram_dispose;
   object_class->set_property = wocky_sasl_scram_set_property;
   object_class->get_property = wocky_sasl_scram_get_property;
@@ -209,8 +207,7 @@ sasl_handler_iface_init (gpointer g_iface)
 static void
 wocky_sasl_scram_init (WockySaslScram *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
-      WOCKY_TYPE_SASL_SCRAM, WockySaslScramPrivate);
+  self->priv = wocky_sasl_scram_get_instance_private (self);
   self->priv->state = WOCKY_SASL_SCRAM_STATE_STARTED;
 }
 

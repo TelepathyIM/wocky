@@ -503,6 +503,61 @@ test_list_subscribers (void)
   teardown_test (test);
 }
 
+static void
+test_can_list_subs_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  test_data_t *test = (test_data_t *) user_data;
+
+  g_assert (wocky_pubsub_node_list_subscribers_finish (
+      WOCKY_PUBSUB_NODE (source), res, NULL, NULL));
+
+  test->outstanding--;
+  g_main_loop_quit (test->loop);
+}
+
+static void
+test_can_list_subs (void)
+{
+  test_data_t *test = setup_test ();
+  WockyPubsubService *pubsub;
+  WockyPubsubNode *node;
+
+  test_open_both_connections (test);
+
+  wocky_porter_start (test->sched_out);
+  wocky_session_start (test->session_in);
+
+  pubsub = wocky_pubsub_service_new (test->session_in, "pubsub.localhost");
+
+  wocky_porter_register_handler_from_anyone (test->sched_out,
+      WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_GET,
+      WOCKY_PORTER_HANDLER_PRIORITY_MAX,
+      test_list_subscribers_iq_cb, test,
+      '(', "pubsub",
+        ':', WOCKY_XMPP_NS_PUBSUB_OWNER,
+        '(', "subscriptions",
+          '@', "node", "princely_musings",
+        ')',
+      ')', NULL);
+
+  node = wocky_pubsub_service_ensure_node (pubsub, "princely_musings");
+  g_assert (node != NULL);
+
+  wocky_pubsub_node_list_subscribers_async (node, NULL,
+      test_can_list_subs_cb, test);
+
+  test->outstanding += 2;
+  test_wait_pending (test);
+
+  g_object_unref (node);
+  g_object_unref (pubsub);
+
+  test_close_both_porters (test);
+  teardown_test (test);
+}
+
 
 /* Test retrieving a list of entities affiliated to a node you own. See
  * XEP-0060 §8.9.1 Retrieve Affiliations List
@@ -1308,6 +1363,7 @@ main (int argc, char **argv)
   g_test_add_func ("/pubsub-node/unsubscribe", test_unsubscribe);
   g_test_add_func ("/pubsub-node/delete", test_delete);
 
+  g_test_add_func ("/pubsub-node/can-list-subscribers", test_can_list_subs);
   g_test_add_func ("/pubsub-node/list-subscribers", test_list_subscribers);
   g_test_add_func ("/pubsub-node/list-affiliates", test_list_affiliates);
   g_test_add_func ("/pubsub-node/modify-affiliates", test_modify_affiliates);

@@ -33,9 +33,6 @@
 
 static void initable_iface_init (gpointer, gpointer);
 
-G_DEFINE_TYPE_WITH_CODE (WockyLLConnector, wocky_ll_connector, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, initable_iface_init))
-
 enum
 {
   PROP_STREAM = 1,
@@ -56,9 +53,13 @@ struct _WockyLLConnectorPrivate
 
   gchar *from;
 
-  GSimpleAsyncResult *simple;
+  GTask *task;
   GCancellable *cancellable;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyLLConnector, wocky_ll_connector, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyLLConnector)
+    G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, initable_iface_init))
 
 GQuark
 wocky_ll_connector_error_quark (void)
@@ -75,8 +76,7 @@ wocky_ll_connector_error_quark (void)
 static void
 wocky_ll_connector_init (WockyLLConnector *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LL_CONNECTOR,
-      WockyLLConnectorPrivate);
+  self->priv = wocky_ll_connector_get_instance_private (self);
 }
 
 static void
@@ -224,9 +224,6 @@ wocky_ll_connector_class_init (
       FALSE,
       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (object_class, PROP_INCOMING, spec);
-
-  g_type_class_add_private (wocky_ll_connector_class,
-      sizeof (WockyLLConnectorPrivate));
 }
 
 /**
@@ -309,15 +306,16 @@ features_sent_cb (GObject *source_object,
     {
       DEBUG ("Failed to send stream features: %s", error->message);
 
-      g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
+      g_task_return_new_error (priv->task, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_SEND_STANZA,
           "Failed to send stream features: %s", error->message);
       g_clear_error (&error);
     }
+  else
+    g_task_return_boolean (priv->task, TRUE);
 
-  g_simple_async_result_complete (priv->simple);
-  g_object_unref (priv->simple);
-  priv->simple = NULL;
+  g_object_unref (priv->task);
+  priv->task = NULL;
 
   g_object_unref (self);
 }
@@ -341,14 +339,13 @@ recv_open_cb (GObject *source_object,
     {
       DEBUG ("Failed to receive stream open: %s", error->message);
 
-      g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
+      g_task_return_new_error (priv->task, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_RECEIVE_STANZA,
           "Failed to receive stream open: %s", error->message);
       g_clear_error (&error);
 
-      g_simple_async_result_complete (priv->simple);
-      g_object_unref (priv->simple);
-      priv->simple = NULL;
+      g_object_unref (priv->task);
+      priv->task = NULL;
 
       return;
     }
@@ -392,14 +389,13 @@ send_open_cb (GObject *source_object,
     {
       DEBUG ("Failed to send stream open: %s", error->message);
 
-      g_simple_async_result_set_error (priv->simple, WOCKY_LL_CONNECTOR_ERROR,
+      g_task_return_new_error (priv->task, WOCKY_LL_CONNECTOR_ERROR,
           WOCKY_LL_CONNECTOR_ERROR_FAILED_TO_SEND_STANZA,
           "Failed to send stream open: %s", error->message);
       g_clear_error (&error);
 
-      g_simple_async_result_complete (priv->simple);
-      g_object_unref (priv->simple);
-      priv->simple = NULL;
+      g_object_unref (priv->task);
+      priv->task = NULL;
       return;
     }
 
@@ -464,10 +460,9 @@ wocky_ll_connector_init_async (GAsyncInitable *initable,
   WockyLLConnector *self = WOCKY_LL_CONNECTOR (initable);
   WockyLLConnectorPrivate *priv = self->priv;
 
-  g_return_if_fail (priv->simple == NULL);
+  g_return_if_fail (priv->task == NULL);
 
-  priv->simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_ll_connector_init_async);
+  priv->task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   if (cancellable != NULL)
     priv->cancellable = g_object_ref (cancellable);
@@ -493,18 +488,12 @@ wocky_ll_connector_init_finish (GAsyncInitable *initable,
     GError **error)
 {
   WockyLLConnector *self = WOCKY_LL_CONNECTOR (initable);
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (result);
   WockyLLConnectorPrivate *priv = self->priv;
 
-  g_return_val_if_fail (priv->simple == simple, FALSE);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+  g_return_val_if_fail (priv->task == G_TASK (result), FALSE);
 
-  if (g_simple_async_result_propagate_error (simple, error))
-    return FALSE;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-          G_OBJECT (self), wocky_ll_connector_init_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void

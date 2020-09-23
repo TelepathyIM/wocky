@@ -54,10 +54,6 @@
 
 static void wocky_porter_iface_init (gpointer g_iface, gpointer iface_data);
 
-G_DEFINE_TYPE_WITH_CODE (WockyC2SPorter, wocky_c2s_porter, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_PORTER,
-        wocky_porter_iface_init));
-
 /* properties */
 enum
 {
@@ -83,12 +79,12 @@ struct _WockyC2SPorterPrivate
   GCancellable *receive_cancellable;
   gboolean sending_whitespace_ping;
 
-  GSimpleAsyncResult *close_result;
+  GTask *close_task;
   gboolean waiting_to_close;
   gboolean remote_closed;
   gboolean local_closed;
   GCancellable *close_cancellable;
-  GSimpleAsyncResult *force_close_result;
+  GTask *force_close_task;
   GCancellable *force_close_cancellable;
 
   /* guint => owned (StanzaHandler *) */
@@ -109,12 +105,16 @@ struct _WockyC2SPorterPrivate
   WockyXmppConnection *connection;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyC2SPorter, wocky_c2s_porter, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyC2SPorter)
+          G_IMPLEMENT_INTERFACE (WOCKY_TYPE_PORTER, wocky_porter_iface_init));
+
 typedef struct
 {
   WockyC2SPorter *self;
   WockyStanza *stanza;
   GCancellable *cancellable;
-  GSimpleAsyncResult *result;
+  GTask *task;
   gulong cancelled_sig_id;
 } sending_queue_elem;
 
@@ -136,8 +136,7 @@ sending_queue_elem_new (WockyC2SPorter *self,
   if (cancellable != NULL)
     elem->cancellable = g_object_ref (cancellable);
 
-  elem->result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_c2s_porter_send_async);
+  elem->task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   return elem;
 }
@@ -154,7 +153,7 @@ sending_queue_elem_free (sending_queue_elem *elem)
       /* FIXME: we should use g_cancellable_disconnect but it raises a dead
        * lock (#587300) */
     }
-  g_object_unref (elem->result);
+  g_object_unref (elem->task);
 
   g_slice_free (sending_queue_elem, elem);
 }
@@ -236,7 +235,7 @@ stanza_handler_free (StanzaHandler *handler)
 typedef struct
 {
   WockyC2SPorter *self;
-  GSimpleAsyncResult *result;
+  GTask *task;
   GCancellable *cancellable;
   gulong cancelled_sig_id;
   gchar *recipient;
@@ -247,7 +246,7 @@ typedef struct
 static StanzaIqHandler *
 stanza_iq_handler_new (WockyC2SPorter *self,
     gchar *id,
-    GSimpleAsyncResult *result,
+    GTask *task,
     GCancellable *cancellable,
     const gchar *recipient)
 {
@@ -266,7 +265,7 @@ stanza_iq_handler_new (WockyC2SPorter *self,
     }
 
   handler->self = self;
-  handler->result = result;
+  handler->task = task;
   handler->id = id;
   if (cancellable != NULL)
     handler->cancellable = g_object_ref (cancellable);
@@ -295,8 +294,8 @@ stanza_iq_handler_remove_cancellable (StanzaIqHandler *handler)
 static void
 stanza_iq_handler_free (StanzaIqHandler *handler)
 {
-  if (handler->result != NULL)
-    g_object_unref (handler->result);
+  if (handler->task != NULL)
+    g_object_unref (handler->task);
 
   stanza_iq_handler_remove_cancellable (handler);
 
@@ -310,7 +309,7 @@ stanza_iq_handler_maybe_remove (StanzaIqHandler *handler)
 {
   /* Always wait till the iq sent operation has finished and something
    * completed the operation from the perspective of the API user */
-  if (handler->sent && handler->result == NULL)
+  if (handler->sent && handler->task == NULL)
     {
       WockyC2SPorterPrivate *priv = handler->self->priv;
       g_hash_table_remove (priv->iq_reply_handlers, handler->id);
@@ -328,16 +327,14 @@ static gboolean handle_iq_reply (WockyPorter *porter,
     gpointer user_data);
 
 static void remote_connection_closed (WockyC2SPorter *self,
-    GError *error);
+                                      const GError *error);
 
 static void
 wocky_c2s_porter_init (WockyC2SPorter *self)
 {
-  WockyC2SPorterPrivate *priv;
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_C2S_PORTER,
-      WockyC2SPorterPrivate);
-  priv = self->priv;
+  self->priv = priv;
 
   priv->sending_queue = g_queue_new ();
 
@@ -486,9 +483,6 @@ wocky_c2s_porter_class_init (
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_c2s_porter_class);
 
-  g_type_class_add_private (wocky_c2s_porter_class,
-      sizeof (WockyC2SPorterPrivate));
-
   object_class->constructed = wocky_c2s_porter_constructed;
   object_class->set_property = wocky_c2s_porter_set_property;
   object_class->get_property = wocky_c2s_porter_get_property;
@@ -517,11 +511,7 @@ wocky_c2s_porter_dispose (GObject *object)
 
   priv->dispose_has_run = TRUE;
 
-  if (priv->connection != NULL)
-    {
-      g_object_unref (priv->connection);
-      priv->connection = NULL;
-    }
+  g_clear_object (&(priv->connection));
 
   if (priv->receive_cancellable != NULL)
     {
@@ -531,29 +521,10 @@ wocky_c2s_porter_dispose (GObject *object)
       priv->receive_cancellable = NULL;
     }
 
-  if (priv->close_result != NULL)
-    {
-      g_object_unref (priv->close_result);
-      priv->close_result = NULL;
-    }
-
-  if (priv->close_cancellable != NULL)
-    {
-      g_object_unref (priv->close_cancellable);
-      priv->close_cancellable = NULL;
-    }
-
-  if (priv->force_close_result != NULL)
-    {
-      g_object_unref (priv->force_close_result);
-      priv->force_close_result = NULL;
-    }
-
-  if (priv->force_close_cancellable != NULL)
-    {
-      g_object_unref (priv->force_close_cancellable);
-      priv->force_close_cancellable = NULL;
-    }
+  g_clear_object (&(priv->close_task));
+  g_clear_object (&(priv->close_cancellable));
+  g_clear_object (&(priv->force_close_task));
+  g_clear_object (&(priv->force_close_cancellable));
 
   if (G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->dispose (object);
@@ -569,7 +540,7 @@ wocky_c2s_porter_finalize (GObject *object)
   DEBUG ("finalize porter %p", self);
 
   /* sending_queue_elem keeps a ref on the Porter (through the
-   * GSimpleAsyncResult) so it shouldn't be destroyed while there are
+   * GTask) so it shouldn't be destroyed while there are
    * elements in the queue. */
   g_assert_cmpuint (g_queue_get_length (priv->sending_queue), ==, 0);
   g_queue_free (priv->sending_queue);
@@ -638,7 +609,7 @@ send_head_stanza (WockyC2SPorter *self)
 
 static void
 terminate_sending_operations (WockyC2SPorter *self,
-    GError *error)
+                              const GError *error)
 {
   WockyC2SPorterPrivate *priv = self->priv;
   sending_queue_elem *elem;
@@ -647,8 +618,7 @@ terminate_sending_operations (WockyC2SPorter *self,
 
   while ((elem = g_queue_pop_head (priv->sending_queue)))
     {
-      g_simple_async_result_set_from_error (elem->result, error);
-      g_simple_async_result_complete (elem->result);
+      g_task_return_error (elem->task, g_error_copy (error));
       sending_queue_elem_free (elem);
     }
 }
@@ -702,7 +672,7 @@ send_stanza_cb (GObject *source,
          * close the connection). */
         return;
 
-      g_simple_async_result_complete (elem->result);
+      g_task_return_boolean (elem->task, TRUE);
 
       sending_queue_elem_free (elem);
 
@@ -724,10 +694,9 @@ send_cancelled_cb (GCancellable *cancellable,
 {
   sending_queue_elem *elem = (sending_queue_elem *) user_data;
   WockyC2SPorterPrivate *priv = elem->self->priv;
-  GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED, "Sending was cancelled" };
 
-  g_simple_async_result_set_from_error (elem->result, &error);
-  g_simple_async_result_complete_in_idle (elem->result);
+  g_task_return_new_error (elem->task, G_IO_ERROR, G_IO_ERROR_CANCELLED,
+        "Sending was cancelled");
 
   g_queue_remove (priv->sending_queue, elem);
   sending_queue_elem_free (elem);
@@ -744,11 +713,11 @@ wocky_c2s_porter_send_async (WockyPorter *porter,
   WockyC2SPorterPrivate *priv = self->priv;
   sending_queue_elem *elem;
 
-  if (priv->close_result != NULL || priv->force_close_result != NULL)
+  if (priv->close_task != NULL || priv->force_close_task != NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_CLOSING,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_send_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSING,
           "Porter is closing");
       return;
     }
@@ -774,45 +743,49 @@ wocky_c2s_porter_send_finish (WockyPorter *porter,
     GAsyncResult *result,
     GError **error)
 {
-  WockyC2SPorter *self = WOCKY_C2S_PORTER (porter);
+  g_return_val_if_fail (g_task_is_valid (result, porter), FALSE);
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_c2s_porter_send_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void receive_stanza (WockyC2SPorter *self);
 
 static void
-complete_close (WockyC2SPorter *self)
+complete_close (WockyC2SPorter *self, const GError *error)
 {
   WockyC2SPorterPrivate *priv = self->priv;
-  GSimpleAsyncResult *tmp;
+  GTask *tmp;
 
-  if (g_cancellable_is_cancelled (priv->close_cancellable))
-    {
-      g_simple_async_result_set_error (priv->close_result, G_IO_ERROR,
-          G_IO_ERROR_CANCELLED, "closing operation was cancelled");
-    }
-
-  if (priv->close_cancellable)
-    g_object_unref (priv->close_cancellable);
-
-  priv->close_cancellable = NULL;
+  tmp = priv->close_task;
+  priv->close_task = NULL;
 
  if (priv->force_close_cancellable)
     g_object_unref (priv->force_close_cancellable);
 
   priv->force_close_cancellable = NULL;
 
-  tmp = priv->close_result;
-  priv->close_result = NULL;
-  g_simple_async_result_complete (tmp);
+  if (priv->close_cancellable)
+    {
+      GCancellable *cc = priv->close_cancellable;
+
+      priv->close_cancellable = NULL;
+
+      if (g_cancellable_is_cancelled (cc))
+        {
+          g_task_return_new_error (tmp, G_IO_ERROR, G_IO_ERROR_CANCELLED,
+              "closing operation was cancelled");
+        }
+      g_object_unref (cc);
+    }
+
+  if (!g_task_had_error (tmp))
+    {
+      if (error != NULL)
+        g_task_return_error (tmp, g_error_copy (error));
+      else
+        g_task_return_boolean (tmp, TRUE);
+    }
+
   g_object_unref (tmp);
 }
 
@@ -922,18 +895,17 @@ handle_iq_reply (WockyPorter *porter,
   if (!check_spoofing (self, reply, handler->recipient))
     return FALSE;
 
-  if (handler->result != NULL)
+  if (handler->task != NULL)
     {
-      GSimpleAsyncResult *r = handler->result;
+      GTask *t = handler->task;
 
-      handler->result = NULL;
+      handler->task = NULL;
 
       /* Don't want to get cancelled during completion */
       stanza_iq_handler_remove_cancellable (handler);
 
-      g_simple_async_result_set_op_res_gpointer (r, reply, NULL);
-      g_simple_async_result_complete (r);
-      g_object_unref (r);
+      g_task_return_pointer (t, g_object_ref (reply), g_object_unref);
+      g_object_unref (t);
 
       ret = TRUE;
     }
@@ -1152,7 +1124,7 @@ queue_or_handle_stanza (WockyC2SPorter *self,
 
 static void
 abort_pending_iqs (WockyC2SPorter *self,
-    GError *error)
+                   const GError *error)
 {
   WockyC2SPorterPrivate *priv = self->priv;
   GHashTableIter iter;
@@ -1163,17 +1135,16 @@ abort_pending_iqs (WockyC2SPorter *self,
     {
       StanzaIqHandler *handler = value;
 
-      if (handler->result == NULL)
+      if (handler->task == NULL)
         continue;
 
       /* Don't want to get cancelled during completion */
       stanza_iq_handler_remove_cancellable (handler);
 
-      g_simple_async_result_set_from_error (handler->result, error);
-      g_simple_async_result_complete_in_idle (handler->result);
+      g_task_return_error (handler->task, g_error_copy (error));
 
-      g_object_unref (handler->result);
-      handler->result = NULL;
+      g_object_unref (handler->task);
+      handler->task = NULL;
 
       if (handler->sent)
         g_hash_table_iter_remove (&iter);
@@ -1182,7 +1153,7 @@ abort_pending_iqs (WockyC2SPorter *self,
 
 static void
 remote_connection_closed (WockyC2SPorter *self,
-    GError *error)
+                          const GError *error)
 {
   WockyC2SPorterPrivate *priv = self->priv;
   gboolean error_occured = TRUE;
@@ -1216,17 +1187,19 @@ remote_connection_closed (WockyC2SPorter *self,
       g_signal_emit_by_name (self, "remote-closed");
     }
 
-  if (priv->close_result != NULL && priv->local_closed)
+  if (priv->close_task != NULL && priv->local_closed)
     {
       if (error_occured)
         {
           /* We sent our close but something went wrong with the connection
            * so we won't be able to receive close from the other side.
            * Complete the close operation. */
-          g_simple_async_result_set_from_error (priv->close_result, error);
+          complete_close (self, error);
         }
-
-       complete_close (self);
+      else
+        {
+          complete_close (self, NULL);
+        }
     }
 
   if (priv->receive_cancellable != NULL)
@@ -1245,25 +1218,24 @@ connection_force_close_cb (GObject *source,
 {
   WockyC2SPorter *self = WOCKY_C2S_PORTER (user_data);
   WockyC2SPorterPrivate *priv = self->priv;
-  GSimpleAsyncResult *r = priv->force_close_result;
+  GTask *t = priv->force_close_task;
   GError *error = NULL;
 
   /* null out the result so no-one else can use it after us   *
    * this should never happen, but nullifying it lets us trap *
    * that internal inconsistency if it arises                 */
-  priv->force_close_result = NULL;
+  priv->force_close_task = NULL;
   priv->local_closed = TRUE;
 
   /* This can fail if the porter has put two                *
    * wocky_xmpp_connection_force_close_async ops in flight  *
    * at the same time: this is bad and should never happen: */
-  g_assert (r != NULL);
+  g_assert (t != NULL);
 
   if (!wocky_xmpp_connection_force_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
     {
-      g_simple_async_result_set_from_error (r, error);
-      g_error_free (error);
+      g_task_return_error (t, error);
     }
 
   if (priv->receive_cancellable != NULL)
@@ -1273,8 +1245,8 @@ connection_force_close_cb (GObject *source,
     }
 
   DEBUG ("XMPP connection has been closed; complete the force close operation");
-  g_simple_async_result_complete (r);
-  g_object_unref (r);
+  g_task_return_boolean (t, TRUE);
+  g_object_unref (t);
 
   g_object_unref (self);
 }
@@ -1303,7 +1275,7 @@ stanza_received_cb (GObject *source,
           DEBUG ("Error receiving stanza: %s", error->message);
         }
 
-      if (priv->force_close_result != NULL)
+      if (priv->force_close_task != NULL)
         {
           DEBUG ("Receive operation has been cancelled; ");
           if (!priv->forced_shutdown)
@@ -1353,7 +1325,7 @@ stanza_received_cb (GObject *source,
         {
           DEBUG ("forced shutdown of the XMPP connection already in progress");
         }
-      else if (priv->force_close_result != NULL)
+      else if (priv->force_close_task != NULL)
         {
           DEBUG ("force shutdown of the XMPP connection");
           g_object_ref (self);
@@ -1403,12 +1375,7 @@ close_sent_cb (GObject *source,
 
   if (!wocky_xmpp_connection_send_close_finish (WOCKY_XMPP_CONNECTION (source),
         res, &error))
-    {
-      g_simple_async_result_set_from_error (priv->close_result, error);
-      g_error_free (error);
-
-      goto out;
-    }
+    goto out;
 
   if (!g_cancellable_is_cancelled (priv->close_cancellable)
       && !priv->remote_closed)
@@ -1419,11 +1386,11 @@ close_sent_cb (GObject *source,
     }
 
 out:
-  if (priv->close_result != NULL)
+  if (priv->close_task != NULL)
     {
       /* close operation could already be completed if the other side closes
        * before we send our close */
-      complete_close (self);
+      complete_close (self, error);
     }
 }
 
@@ -1446,43 +1413,45 @@ wocky_c2s_porter_close_async (WockyPorter *porter,
   WockyC2SPorter *self = WOCKY_C2S_PORTER (porter);
   WockyC2SPorterPrivate *priv = self->priv;
 
+  DEBUG ("Start closing %p", self);
   if (priv->local_closed)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_CLOSED,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_close_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED,
           "Porter has already been closed");
       return;
     }
 
   if (priv->receive_cancellable == NULL && !priv->remote_closed)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_NOT_STARTED,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_close_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_NOT_STARTED,
           "Porter has not been started");
       return;
     }
 
-  if (priv->close_result != NULL)
+  if (priv->close_task != NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, G_IO_ERROR,
-          G_IO_ERROR_PENDING,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_close_async,
+          G_IO_ERROR, G_IO_ERROR_PENDING,
           "Another close operation is pending");
       return;
     }
 
-  if (priv->force_close_result != NULL)
+  if (priv->force_close_task != NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, G_IO_ERROR, G_IO_ERROR_PENDING,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_close_async,
+          G_IO_ERROR, G_IO_ERROR_PENDING,
           "A force close operation is pending");
       return;
     }
 
-  priv->close_result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_c2s_porter_close_async);
+  priv->close_task = g_task_new (G_OBJECT (self), cancellable, callback,
+      user_data);
 
   g_assert (priv->close_cancellable == NULL);
 
@@ -1507,14 +1476,9 @@ wocky_c2s_porter_close_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, G_OBJECT (self)), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_c2s_porter_close_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static gint
@@ -1835,17 +1799,16 @@ send_iq_cancelled_cb (GCancellable *cancellable,
     gpointer user_data)
 {
   StanzaIqHandler *handler = (StanzaIqHandler *) user_data;
-  GError error = { G_IO_ERROR, G_IO_ERROR_CANCELLED,
-      "IQ sending was cancelled" };
 
   /* The disconnect should always be disconnected if the result has been
    * finished */
-  g_assert (handler->result != NULL);
+  g_assert (handler->task != NULL);
 
-  g_simple_async_result_set_from_error (handler->result, &error);
-  g_simple_async_result_complete_in_idle (handler->result);
-  g_object_unref (handler->result);
-  handler->result = NULL;
+  g_task_return_new_error (handler->task, G_IO_ERROR, G_IO_ERROR_CANCELLED,
+      "IQ sending was cancelled");
+
+  g_object_unref (handler->task);
+  handler->task = NULL;
 
   stanza_iq_handler_maybe_remove (handler);
 }
@@ -1865,19 +1828,21 @@ iq_sent_cb (GObject *source,
     goto finished;
 
   /* Raise an error */
-  if (handler->result != NULL)
+  if (handler->task != NULL)
     {
-      GSimpleAsyncResult *r = handler->result;
-      handler->result = NULL;
+      GTask *t = handler->task;
+      handler->task = NULL;
 
       /* Don't want to get cancelled during completion */
       stanza_iq_handler_remove_cancellable (handler);
 
-      g_simple_async_result_set_from_error (r, error);
-      g_simple_async_result_complete (r);
-      g_object_unref (r);
+      g_task_return_error (t, error);
+      g_object_unref (t);
     }
-  g_error_free (error);
+  else
+    {
+      g_error_free (error);
+    }
 
 finished:
   stanza_iq_handler_maybe_remove (handler);
@@ -1895,20 +1860,20 @@ wocky_c2s_porter_send_iq_async (WockyPorter *porter,
   StanzaIqHandler *handler;
   const gchar *recipient;
   gchar *id = NULL;
-  GSimpleAsyncResult *result;
+  GTask *task;
   WockyStanzaType type;
   WockyStanzaSubType sub_type;
 
-  if (priv->close_result != NULL || priv->force_close_result != NULL)
+  if (priv->close_task != NULL || priv->force_close_task != NULL)
     {
       gchar *node = NULL;
 
       g_assert (stanza != NULL && wocky_stanza_get_top_node (stanza) != NULL);
 
       node = wocky_node_to_string (wocky_stanza_get_top_node (stanza));
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_CLOSING,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_send_iq_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSING,
           "Porter is closing: iq '%s' aborted", node);
       g_free (node);
 
@@ -1936,10 +1901,9 @@ wocky_c2s_porter_send_iq_async (WockyPorter *porter,
 
   wocky_node_set_attribute (wocky_stanza_get_top_node (stanza), "id", id);
 
-  result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_c2s_porter_send_iq_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
-  handler = stanza_iq_handler_new (self, id, result, cancellable,
+  handler = stanza_iq_handler_new (self, id, task, cancellable,
       recipient);
 
   if (cancellable != NULL)
@@ -1955,9 +1919,9 @@ wocky_c2s_porter_send_iq_async (WockyPorter *porter,
   return;
 
 wrong_stanza:
-  g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-      user_data, WOCKY_PORTER_ERROR,
-      WOCKY_PORTER_ERROR_NOT_IQ,
+  g_task_report_new_error (G_OBJECT (self), callback, user_data,
+      wocky_c2s_porter_send_iq_async,
+      WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_NOT_IQ,
       "Stanza is not an IQ query");
 }
 
@@ -1966,19 +1930,9 @@ wocky_c2s_porter_send_iq_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  WockyStanza *reply;
+  g_return_val_if_fail (g_task_is_valid (result, G_OBJECT (self)), NULL);
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return NULL;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_c2s_porter_send_iq_async), NULL);
-
-  reply = g_simple_async_result_get_op_res_gpointer (
-      G_SIMPLE_ASYNC_RESULT (result));
-
-  return g_object_ref (reply);
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 static void
@@ -1992,28 +1946,29 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
   GError err = { WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCIBLY_CLOSED,
       "Porter was closed forcibly" };
 
-  if (priv->force_close_result != NULL)
+  if (priv->force_close_task != NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, G_IO_ERROR, G_IO_ERROR_PENDING,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_force_close_async,
+          G_IO_ERROR, G_IO_ERROR_PENDING,
           "Another force close operation is pending");
       return;
     }
 
   if (priv->receive_cancellable == NULL && priv->local_closed)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_CLOSED,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_force_close_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_CLOSED,
           "Porter has already been closed");
       return;
     }
 
   if (priv->receive_cancellable == NULL && !priv->remote_closed)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-          user_data, WOCKY_PORTER_ERROR,
-          WOCKY_PORTER_ERROR_NOT_STARTED,
+      g_task_report_new_error (G_OBJECT (self), callback, user_data,
+          wocky_c2s_porter_force_close_async,
+          WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_NOT_STARTED,
           "Porter has not been started");
       return;
     }
@@ -2021,13 +1976,12 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
   /* Ensure to keep us alive during the closing */
   g_object_ref (self);
 
-  if (priv->close_result != NULL)
+  if (priv->close_task != NULL)
     {
       /* Finish pending close operation */
-      g_simple_async_result_set_from_error (priv->close_result, &err);
-      g_simple_async_result_complete_in_idle (priv->close_result);
-      g_object_unref (priv->close_result);
-      priv->close_result = NULL;
+      g_task_return_error (priv->close_task, g_error_copy (&err));
+      g_object_unref (priv->close_task);
+      priv->close_task = NULL;
     }
   else
     {
@@ -2036,8 +1990,8 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
       g_signal_emit_by_name (self, "closing");
     }
 
-  priv->force_close_result = g_simple_async_result_new (G_OBJECT (self),
-    callback, user_data, wocky_c2s_porter_force_close_async);
+  priv->force_close_task = g_task_new (G_OBJECT (self), cancellable,
+      callback, user_data);
 
   g_assert (priv->force_close_cancellable == NULL);
 
@@ -2059,12 +2013,12 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
       /* forced shutdown in progress. noop */
       if (priv->forced_shutdown)
         {
-          g_simple_async_report_error_in_idle (G_OBJECT (self), callback,
-              user_data, WOCKY_PORTER_ERROR,
-              WOCKY_PORTER_ERROR_FORCIBLY_CLOSED,
+          g_task_report_new_error (G_OBJECT (self), callback, user_data,
+              wocky_c2s_porter_force_close_async,
+              WOCKY_PORTER_ERROR, WOCKY_PORTER_ERROR_FORCIBLY_CLOSED,
               "Porter is already executing a forced-shutdown");
-          g_object_unref (priv->force_close_result);
-          priv->force_close_result = NULL;
+          g_object_unref (priv->force_close_task);
+          priv->force_close_task = NULL;
           return;
         }
       /* No need to wait, close connection right now */
@@ -2090,14 +2044,9 @@ wocky_c2s_porter_force_close_finish (
     GAsyncResult *result,
     GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return FALSE;
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_c2s_porter_force_close_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void
@@ -2105,9 +2054,8 @@ send_whitespace_ping_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  GSimpleAsyncResult *res_out = user_data;
-  WockyC2SPorter *self = WOCKY_C2S_PORTER (
-      g_async_result_get_source_object (G_ASYNC_RESULT (res_out)));
+  GTask *task = G_TASK (user_data);
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (g_task_get_source_object (task));
   WockyC2SPorterPrivate *priv = self->priv;
   GError *error = NULL;
 
@@ -2116,8 +2064,7 @@ send_whitespace_ping_cb (GObject *source,
   if (!wocky_xmpp_connection_send_whitespace_ping_finish (
         WOCKY_XMPP_CONNECTION (source), res, &error))
     {
-      g_simple_async_result_set_from_error (res_out, error);
-      g_simple_async_result_complete (res_out);
+      g_task_return_error (task, g_error_copy (error));
 
       /* Sending the ping failed; there is no point in trying to send
        * anything else at this point. */
@@ -2127,7 +2074,7 @@ send_whitespace_ping_cb (GObject *source,
     }
   else
     {
-      g_simple_async_result_complete (res_out);
+      g_task_return_boolean (task, TRUE);
 
       /* Somebody could have tried sending a stanza while we were sending
        * the ping */
@@ -2137,8 +2084,7 @@ send_whitespace_ping_cb (GObject *source,
 
   close_if_waiting (self);
 
-  g_object_unref (self);
-  g_object_unref (res_out);
+  g_object_unref (task);
 }
 
 /**
@@ -2162,30 +2108,28 @@ wocky_c2s_porter_send_whitespace_ping_async (WockyC2SPorter *self,
     gpointer user_data)
 {
   WockyC2SPorterPrivate *priv = self->priv;
-  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_c2s_porter_send_whitespace_ping_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
-  if (priv->close_result != NULL || priv->force_close_result != NULL)
+  if (priv->close_task != NULL || priv->force_close_task != NULL)
     {
-      g_simple_async_result_set_error (result, WOCKY_PORTER_ERROR,
+      g_task_return_new_error (task, WOCKY_PORTER_ERROR,
           WOCKY_PORTER_ERROR_CLOSING, "Porter is closing");
-      g_simple_async_result_complete_in_idle (result);
     }
   else if (sending_in_progress (self))
     {
-      g_simple_async_result_complete_in_idle (result);
+      g_task_return_boolean (task, TRUE);
     }
   else
     {
       priv->sending_whitespace_ping = TRUE;
 
       wocky_xmpp_connection_send_whitespace_ping_async (priv->connection,
-          cancellable, send_whitespace_ping_cb, g_object_ref (result));
+          cancellable, send_whitespace_ping_cb, g_object_ref (task));
 
       g_signal_emit_by_name (self, "sending", NULL);
     }
 
-  g_object_unref (result);
+  g_object_unref (task);
 }
 
 /**
@@ -2203,8 +2147,9 @@ wocky_c2s_porter_send_whitespace_ping_finish (WockyC2SPorter *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self,
-      wocky_c2s_porter_send_whitespace_ping_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static const gchar *

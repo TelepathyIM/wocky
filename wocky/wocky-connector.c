@@ -111,8 +111,6 @@
 #include "wocky-signals-marshal.h"
 #include "wocky-utils.h"
 
-G_DEFINE_TYPE (WockyConnector, wocky_connector, G_TYPE_OBJECT);
-
 enum {
   CONNECTION_ESTABLISHED,
   LAST_SIGNAL
@@ -282,7 +280,7 @@ struct _WockyConnectorPrivate
   gboolean connected;
   /* register/cancel account, or normal login */
   WockyConnectorXEP77Op reg_op;
-  GSimpleAsyncResult *result;
+  GTask *task;
   GCancellable *cancellable;
 
   /* Used to hold the error from connecting to the result of an SRV lookup
@@ -300,6 +298,9 @@ struct _WockyConnectorPrivate
 
   guint see_other_host_count;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyConnector, wocky_connector, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyConnector));
 
 /* choose an appropriate chunk of text describing our state for debug/error */
 static const gchar *
@@ -324,11 +325,12 @@ static void
 complete_operation (WockyConnector *connector)
 {
   WockyConnectorPrivate *priv = connector->priv;
-  GSimpleAsyncResult *tmp;
+  GTask *tmp;
 
-  tmp = priv->result;
-  priv->result = NULL;
-  g_simple_async_result_complete (tmp);
+  tmp = priv->task;
+  priv->task = NULL;
+  if (!g_task_had_error (tmp))
+    g_task_return_boolean (tmp, TRUE);
   g_object_unref (tmp);
 }
 
@@ -370,8 +372,7 @@ abort_connect_error (WockyConnector *connector,
       priv->cancellable = NULL;
     }
 
-  g_simple_async_result_set_from_error (priv->result, *error);
-  complete_operation (connector);
+  g_task_return_error (priv->task, g_error_copy (*error));
 }
 
 static void
@@ -393,8 +394,7 @@ abort_connect (WockyConnector *connector,
       priv->cancellable = NULL;
     }
 
-  g_simple_async_result_set_from_error (priv->result, error);
-  complete_operation (connector);
+  g_task_return_error (priv->task, g_error_copy (error));
 }
 
 static void
@@ -428,8 +428,7 @@ wocky_connector_error_quark (void)
 static void
 wocky_connector_init (WockyConnector *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_CONNECTOR,
-      WockyConnectorPrivate);
+  self->priv = wocky_connector_get_instance_private (self);
 }
 
 static void
@@ -571,8 +570,6 @@ wocky_connector_class_init (WockyConnectorClass *klass)
 {
   GObjectClass *oclass = G_OBJECT_CLASS (klass);
   GParamSpec *spec;
-
-  g_type_class_add_private (klass, sizeof (WockyConnectorPrivate));
 
   oclass->set_property = wocky_connector_set_property;
   oclass->get_property = wocky_connector_get_property;
@@ -1489,8 +1486,7 @@ xep77_cancel_recv (GObject *source,
 
   if (iq == NULL)
     {
-      g_simple_async_result_set_from_error (priv->result, error);
-      g_error_free (error);
+      g_task_return_error (priv->task, error);
       goto out;
     }
 
@@ -1501,15 +1497,15 @@ xep77_cancel_recv (GObject *source,
   if (wocky_stanza_extract_stream_error (iq, &error))
     {
       if (error->code != WOCKY_XMPP_STREAM_ERROR_NOT_AUTHORIZED)
-        g_simple_async_result_set_from_error (priv->result, error);
-
-      g_error_free (error);
+        g_task_return_error (priv->task, error);
+      else
+        g_error_free (error);
       goto out;
     }
 
   if (type != WOCKY_STANZA_TYPE_IQ)
     {
-      g_simple_async_result_set_error (priv->result,
+      g_task_return_new_error (priv->task,
           WOCKY_CONNECTOR_ERROR,
           WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED,
           "Unregister: Invalid response");
@@ -1533,7 +1529,7 @@ xep77_cancel_recv (GObject *source,
               code = WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED;
           }
 
-        g_simple_async_result_set_error (priv->result,
+        g_task_return_new_error (priv->task,
             WOCKY_CONNECTOR_ERROR, code, "Unregister: %s", error->message);
         g_clear_error (&error);
         break;
@@ -1543,7 +1539,7 @@ xep77_cancel_recv (GObject *source,
         break;
 
       default:
-        g_simple_async_result_set_error (priv->result,
+        g_task_return_new_error (priv->task,
             WOCKY_CONNECTOR_ERROR,
             WOCKY_CONNECTOR_ERROR_UNREGISTER_FAILED,
             "Unregister: Malformed Response");
@@ -2225,13 +2221,10 @@ wocky_connector_connect_finish (WockyConnector *self,
     gchar **sid,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
+  g_return_val_if_fail (g_task_is_valid (res, self), NULL);
 
-  if (g_simple_async_result_propagate_error (result, error))
+  if (!g_task_propagate_boolean (G_TASK (res), error))
     return NULL;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
-      wocky_connector_connect_async), NULL);
 
   connector_propagate_jid_and_sid (self, jid, sid);
   return self->priv->conn;
@@ -2256,13 +2249,10 @@ wocky_connector_register_finish (WockyConnector *self,
     gchar **sid,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
+  g_return_val_if_fail (g_task_is_valid (res, self), NULL);
 
-  if (g_simple_async_result_propagate_error (result, error))
+  if (!g_task_propagate_boolean (G_TASK (res), error))
     return NULL;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, G_OBJECT (self),
-      wocky_connector_register_async), NULL);
 
   connector_propagate_jid_and_sid (self, jid, sid);
   return self->priv->conn;
@@ -2283,16 +2273,9 @@ wocky_connector_unregister_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
-  GObject *obj = G_OBJECT (self);
+  g_return_val_if_fail (g_task_is_valid (res, self), FALSE);
 
-  if (g_simple_async_result_propagate_error (result, error))
-    return FALSE;
-
-  g_return_val_if_fail (g_simple_async_result_is_valid (res, obj,
-      wocky_connector_unregister_async), FALSE);
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 static void
@@ -2315,9 +2298,9 @@ connector_connect_async (WockyConnector *self,
   gchar *host = NULL;  /* domain.tld */ /* / */
   gchar *uniq = NULL;  /* uniquifier */
 
-  if (priv->result != NULL)
+  if (priv->task != NULL)
     {
-      g_simple_async_report_error_in_idle (G_OBJECT (self), cb, user_data,
+      g_task_report_new_error (G_OBJECT (self), cb, user_data, source_tag,
           WOCKY_CONNECTOR_ERROR, WOCKY_CONNECTOR_ERROR_IN_PROGRESS,
           "Connection already established or in progress");
       return;
@@ -2331,8 +2314,7 @@ connector_connect_async (WockyConnector *self,
       priv->cancellable = NULL;
     }
 
-  priv->result = g_simple_async_result_new (G_OBJECT (self), cb, user_data,
-      source_tag);
+  priv->task = g_task_new (G_OBJECT (self), cancellable, cb, user_data);
 
   if (cancellable != NULL)
     priv->cancellable = g_object_ref (cancellable);

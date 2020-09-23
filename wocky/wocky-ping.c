@@ -39,8 +39,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PING
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyPing, wocky_ping, G_TYPE_OBJECT)
-
 /* properties */
 enum
 {
@@ -61,6 +59,9 @@ struct _WockyPingPrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyPing, wocky_ping, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyPing))
+
 static void send_ping (WockyPing *self);
 static gboolean ping_iq_cb (WockyPorter *porter, WockyStanza *stanza,
     gpointer data);
@@ -68,8 +69,7 @@ static gboolean ping_iq_cb (WockyPorter *porter, WockyStanza *stanza,
 static void
 wocky_ping_init (WockyPing *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_PING,
-      WockyPingPrivate);
+  self->priv = wocky_ping_get_instance_private (self);
 }
 
 static void
@@ -180,9 +180,6 @@ wocky_ping_class_init (WockyPingClass *wocky_ping_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_ping_class);
   GParamSpec *spec;
-
-  g_type_class_add_private (wocky_ping_class,
-      sizeof (WockyPingPrivate));
 
   object_class->constructed = wocky_ping_constructed;
   object_class->set_property = wocky_ping_set_property;

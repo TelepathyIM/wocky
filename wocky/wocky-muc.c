@@ -87,9 +87,6 @@ static const feature feature_map[] =
 
 static void wocky_muc_class_init (WockyMucClass *klass);
 
-/* create MUC object */
-G_DEFINE_TYPE (WockyMuc, wocky_muc, G_TYPE_OBJECT);
-
 /* private methods */
 static void wocky_muc_dispose (GObject *object);
 static void wocky_muc_finalize (GObject *object);
@@ -160,8 +157,11 @@ struct _WockyMucPrivate
   WockyMucAffiliation affiliation;
   guint pres_handler;
   guint mesg_handler;
-  GSimpleAsyncResult *join_cb;
 };
+
+/* create MUC object */
+G_DEFINE_TYPE_WITH_CODE (WockyMuc, wocky_muc, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyMuc));
 
 static void
 free_member (gpointer data)
@@ -188,8 +188,7 @@ alloc_member (void)
 static void
 wocky_muc_init (WockyMuc *muc)
 {
-  muc->priv = G_TYPE_INSTANCE_GET_PRIVATE (muc, WOCKY_TYPE_MUC,
-      WockyMucPrivate);
+  muc->priv = wocky_muc_get_instance_private (muc);
 
   muc->priv->members = g_hash_table_new_full (g_str_hash,
       g_str_equal,
@@ -256,8 +255,6 @@ wocky_muc_class_init (WockyMucClass *klass)
   GObjectClass *oclass = G_OBJECT_CLASS (klass);
   GType ctype = G_OBJECT_CLASS_TYPE (klass);
   GParamSpec *spec;
-
-  g_type_class_add_private (klass, sizeof (WockyMucPrivate));
 
   oclass->get_property = wocky_muc_get_property;
   oclass->set_property = wocky_muc_set_property;
@@ -770,9 +767,9 @@ muc_disco_info (GObject *source,
   WockyStanza *iq;
   WockyStanzaType type;
   WockyStanzaSubType sub;
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (data);
+  GTask *task = G_TASK (data);
 
-  muc = WOCKY_MUC (g_async_result_get_source_object (G_ASYNC_RESULT (result)));
+  muc = WOCKY_MUC (g_task_get_source_object (task));
   priv = muc->priv;
 
   iq = wocky_porter_send_iq_finish (priv->porter, res, &error);
@@ -858,14 +855,11 @@ muc_disco_info (GObject *source,
 
 out:
   if (error != NULL)
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-    }
+    g_task_return_error (task, error);
+  else
+    g_task_return_boolean (task, TRUE);
 
-  g_simple_async_result_complete (result);
-  g_object_unref (result);
-  g_object_unref (muc);
+  g_object_unref (task);
 
   if (iq != NULL)
     g_object_unref (iq);
@@ -876,12 +870,9 @@ wocky_muc_disco_info_finish (WockyMuc *muc,
     GAsyncResult *res,
     GError **error)
 {
-  GSimpleAsyncResult *result = G_SIMPLE_ASYNC_RESULT (res);
+  g_return_val_if_fail (g_task_is_valid (res, muc), FALSE);
 
-  if (g_simple_async_result_propagate_error (result, error))
-    return FALSE;
-
-  return TRUE;
+  return g_task_propagate_boolean (G_TASK (res), error);
 }
 
 void
@@ -891,7 +882,7 @@ wocky_muc_disco_info_async (WockyMuc *muc,
     gpointer data)
 {
   WockyMucPrivate *priv = muc->priv;
-  GSimpleAsyncResult *result;
+  GTask *task;
   WockyStanza *iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
       WOCKY_STANZA_SUB_TYPE_GET,
       priv->user,
@@ -901,11 +892,10 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       ')',
       NULL);
 
-  result = g_simple_async_result_new (G_OBJECT (muc), callback, data,
-    wocky_muc_disco_info_async);
+  task = g_task_new (G_OBJECT (muc), cancel, callback, data);
 
   wocky_porter_send_iq_async (priv->porter, iq, cancel, muc_disco_info,
-      result);
+      task);
 }
 
 /* ask for MUC member list */
@@ -1249,12 +1239,6 @@ handle_presence_standard (WockyMuc *muc,
           if (priv->state < WOCKY_MUC_JOINED)
             {
               priv->state = WOCKY_MUC_JOINED;
-              if (priv->join_cb != NULL)
-                {
-                  g_simple_async_result_complete (priv->join_cb);
-                  g_object_unref (priv->join_cb);
-                  priv->join_cb = NULL;
-                }
               g_signal_emit (muc, signals[SIG_JOINED], 0, stanza, codes);
             }
           else
@@ -1441,16 +1425,8 @@ extract_timestamp (WockyNode *msg)
        */
       if (tm != NULL)
         {
-          GTimeVal timeval = { 0, 0 };
-          gchar *tm_dup = g_strdup_printf ("%sZ", tm);
-
-          /* FIXME: GTimeVal should go away */
-          if (!g_time_val_from_iso8601 (tm_dup, &timeval))
+          if ((stamp = g_date_time_new_from_iso8601 (tm, NULL)) == NULL)
             DEBUG ("Malformed date string '%s' for " WOCKY_XMPP_NS_DELAY, tm);
-          else
-            stamp = g_date_time_new_from_timeval_local (&timeval);
-
-          g_free (tm_dup);
         }
     }
 

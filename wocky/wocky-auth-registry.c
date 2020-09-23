@@ -16,7 +16,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_AUTH
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT)
 
 /* private structure */
 struct _WockyAuthRegistryPrivate
@@ -26,6 +25,9 @@ struct _WockyAuthRegistryPrivate
   WockyAuthHandler *handler;
   GSList *handlers;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyAuthRegistry, wocky_auth_registry, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (WockyAuthRegistry))
 
 static void wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
     GSList *mechanisms,
@@ -142,8 +144,6 @@ wocky_auth_registry_class_init (WockyAuthRegistryClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (WockyAuthRegistryPrivate));
-
   object_class->constructed = wocky_auth_registry_constructed;
   object_class->get_property = wocky_auth_registry_get_property;
   object_class->set_property = wocky_auth_registry_set_property;
@@ -165,8 +165,7 @@ wocky_auth_registry_class_init (WockyAuthRegistryClass *klass)
 static void
 wocky_auth_registry_init (WockyAuthRegistry *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_AUTH_REGISTRY,
-      WockyAuthRegistryPrivate);
+  self->priv = wocky_auth_registry_get_instance_private (self);
 }
 
 WockyAuthRegistry *
@@ -325,10 +324,9 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
     gpointer user_data)
 {
   WockyAuthRegistryPrivate *priv = self->priv;
-  GSimpleAsyncResult *result;
+  GTask *task;
 
-  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-      wocky_auth_registry_start_auth_async);
+  task = g_task_new (G_OBJECT (self), NULL, callback, user_data);
 
   g_assert (priv->handler == NULL);
 
@@ -336,7 +334,7 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
           allow_plain, username, password, server, session_id,
           &priv->handler))
     {
-      g_simple_async_result_set_error (result, WOCKY_AUTH_ERROR,
+      g_task_return_new_error (task, WOCKY_AUTH_ERROR,
           WOCKY_AUTH_ERROR_NO_SUPPORTED_MECHANISMS,
           "No supported mechanisms found");
     }
@@ -348,8 +346,7 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
       if (!wocky_auth_handler_get_initial_response (priv->handler,
              &initial_data, &error))
         {
-          g_simple_async_result_set_from_error (result, error);
-          g_error_free (error);
+          g_task_return_error (task, error);
         }
       else
         {
@@ -358,15 +355,14 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
                 wocky_auth_handler_get_mechanism (priv->handler),
                 initial_data);
 
-          g_simple_async_result_set_op_res_gpointer (result, start_data,
+          g_task_return_pointer (task, start_data,
               (GDestroyNotify) wocky_auth_registry_start_data_free);
 
           wocky_g_string_free (initial_data);
         }
     }
 
-  g_simple_async_result_complete_in_idle (result);
-  g_object_unref (result);
+  g_object_unref (task);
 }
 
 void
@@ -404,10 +400,10 @@ wocky_auth_registry_start_auth_finish_func (WockyAuthRegistry *self,
     WockyAuthRegistryStartData **start_data,
     GError **error)
 {
-  wocky_implement_finish_copy_pointer (self,
-      wocky_auth_registry_start_auth_async,
-      wocky_auth_registry_start_data_dup,
-      start_data);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+  *start_data = g_task_propagate_pointer (G_TASK (result), error);
+
+  return !g_task_had_error (G_TASK (result));
 }
 
 static void
@@ -419,25 +415,22 @@ wocky_auth_registry_challenge_async_func (WockyAuthRegistry *self,
   WockyAuthRegistryPrivate *priv = self->priv;
   GString *response = NULL;
   GError *error = NULL;
-  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_auth_registry_challenge_async);
+  GTask *task = g_task_new (G_OBJECT (self), NULL, callback, user_data);
 
   g_assert (priv->handler != NULL);
 
   if (!wocky_auth_handler_handle_auth_data (priv->handler, challenge_data,
           &response, &error))
     {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
+      g_task_return_error (task, error);
     }
   else
     {
-      g_simple_async_result_set_op_res_gpointer (result, response,
+      g_task_return_pointer (task, response,
           (GDestroyNotify) wocky_g_string_free);
     }
 
-  g_simple_async_result_complete_in_idle (result);
-  g_object_unref (result);
+  g_object_unref (task);
 }
 
 void
@@ -468,10 +461,10 @@ wocky_auth_registry_challenge_finish_func (WockyAuthRegistry *self,
     GString **response,
     GError **error)
 {
-  wocky_implement_finish_copy_pointer (self,
-      wocky_auth_registry_challenge_async,
-      wocky_g_string_dup,
-      response);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+  *response = g_task_propagate_pointer (G_TASK (result), error);
+
+  return !g_task_had_error (G_TASK (result));
 }
 
 static void
@@ -481,19 +474,16 @@ wocky_auth_registry_success_async_func (WockyAuthRegistry *self,
 {
   WockyAuthRegistryPrivate *priv = self->priv;
   GError *error = NULL;
-  GSimpleAsyncResult *result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_auth_registry_success_async);
+  GTask *task = g_task_new (G_OBJECT (self), NULL, callback, user_data);
 
   g_assert (priv->handler != NULL);
 
   if (!wocky_auth_handler_handle_success (priv->handler, &error))
-    {
-      g_simple_async_result_set_from_error (result, error);
-      g_error_free (error);
-    }
+    g_task_return_error (task, error);
+  else
+    g_task_return_boolean (task, TRUE);
 
-  g_simple_async_result_complete_in_idle (result);
-  g_object_unref (result);
+  g_object_unref (task);
 }
 
 
@@ -522,7 +512,9 @@ wocky_auth_registry_success_finish_func (WockyAuthRegistry *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_auth_registry_success_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 void

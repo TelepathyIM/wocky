@@ -38,11 +38,6 @@
 static void
 transport_iface_init (gpointer g_iface, gpointer iface_data);
 
-G_DEFINE_TYPE_WITH_CODE (WockyJingleTransportGoogle,
-    wocky_jingle_transport_google, G_TYPE_OBJECT,
-    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_JINGLE_TRANSPORT_IFACE,
-        transport_iface_init));
-
 /* signal enum */
 enum
 {
@@ -82,12 +77,17 @@ struct _WockyJingleTransportGooglePrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyJingleTransportGoogle,
+    wocky_jingle_transport_google, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJingleTransportGoogle)
+    G_IMPLEMENT_INTERFACE (WOCKY_TYPE_JINGLE_TRANSPORT_IFACE,
+        transport_iface_init));
+
 static void
 wocky_jingle_transport_google_init (WockyJingleTransportGoogle *obj)
 {
   WockyJingleTransportGooglePrivate *priv =
-     G_TYPE_INSTANCE_GET_PRIVATE (obj, WOCKY_TYPE_JINGLE_TRANSPORT_GOOGLE,
-         WockyJingleTransportGooglePrivate);
+      wocky_jingle_transport_google_get_instance_private (obj);
   obj->priv = priv;
 
   priv->component_names = g_hash_table_new_full (g_str_hash, g_str_equal,
@@ -180,8 +180,6 @@ wocky_jingle_transport_google_class_init (WockyJingleTransportGoogleClass *cls)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (cls);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (cls, sizeof (WockyJingleTransportGooglePrivate));
 
   object_class->get_property = wocky_jingle_transport_google_get_property;
   object_class->set_property = wocky_jingle_transport_google_set_property;

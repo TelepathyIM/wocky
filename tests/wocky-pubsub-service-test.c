@@ -643,6 +643,7 @@ test_create_node_config (void)
 
 /* Four examples taken from §5.6 Retrieve Subscriptions */
 typedef enum {
+    MODE_CAN_DO,
     MODE_NORMAL,
     MODE_NO_SUBSCRIPTIONS,
     MODE_BZZT,
@@ -734,6 +735,7 @@ test_retrieve_subscriptions_iq_cb (
 
   switch (ctx->mode)
     {
+    case MODE_CAN_DO:
     case MODE_NORMAL:
       reply = make_subscriptions_response (stanza, NULL, normal_subs);
       break;
@@ -790,6 +792,10 @@ retrieve_subscriptions_cb (GObject *source,
 
   switch (ctx->mode)
     {
+    case MODE_CAN_DO:
+      g_assert (wocky_pubsub_service_retrieve_subscriptions_finish (
+          WOCKY_PUBSUB_SERVICE (source), res, NULL, &error));
+      break;
     case MODE_NORMAL:
       check_subscriptions (source, res, normal_subs);
       break;
@@ -874,6 +880,9 @@ main (int argc, char **argv)
       "/pubsub-service/get-default-node-configuration-insufficient",
       test_get_default_node_configuration_insufficient);
 
+  g_test_add_data_func ("/pubsub-service/retrieve-subscriptions/can-do",
+      GUINT_TO_POINTER (MODE_CAN_DO),
+      test_retrieve_subscriptions);
   g_test_add_data_func ("/pubsub-service/retrieve-subscriptions/normal",
       GUINT_TO_POINTER (MODE_NORMAL),
       test_retrieve_subscriptions);

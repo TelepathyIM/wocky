@@ -34,8 +34,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_AUTH
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE(WockyJabberAuth, wocky_jabber_auth, G_TYPE_OBJECT)
-
 enum
 {
     PROP_SESSION_ID = 1,
@@ -56,17 +54,19 @@ struct _WockyJabberAuthPrivate
   gchar *password;
   gchar *session_id;
   GCancellable *cancel;
-  GSimpleAsyncResult *result;
+  GTask *task;
   WockyAuthRegistry *auth_registry;
   gboolean allow_plain;
   gboolean is_secure;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyJabberAuth, wocky_jabber_auth, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJabberAuth))
+
 static void
 wocky_jabber_auth_init (WockyJabberAuth *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_JABBER_AUTH,
-      WockyJabberAuthPrivate);
+  self->priv = wocky_jabber_auth_get_instance_private (self);
 }
 
 static void wocky_jabber_auth_dispose (GObject *object);
@@ -145,9 +145,6 @@ wocky_jabber_auth_class_init (WockyJabberAuthClass *wocky_jabber_auth_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_jabber_auth_class);
   GParamSpec *spec;
-
-  g_type_class_add_private (wocky_jabber_auth_class,
-      sizeof (WockyJabberAuthPrivate));
 
   object_class->set_property = wocky_jabber_auth_set_property;
   object_class->get_property = wocky_jabber_auth_get_property;
@@ -255,16 +252,18 @@ static void
 auth_succeeded (WockyJabberAuth *self)
 {
   WockyJabberAuthPrivate *priv = self->priv;
-  GSimpleAsyncResult *r;
+  GTask *t;
 
   DEBUG ("Authentication succeeded");
   auth_reset (self);
 
-  r = priv->result;
-  priv->result = NULL;
+  t = priv->task;
+  priv->task = NULL;
 
-  g_simple_async_result_complete (r);
-  g_object_unref (r);
+  if (!g_task_had_error (t))
+    g_task_return_boolean (t, TRUE);
+
+  g_object_unref (t);
 }
 
 static void
@@ -272,7 +271,7 @@ auth_failed (WockyJabberAuth *self, gint code, const gchar *format, ...)
 {
   gchar *message;
   va_list args;
-  GSimpleAsyncResult *r;
+  GTask *t;
   GError *error = NULL;
   WockyJabberAuthPrivate *priv = self->priv;
 
@@ -284,19 +283,16 @@ auth_failed (WockyJabberAuth *self, gint code, const gchar *format, ...)
 
   DEBUG ("Authentication failed!: %s", message);
 
-  r = priv->result;
-  priv->result = NULL;
+  t = priv->task;
+  priv->task = NULL;
 
   error = g_error_new_literal (WOCKY_AUTH_ERROR, code, message);
 
-  g_simple_async_result_set_from_error (r, error);
-
   wocky_auth_registry_failure (priv->auth_registry, error);
 
-  g_simple_async_result_complete (r);
-  g_object_unref (r);
+  g_task_return_error (t, error);
 
-  g_error_free (error);
+  g_object_unref (t);
   g_free (message);
 }
 
@@ -348,7 +344,9 @@ wocky_jabber_auth_authenticate_finish (WockyJabberAuth *self,
   GAsyncResult *result,
   GError **error)
 {
-  wocky_implement_finish_void (self, wocky_jabber_auth_authenticate_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 static void
@@ -635,8 +633,7 @@ wocky_jabber_auth_authenticate_async (WockyJabberAuth *self,
   priv->allow_plain = allow_plain;
   priv->is_secure = is_secure;
 
-  priv->result = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_jabber_auth_authenticate_async);
+  priv->task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
 
   if (cancellable != NULL)
     priv->cancel = g_object_ref (cancellable);

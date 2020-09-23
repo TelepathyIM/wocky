@@ -28,11 +28,12 @@
 
 #include "wocky-test-stream.h"
 
-G_DEFINE_TYPE (WockyTestStream, wocky_test_stream, G_TYPE_OBJECT);
-
 struct _WockyTestStreamPrivate {
   gboolean dispose_has_run;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyTestStream, wocky_test_stream, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyTestStream));
 
 enum {
   PROP_IO_INPUT_STREAM = 1,
@@ -70,7 +71,7 @@ typedef struct {
   GAsyncQueue *queue;
   guint offset;
   GArray *out_array;
-  GSimpleAsyncResult *read_result;
+  GTask *read_task;
   GCancellable *read_cancellable;
   gulong read_cancellable_sig_id;
   void *buffer;
@@ -125,8 +126,7 @@ static void
 wocky_test_stream_init (WockyTestStream *self)
 {
   /* allocate any data required by the object here */
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_TEST_STREAM,
-    WockyTestStreamPrivate);
+  self->priv = wocky_test_stream_get_instance_private (self);
 
   self->stream0_output = g_object_new (WOCKY_TYPE_TEST_OUTPUT_STREAM, NULL);
 
@@ -162,9 +162,6 @@ static void
 wocky_test_stream_class_init (WockyTestStreamClass *wocky_test_stream_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_test_stream_class);
-
-  g_type_class_add_private (wocky_test_stream_class, \
-    sizeof (WockyTestStreamPrivate));
 
   object_class->dispose = wocky_test_stream_dispose;
 }
@@ -281,6 +278,15 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
   do {
     gsize towrite;
 
+    if (self->dispose_has_run)
+      {
+        g_assert_not_reached ();
+        return written;
+      }
+    g_assert_nonnull (self->out_array);
+    if (self->out_array->data == NULL && self->out_array->len == 0)
+        return written;
+
     if (self->mode == WOCK_TEST_STREAM_READ_COMBINE_SLICE && self->offset == 0)
       towrite = MIN (count - written, MAX (self->out_array->len/2, 1));
     else
@@ -312,11 +318,23 @@ wocky_test_input_stream_read (GInputStream *stream, void *buffer, gsize count,
   return written;
 }
 
+static gboolean
+read_async_complete_in_idle (gpointer data)
+{
+  GTask *task = G_TASK (data);
+
+  g_task_return_boolean (task, TRUE);
+
+  g_object_unref (task);
+  return G_SOURCE_REMOVE;
+}
+
 static void
 read_async_complete (WockyTestInputStream *self)
 {
-  GSimpleAsyncResult *r = self->read_result;
+  GTask *t = self->read_task;
 
+  self->read_task = NULL;
   if (self->read_cancellable != NULL)
     {
       g_signal_handler_disconnect (self->read_cancellable,
@@ -325,17 +343,27 @@ read_async_complete (WockyTestInputStream *self)
       self->read_cancellable = NULL;
     }
 
-  self->read_result = NULL;
-
-  g_simple_async_result_complete_in_idle (r);
-  g_object_unref (r);
+  if (self->read_error != NULL)
+    {
+      g_task_return_error (t, self->read_error);
+      self->read_error = NULL;
+    }
+  else
+    {
+      g_idle_add (read_async_complete_in_idle, t);
+      return;
+    }
+  g_object_unref (t);
 }
 
 static void
 read_cancelled_cb (GCancellable *cancellable,
     WockyTestInputStream *self)
 {
-  g_simple_async_result_set_error (self->read_result,
+  if (self->read_task == NULL)
+    return;
+
+  self->read_error = g_error_new_literal (
       G_IO_ERROR, G_IO_ERROR_CANCELLED, "Reading cancelled");
 
   self->buffer = NULL;
@@ -354,22 +382,18 @@ wocky_test_input_stream_read_async (GInputStream *stream,
   WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
 
   g_assert (self->buffer == NULL);
-  g_assert (self->read_result == NULL);
+  g_assert (self->read_task == NULL);
   g_assert (self->read_cancellable == NULL);
 
   self->buffer = buffer;
   self->count = count;
 
-  self->read_result = g_simple_async_result_new (G_OBJECT (stream),
-      callback, user_data, wocky_test_input_stream_read_async);
+  self->read_task = g_task_new (G_OBJECT (stream), cancellable,
+      callback, user_data);
+  g_task_set_task_data (self->read_task, g_object_ref (self), g_object_unref);
 
   if (self->read_error != NULL)
     {
-      g_simple_async_result_set_from_error (self->read_result,
-          self->read_error);
-
-      g_error_free (self->read_error);
-      self->read_error = NULL;
       read_async_complete (self);
       return;
     }
@@ -392,12 +416,11 @@ wocky_test_input_stream_read_finish (GInputStream *stream,
   WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
   gssize len = -1;
 
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
+  if (!g_task_is_valid (result, stream))
     goto out;
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-    G_OBJECT (self), wocky_test_input_stream_read_async), -1);
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    goto out;
 
   len = wocky_test_input_stream_read (stream, self->buffer, self->count, NULL,
       error);
@@ -411,7 +434,7 @@ out:
 static gboolean
 wocky_test_input_stream_try_read (WockyTestInputStream *self)
 {
-  if (self->read_result == NULL)
+  if (self->read_task == NULL)
     /* No pending read operation */
     return FALSE;
 
@@ -448,7 +471,7 @@ wocky_test_input_stream_dispose (GObject *object)
     g_async_queue_unref (self->queue);
   self->queue = NULL;
 
-  g_warn_if_fail (self->read_result == NULL);
+  g_warn_if_fail (self->read_task == NULL);
   g_warn_if_fail (self->read_cancellable == NULL);
 
   /* release any references held by the object here */
@@ -594,6 +617,8 @@ wocky_test_output_stream_write (GOutputStream *stream, const void *buffer,
   data = g_array_sized_new (FALSE, FALSE, sizeof (guint8), written);
 
   g_array_insert_vals (data, 0, buffer, written);
+  g_assert (written > 0);
+  g_assert_nonnull (buffer);
 
   g_async_queue_push (self->queue, data);
   g_signal_emit (self, output_signals[OUTPUT_DATA_WRITTEN], 0);
@@ -610,28 +635,25 @@ wocky_test_output_stream_write_async (GOutputStream *stream,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple;
+  GTask *task;
   GError *error = NULL;
   gssize result;
 
   result = wocky_test_output_stream_write (stream, buffer, count, cancellable,
     &error);
 
-  simple = g_simple_async_result_new (G_OBJECT (stream), callback, user_data,
-    wocky_test_output_stream_write_async);
+  task = g_task_new (G_OBJECT (stream), cancellable, callback, user_data);
 
   if (result == -1)
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_error_free (error);
+      g_task_return_error (task, error);
     }
   else
     {
-      g_simple_async_result_set_op_res_gssize (simple, result);
+      g_task_return_int (task, result);
     }
 
-  g_simple_async_result_complete_in_idle (simple);
-  g_object_unref (simple);
+  g_object_unref (task);
 }
 
 static gssize
@@ -639,15 +661,9 @@ wocky_test_output_stream_write_finish (GOutputStream *stream,
   GAsyncResult *result,
   GError **error)
 {
-  if (g_simple_async_result_propagate_error (G_SIMPLE_ASYNC_RESULT (result),
-      error))
-    return -1;
+  g_return_val_if_fail (g_task_is_valid (result, stream), -1);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (stream), wocky_test_output_stream_write_async), -1);
-
-  return g_simple_async_result_get_op_res_gssize (
-    G_SIMPLE_ASYNC_RESULT (result));
+  return g_task_propagate_int (G_TASK (result), error);
 }
 
 static void
@@ -709,16 +725,15 @@ wocky_test_input_stream_set_read_error (GInputStream *stream)
 {
   WockyTestInputStream *self = WOCKY_TEST_INPUT_STREAM (stream);
 
-  if (self->read_result == NULL)
+  self->read_error = g_error_new_literal (G_IO_ERROR,
+          G_IO_ERROR_FAILED, "read error");
+
+  if (self->read_task == NULL)
     {
-      /* No pending read operation. Set the error so next read will fail */
-      self->read_error = g_error_new_literal (G_IO_ERROR, G_IO_ERROR_FAILED,
-          "read error");
+      /* No pending read operation. We've set the error so the next read will fail */
       return;
     }
 
-  g_simple_async_result_set_error (self->read_result, G_IO_ERROR,
-          G_IO_ERROR_FAILED, "read error");
   read_async_complete (self);
 }
 

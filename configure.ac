@@ -120,10 +120,7 @@ AC_C_BIGENDIAN
 
 dnl Check for Glib
 PKG_CHECK_MODULES(GLIB,
-  [glib-2.0 >= 2.44, gobject-2.0 >= 2.44, gthread-2.0 >= 2.44, gio-2.0 >= 2.44])
-
-AC_DEFINE([GLIB_VERSION_MIN_REQUIRED], [GLIB_VERSION_2_44], [Ignore post 2.44 deprecations])
-AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [GLIB_VERSION_2_44], [Prevent post 2.44 APIs])
+  [glib-2.0 >= 2.46, gobject-2.0 >= 2.46, gthread-2.0 >= 2.46, gio-2.0 >= 2.46])
 
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)

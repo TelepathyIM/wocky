@@ -28,13 +28,15 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_CONNECTION_FACTORY
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyLLConnectionFactory, wocky_ll_connection_factory, G_TYPE_OBJECT)
-
 /* private structure */
 struct _WockyLLConnectionFactoryPrivate
 {
   GSocketClient *client;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyLLConnectionFactory,
+                         wocky_ll_connection_factory, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE(WockyLLConnectionFactory))
 
 GQuark
 wocky_ll_connection_factory_error_quark (void)
@@ -53,8 +55,6 @@ wocky_ll_connection_factory_init (WockyLLConnectionFactory *self)
 {
   WockyLLConnectionFactoryPrivate *priv;
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_LL_CONNECTION_FACTORY,
-      WockyLLConnectionFactoryPrivate);
   priv = self->priv;
 
   priv->client = g_socket_client_new ();
@@ -78,9 +78,6 @@ wocky_ll_connection_factory_class_init (
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_ll_connection_factory_class);
 
   object_class->dispose = wocky_ll_connection_factory_dispose;
-
-  g_type_class_add_private (wocky_ll_connection_factory_class,
-      sizeof (WockyLLConnectionFactoryPrivate));
 }
 
 /**
@@ -102,7 +99,7 @@ typedef struct
   /* the simple async result will hold a ref to this */
   WockyLLConnectionFactory *self;
 
-  GSimpleAsyncResult *simple;
+  GTask *task;
   GCancellable *cancellable;
 
   GQueue *addresses;
@@ -117,7 +114,7 @@ free_new_connection_data (NewConnectionData *data)
   if (data->cancellable != NULL)
     g_object_unref (data->cancellable);
 
-  g_object_unref (data->simple);
+  g_object_unref (data->task);
   g_slice_free (NewConnectionData, data);
 }
 
@@ -150,8 +147,7 @@ connect_to_host_cb (GObject *source_object,
 
   DEBUG ("made connection");
 
-  g_simple_async_result_set_op_res_gpointer (data->simple, connection, NULL);
-  g_simple_async_result_complete (data->simple);
+  g_task_return_pointer (data->task, connection, NULL);
   free_new_connection_data (data);
 }
 
@@ -161,11 +157,8 @@ process_one_address (NewConnectionData *data)
   GInetSocketAddress *addr;
   gchar *host;
 
-  if (g_cancellable_is_cancelled (data->cancellable))
+  if (g_task_return_error_if_cancelled (data->task))
     {
-      g_simple_async_result_set_error (data->simple, G_IO_ERROR,
-          G_IO_ERROR_CANCELLED, "Operation cancelled");
-      g_simple_async_result_complete (data->simple);
       free_new_connection_data (data);
       return;
     }
@@ -175,11 +168,9 @@ process_one_address (NewConnectionData *data)
   /* check we haven't gotten to the end of the list */
   if (addr == NULL)
     {
-      g_simple_async_result_set_error (data->simple,
-          WOCKY_LL_CONNECTION_FACTORY_ERROR,
+      g_task_return_new_error (data->task, WOCKY_LL_CONNECTION_FACTORY_ERROR,
           WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESS_CAN_BE_CONNECTED_TO,
           "Failed to connect to any of the contact's addresses");
-      g_simple_async_result_complete (data->simple);
       free_new_connection_data (data);
       return;
     }
@@ -241,8 +232,7 @@ wocky_ll_connection_factory_make_connection_async (
   if (cancellable != NULL)
     data->cancellable = g_object_ref (cancellable);
 
-  data->simple = g_simple_async_result_new (G_OBJECT (self), callback,
-      user_data, wocky_ll_connection_factory_make_connection_async);
+  data->task = g_task_new (G_OBJECT (self), NULL, callback, user_data);
 
   data->addresses = g_queue_new ();
 
@@ -252,11 +242,10 @@ wocky_ll_connection_factory_make_connection_async (
 
   if (data->addresses == NULL)
     {
-      g_simple_async_result_set_error (data->simple,
+      g_task_return_new_error (data->task,
           WOCKY_LL_CONNECTION_FACTORY_ERROR,
           WOCKY_LL_CONNECTION_FACTORY_ERROR_NO_CONTACT_ADDRESSES,
           "No addresses available for contact");
-      g_simple_async_result_complete (data->simple);
       free_new_connection_data (data);
       return;
     }
@@ -281,7 +270,8 @@ wocky_ll_connection_factory_make_connection_finish (
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_return_pointer (self,
-      wocky_ll_connection_factory_make_connection_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
+
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 

@@ -41,8 +41,6 @@
 #include "wocky-resource-contact.h"
 #include "wocky-utils.h"
 
-G_DEFINE_TYPE(WockyJingleSession, wocky_jingle_session, G_TYPE_OBJECT);
-
 /* signal enum */
 enum
 {
@@ -106,6 +104,9 @@ struct _WockyJingleSessionPrivate
 
   gboolean dispose_has_run;
 };
+
+G_DEFINE_TYPE_WITH_CODE (WockyJingleSession, wocky_jingle_session, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyJingleSession));
 
 typedef struct {
   WockyJingleState state;
@@ -189,8 +190,7 @@ static void
 wocky_jingle_session_init (WockyJingleSession *obj)
 {
   WockyJingleSessionPrivate *priv =
-     G_TYPE_INSTANCE_GET_PRIVATE (obj, WOCKY_TYPE_JINGLE_SESSION,
-         WockyJingleSessionPrivate);
+      wocky_jingle_session_get_instance_private (obj);
   obj->priv = priv;
 
   DEBUG ("Initializing the jingle session %p", obj);
@@ -413,8 +413,6 @@ wocky_jingle_session_class_init (WockyJingleSessionClass *cls)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (cls);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (cls, sizeof (WockyJingleSessionPrivate));
 
   object_class->constructed = wocky_jingle_session_constructed;
   object_class->get_property = wocky_jingle_session_get_property;

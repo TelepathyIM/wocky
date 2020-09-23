@@ -35,8 +35,6 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PUBSUB
 #include "wocky-debug-internal.h"
 
-G_DEFINE_TYPE (WockyPubsubNode, wocky_pubsub_node, G_TYPE_OBJECT)
-
 enum
 {
   SIG_EVENT_RECEIVED,
@@ -65,11 +63,13 @@ struct _WockyPubsubNodePrivate
   gboolean dispose_has_run;
 };
 
+G_DEFINE_TYPE_WITH_CODE (WockyPubsubNode, wocky_pubsub_node, G_TYPE_OBJECT,
+          G_ADD_PRIVATE (WockyPubsubNode))
+
 static void
 wocky_pubsub_node_init (WockyPubsubNode *self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, WOCKY_TYPE_PUBSUB_NODE,
-      WockyPubsubNodePrivate);
+  self->priv = wocky_pubsub_node_get_instance_private (self);
 }
 
 static void
@@ -213,9 +213,6 @@ wocky_pubsub_node_class_init (
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_pubsub_node_class);
   GType ctype = G_OBJECT_CLASS_TYPE (wocky_pubsub_node_class);
   GParamSpec *param_spec;
-
-  g_type_class_add_private (wocky_pubsub_node_class,
-      sizeof (WockyPubsubNodePrivate));
 
   object_class->set_property = wocky_pubsub_node_set_property;
   object_class->get_property = wocky_pubsub_node_get_property;
@@ -418,9 +415,8 @@ subscribe_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
-      g_async_result_get_source_object (user_data));
+  GTask *task = G_TASK (user_data);
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (g_task_get_source_object (task));
   WockyPubsubNodePrivate *priv = self->priv;
   WockyNodeTree *sub_tree;
   WockyPubsubSubscription *sub = NULL;
@@ -438,19 +434,15 @@ subscribe_cb (GObject *source,
 
   if (sub != NULL)
     {
-      g_simple_async_result_set_op_res_gpointer (simple,
-          sub,
+      g_task_return_pointer (task, sub,
           (GDestroyNotify) wocky_pubsub_subscription_free);
     }
   else
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
+      g_task_return_error (task, error);
     }
 
-  g_simple_async_result_complete (simple);
-  g_object_unref (simple);
-  g_object_unref (self);
+  g_object_unref (task);
 }
 
 /**
@@ -472,8 +464,7 @@ wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_pubsub_node_subscribe_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   WockyStanza *stanza;
 
   g_return_if_fail (jid != NULL);
@@ -481,7 +472,7 @@ wocky_pubsub_node_subscribe_async (WockyPubsubNode *self,
   stanza = wocky_pubsub_node_make_subscribe_stanza (self, jid, NULL, NULL);
 
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      subscribe_cb, simple);
+      subscribe_cb, task);
 
   g_object_unref (stanza);
 }
@@ -491,18 +482,10 @@ wocky_pubsub_node_subscribe_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  GSimpleAsyncResult *simple;
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
 
-  g_return_val_if_fail (g_simple_async_result_is_valid (result,
-      G_OBJECT (self), wocky_pubsub_node_subscribe_async), NULL);
-
-  simple = (GSimpleAsyncResult *) result;
-
-  if (g_simple_async_result_propagate_error (simple, error))
-    return NULL;
-  else
-    return wocky_pubsub_subscription_copy (
-        g_simple_async_result_get_op_res_gpointer (simple));
+  /* XXX `twas wocky_pubsub_subscription_copy but GTask has transfer-full */
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 WockyStanza *
@@ -540,17 +523,15 @@ pubsub_node_void_iq_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
+  GTask *task = G_TASK (user_data);
   GError *error = NULL;
 
   if (!wocky_pubsub_distill_void_iq_reply (source, res, &error))
-    {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
-    }
+    g_task_return_error (task, error);
+  else
+    g_task_return_boolean (task, TRUE);
 
-  g_simple_async_result_complete (simple);
-  g_object_unref (simple);
+  g_object_unref (task);
 }
 
 /**
@@ -574,8 +555,7 @@ wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_pubsub_node_unsubscribe_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   WockyStanza *stanza;
 
   g_return_if_fail (jid != NULL);
@@ -584,7 +564,7 @@ wocky_pubsub_node_unsubscribe_async (WockyPubsubNode *self,
       NULL);
 
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      pubsub_node_void_iq_cb, simple);
+      pubsub_node_void_iq_cb, task);
 
   g_object_unref (stanza);
 }
@@ -594,7 +574,9 @@ wocky_pubsub_node_unsubscribe_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_pubsub_node_unsubscribe_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 WockyStanza *
@@ -615,13 +597,12 @@ wocky_pubsub_node_delete_async (WockyPubsubNode *self,
 {
   WockyPubsubNodePrivate *priv = self->priv;
   WockyStanza *stanza;
-  GSimpleAsyncResult *result;
+  GTask *task;
 
   stanza = wocky_pubsub_node_make_delete_stanza (self, NULL, NULL);
-  result = g_simple_async_result_new (G_OBJECT (self), callback, user_data,
-    wocky_pubsub_node_delete_async);
+  task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   wocky_porter_send_iq_async (priv->porter, stanza, NULL,
-      pubsub_node_void_iq_cb, result);
+      pubsub_node_void_iq_cb, task);
   g_object_unref (stanza);
 }
 
@@ -630,7 +611,9 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_pubsub_node_delete_async);
+  g_return_val_if_fail (g_task_is_valid (result, self), FALSE);
+
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 WockyStanza *
@@ -649,9 +632,8 @@ list_subscribers_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
-      g_async_result_get_source_object (user_data));
+  GTask *task = G_TASK (user_data);
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (g_task_get_source_object (task));
   WockyPubsubNodePrivate *priv = self->priv;
   WockyNodeTree *subs_tree;
   GError *error = NULL;
@@ -662,19 +644,16 @@ list_subscribers_cb (GObject *source,
       GList *subs = wocky_pubsub_service_parse_subscriptions (priv->service,
           wocky_node_tree_get_top_node (subs_tree), NULL);
 
-      g_simple_async_result_set_op_res_gpointer (simple, subs,
+      g_task_return_pointer (task, subs,
           (GDestroyNotify) wocky_pubsub_subscription_list_free);
       g_object_unref (subs_tree);
     }
   else
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
+      g_task_return_error (task, error);
     }
 
-  g_simple_async_result_complete (simple);
-  g_object_unref (simple);
-  g_object_unref (self);
+  g_object_unref (task);
 }
 
 /**
@@ -700,14 +679,13 @@ wocky_pubsub_node_list_subscribers_async (
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_pubsub_node_list_subscribers_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   WockyStanza *stanza;
 
   stanza = wocky_pubsub_node_make_list_subscribers_stanza (self, NULL,
       NULL);
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      list_subscribers_cb, simple);
+      list_subscribers_cb, task);
   g_object_unref (stanza);
 }
 
@@ -733,9 +711,14 @@ wocky_pubsub_node_list_subscribers_finish (
     GList **subscribers,
     GError **error)
 {
-  wocky_implement_finish_copy_pointer (self,
-      wocky_pubsub_node_list_subscribers_async,
-      wocky_pubsub_subscription_list_copy, subscribers);
+  GList *ret = g_task_propagate_pointer (G_TASK (result), error);
+
+  if (subscribers)
+    *subscribers = ret;
+  else
+    wocky_pubsub_subscription_list_free (ret);
+
+  return !g_task_had_error (G_TASK (result));
 }
 
 WockyStanza *
@@ -798,9 +781,8 @@ list_affiliates_cb (GObject *source,
     GAsyncResult *res,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple = G_SIMPLE_ASYNC_RESULT (user_data);
-  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (
-      g_async_result_get_source_object (user_data));
+  GTask *task = G_TASK (user_data);
+  WockyPubsubNode *self = WOCKY_PUBSUB_NODE (g_task_get_source_object (task));
   WockyNodeTree *affs_tree;
   GError *error = NULL;
 
@@ -809,20 +791,17 @@ list_affiliates_cb (GObject *source,
     {
       WockyNode *affiliations_node = wocky_node_tree_get_top_node (affs_tree);
 
-      g_simple_async_result_set_op_res_gpointer (simple,
+      g_task_return_pointer (task,
           wocky_pubsub_node_parse_affiliations (self, affiliations_node),
           (GDestroyNotify) wocky_pubsub_affiliation_list_free);
       g_object_unref (affs_tree);
     }
   else
     {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
+      g_task_return_error (task, error);
     }
 
-  g_simple_async_result_complete (simple);
-  g_object_unref (simple);
-  g_object_unref (self);
+  g_object_unref (task);
 }
 
 /**
@@ -848,14 +827,13 @@ wocky_pubsub_node_list_affiliates_async (
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_pubsub_node_list_affiliates_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   WockyStanza *stanza;
 
   stanza = wocky_pubsub_node_make_list_affiliates_stanza (self, NULL,
       NULL);
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      list_affiliates_cb, simple);
+      list_affiliates_cb, task);
   g_object_unref (stanza);
 }
 
@@ -881,9 +859,14 @@ wocky_pubsub_node_list_affiliates_finish (
     GList **affiliates,
     GError **error)
 {
-  wocky_implement_finish_copy_pointer (self,
-      wocky_pubsub_node_list_affiliates_async,
-      wocky_pubsub_affiliation_list_copy, affiliates);
+  GList *ret = g_task_propagate_pointer (G_TASK (result), error);
+
+  if (affiliates)
+    *affiliates = ret;
+  else
+    wocky_pubsub_affiliation_list_free (ret);
+
+  return !g_task_had_error (G_TASK (result));
 }
 
 /**
@@ -977,14 +960,13 @@ wocky_pubsub_node_modify_affiliates_async (
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_pubsub_node_modify_affiliates_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   WockyStanza *stanza;
 
   stanza = wocky_pubsub_node_make_modify_affiliates_stanza (
       self, affiliates, NULL, NULL);
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      pubsub_node_void_iq_cb, simple);
+      pubsub_node_void_iq_cb, task);
   g_object_unref (stanza);
 }
 
@@ -1005,7 +987,7 @@ wocky_pubsub_node_modify_affiliates_finish (
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_void (self, wocky_pubsub_node_modify_affiliates_async);
+  return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 /**
@@ -1034,7 +1016,7 @@ get_configuration_iq_cb (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  GSimpleAsyncResult *simple = user_data;
+  GTask *task = user_data;
   WockyNodeTree *conf_tree;
   WockyDataForm *form = NULL;
   GError *error = NULL;
@@ -1048,17 +1030,11 @@ get_configuration_iq_cb (GObject *source,
     }
 
   if (form != NULL)
-    {
-      g_simple_async_result_set_op_res_gpointer (simple, form, g_object_unref);
-    }
+    g_task_return_pointer (task, form, g_object_unref);
   else
-    {
-      g_simple_async_result_set_from_error (simple, error);
-      g_clear_error (&error);
-    }
+    g_task_return_error (task, error);
 
-  g_simple_async_result_complete (simple);
-  g_object_unref (simple);
+  g_object_unref (task);
 }
 
 /**
@@ -1078,14 +1054,13 @@ wocky_pubsub_node_get_configuration_async (
     gpointer user_data)
 {
   WockyPubsubNodePrivate *priv = self->priv;
-  GSimpleAsyncResult *simple = g_simple_async_result_new (G_OBJECT (self),
-      callback, user_data, wocky_pubsub_node_get_configuration_async);
+  GTask *task = g_task_new (G_OBJECT (self), cancellable, callback, user_data);
   WockyStanza *stanza;
 
   stanza = wocky_pubsub_node_make_get_configuration_stanza (
       self, NULL, NULL);
   wocky_porter_send_iq_async (priv->porter, stanza, cancellable,
-      get_configuration_iq_cb, simple);
+      get_configuration_iq_cb, task);
   g_object_unref (stanza);
 }
 
@@ -1106,8 +1081,9 @@ wocky_pubsub_node_get_configuration_finish (
     GAsyncResult *result,
     GError **error)
 {
-  wocky_implement_finish_return_copy_pointer (self,
-      wocky_pubsub_node_get_configuration_async, g_object_ref);
+  g_return_val_if_fail (g_task_is_valid (result, self), NULL);
+
+  return g_task_propagate_pointer (G_TASK (result), error);
 }
 
 WockyPorter *
