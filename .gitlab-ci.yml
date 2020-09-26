@@ -6,6 +6,9 @@ stages:
 variables:
   FEDORA_IMG: registry.freedesktop.org/ruff/wocky/master:v1
   DEBIAN_IMG: registry.freedesktop.org/ruff/wocky/debtest:v1
+  DEBSTB_IMG: registry.freedesktop.org/ruff/wocky/debstbl:v1
+  SUSELP_IMG: registry.freedesktop.org/ruff/wocky/osuselp:v1
+  SUSETW_IMG: registry.freedesktop.org/ruff/wocky/osusetw:v1
   WOCKY_DEBUG: all
   #G_MESSAGES_DEBUG: all
 
@@ -51,6 +54,60 @@ debian-x86_64-build:
 
 debian-x86_64-test:
   image: $DEBIAN_IMG
+  stage: test
+  extends: .default
+  script:
+    - make check
+  artifacts:
+    when: always
+    paths:
+      - "tests/test-report.xml"
+
+opensuse-x86_64-build:
+  image: $SUSETW_IMG
+  extends: .default
+  stage: build
+  script:
+    - make
+
+opensuse-x86_64-test:
+  image: $SUSETW_IMG
+  stage: test
+  extends: .default
+  script:
+    - make check
+  artifacts:
+    when: always
+    paths:
+      - "tests/test-report.xml"
+
+debian-stable-x86_64-build:
+  image: $DEBSTB_IMG
+  extends: .default
+  stage: build
+  script:
+    - make
+
+debian-stable-x86_64-test:
+  image: $DEBSTB_IMG
+  stage: test
+  extends: .default
+  script:
+    - make check
+  artifacts:
+    when: always
+    paths:
+      - "tests/test-report.xml"
+
+opensuse-stable-x86_64-build:
+  image: $SUSELP_IMG
+  extends: .default
+  stage: build
+  script:
+    - make
+
+opensuse-stable-x86_64-test:
+  image: $SUSELP_IMG
   stage: test
   extends: .default
   script:
