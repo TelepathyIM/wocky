@@ -71,6 +71,30 @@ WockySaslScram *
 wocky_sasl_scram_new (
     const gchar *server, const gchar *username, const gchar *password);
 
+void
+wocky_sasl_scram_server_start_async (WockySaslScram      *self,
+                                     gchar               *message,
+                                     GAsyncReadyCallback  cb,
+                                     GCancellable        *cancel,
+                                     gpointer             data);
+
+gchar *
+wocky_sasl_scram_server_start_finish (WockySaslScram *self,
+                                      GAsyncResult   *res,
+                                      GError        **error);
+
+void
+wocky_sasl_scram_server_step_async (WockySaslScram      *self,
+                                    gchar               *message,
+                                    GAsyncReadyCallback  cb,
+                                    GCancellable        *cancel,
+                                    gpointer             data);
+
+gchar *
+wocky_sasl_scram_server_step_finish (WockySaslScram *self,
+                                     GAsyncResult   *res,
+                                     GError        **error);
+
 G_END_DECLS
 
 #endif /* _WOCKY_SASL_SCRAM_H */
