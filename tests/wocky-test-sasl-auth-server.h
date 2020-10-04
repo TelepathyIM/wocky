@@ -39,6 +39,9 @@ typedef enum {
   SERVER_PROBLEM_DISLIKE_GOOGLE_JDD,
   SERVER_PROBLEM_SPACE_CHALLENGE,
   SERVER_PROBLEM_SLASH_CHALLENGE,
+  SERVER_PROBLEM_MANGLED_BINDING_DATA,
+  SERVER_PROBLEM_MANGLED_BINDING_FLAG,
+  SERVER_PROBLEM_SCRAMBLED_BINDING,
   /* Not actually a problem, but let the server choose to put
    * ``additional data with success'' in a success stanza. */
   SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS,

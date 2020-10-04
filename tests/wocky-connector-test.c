@@ -938,6 +938,58 @@ test_t tests[] =
         { NULL, 0 } } },
 
     /* ********************************************************************* */
+    /* SASL SCRAM TLS channel binding tests and error conditions */
+#if G_ENCODE_VERSION (GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION) > G_ENCODE_VERSION(2,66)
+     { "/connector/auth/sasl/binding",
+      NOISY,
+      { S_NO_ERROR },
+      { { TLS, "SCRAM-SHA-512-PLUS" },
+        { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { TLS_REQUIRED,
+        { "moose@weasel-juice.org", "something", DIGEST, TLS },
+        { NULL, 0 } } },
+
+     { "/connector/auth/sasl/bad-binding-data",
+      NOISY,
+      { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE, -1 },
+      { { TLS, "SCRAM-SHA-512-PLUS" },
+        { SERVER_PROBLEM_MANGLED_BINDING_DATA, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { TLS_REQUIRED,
+        { "moose@weasel-juice.org", "something", DIGEST, TLS },
+        { NULL, 0 } } },
+
+     { "/connector/auth/sasl/bad-binding-flag",
+      NOISY,
+      { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE, -1 },
+      { { TLS, "SCRAM-SHA-512-PLUS" },
+        { SERVER_PROBLEM_MANGLED_BINDING_FLAG, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { TLS_REQUIRED,
+        { "moose@weasel-juice.org", "something", DIGEST, TLS },
+        { NULL, 0 } } },
+
+     { "/connector/auth/sasl/scrambled-binding",
+      NOISY,
+      { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_INVALID_REPLY, -1 },
+      { { TLS, "SCRAM-SHA-512-PLUS" },
+        { SERVER_PROBLEM_SCRAMBLED_BINDING, CONNECTOR_OK },
+        { "moose", "something" },
+        PORT_XMPP },
+      { "weasel-juice.org", PORT_XMPP, "thud.org", REACHABLE, UNREACHABLE },
+      { TLS_REQUIRED,
+        { "moose@weasel-juice.org", "something", DIGEST, TLS },
+        { NULL, 0 } } },
+#endif /* GLIB_VERSION_2_66 */
+
+    /* ********************************************************************* */
     /* TLS error conditions */
     { "/connector/problem/tls/refused",
       NOISY,
