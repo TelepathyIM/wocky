@@ -101,6 +101,7 @@ struct _TestSaslAuthServerPrivate
   ServerProblem problem;
   GTask *task;
   GCancellable *cancellable;
+  WockySaslScram *scram;
 };
 
 G_DEFINE_TYPE_WITH_CODE (TestSaslAuthServer, test_sasl_auth_server, G_TYPE_OBJECT,
@@ -398,11 +399,29 @@ success_sent (GObject *source,
 {
   GError *error = NULL;
   gboolean ok;
+  TestSaslAuthServer *tsas = TEST_SASL_AUTH_SERVER (user_data);
+  TestSaslAuthServerPrivate *priv = test_sasl_auth_server_get_instance_private (tsas);
 
   ok = wocky_xmpp_connection_send_stanza_finish (
       WOCKY_XMPP_CONNECTION (source), result, &error);
   g_assert_no_error (error);
   g_assert (ok);
+
+  if (priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING && priv->task)
+    {
+      GTask *t = priv->task;
+
+      priv->task = NULL;
+
+      if (priv->cancellable != NULL)
+        g_object_unref (priv->cancellable);
+
+      priv->cancellable = NULL;
+
+      g_task_return_boolean (t, TRUE);
+      g_object_unref (t);
+      return;
+    }
 
   wocky_xmpp_connection_reset (WOCKY_XMPP_CONNECTION (source));
 
@@ -490,7 +509,9 @@ check_sasl_return (TestSaslAuthServer *self, int ret)
     {
       case SASL_BADAUTH:
         /* Bad password provided */
-        g_assert_cmpint (priv->problem, ==, SERVER_PROBLEM_INVALID_PASSWORD);
+        g_assert_true (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG
+                    || priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA
+                    || priv->problem == SERVER_PROBLEM_INVALID_PASSWORD);
         not_authorized (self);
         return FALSE;
 #if SASL_VERSION_FULL <= 0x02011B
@@ -648,6 +669,51 @@ static gchar * slash_challenge (const gchar *challenge, unsigned *len)
   return g_string_free (slashed, FALSE);
 }
 
+typedef struct {
+  TestSaslAuthServer *srv;
+  gchar *challenge;
+  gboolean complete;
+} ScramRes;
+
+static void
+handle_auth_cb (GObject      *source,
+                GAsyncResult *result,
+                gpointer      data)
+{
+  WockySaslScram *scram = WOCKY_SASL_SCRAM (source);
+  GError *error = NULL;
+  ScramRes *res = data;
+  TestSaslAuthServerPrivate *priv = test_sasl_auth_server_get_instance_private (res->srv);
+  gchar *username = NULL;
+
+  g_object_get (source, "username", &username, NULL);
+  if (priv->problem == SERVER_PROBLEM_INVALID_USERNAME)
+    {
+      g_assert_cmpstr (username, !=, priv->username);
+    }
+  else
+    {
+      g_assert_cmpstr (username, ==, priv->username);
+      g_object_set (source, "password", priv->password, NULL);
+    }
+  g_free (username);
+
+  res->challenge = wocky_sasl_scram_server_start_finish (scram, result, &error);
+
+  if (priv->problem == SERVER_PROBLEM_INVALID_USERNAME)
+    {
+      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NO_CREDENTIALS);
+      g_assert_null (res->challenge);
+    }
+  else
+    {
+      g_assert_no_error (error);
+      g_assert_nonnull (res->challenge);
+    }
+
+  res->complete = TRUE;
+}
+
 static void
 handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
 {
@@ -701,6 +767,71 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
       challenge_len = 0;
       ret = wocky_strdiff ((gchar *) response, priv->password) ?
           SASL_BADAUTH : SASL_OK;
+    }
+  else if (!wocky_strdiff ("SCRAM-SHA-512-PLUS", priv->selected_mech))
+    {
+      ScramRes res = { self, NULL, FALSE };
+      GIOStream *ios = NULL;
+
+      g_assert_nonnull (priv->conn);
+      g_assert_nonnull (priv->scram);
+
+#if G_ENCODE_VERSION (GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION) > G_ENCODE_VERSION(2,66)
+      g_object_get (G_OBJECT (priv->conn), "base-stream", &ios, NULL);
+      if (G_IS_TLS_CONNECTION (ios))
+        {
+          GError *err = NULL;
+          gchar *cb64 = NULL;
+          GByteArray *cb = g_byte_array_new ();
+
+          if (!g_tls_connection_get_channel_binding_data ((GTlsConnection *) ios,
+                  G_TLS_CHANNEL_BINDING_TLS_UNIQUE, cb, &err))
+            {
+              g_error ("Error getting binding data: %s", err->message);
+              g_assert_not_reached ();
+            }
+
+          if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA)
+            cb->data[0] ^= cb->data[1];
+          else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG
+                || priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
+            {
+              gchar *r;
+              g_assert_true (g_str_has_prefix ((gchar *) response, "p=tls-unique,"));
+              r = g_strdup_printf ("n%s", response + 12);
+              g_free (response);
+              response = (guchar *) r;
+            }
+
+          cb64 = g_base64_encode (cb->data, cb->len);
+          g_byte_array_unref (cb);
+          g_object_set (G_OBJECT (priv->scram),
+                        "cb-type", WOCKY_TLS_BINDING_TLS_UNIQUE,
+                        "cb-data", cb64,
+                        NULL);
+          g_debug ("TLS binding: %s", cb64);
+          g_free (cb64);
+        }
+      else
+        g_debug ("No TLS");
+#else
+      (void)(ios);
+#endif /* GLIB_VERSION_2_66 */
+
+      wocky_sasl_scram_server_start_async (priv->scram, (gchar *) response,
+          handle_auth_cb, priv->cancellable, &res);
+
+      while (!res.complete)
+        g_main_context_iteration (NULL, FALSE);
+
+      if (res.challenge)
+        {
+          ret = 1; /* SASL_CONTINUE */
+          challenge = res.challenge;
+          challenge_len = strlen (challenge);
+        }
+      else
+        ret = SASL_NOUSER;
     }
   else
     {
@@ -782,6 +913,52 @@ out:
 }
 
 static void
+handle_response_cb (GObject      *source,
+                    GAsyncResult *result,
+                    gpointer      data)
+{
+  WockySaslScram *scram = WOCKY_SASL_SCRAM (source);
+  GError *error = NULL;
+  ScramRes *res = data;
+  TestSaslAuthServerPrivate *priv = test_sasl_auth_server_get_instance_private (res->srv);
+
+
+  res->challenge = wocky_sasl_scram_server_step_finish (scram, result, &error);
+
+  if (priv->problem == SERVER_PROBLEM_INVALID_PASSWORD)
+    {
+      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_AUTHORIZED);
+      g_assert_null (res->challenge);
+    }
+  else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA)
+    {
+      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE);
+      g_assert_null (res->challenge);
+    }
+  else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG)
+    {
+      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE);
+      g_assert_null (res->challenge);
+    }
+  else if (priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
+    {
+      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_AUTHORIZED);
+      g_assert_null (res->challenge);
+
+      /* Now pretend it didn't happen and provide phony server verification */
+      res->challenge = g_strdup_printf ("v=%s",
+          "QRx7t5sNW98H5eXodJPJKiQKZbEJBb1XKRnK9hb1ON+WU5/D4z/9wBtG1J2OKGt/gHdDzblO7BYbBhHVb6CXtg==");
+    }
+  else
+    {
+      g_assert_no_error (error);
+      g_assert_nonnull (res->challenge);
+    }
+
+  res->complete = TRUE;
+}
+
+static void
 handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
 {
   TestSaslAuthServerPrivate * priv = self->priv;
@@ -806,6 +983,40 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
           &response_len);
     }
 
+  if (!wocky_strdiff ("SCRAM-SHA-512-PLUS", priv->selected_mech))
+    {
+      ScramRes res = { self, NULL, FALSE };
+
+      g_assert_nonnull (priv->scram);
+
+      if (priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
+        {
+          gchar *r, *rd = g_strstr_len ((gchar *) response, -1, ",");
+
+          g_assert_true (response[0] == 'c' && response[1] == '=' && rd != NULL);
+
+          r = g_strdup_printf ("c=biws,%s", rd + 1);
+          g_free (response);
+          response = (guchar *) r;
+        }
+
+      wocky_sasl_scram_server_step_async (priv->scram, (gchar *) response,
+          handle_response_cb, priv->cancellable, &res);
+
+      while (!res.complete)
+        g_main_context_iteration (NULL, FALSE);
+
+      if (res.challenge)
+        {
+          ret = SASL_OK;
+          challenge = res.challenge;
+          challenge_len = strlen (challenge);
+        }
+      else
+        ret = SASL_BADAUTH;
+    }
+  else
+    {
 #ifdef HAVE_LIBSASL2
   ret = sasl_server_step (priv->sasl_conn, (gchar *) response,
       (unsigned) response_len, &challenge, &challenge_len);
@@ -814,6 +1025,7 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
   challenge_len = 0;
   challenge = "";
 #endif
+    }
 
   if (!check_sasl_return (self, ret))
     goto out;
@@ -848,7 +1060,8 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
         }
 
       if (priv->state == AUTH_STATE_FINAL_CHALLENGE &&
-          priv->problem == SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS)
+          (priv->problem == SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS
+           || priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING))
         {
           auth_succeeded (self, challenge64);
         }
@@ -1017,6 +1230,12 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   priv->password = g_strdup (password);
   priv->mech = g_strdup (mech);
   priv->problem = problem;
+
+  if (!wocky_strdiff ("SCRAM-SHA-512-PLUS", mech))
+    {
+      priv->scram = g_object_new (WOCKY_TYPE_SASL_SCRAM, "server", servername,
+          "hash-algo", G_CHECKSUM_SHA512, NULL);
+    }
 
   if (start)
     {

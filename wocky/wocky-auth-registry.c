@@ -17,10 +17,18 @@
 #include "wocky-debug-internal.h"
 
 
+enum
+{
+  PROP_CB_TYPE = 1,
+  PROP_CB_DATA,
+};
+
 /* private structure */
 struct _WockyAuthRegistryPrivate
 {
   gboolean dispose_has_run;
+  WockyTLSBindingType cb_type;
+  gchar *cb_data;
 
   WockyAuthHandler *handler;
   GSList *handlers;
@@ -87,8 +95,19 @@ wocky_auth_registry_get_property (GObject    *object,
     GValue     *value,
     GParamSpec *pspec)
 {
+  WockyAuthRegistry *self = WOCKY_AUTH_REGISTRY (object);
+  WockyAuthRegistryPrivate *priv = self->priv;
+
   switch (property_id)
     {
+    case PROP_CB_TYPE:
+      g_value_set_enum (value, priv->cb_type);
+      break;
+
+    case PROP_CB_DATA:
+      g_value_set_string (value, priv->cb_data);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
@@ -100,8 +119,20 @@ wocky_auth_registry_set_property (GObject      *object,
     const GValue *value,
     GParamSpec   *pspec)
 {
+  WockyAuthRegistry *self = WOCKY_AUTH_REGISTRY (object);
+  WockyAuthRegistryPrivate *priv = self->priv;
+
   switch (property_id)
     {
+    case PROP_CB_TYPE:
+      priv->cb_type = g_value_get_enum (value);
+      break;
+
+    case PROP_CB_DATA:
+      g_free (priv->cb_data);
+      priv->cb_data = g_value_dup_string (value);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
@@ -118,6 +149,7 @@ wocky_auth_registry_dispose (GObject *object)
 
   priv->dispose_has_run = TRUE;
 
+  g_free (priv->cb_data);
   /* release any references held by the object here */
   if (priv->handler != NULL)
     {
@@ -147,6 +179,17 @@ wocky_auth_registry_class_init (WockyAuthRegistryClass *klass)
   object_class->constructed = wocky_auth_registry_constructed;
   object_class->get_property = wocky_auth_registry_get_property;
   object_class->set_property = wocky_auth_registry_set_property;
+  g_object_class_install_property (object_class, PROP_CB_TYPE,
+      g_param_spec_enum ("tls-binding-type", "tls channel binding type",
+          "The type of the TLS Channel Binding to use in SASL negotiation",
+          WOCKY_TYPE_TLS_BINDING_TYPE, WOCKY_TLS_BINDING_DISABLED,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+
+  g_object_class_install_property (object_class, PROP_CB_DATA,
+      g_param_spec_string ("tls-binding-data", "tls channel binding data",
+          "Base64 encoded TLS Channel binding data for the set type", NULL,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
+
   object_class->dispose = wocky_auth_registry_dispose;
   object_class->finalize = wocky_auth_registry_finalize;
 
@@ -226,6 +269,25 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
 {
   WockyAuthRegistryPrivate *priv = self->priv;
   GSList *k;
+  /* Define order of SCRAM hashing algorithm preferences according to ...   *
+   * ... various recommendations                                            */
+  struct {
+    gchar *mech;
+    gboolean is_plus;
+    GChecksumType algo;
+  } scram_handlers[] = {
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512_PLUS, TRUE, G_CHECKSUM_SHA512 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512, FALSE, G_CHECKSUM_SHA512 },
+#ifdef WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384_PLUS, TRUE, G_CHECKSUM_SHA384 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384, FALSE, G_CHECKSUM_SHA384 },
+#endif
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256_PLUS, TRUE, G_CHECKSUM_SHA256 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256, FALSE, G_CHECKSUM_SHA256 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS, TRUE, G_CHECKSUM_SHA1 },
+    { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1, FALSE, G_CHECKSUM_SHA1 },
+    { NULL, FALSE, G_CHECKSUM_SHA1 }
+  };
 
   for (k = priv->handlers; k != NULL; k = k->next)
     {
@@ -244,17 +306,35 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
         }
     }
 
-  if (wocky_auth_registry_has_mechanism (mechanisms,
-          WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1))
+  /* All the below mechanisms require password so if we have none
+   * let's just stop here */
+  g_return_val_if_fail (out_handler == NULL || password != NULL, FALSE);
+
+  for (int i = 0; scram_handlers[i].mech != NULL ; i++)
     {
-      if (out_handler != NULL)
+      if (wocky_auth_registry_has_mechanism (mechanisms,
+                                       scram_handlers[i].mech))
         {
-          /* XXX: check for username and password here? */
-          DEBUG ("Choosing SCRAM-SHA-1 as auth mechanism");
-          *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
-              server, username, password));
+          if (out_handler != NULL && username != NULL)
+            {
+              /* For PLUS it's whatever we found/support, otherwise NONE or  *
+               * DISABLED. NONE is when we support some but server doesn't.  */
+              WockyTLSBindingType cb_type = (scram_handlers[i].is_plus ?
+                               priv->cb_type
+                             : MIN (priv->cb_type, WOCKY_TLS_BINDING_NONE));
+              DEBUG ("Choosing %s as auth mechanism", scram_handlers[i].mech);
+              *out_handler = WOCKY_AUTH_HANDLER (wocky_sasl_scram_new (
+                  server, username, password));
+              WOCKY_AUTH_HANDLER_GET_IFACE (*out_handler)->mechanism =
+                                                       scram_handlers[i].mech;
+              g_object_set (G_OBJECT (*out_handler),
+                  "hash-algo", scram_handlers[i].algo,
+                  "cb-type", cb_type,
+                  "cb-data", priv->cb_data,
+                  NULL);
+            }
+          return TRUE;
         }
-      return TRUE;
     }
 
   if (wocky_auth_registry_has_mechanism (mechanisms,

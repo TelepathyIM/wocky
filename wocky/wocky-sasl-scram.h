@@ -1,6 +1,7 @@
 /*
- * wocky-sasl-scram.h - SCRAM-SHA1 implementation (to be RFC 5802)
+ * wocky-sasl-scram.h - SCRAM-SHA1 implementation (RFC 5802, 7677)
  * Copyright (C) 2010 Sjoerd Simons <sjoerd@luon.net>
+ * Copyright (C) 2020 Ruslan N. Marchenko <me@ruff.mobi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -69,6 +70,30 @@ wocky_sasl_scram_get_type (void);
 WockySaslScram *
 wocky_sasl_scram_new (
     const gchar *server, const gchar *username, const gchar *password);
+
+void
+wocky_sasl_scram_server_start_async (WockySaslScram      *self,
+                                     gchar               *message,
+                                     GAsyncReadyCallback  cb,
+                                     GCancellable        *cancel,
+                                     gpointer             data);
+
+gchar *
+wocky_sasl_scram_server_start_finish (WockySaslScram *self,
+                                      GAsyncResult   *res,
+                                      GError        **error);
+
+void
+wocky_sasl_scram_server_step_async (WockySaslScram      *self,
+                                    gchar               *message,
+                                    GAsyncReadyCallback  cb,
+                                    GCancellable        *cancel,
+                                    gpointer             data);
+
+gchar *
+wocky_sasl_scram_server_step_finish (WockySaslScram *self,
+                                     GAsyncResult   *res,
+                                     GError        **error);
 
 G_END_DECLS
 

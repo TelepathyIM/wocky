@@ -137,11 +137,25 @@ wocky_sasl_auth_get_property (GObject *object,
     }
 }
 
+static WockyTLSBindingType default_cb_type = WOCKY_TLS_BINDING_TLS_UNIQUE;
+
 static void
 wocky_sasl_auth_class_init (WockySaslAuthClass *wocky_sasl_auth_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_sasl_auth_class);
   GParamSpec *spec;
+  /* Initialize default binding type once */
+  const gchar *cb_str = g_getenv ("WOCKY_CHANNEL_BINDING_TYPE");
+
+  if (cb_str != NULL)
+    {
+      GEnumClass *gec = g_type_class_ref (WOCKY_TYPE_TLS_BINDING_TYPE);
+      GEnumValue *gev = g_enum_get_value_by_nick (gec, cb_str);
+
+      if (gev)
+        default_cb_type = gev->value;
+      g_type_class_unref (gec);
+    }
 
   object_class->set_property = wocky_sasl_auth_set_property;
   object_class->get_property = wocky_sasl_auth_get_property;
@@ -657,6 +671,103 @@ wocky_sasl_auth_start_cb (GObject *source_object,
   g_object_unref (stanza);
 }
 
+/**
+ * wocky_tls_get_cb_data:
+ * @conn: a #WockyXmppConnection wrapping WockyTLSSession aka GTlsConnection
+ * @type: a #WockyTLSBindingType to return bidning data
+ */
+static gchar *
+wocky_tls_get_cb_data (WockyXmppConnection *conn, WockyTLSBindingType type)
+{
+  GIOStream *ios = NULL;
+  GTlsConnection *tc = NULL;
+  gchar *cb_data = NULL;
+  int g_tls_cb_t = type;
+
+  g_assert (conn != NULL);
+  g_object_get (conn, "base-stream", &ios, NULL);
+  g_return_val_if_fail (ios != NULL, NULL);
+  tc = G_TLS_CONNECTION (ios);
+  g_object_unref (ios);
+
+  /* Unfortunatelly backend didn'make it into 2.66 so we need next minor */
+#if G_ENCODE_VERSION (GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION) > G_ENCODE_VERSION(2,66)
+  /* We need this conversion and cast until Exporter is adopted by IETF and
+   * gets officially into public API. So far it is hidden experimental type.
+   * Once adopted we can simpy typedef WockyTLSBindingType to
+   * GTlsChannelBindingType */
+  switch (type)
+    {
+    case WOCKY_TLS_BINDING_TLS_UNIQUE:
+      g_tls_cb_t = G_TLS_CHANNEL_BINDING_TLS_UNIQUE;
+      break;
+    case WOCKY_TLS_BINDING_TLS_SERVER_END_POINT:
+      g_tls_cb_t = G_TLS_CHANNEL_BINDING_TLS_SERVER_END_POINT;
+      break;
+    case WOCKY_TLS_BINDING_TLS_EXPORTER:
+      g_tls_cb_t = 100500;
+      break;
+    default:
+      DEBUG ("TLS channel binding is disabled or not supported[%d]", type);
+      return NULL;
+    }
+
+  if (g_tls_connection_get_channel_binding_data (tc,
+                                (GTlsChannelBindingType)g_tls_cb_t, NULL, NULL))
+    {
+      GByteArray *cb = g_byte_array_new ();
+      GError *err = NULL;
+
+      if (g_tls_connection_get_channel_binding_data (tc,
+                                  (GTlsChannelBindingType)g_tls_cb_t, cb, &err))
+        {
+          DEBUG ("Got %d bytes of cb data", cb->len);
+          cb_data = g_base64_encode (cb->data, cb->len);
+        }
+      else
+        {
+          DEBUG ("Failed to get binding data: %s", err->message);
+          g_clear_error (&err);
+        }
+      g_byte_array_unref (cb);
+    }
+#else
+  /* The only thing we can do here is to generate SHA256 certificate digest
+   * and throw it to the server. 0.01% probability the server accepts it.
+   * Which is why default is tls-unique which this implementation does not
+   * support and therefore we skip SCRAM-*-PLUS versions by default.
+   * If you know your server supports tls-server-end-point and uses SHA256
+   * certificate signature algorithm - feel free to enable it via ENV
+   * variable WOCKY_CHANNEL_BINDING_TYPE=tls-server-end-point */
+  if (g_tls_cb_t == WOCKY_TLS_BINDING_TLS_SERVER_END_POINT)
+    {
+      GTlsCertificate *ps = g_tls_connection_get_peer_certificate (tc);
+
+      if (ps != NULL)
+        {
+          GByteArray *der = NULL;
+          GChecksum *cs = g_checksum_new (G_CHECKSUM_SHA256);
+          guint8 sha[32]; // 32 bytes, 64 hex, 44 b64
+          gsize sl = 32;
+
+          g_object_get (ps, "certificate", &der, NULL);
+          g_assert (der != NULL);
+
+          g_checksum_update (cs, der->data, der->len);
+          g_checksum_get_digest (cs, sha, &sl);
+          cb_data = g_base64_encode (sha, sl);
+
+          g_checksum_free (cs);
+          g_byte_array_unref (der);
+        }
+    }
+#endif /* GLIB_VERSION_CUR_STABLE >= 2.66 */
+  else
+    DEBUG ("Requested binding type[%d] is not supported", type);
+  return cb_data;
+}
+
+
 /* Initiate sasl auth. features should contain the stream features stanza as
  * receiver from the server */
 void
@@ -690,6 +801,20 @@ wocky_sasl_auth_authenticate_async (WockySaslAuth *sasl,
       goto out;
     }
 
+  if (is_secure)
+    {
+      WockyTLSBindingType cb_type = default_cb_type;
+      gchar *cb_data = wocky_tls_get_cb_data (priv->connection, cb_type);
+      if (cb_data != NULL)
+        {
+          DEBUG ("Using TLS Channel Binding Data: %s", cb_data);
+          g_object_set (priv->auth_registry,
+                          "tls-binding-type", cb_type,
+                          "tls-binding-data", cb_data,
+                          NULL);
+          g_free (cb_data);
+        }
+    }
 
   priv->task = g_task_new (G_OBJECT (sasl), cancellable, callback, user_data);
 
