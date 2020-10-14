@@ -73,7 +73,7 @@
  *
  *    ①
  *    ↓
- *    establish_session ─────────→ success
+ *    establish_session ─────────→ request_sm_enable → complete_operation
  *    ↓                              ↑
  *    establish_session_sent_cb      │
  *    ↓                              │
@@ -2024,6 +2024,51 @@ iq_bind_resource_recv_cb (GObject *source,
   g_object_unref (reply);
 }
 
+/* Requesting SM is an opt-in and its failure is non-fatal.
+ * Therefore we just request it here and handle result in
+ * porter as part of normal event flow.
+ */
+static void
+request_sm_enable_cb (GObject      *source,
+                      GAsyncResult *result,
+                      gpointer      data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyConnector *self = data;
+  GError *error = NULL;
+
+  if (!wocky_xmpp_connection_send_stanza_finish (connection, result, &error))
+    DEBUG ("Failed to send enable nonza: %s", error->message);
+  else
+    g_object_set_data (G_OBJECT (connection), WOCKY_XMPP_NS_SM3, (void *) 1);
+
+  complete_operation (self);
+}
+
+static void
+request_sm_enable (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = wocky_connector_get_instance_private (self);
+  WockyNode *feat = (priv->features != NULL) ?
+    wocky_stanza_get_top_node (priv->features) : NULL;
+
+  if ((feat != NULL) &&
+      wocky_node_get_child_ns (feat, "sm", WOCKY_XMPP_NS_SM3))
+    {
+      WockyStanza *enable = wocky_stanza_new ("enable", WOCKY_XMPP_NS_SM3);
+      WockyNode *en = wocky_stanza_get_top_node (enable);
+
+      wocky_node_set_attributes (en, "max", "600", "resume", "false", NULL);
+
+      wocky_xmpp_connection_send_stanza_async (priv->conn, enable,
+              priv->cancellable, request_sm_enable_cb, self);
+
+      g_object_unref (enable);
+    }
+  else
+    complete_operation (self);
+}
+
 /* ************************************************************************* */
 /* final stage: establish a session, if so advertised: */
 void
@@ -2067,7 +2112,7 @@ establish_session (WockyConnector *self)
           priv->cancellable = NULL;
         }
 
-      complete_operation (self);
+      request_sm_enable (self);
     }
 }
 
@@ -2166,7 +2211,7 @@ establish_session_recv_cb (GObject *source,
                 priv->cancellable = NULL;
               }
 
-            complete_operation (self);
+            request_sm_enable (self);
           }
         break;
 

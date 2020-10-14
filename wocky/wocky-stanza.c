@@ -79,6 +79,8 @@ static StanzaTypeName type_names[NUM_WOCKY_STANZA_TYPE] =
         WOCKY_XMPP_NS_SASL_AUTH },
     { WOCKY_STANZA_TYPE_STREAM_ERROR,    "error",
         WOCKY_XMPP_NS_STREAM },
+    { WOCKY_STANZA_TYPE_SM_ENABLED,      "enabled",
+        WOCKY_XMPP_NS_SM3 },
     { WOCKY_STANZA_TYPE_UNKNOWN,         NULL,        NULL },
 };
 

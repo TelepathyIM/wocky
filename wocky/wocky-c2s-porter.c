@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -76,6 +77,8 @@ struct _WockyC2SPorterPrivate
 
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
+  /* Queue of sent WockyStanza's waiting for SM Ack */
+  GQueue *unacked_queue;
   GCancellable *receive_cancellable;
   gboolean sending_whitespace_ping;
 
@@ -101,6 +104,15 @@ struct _WockyC2SPorterPrivate
   GQueue *unimportant_queue;
   /* List of (owned WockyStanza *) */
   GQueue queueable_stanza_patterns;
+
+  gboolean sm_enabled; /* track sent/rcvd stanzas (not nonzas!) */
+  gboolean resumable; /* server confirmed it can resume the stream */
+  gchar *sm_id; /* a unique stream identifier for resumption */
+  gchar *sm_location; /* preferred server address for resumption */
+  gsize sm_timeout; /* a time within which we can try to resume the stream */
+  gsize rcv_count; /* a count of stanzas we've received and processed */
+  gsize snt_count; /* a count of stanzas we've sent over the wire */
+  gsize snt_acked; /* a number of last acked stanzas */
 
   WockyXmppConnection *connection;
 };
@@ -329,6 +341,9 @@ static gboolean handle_iq_reply (WockyPorter *porter,
 static void remote_connection_closed (WockyC2SPorter *self,
                                       const GError *error);
 
+static void wocky_porter_sm_reset (WockyC2SPorter *self);
+static gboolean wocky_porter_sm_handle (WockyC2SPorter *self, WockyNode *node);
+
 static void
 wocky_c2s_porter_init (WockyC2SPorter *self)
 {
@@ -337,6 +352,7 @@ wocky_c2s_porter_init (WockyC2SPorter *self)
   self->priv = priv;
 
   priv->sending_queue = g_queue_new ();
+  priv->unacked_queue = NULL;
 
   priv->handlers_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
       NULL, (GDestroyNotify) stanza_handler_free);
@@ -455,6 +471,12 @@ wocky_c2s_porter_constructed (GObject *object)
     G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->constructed (object);
 
   g_assert (priv->connection != NULL);
+
+  priv->sm_id = NULL;
+  priv->sm_location = NULL;
+  priv->sm_enabled = (g_object_get_data (G_OBJECT (priv->connection),
+          WOCKY_XMPP_NS_SM3) != NULL);
+  wocky_porter_sm_reset (self);
 
   /* Register the IQ reply handler */
   wocky_porter_register_handler_from_anyone (WOCKY_PORTER (self),
@@ -645,6 +667,16 @@ close_if_waiting (WockyC2SPorter *self)
     }
 }
 
+static gboolean
+request_ack_in_idle (gpointer data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (data);
+
+  wocky_porter_sm_handle (self, NULL);
+
+  return FALSE;
+}
+
 static void
 send_stanza_cb (GObject *source,
     GAsyncResult *res,
@@ -673,6 +705,21 @@ send_stanza_cb (GObject *source,
         return;
 
       g_task_return_boolean (elem->task, TRUE);
+
+      if (priv->sm_enabled)
+        {
+          WockyStanzaType st;
+          wocky_stanza_get_type_info (elem->stanza, &st, NULL);
+          if (st == WOCKY_STANZA_TYPE_MESSAGE
+              || st == WOCKY_STANZA_TYPE_PRESENCE
+              || st == WOCKY_STANZA_TYPE_IQ)
+            {
+              priv->snt_count++;
+              g_queue_push_tail (priv->unacked_queue,
+                  g_object_ref (elem->stanza));
+              g_idle_add (request_ack_in_idle, self);
+            }
+        }
 
       sending_queue_elem_free (elem);
 
@@ -915,6 +962,147 @@ handle_iq_reply (WockyPorter *porter,
 }
 
 static void
+wocky_porter_sm_reset (WockyC2SPorter *self)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+
+  if (priv->sm_enabled)
+    {
+      if (G_UNLIKELY (priv->unacked_queue))
+        g_queue_clear_full (priv->unacked_queue, g_object_unref);
+      else
+        priv->unacked_queue = g_queue_new ();
+    }
+  else if (priv->unacked_queue)
+    {
+      g_queue_free_full (priv->unacked_queue, g_object_unref);
+      priv->unacked_queue = NULL;
+    }
+
+  priv->snt_count = priv->snt_acked = priv->rcv_count = 0;
+  g_clear_pointer (&(priv->sm_id), g_free);
+  g_clear_pointer (&(priv->sm_location), g_free);
+  priv->resumable = FALSE;
+  priv->sm_timeout = 600;
+}
+
+/* We need to consider normal monotonic increase and uint32 wrap conditions */
+#define ACK_WINDOW(start, stop) ((start <= stop) \
+    ? (stop - start) \
+    : ((ULONG_MAX - start) + stop))
+#define ACK_WINDOW_MAX 10
+
+static gboolean
+wocky_porter_sm_handle (WockyC2SPorter *self,
+                        WockyNode      *node)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+
+  if (G_UNLIKELY(!priv->sm_enabled))
+    {
+      g_warning ("Received SM nonza %s while SM is disabled", node->name);
+      return FALSE;
+    }
+
+  if (node == NULL)
+    {
+      /* a probe for request - fire one if we have breached the max or fire an
+       * early notice when we are in the middle of it */
+      if (ACK_WINDOW (priv->snt_acked, priv->snt_count) == ACK_WINDOW_MAX/2
+          || ACK_WINDOW (priv->snt_acked, priv->snt_count) > ACK_WINDOW_MAX)
+        {
+          WockyStanza *r = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+          wocky_porter_send (WOCKY_PORTER (self), r);
+          g_object_unref (r);
+          return TRUE;
+        }
+    }
+  else if (node->name[0] == 'r' && node->name[1] == '\0')
+    {
+      WockyStanza *a = wocky_stanza_new ("a", WOCKY_XMPP_NS_SM3);
+      WockyNode *an = wocky_stanza_get_top_node (a);
+      gchar *val = g_strdup_printf ("%lu", priv->rcv_count);
+
+      wocky_node_set_attribute (an, "h", val);
+      g_free (val);
+
+      wocky_porter_send (WOCKY_PORTER (self), a);
+      g_object_unref (a);
+
+      return TRUE;
+    }
+  else if (node->name[0] == 'a' && node->name[1] == '\0')
+    {
+      const gchar *val = wocky_node_get_attribute (node, "h");
+      gsize snt = 0;
+
+      /* TODO below conditions are rather fatal, need to terminate the sream */
+      if (val == NULL)
+        {
+          g_warning ("Missing 'h' attribute, we should better err this stream");
+          return FALSE;
+        }
+
+      snt = strtoul (val, NULL, 10);
+      if (snt == ULONG_MAX && errno == ERANGE)
+        {
+          g_warning ("Invalid number, cannot convert h value[%s] to gsize", val);
+          return FALSE;
+        }
+
+      if (ACK_WINDOW (priv->snt_acked, snt) <= ACK_WINDOW (priv->snt_acked,
+            priv->snt_count))
+        {
+          priv->snt_acked = snt;
+        }
+      else
+        {
+          g_warning ("Invalid acknowledgement %lu, must be between %lu and %lu",
+              snt, priv->snt_acked, priv->snt_count);
+        }
+      /* now we can head-drop stanzas from unacked_queue till its length is
+       * (snt_count - snt_acked) */
+      while (g_queue_get_length (priv->unacked_queue)
+              > ACK_WINDOW (priv->snt_count, priv->snt_acked))
+        {
+          WockyStanza *s = g_queue_pop_head (priv->unacked_queue);
+          g_assert (s);
+          g_object_unref (s);
+        }
+      return TRUE;
+    }
+  else if (!g_strcmp0 (node->name, "enabled"))
+    {
+      const gchar *val;
+      if ((val = wocky_node_get_attribute (node, "id")) != NULL)
+        priv->sm_id = g_strdup (val);
+
+      if ((val = wocky_node_get_attribute (node, "max")) != NULL)
+        priv->sm_timeout = strtoul (val, NULL, 10);
+
+      if ((val = wocky_node_get_attribute (node, "resume")) != NULL)
+        priv->resumable = (g_strcmp0 (val, "true") == 0);
+
+      if ((val = wocky_node_get_attribute (node, "location")) != NULL)
+        priv->sm_location = g_strdup (val);
+
+      g_debug ("SM on connection %p is enabled", priv->connection);
+
+      return TRUE;
+    }
+  else if (!g_strcmp0 (node->name, "failed"))
+    {
+      g_debug ("SM on connection %p has failed", priv->connection);
+      priv->sm_enabled = FALSE;
+      wocky_porter_sm_reset (self);
+    }
+  else
+    g_warning ("Unknown SM nonza '%s' received", node->name);
+
+  return FALSE;
+}
+
+static void
 handle_stanza (WockyC2SPorter *self,
     WockyStanza *stanza)
 {
@@ -929,13 +1117,26 @@ handle_stanza (WockyC2SPorter *self,
 
   wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
+  if (priv->sm_enabled && (type == WOCKY_STANZA_TYPE_MESSAGE
+                        || type == WOCKY_STANZA_TYPE_PRESENCE
+                        || type == WOCKY_STANZA_TYPE_IQ))
+    {
+        priv->rcv_count++;
+    }
   /* The from attribute of the stanza need not always be present, for example
    * when receiving roster items, so don't enforce it. */
   from = wocky_stanza_get_from (stanza);
 
   if (from == NULL)
     {
+      WockyNode *top_node = wocky_stanza_get_top_node (stanza);
+
+      g_assert (top_node != NULL);
+
       is_from_server = TRUE;
+
+      if (wocky_node_has_ns (top_node, WOCKY_XMPP_NS_SM3))
+        handled = wocky_porter_sm_handle (self, top_node);
     }
   else if (wocky_decode_jid (from, &node, &domain, &resource))
     {
