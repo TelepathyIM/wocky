@@ -2259,11 +2259,17 @@ send_whitespace_ping_cb (GObject *source,
   WockyC2SPorter *self = WOCKY_C2S_PORTER (g_task_get_source_object (task));
   WockyC2SPorterPrivate *priv = self->priv;
   GError *error = NULL;
+  gboolean ret;
 
   priv->sending_whitespace_ping = FALSE;
 
-  if (!wocky_xmpp_connection_send_whitespace_ping_finish (
-        WOCKY_XMPP_CONNECTION (source), res, &error))
+  if (priv->sm_enabled)
+    ret = wocky_xmpp_connection_send_stanza_finish (
+        WOCKY_XMPP_CONNECTION (source), res, &error);
+  else
+    ret = wocky_xmpp_connection_send_whitespace_ping_finish (
+        WOCKY_XMPP_CONNECTION (source), res, &error);
+  if (!ret)
     {
       g_task_return_error (task, g_error_copy (error));
 
@@ -2324,8 +2330,20 @@ wocky_c2s_porter_send_whitespace_ping_async (WockyC2SPorter *self,
     {
       priv->sending_whitespace_ping = TRUE;
 
-      wocky_xmpp_connection_send_whitespace_ping_async (priv->connection,
-          cancellable, send_whitespace_ping_cb, g_object_ref (task));
+      /* when SM is enabled we need SM ping because we are doing selective
+       * acks hence need to catch-up the latest acks when idle. */
+      if (priv->sm_enabled)
+        {
+          WockyStanza *r = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+          wocky_xmpp_connection_send_stanza_async (priv->connection, r,
+              cancellable, send_whitespace_ping_cb, g_object_ref (task));
+          g_object_unref (r);
+        }
+      else
+        {
+          wocky_xmpp_connection_send_whitespace_ping_async (priv->connection,
+              cancellable, send_whitespace_ping_cb, g_object_ref (task));
+        }
 
       g_signal_emit_by_name (self, "sending", NULL);
     }
