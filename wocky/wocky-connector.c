@@ -176,6 +176,8 @@ static void xep77_signup_recv (GObject *source,
     GAsyncResult *result,
     gpointer data);
 
+static void request_sm_resume (WockyConnector *self);
+
 static void iq_bind_resource (WockyConnector *self);
 static void iq_bind_resource_sent_cb (GObject *source,
     GAsyncResult *result,
@@ -293,6 +295,7 @@ struct _WockyConnectorPrivate
   GSocketConnection *sock;
   WockyXmppConnection *conn;
   WockyTLSHandler *tls_handler;
+  WockyStanza *resume;
 
   WockyAuthRegistry *auth_registry;
 
@@ -1312,6 +1315,15 @@ xmpp_features_cb (GObject *source,
       goto out;
     }
 
+  /* we check for can_bind here as we're supposed to be able to proceed with
+   * bind should resume fail */
+  if (priv->resume && can_bind && wocky_node_get_child_ns (node, "sm",
+        WOCKY_XMPP_NS_SM3) != NULL)
+    {
+      request_sm_resume (self);
+      goto out;
+    }
+
   /* we MUST bind here http://www.ietf.org/rfc/rfc3920.txt */
   if (can_bind)
     iq_bind_resource (self);
@@ -2024,6 +2036,8 @@ iq_bind_resource_recv_cb (GObject *source,
   g_object_unref (reply);
 }
 
+/* ************************************************************************* */
+/* XEP 0198 SM enable/resume calls */
 /* Requesting SM is an opt-in and its failure is non-fatal.
  * Therefore we just request it here and handle result in
  * porter as part of normal event flow.
@@ -2038,9 +2052,15 @@ request_sm_enable_cb (GObject      *source,
   GError *error = NULL;
 
   if (!wocky_xmpp_connection_send_stanza_finish (connection, result, &error))
-    DEBUG ("Failed to send enable nonza: %s", error->message);
-  else
-    g_object_set_data (G_OBJECT (connection), WOCKY_XMPP_NS_SM3, (void *) 1);
+    {
+      DEBUG ("Failed to send enable nonza: %s", error->message);
+      abort_connect_error (self, &error, "Failed to send 'enable' nonza");
+      g_error_free (error);
+      return;
+    }
+
+  g_object_set_data_full (G_OBJECT (connection), WOCKY_XMPP_NS_SM3,
+            g_object_ref (self), g_object_unref);
 
   complete_operation (self);
 }
@@ -2058,7 +2078,7 @@ request_sm_enable (WockyConnector *self)
       WockyStanza *enable = wocky_stanza_new ("enable", WOCKY_XMPP_NS_SM3);
       WockyNode *en = wocky_stanza_get_top_node (enable);
 
-      wocky_node_set_attributes (en, "max", "600", "resume", "false", NULL);
+      wocky_node_set_attributes (en, "max", "600", "resume", "true", NULL);
 
       wocky_xmpp_connection_send_stanza_async (priv->conn, enable,
               priv->cancellable, request_sm_enable_cb, self);
@@ -2067,6 +2087,131 @@ request_sm_enable (WockyConnector *self)
     }
   else
     complete_operation (self);
+}
+
+static void
+request_sm_resumed_cb (GObject     *source,
+                      GAsyncResult *result,
+                      gpointer      data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyConnector *self = data;
+  WockyConnectorPrivate *priv = wocky_connector_get_instance_private (self);
+  const WockyStanza *res;
+  WockyNode *rn;
+  GError *error = NULL;
+
+  if ((res = wocky_xmpp_connection_peek_stanza_finish (connection,
+          result, &error)) == NULL)
+    {
+      DEBUG ("Failed to peek resumed nonza: %s", error->message);
+      abort_connect_error (self, &error, "Failed to peek 'resumed' nonza");
+      g_error_free (error);
+      return;
+    }
+
+  rn = wocky_stanza_get_top_node ((WockyStanza *) res);
+  if (wocky_node_has_ns (rn, WOCKY_XMPP_NS_SM3))
+    {
+      if (g_strcmp0 (rn->name, "resumed"))
+        {
+          error = g_error_new_literal (WOCKY_XMPP_ERROR,
+              WOCKY_XMPP_ERROR_ITEM_NOT_FOUND, "Resumed session not found");
+          g_task_return_error (priv->task, error);
+        }
+      else
+        {
+          g_object_set_data_full (G_OBJECT (connection), WOCKY_XMPP_NS_SM3,
+              g_object_ref (self), g_object_unref);
+        }
+
+      if (priv->cancellable != NULL)
+        {
+          g_object_unref (priv->cancellable);
+          priv->cancellable = NULL;
+        }
+
+      complete_operation (self);
+      return;
+    }
+
+  error = g_error_new_literal (WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_NOT_ACCEPTABLE,
+      "Connection reuse cannot continue without 'resumed' or 'failed' SM nonza");
+  DEBUG ("Cannot continue with '%s': %s", rn->name, error->message);
+
+  abort_connect (self, error);
+  g_error_free (error);
+}
+
+static void
+request_sm_resume_cb (GObject      *source,
+                      GAsyncResult *result,
+                      gpointer      data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyConnector *self = data;
+  WockyConnectorPrivate *priv = wocky_connector_get_instance_private (self);
+  GError *error = NULL;
+
+  if (!wocky_xmpp_connection_send_stanza_finish (connection, result, &error))
+    {
+      DEBUG ("Failed to send enable nonza: %s", error->message);
+      abort_connect_error (self, &error, "Failed to send 'resume' nonza");
+      g_error_free (error);
+      return;
+    }
+
+  wocky_xmpp_connection_peek_stanza_async (connection, priv->cancellable,
+          request_sm_resumed_cb, self);
+}
+
+static void
+request_sm_resume (WockyConnector *self)
+{
+  WockyConnectorPrivate *priv = wocky_connector_get_instance_private (self);
+
+  wocky_xmpp_connection_send_stanza_async (priv->conn, priv->resume,
+          priv->cancellable, request_sm_resume_cb, self);
+
+  g_clear_object (&priv->resume);
+}
+
+static void
+continue_sm_fail_cb (GObject      *source,
+                     GAsyncResult *result,
+                     gpointer      data)
+{
+  WockyXmppConnection *connection = WOCKY_XMPP_CONNECTION (source);
+  WockyConnector *self = data;
+  WockyStanza *res;
+  WockyNode *rn;
+  GError *error = NULL;
+
+  if ((res = wocky_xmpp_connection_recv_stanza_finish (connection,
+          result, &error)) == NULL)
+    {
+      DEBUG ("Failed to receive SM nonza: %s", error->message);
+      abort_connect_error (self, &error, "Failed to receive 'failed' SM nonza");
+      g_error_free (error);
+      return;
+    }
+
+  rn = wocky_stanza_get_top_node ((WockyStanza *) res);
+  if (wocky_node_has_ns (rn, WOCKY_XMPP_NS_SM3)
+      && g_strcmp0 (rn->name, "failed") == 0)
+    {
+      g_object_unref (res);
+      /* continue normal connection process */
+      iq_bind_resource (self);
+      return;
+    }
+
+  g_error_new_literal (WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_NOT_ACCEPTABLE,
+      "Connection reuse cannot continue without 'failed' SM nonza");
+  DEBUG ("Cannot continue with '%s': %s", rn->name, error->message);
+  abort_connect (self, error);
+  g_error_free (error);
+  g_object_unref (res);
 }
 
 /* ************************************************************************* */
@@ -2278,6 +2423,30 @@ wocky_connector_connect_finish (WockyConnector *self,
 }
 
 /**
+ * wocky_connector_resume_finish:
+ * @self: a #WockyConnector instance.
+ * @res: a #GAsyncResult as passed to wocky_connector_resume_async() callback.
+ * @error: (%NULL to ignore) the #GError (if any) is stored here.
+ *
+ * Should be called by the callback passed to wocky_connector_resume_async()
+ * to complete async operation.
+ *
+ * Returns: a #WockyXmppConnection instance (success), or %NULL (failure).
+ */
+WockyXmppConnection *
+wocky_connector_resume_finish (WockyConnector *self,
+    GAsyncResult *res,
+    GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (res, self), NULL);
+
+  if (!g_task_propagate_boolean (G_TASK (res), error))
+    return NULL;
+
+  return self->priv->conn;
+}
+
+/**
  * wocky_connector_register_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_register_async() callback).
@@ -2438,6 +2607,80 @@ wocky_connector_connect_async (WockyConnector *self,
       cancellable, cb, user_data);
 }
 
+/**
+ * wocky_connector_resume_async:
+ * @self: a #WockyConnector instance.
+ * @resume: (transfer full): a #WockyStanza to send for resumption
+ * @cancellable: (optional): a #GCancellable, or %NULL
+ * @cb: (optional): a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: (optional): a #gpointer to pass to the callback.
+ *
+ * Reconnect to the account/server specified by the @self.
+ * @cb should invoke wocky_connector_resume_finish().
+ */
+void
+wocky_connector_resume_async (WockyConnector *self,
+    WockyStanza *resume,
+    GCancellable *cancellable,
+    GAsyncReadyCallback cb,
+    gpointer user_data)
+{
+  WockyConnectorPrivate *priv = wocky_connector_get_instance_private (self);
+
+  /* Reset to initial state as we are reusing the connector */
+  g_clear_object (&priv->sock);
+  g_clear_object (&priv->conn);
+  g_clear_object (&priv->client);
+  g_clear_object (&priv->features);
+  g_clear_pointer (&priv->user, g_free);
+  g_clear_pointer (&priv->domain, g_free);
+  priv->encrypted = FALSE;
+  priv->connected = FALSE;
+  priv->authed = FALSE;
+
+  priv->resume = resume;
+  connector_connect_async (self, wocky_connector_resume_async,
+      cancellable, cb, user_data);
+}
+
+/**
+ * wocky_connector_continue_async:
+ * @self: a #WockyConnector instance.
+ * @cancellable: (optional): a #GCancellable, or %NULL
+ * @cb: (optional): a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: (optional): a #gpointer to pass to the callback.
+ *
+ * Continue connector operations (bind+session) on connector instance
+ * specified by the @self after SM resumption has failed without fatal
+ * error (item-not-found).
+ *
+ * @cb should invoke wocky_connector_connect_finish() - as it would for normal
+ * connection attempt.
+ */
+void
+wocky_connector_continue_async (WockyConnector *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback cb,
+    gpointer user_data)
+{
+  WockyConnectorPrivate *priv = wocky_connector_get_instance_private (self);
+
+  /* Ensure we're in a right state to continue */
+  g_assert (priv->task == NULL);
+  g_assert (priv->cancellable == NULL);
+  g_assert (priv->conn != NULL);
+  g_assert (priv->connected);
+  g_assert (priv->authed);
+
+  priv->task = g_task_new (G_OBJECT (self), cancellable, cb, user_data);
+
+  if (cancellable != NULL)
+    priv->cancellable = g_object_ref (cancellable);
+
+  /* Fetch `failed` nonza from the xmpp-connection */
+  wocky_xmpp_connection_recv_stanza_async (priv->conn, cancellable,
+        continue_sm_fail_cb, self);
+}
 
 /**
  * wocky_connector_unregister_async:

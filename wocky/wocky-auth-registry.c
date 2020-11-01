@@ -564,6 +564,7 @@ wocky_auth_registry_success_async_func (WockyAuthRegistry *self,
     g_task_return_boolean (task, TRUE);
 
   g_object_unref (task);
+  g_clear_object (&priv->handler);
 }
 
 

@@ -808,29 +808,13 @@ wocky_xmpp_connection_recv_stanza_async (WockyXmppConnection *connection,
   return;
 }
 
-/**
- * wocky_xmpp_connection_recv_stanza_finish:
- * @connection: a #WockyXmppConnection.
- * @result: a GAsyncResult.
- * @error: a GError location to store the error occuring, or NULL to ignore.
- *
- * Finishes receiving a stanza
- *
- * Returns: A #WockyStanza or NULL on error (unref after usage)
- */
-
-WockyStanza *
-wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
-    GAsyncResult *result,
+static WockyStanza *
+retrieve_stanza (WockyXmppConnection *connection,
+    WockyStanza *(*getter)(WockyXmppReader *),
     GError **error)
 {
   WockyXmppConnectionPrivate *priv;
   WockyStanza *stanza = NULL;
-
-  g_return_val_if_fail (g_task_is_valid (result, connection), NULL);
-
-  if (!g_task_propagate_boolean (G_TASK (result), error))
-    return NULL;
 
   priv = connection->priv;
 
@@ -840,7 +824,7 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
         g_assert_not_reached ();
         break;
       case WOCKY_XMPP_READER_STATE_OPENED:
-        stanza = wocky_xmpp_reader_pop_stanza (priv->reader);
+        stanza = getter (priv->reader);
         break;
       case WOCKY_XMPP_READER_STATE_CLOSED:
         g_set_error_literal (error, WOCKY_XMPP_CONNECTION_ERROR,
@@ -862,6 +846,79 @@ wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
     }
 
   return stanza;
+}
+
+/**
+ * wocky_xmpp_connection_peek_stanza_async:
+ * @connection: a #WockyXmppConnection
+ * @cancellable: optional GCancellable object, NULL to ignore.
+ * @callback: callback to call when the request is satisfied.
+ * @user_data: the data to pass to callback function.
+ *
+ * Asynchronous receive a #WockyStanza. When the operation is
+ * finished @callback will be called. You can then call
+ * wocky_xmpp_connection_peek_stanza_finish() to get the result of
+ * the operation.
+ *
+ * Can only be called after wocky_xmpp_connection_peek_open_async has finished
+ * its operation.
+ */
+void
+wocky_xmpp_connection_peek_stanza_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  wocky_xmpp_connection_recv_stanza_async (connection, cancellable, callback,
+      user_data);
+}
+
+/**
+ * wocky_xmpp_connection_peek_stanza_finish:
+ * @connection: a #WockyXmppConnection.
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes receiving a stanza
+ *
+ * Returns: A #WockyStanza or NULL on error (transfer none)
+ */
+
+const WockyStanza *
+wocky_xmpp_connection_peek_stanza_finish (WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, connection), NULL);
+
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    return NULL;
+
+  return retrieve_stanza (connection, wocky_xmpp_reader_peek_stanza, error);
+}
+
+/**
+ * wocky_xmpp_connection_recv_stanza_finish:
+ * @connection: a #WockyXmppConnection.
+ * @result: a GAsyncResult.
+ * @error: a GError location to store the error occuring, or NULL to ignore.
+ *
+ * Finishes receiving a stanza
+ *
+ * Returns: A #WockyStanza or NULL on error (unref after usage)
+ */
+
+WockyStanza *
+wocky_xmpp_connection_recv_stanza_finish (WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error)
+{
+  g_return_val_if_fail (g_task_is_valid (result, connection), NULL);
+
+  if (!g_task_propagate_boolean (G_TASK (result), error))
+    return NULL;
+
+  return retrieve_stanza (connection, wocky_xmpp_reader_pop_stanza, error);
 }
 
 /**

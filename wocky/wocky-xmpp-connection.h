@@ -156,6 +156,16 @@ WockyStanza *wocky_xmpp_connection_recv_stanza_finish (
     GAsyncResult *result,
     GError **error);
 
+void wocky_xmpp_connection_peek_stanza_async (WockyXmppConnection *connection,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+const WockyStanza *wocky_xmpp_connection_peek_stanza_finish (
+    WockyXmppConnection *connection,
+    GAsyncResult *result,
+    GError **error);
+
 void wocky_xmpp_connection_send_close_async (WockyXmppConnection *connection,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
