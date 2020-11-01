@@ -797,6 +797,7 @@ wocky_connector_dispose (GObject *object)
   g_clear_object (&priv->conn);
   g_clear_object (&priv->client);
   g_clear_object (&priv->sock);
+  g_clear_object (&priv->resume);
   g_clear_object (&priv->features);
   g_clear_object (&priv->auth_registry);
   g_clear_object (&priv->tls_handler);
@@ -2100,47 +2101,42 @@ request_sm_resumed_cb (GObject     *source,
   const WockyStanza *res;
   WockyNode *rn;
   GError *error = NULL;
+  GTask *t = priv->task;
 
-  if ((res = wocky_xmpp_connection_peek_stanza_finish (connection,
-          result, &error)) == NULL)
+  priv->task = NULL;
+  g_clear_object (&priv->cancellable);
+  res = wocky_xmpp_connection_peek_stanza_finish (connection, result, &error);
+  if (res != NULL)
     {
-      DEBUG ("Failed to peek resumed nonza: %s", error->message);
-      abort_connect_error (self, &error, "Failed to peek 'resumed' nonza");
-      g_error_free (error);
-      return;
-    }
-
-  rn = wocky_stanza_get_top_node ((WockyStanza *) res);
-  if (wocky_node_has_ns (rn, WOCKY_XMPP_NS_SM3))
-    {
-      if (g_strcmp0 (rn->name, "resumed"))
+      rn = wocky_stanza_get_top_node ((WockyStanza *) res);
+      if (wocky_node_has_ns (rn, WOCKY_XMPP_NS_SM3))
         {
-          error = g_error_new_literal (WOCKY_XMPP_ERROR,
-              WOCKY_XMPP_ERROR_ITEM_NOT_FOUND, "Resumed session not found");
-          g_task_return_error (priv->task, error);
+          if (g_strcmp0 (rn->name, "resumed"))
+            {
+              error = g_error_new_literal (WOCKY_XMPP_ERROR,
+                  WOCKY_XMPP_ERROR_ITEM_NOT_FOUND, "Resumed session not found");
+            }
+          else
+            {
+              g_object_set_data_full (G_OBJECT (connection), WOCKY_XMPP_NS_SM3,
+                  g_object_ref (self), g_object_unref);
+            }
         }
       else
         {
-          g_object_set_data_full (G_OBJECT (connection), WOCKY_XMPP_NS_SM3,
-              g_object_ref (self), g_object_unref);
+          error = g_error_new_literal (WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_NOT_ACCEPTABLE,
+              "Connection reuse cannot continue without 'resumed' or 'failed' SM nonza");
+          DEBUG ("Cannot continue with '%s': %s", rn->name, error->message);
         }
-
-      if (priv->cancellable != NULL)
-        {
-          g_object_unref (priv->cancellable);
-          priv->cancellable = NULL;
-        }
-
-      complete_operation (self);
-      return;
     }
+  else
+    DEBUG ("Failed to peek resumed nonza: %s", error->message);
 
-  error = g_error_new_literal (WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_NOT_ACCEPTABLE,
-      "Connection reuse cannot continue without 'resumed' or 'failed' SM nonza");
-  DEBUG ("Cannot continue with '%s': %s", rn->name, error->message);
-
-  abort_connect (self, error);
-  g_error_free (error);
+  if (error == NULL)
+    g_task_return_boolean (t, TRUE);
+  else
+    g_task_return_error (t, error);
+  g_object_unref (t);
 }
 
 static void
@@ -2413,13 +2409,15 @@ wocky_connector_connect_finish (WockyConnector *self,
     gchar **sid,
     GError **error)
 {
+  WockyXmppConnection *conn = self->priv->conn;
   g_return_val_if_fail (g_task_is_valid (res, self), NULL);
 
   if (!g_task_propagate_boolean (G_TASK (res), error))
     return NULL;
 
   connector_propagate_jid_and_sid (self, jid, sid);
-  return self->priv->conn;
+  self->priv->conn = NULL;
+  return conn;
 }
 
 /**
@@ -2438,12 +2436,14 @@ wocky_connector_resume_finish (WockyConnector *self,
     GAsyncResult *res,
     GError **error)
 {
+  WockyXmppConnection *conn = self->priv->conn;
   g_return_val_if_fail (g_task_is_valid (res, self), NULL);
 
   if (!g_task_propagate_boolean (G_TASK (res), error))
     return NULL;
 
-  return self->priv->conn;
+  self->priv->conn = NULL;
+  return conn;
 }
 
 /**
@@ -2631,6 +2631,7 @@ wocky_connector_resume_async (WockyConnector *self,
   g_clear_object (&priv->sock);
   g_clear_object (&priv->conn);
   g_clear_object (&priv->client);
+  g_clear_object (&priv->resume);
   g_clear_object (&priv->features);
   g_clear_pointer (&priv->user, g_free);
   g_clear_pointer (&priv->domain, g_free);
@@ -2638,7 +2639,7 @@ wocky_connector_resume_async (WockyConnector *self,
   priv->connected = FALSE;
   priv->authed = FALSE;
 
-  priv->resume = resume;
+  priv->resume = g_object_ref (resume);
   connector_connect_async (self, wocky_connector_resume_async,
       cancellable, cb, user_data);
 }
