@@ -261,16 +261,13 @@ wocky_xmpp_connection_write_cb (GObject *source,
       &error);
 
   if (G_UNLIKELY (written < 0))
-    {
-      g_task_return_error (priv->output_task, error);
-      goto finished;
-    }
+    goto finished;
 
   if (G_UNLIKELY (written == 0))
     {
-      g_task_return_new_error (priv->output_task,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_EOS,
-        "Connection got disconnected" );
+      g_clear_error (&error);
+      error = g_error_new_literal (WOCKY_XMPP_CONNECTION_ERROR,
+          WOCKY_XMPP_CONNECTION_ERROR_EOS, "Connection got disconnected" );
       goto finished;
     }
 
@@ -295,8 +292,10 @@ finished:
     priv->output_cancellable = NULL;
     priv->output_task = NULL;
 
-    if (!g_task_had_error (t))
+    if (error == NULL)
       g_task_return_boolean (t, TRUE);
+    else
+      g_task_return_error (t, error);
 
     g_object_unref (t);
   }
@@ -462,16 +461,14 @@ _xmpp_connection_received_data (GObject *source,
     result, &error);
 
   if (G_UNLIKELY (size < 0))
-    {
-      g_task_return_error (priv->input_task, error);
-      goto finished;
-    }
+    goto finished;
 
   if (G_UNLIKELY (size == 0))
     {
-      g_task_return_new_error (priv->input_task,
-        WOCKY_XMPP_CONNECTION_ERROR, WOCKY_XMPP_CONNECTION_ERROR_EOS,
-        "Connection got disconnected" );
+      g_clear_error (&error);
+      error = g_error_new_literal (WOCKY_XMPP_CONNECTION_ERROR,
+          WOCKY_XMPP_CONNECTION_ERROR_EOS,
+          "Connection got disconnected" );
       goto finished;
     }
 
@@ -513,8 +510,10 @@ finished:
     priv->input_cancellable = NULL;
     priv->input_task = NULL;
 
-    if (!g_task_had_error (t))
+    if (error == NULL)
       g_task_return_boolean (t, TRUE);
+    else
+      g_task_return_error (t, error);
 
     g_object_unref (t);
   }
