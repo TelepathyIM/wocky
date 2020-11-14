@@ -19,6 +19,22 @@ variables:
     key: "$CI_JOB_IMAGE:$CI_COMMIT_SHA"
     untracked: true
 
+.defbuild:
+  extends: .default
+  stage: build
+  script:
+    - make
+
+.deftest:
+  extends: .default
+  stage: test
+  script:
+    - make check
+  artifacts:
+    when: always
+    paths:
+      - "tests/test-old-report.xml"
+      - "tests/test-new-report.xml"
 
 style-check:
   image: $FEDORA_IMG
@@ -29,90 +45,40 @@ style-check:
 
 fedora-x86_64-build:
   image: $FEDORA_IMG
-  extends: .default
-  stage: build
-  script:
-    - make
+  extends: .defbuild
 
 fedora-x86_64-test:
   image: $FEDORA_IMG
-  stage: test
-  extends: .default
-  script:
-    - make check
-  artifacts:
-    when: always
-    paths:
-      - "tests/test-report.xml"
+  extends: .deftest
 
 debian-x86_64-build:
   image: $DEBIAN_IMG
-  extends: .default
-  stage: build
-  script:
-    - make
+  extends: .defbuild
 
 debian-x86_64-test:
   image: $DEBIAN_IMG
-  stage: test
-  extends: .default
-  script:
-    - make check
-  artifacts:
-    when: always
-    paths:
-      - "tests/test-report.xml"
+  extends: .deftest
 
 opensuse-x86_64-build:
   image: $SUSETW_IMG
-  extends: .default
-  stage: build
-  script:
-    - make
+  extends: .defbuild
 
 opensuse-x86_64-test:
   image: $SUSETW_IMG
-  stage: test
-  extends: .default
-  script:
-    - make check
-  artifacts:
-    when: always
-    paths:
-      - "tests/test-report.xml"
+  extends: .deftest
 
 debian-stable-x86_64-build:
   image: $DEBSTB_IMG
-  extends: .default
-  stage: build
-  script:
-    - make
+  extends: .defbuild
 
 debian-stable-x86_64-test:
   image: $DEBSTB_IMG
-  stage: test
-  extends: .default
-  script:
-    - make check
-  artifacts:
-    when: always
-    paths:
-      - "tests/test-report.xml"
+  extends: .deftest
 
 opensuse-stable-x86_64-build:
   image: $SUSELP_IMG
-  extends: .default
-  stage: build
-  script:
-    - make
+  extends: .defbuild
 
 opensuse-stable-x86_64-test:
   image: $SUSELP_IMG
-  stage: test
-  extends: .default
-  script:
-    - make check
-  artifacts:
-    when: always
-    paths:
-      - "tests/test-report.xml"
+  extends: .deftest
