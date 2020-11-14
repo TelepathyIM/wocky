@@ -133,6 +133,83 @@ wocky_porter_default_init (WockyPorterInterface *iface)
           g_cclosure_marshal_VOID__OBJECT,
           G_TYPE_NONE, 1, WOCKY_TYPE_STANZA);
 
+      /**
+       * WockyPorter::resuming:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resuming signal is emitted when the #WockyPorter detects broken
+       * XMPP connection and start resumption vector of the attached connector.
+       * After this signal all outgoing stanzas will be queued and might be
+       * discarded if XEP-0198 resumption fails. The signal is emitted after
+       * XMPP connection is discarded from the porter (which also sends
+       * notify::connection for changed property) but before connector_resume.
+       * The signal passes resume stanza from the porter which needs to be
+       * passed to the wocky_connector_resume_async call should signal handler
+       * decide to take over the resumption control flow by returning FALSE.
+       */
+      g_signal_new ("resuming", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          NULL, G_TYPE_BOOLEAN, 1, WOCKY_TYPE_STANZA);
+
+      /**
+       * WockyPorter::resumed:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resumed signal is emitted when the #WockyPorter resumed the
+       * XMPP connection, returned from connector and processed XEP-0198
+       * `resumed` nonza. This signal may be used to update UI that connection
+       * is fully available for send/receive now.
+       */
+      g_signal_new ("resumed", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          g_cclosure_marshal_VOID__VOID,
+          G_TYPE_NONE, 0);
+
+      /**
+       * WockyPorter::resume-done:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resume-done signal is emitted when the #WockyPorter finished
+       * flushing sending queues after XMPP connection is resumed.
+       * This signal may be used to reset sending timeouts.
+       */
+      g_signal_new ("resume-done", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          g_cclosure_marshal_VOID__VOID,
+          G_TYPE_NONE, 0);
+
+      /**
+       * WockyPorter::resume-failed:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resume-failed signal is emitted when the #WockyPorter returns
+       * from connector with soft-error - the connection is established but
+       * the session is not found on the server. As per XEP-0198 the client
+       * may proceed with bind at this stage. If signal returns with %FALSE
+       * the porter simply returns from this error without action. You would
+       * need to call wocky_connector_reconnect_async manually to proceed with
+       * the bind (and obtain XMPP connection). If signal returns with %TRUE
+       * then #WockyPorter calls the _reconnect call and proceeds with bind
+       * automatically.
+       * Note: In case of hard-fail #WockyPorter will continue trying to
+       * reconnect with each heartbeat.
+       */
+      g_signal_new ("resume-failed", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          NULL, G_TYPE_BOOLEAN, 0);
+
+      /**
+       * WockyPorter::reconnected:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::reconnected signal is emitted when the #WockyPorter completes
+       * automatic reconnection after resumption soft-fail. The signal carries
+       * new SID and JID of the re-bound session.
+       */
+      g_signal_new ("reconnected", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          NULL, G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_STRING);
+
       g_once_init_leave (&initialization_value, 1);
     }
 }
