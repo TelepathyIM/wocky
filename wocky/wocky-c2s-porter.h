@@ -122,6 +122,20 @@ guint wocky_c2s_porter_register_handler_from_server (
 void wocky_c2s_porter_enable_power_saving_mode (WockyC2SPorter *porter,
     gboolean enable);
 
+typedef struct {
+  gboolean enabled; /* track sent/rcvd stanzas (not nonzas!) */
+  gboolean resumable; /* server confirmed it can resume the stream */
+  gchar *id; /* a unique stream identifier for resumption */
+  gchar *location; /* preferred server address for resumption */
+  gsize timeout; /* a time within which we can try to resume the stream */
+  gsize rcv_count; /* a count of stanzas we've received and processed */
+  gsize snt_count; /* a count of stanzas we've sent over the wire */
+  gsize snt_acked; /* a number of last acked stanzas */
+  gint  reqs;   /* a number of unanswered sm requests */
+} WockyPorterSmCtx;
+
+const WockyPorterSmCtx * wocky_c2s_porter_get_sm_ctx (WockyC2SPorter *self);
+
 void wocky_c2s_porter_resume (WockyC2SPorter *self,
     WockyXmppConnection *connection);
 
