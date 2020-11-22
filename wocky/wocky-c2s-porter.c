@@ -744,6 +744,8 @@ send_stanza_cb (GObject *source,
               || st == WOCKY_STANZA_TYPE_IQ)
             {
               priv->sm->snt_count++;
+              DEBUG ("Queuing stanza %s",
+                  wocky_stanza_get_top_node (elem->stanza)->name);
               g_queue_push_tail (priv->unacked_queue,
                   g_object_ref (elem->stanza));
               g_idle_add (request_ack_in_idle, self);
@@ -1374,7 +1376,6 @@ wocky_c2s_porter_resume (WockyC2SPorter *self,
   priv->connection = connection;
   priv->sending_blocked = FALSE;
   receive_stanza (self);
-  g_signal_emit_by_name (self, "resumed");
 }
 
 static void
@@ -1566,10 +1567,36 @@ wocky_porter_sm_reset (WockyC2SPorter *self)
   priv->sm->timeout = 600;
 }
 
+static void
+wocky_porter_sm_error_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (source);
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  GError *error = NULL;
+  gboolean ret;
+
+  if (user_data)
+    {
+      ret = wocky_porter_send_finish (WOCKY_PORTER (self), res, &error);
+      if (ret)
+        wocky_porter_close_async (WOCKY_PORTER (self),
+            priv->receive_cancellable, wocky_porter_sm_error_cb, NULL);
+    }
+  else
+    {
+      ret = wocky_porter_close_finish (WOCKY_PORTER (self), res, &error);
+      g_signal_emit_by_name (self, "remote-error", WOCKY_XMPP_STREAM_ERROR,
+          WOCKY_XMPP_STREAM_ERROR_UNDEFINED_CONDITION,
+          "Server acknowledged more stanzas than we have sent");
+    }
+}
+
 /* We need to consider normal monotonic increase and uint32 wrap conditions */
 #define ACK_WINDOW(start, stop) ((start <= stop) \
     ? (stop - start) \
-    : ((ULONG_MAX - start) + stop))
+    : ((G_MAXUINT32 - start + 1) + stop))
 #define ACK_WINDOW_MAX 10
 
 static gboolean
@@ -1597,21 +1624,39 @@ wocky_porter_sm_handle_h (WockyC2SPorter *self,
   if (ACK_WINDOW (priv->sm->snt_acked, snt) > ACK_WINDOW (priv->sm->snt_acked,
         priv->sm->snt_count))
     {
-      g_warning ("Invalid acknowledgement %lu, must be between %lu and %lu",
+      /* Try to send a stanza using the closing porter */
+      WockyStanza *error = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+                    WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+                    ':', WOCKY_XMPP_NS_STREAM,
+                    '(', "undefined-condition",
+                      ':', WOCKY_XMPP_NS_STREAMS, ')',
+                    '(', "handled-count-too-high",
+                      ':', WOCKY_XMPP_NS_SM3, ')',
+                    NULL);
+
+      DEBUG ("Invalid acknowledgement %lu, must be between %lu and %lu",
           snt, priv->sm->snt_acked, priv->sm->snt_count);
+      wocky_porter_send_async (WOCKY_PORTER (self), error,
+          priv->receive_cancellable, wocky_porter_sm_error_cb, self);
+
+      g_object_unref (error);
       return FALSE;
     }
 
+  DEBUG ("Acking %lu stanzas handled by the server", snt);
   priv->sm->snt_acked = snt;
   /* now we can head-drop stanzas from unacked_queue till its length is
    * (snt_count - snt_acked) */
   while (g_queue_get_length (priv->unacked_queue)
-          > ACK_WINDOW (priv->sm->snt_count, priv->sm->snt_acked))
+          > ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count))
     {
       WockyStanza *s = g_queue_pop_head (priv->unacked_queue);
       g_assert (s);
       g_object_unref (s);
     }
+  DEBUG ("After ack %u(%lu) stanzas left in the queue",
+      g_queue_get_length (priv->unacked_queue),
+      ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count));
   return TRUE;
 }
 
@@ -1679,7 +1724,7 @@ wocky_porter_sm_handle (WockyC2SPorter *self,
       if ((val = wocky_node_get_attribute (node, "location")) != NULL)
         priv->sm->location = g_strdup (val);
 
-      g_debug ("SM on connection %p is enabled", priv->connection);
+      DEBUG ("SM on connection %p is enabled", priv->connection);
 
       return TRUE;
     }
@@ -1712,9 +1757,21 @@ wocky_porter_sm_handle (WockyC2SPorter *self,
 
       /* passed all sanity checks and trimmed the queue, let's move its
        * content to the sending one */
+      DEBUG ("Moving %u stanzas from SM into sending queue",
+          g_queue_get_length (priv->unacked_queue));
+      /* Note - they will be pushed back to the unacked_queue once sent over
+       * the connection. Thus we need to reset snt_count to prevent its
+       * creeping */
+      priv->sm->snt_count = priv->sm->snt_acked;
       while (!g_queue_is_empty (priv->unacked_queue))
         wocky_c2s_porter_send_async (WOCKY_PORTER (self),
               g_queue_pop_head (priv->unacked_queue), NULL, NULL, NULL);
+
+      /* The signal processign may inject some stanzas breaking the order
+       * of stanzas and thus violating RFC6120. Hence signaling only after
+       * the SM queue is flushed into sending queue */
+      DEBUG ("Emitting resumed signal after SM queue is flushed");
+      g_signal_emit_by_name (self, "resumed");
 
       /* Add `r` to the end of the queue and track its progress */
       smr = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
@@ -1725,7 +1782,7 @@ wocky_porter_sm_handle (WockyC2SPorter *self,
     }
   else if (!g_strcmp0 (node->name, "failed"))
     {
-      g_debug ("SM on connection %p has failed", priv->connection);
+      DEBUG ("SM on connection %p has failed", priv->connection);
       priv->sm->enabled = FALSE;
       wocky_porter_sm_reset (self);
     }
