@@ -129,7 +129,8 @@ typedef void (*test_setup) (gpointer);
 
 typedef struct _ServerParameters ServerParameters;
 struct _ServerParameters {
-  struct { gboolean tls; gchar *auth_mech; gchar *version; } features;
+  struct { gboolean tls; gchar *auth_mech; gchar *version; gchar *need_mech; }
+    features;
   struct { ServerProblem sasl; ConnectorProblem conn; } problem;
   struct { gchar *user; gchar *pass; } auth;
   guint port;
@@ -3359,6 +3360,7 @@ client_connected (GIOChannel *channel,
       srv->auth.user,
       srv->auth.pass,
       srv->features.version,
+      srv->features.need_mech,
       cproblem,
       srv->problem.sasl,
       srv->cert);
@@ -3604,6 +3606,8 @@ run_test (gpointer data)
   g_free (path);
   /* end of cleanup block */
 
+  if (test->server_parameters.features.need_mech == NULL)
+    test->server_parameters.features.need_mech = test->result.mech;
   start_dummy_xmpp_server (&test->server_parameters);
   setup_dummy_dns_entries (test);
 
@@ -3827,22 +3831,18 @@ main (int argc,
 
   mainloop = g_main_loop_new (NULL, FALSE);
 
-#ifdef HAVE_LIBSASL2
-
   for (i = 0; tests[i].desc != NULL; i++)
     g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
 
-#else
-
-  g_message ("libsasl2 not found: skipping SCRAM SASL tests");
-  for (i = 0; tests[i].desc != NULL; i++)
-    {
-      if (!wocky_strdiff (tests[i].result.mech, DEFAULT_SASL_MECH))
-        continue;
-      g_test_add_data_func (tests[i].desc, &tests[i], (test_func)run_test);
-    }
-
-#endif
+  /*
+   * SASL2 support is ridiculous, you can find all possible combinations
+   * where some support SCRAM SHA1 only, other SCRAM SHA256, some even
+   * SCRAM SHA512. But it absolutely does not depend on the version, only
+   * on the build flags. The verdict - if SASL server doesn't return back
+   * DEFAULT_SASL_MECH - we just use in-house implementation. SASL2 becomes
+   * complimentary sanity cross-check feature.
+   * We'll do additional verification in the server initialisation code.
+   */
 
   result = g_test_run ();
   test_deinit ();

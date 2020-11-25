@@ -95,6 +95,7 @@ struct _TestConnectorServerPrivate
   gboolean authed;
 
   TestSaslAuthServer *sasl;
+  gchar *must;
   gchar *mech;
   gchar *user;
   gchar *pass;
@@ -1301,7 +1302,7 @@ feature_stanza (TestConnectorServer *self)
       if (priv->sasl == NULL)
         priv->sasl = test_sasl_auth_server_new (NULL, priv->mech,
             priv->user, priv->pass, NULL, priv->problem.sasl, FALSE);
-      test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), feat);
+      test_sasl_auth_server_set_mechs (G_OBJECT (priv->sasl), feat, priv->must);
     }
 
   if (problem & XMPP_PROBLEM_OLD_AUTH_FEATURE)
@@ -1573,10 +1574,11 @@ xmpp_init (GObject *source,
 
 TestConnectorServer *
 test_connector_server_new (GIOStream *stream,
-    gchar *mech,
+    const gchar *mech,
     const gchar *user,
     const gchar *pass,
     const gchar *version,
+    const gchar *need_mech,
     ConnectorProblem *problem,
     ServerProblem sasl_problem,
     CertSet cert)
@@ -1593,6 +1595,7 @@ test_connector_server_new (GIOStream *stream,
   priv->mech   = g_strdup (mech);
   priv->user   = g_strdup (user);
   priv->pass   = g_strdup (pass);
+  priv->must   = g_strdup (need_mech);
   priv->problem.sasl      = sasl_problem;
   priv->problem.connector = problem;
   priv->conn   = wocky_xmpp_connection_new (stream);

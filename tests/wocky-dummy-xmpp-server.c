@@ -59,7 +59,7 @@ client_connected (GIOChannel *channel,
       g_io_channel_shutdown (channel, TRUE, NULL);
       gconn = g_object_new (G_TYPE_SOCKET_CONNECTION, "socket", gsock, NULL);
       server = test_connector_server_new (G_IO_STREAM (gconn),
-          NULL, "foo", "bar", "1.0",
+          NULL, "foo", "bar", "1.0", NULL,
           &cproblem,
           SERVER_PROBLEM_NO_PROBLEM,
           CERT_STANDARD);

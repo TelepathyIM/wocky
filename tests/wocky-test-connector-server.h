@@ -170,10 +170,11 @@ GType test_connector_server_get_type (void);
    TestConnectorServerClass))
 
 TestConnectorServer * test_connector_server_new (GIOStream *stream,
-    gchar *mech,
+    const gchar *mech,
     const gchar *user,
     const gchar *pass,
     const gchar *version,
+    const gchar *need_mech,
     ConnectorProblem *problem,
     ServerProblem sasl_problem,
     CertSet cert);
