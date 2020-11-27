@@ -1415,6 +1415,7 @@ test_sasl_auth_server_set_mechs (GObject *obj,
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = self->priv;
   WockyNode *mechnode = NULL;
+  const gchar *mech = (must) ? must : priv->mech;
   gboolean hazmech = FALSE;
 
   if (priv->problem != SERVER_PROBLEM_NO_SASL)
@@ -1425,11 +1426,6 @@ test_sasl_auth_server_set_mechs (GObject *obj,
       if (priv->problem == SERVER_PROBLEM_NO_MECHANISMS)
         {
           /* lalala */
-        }
-      else if (priv->mech != NULL)
-        {
-          wocky_node_add_child_with_content (mechnode, "mechanism",
-              priv->mech);
         }
       else
         {
@@ -1448,18 +1444,22 @@ test_sasl_auth_server_set_mechs (GObject *obj,
           mechlist = g_strsplit (mechs, "\n", -1);
           for (tmp = mechlist; *tmp != NULL; tmp++)
             {
+              if (priv->mech && wocky_strdiff (priv->mech, *tmp))
+                continue;
+
               wocky_node_add_child_with_content (mechnode,
                 "mechanism", *tmp);
-              if (!hazmech && !wocky_strdiff (*tmp, must))
+
+              if (!hazmech && !wocky_strdiff (*tmp, mech))
                 hazmech = TRUE;
             }
           g_strfreev (mechlist);
 
-          if (!hazmech && must != NULL
-              && g_str_has_prefix (must, "SCRAM-SHA-"))
+          if (!hazmech && mech != NULL
+              && g_str_has_prefix (mech, "SCRAM-SHA-"))
             {
               /* as said before, this is ridiculous so let's fix that */
-              if (g_str_has_prefix (must, "SCRAM-SHA-256"))
+              if (g_str_has_prefix (mech, "SCRAM-SHA-256"))
                 {
                   if (priv->scram == NULL)
                     priv->scram = g_object_new (WOCKY_TYPE_SASL_SCRAM,
@@ -1467,8 +1467,23 @@ test_sasl_auth_server_set_mechs (GObject *obj,
                         "hash-algo", G_CHECKSUM_SHA256,
                         NULL);
                   wocky_node_add_child_with_content (mechnode,
-                      "mechanism", must);
+                      "mechanism", mech);
                 }
+              else if (g_str_has_prefix (mech, "SCRAM-SHA-512"))
+                {
+                  if (priv->scram == NULL)
+                    priv->scram = g_object_new (WOCKY_TYPE_SASL_SCRAM,
+                        "server", "whatever",
+                        "hash-algo", G_CHECKSUM_SHA512,
+                        NULL);
+                  wocky_node_add_child_with_content (mechnode,
+                      "mechanism", mech);
+                }
+            }
+          else if (!hazmech && priv->mech)
+            {
+              wocky_node_add_child_with_content (mechnode,
+                  "mechanism", priv->mech);
             }
         }
     }
