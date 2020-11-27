@@ -1,0 +1,51 @@
+name: Simple CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  syntax_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install prereqs
+      run: |-
+        sudo apt-get update && sudo apt-get install --no-install-recommends -qq -y build-essential \
+        ccache automake libtool libglib2.0-dev glib-networking telepathy-gabble libsasl2-dev \
+        libxml2-dev libsoup2.4-dev libsasl2-modules-gssapi-mit gnutls-bin libsqlite3-dev \
+        libssl-dev libgnutls28-dev
+    - name: Bootstrap
+      run: bash autogen.sh
+    - name: Code Syntax Check
+      run: make -C wocky check-local
+    - name: Test Syntax Check
+      run: make -C tests check-coding-style
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: wocky/.libs
+        key: ${{ github.sha }}
+    - name: Install prereqs
+      run: |-
+        sudo apt-get update && sudo apt-get install --no-install-recommends -qq -y build-essential \
+        ccache automake libtool libglib2.0-dev glib-networking telepathy-gabble libsasl2-dev \
+        libxml2-dev libsoup2.4-dev libsasl2-modules-gssapi-mit gnutls-bin libsqlite3-dev \
+        libssl-dev libgnutls28-dev
+    - name: Bootstrap
+      run: bash autogen.sh
+    - name: Build
+      run: make
+    - name: Run TLSv1.3 test
+      run: make -C tests test-new
+    - name: Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: Reports
+        path: tests/test*report.xml
+

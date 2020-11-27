@@ -225,7 +225,7 @@ stream_open_sent (GObject *source,
   /* Send stream features */
   stanza = wocky_stanza_new ("features", WOCKY_XMPP_NS_STREAM);
 
-  test_sasl_auth_server_set_mechs (G_OBJECT (self), stanza);
+  test_sasl_auth_server_set_mechs (G_OBJECT (self), stanza, NULL);
 
   wocky_xmpp_connection_send_stanza_async (priv->conn, stanza,
     priv->cancellable, features_sent, user_data);
@@ -833,6 +833,25 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
       else
         ret = SASL_NOUSER;
     }
+  else if (priv->scram && g_str_has_prefix (priv->selected_mech, "SCRAM-SHA-"))
+    {
+      ScramRes res = { self, NULL, FALSE };
+
+      wocky_sasl_scram_server_start_async (priv->scram, (gchar *) response,
+          handle_auth_cb, priv->cancellable, &res);
+
+      while (!res.complete)
+        g_main_context_iteration (NULL, FALSE);
+
+      if (res.challenge)
+        {
+          ret = 1; /* SASL_CONTINUE */
+          challenge = res.challenge;
+          challenge_len = strlen (challenge);
+        }
+      else
+        ret = SASL_NOUSER;
+    }
   else
     {
 #if HAVE_LIBSASL2
@@ -999,6 +1018,25 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
           g_free (response);
           response = (guchar *) r;
         }
+
+      wocky_sasl_scram_server_step_async (priv->scram, (gchar *) response,
+          handle_response_cb, priv->cancellable, &res);
+
+      while (!res.complete)
+        g_main_context_iteration (NULL, FALSE);
+
+      if (res.challenge)
+        {
+          ret = SASL_OK;
+          challenge = res.challenge;
+          challenge_len = strlen (challenge);
+        }
+      else
+        ret = SASL_BADAUTH;
+    }
+  else if (priv->scram && g_str_has_prefix (priv->selected_mech, "SCRAM-SHA-"))
+    {
+      ScramRes res = { self, NULL, FALSE };
 
       wocky_sasl_scram_server_step_async (priv->scram, (gchar *) response,
           handle_response_cb, priv->cancellable, &res);
@@ -1315,12 +1353,15 @@ test_sasl_auth_server_auth_async (GObject *obj,
 }
 
 gint
-test_sasl_auth_server_set_mechs (GObject *obj, WockyStanza *feat)
+test_sasl_auth_server_set_mechs (GObject *obj,
+    WockyStanza *feat,
+    const gchar *must)
 {
   int ret = 0;
   TestSaslAuthServer *self = TEST_SASL_AUTH_SERVER (obj);
   TestSaslAuthServerPrivate *priv = self->priv;
   WockyNode *mechnode = NULL;
+  gboolean hazmech = FALSE;
 
   if (priv->problem != SERVER_PROBLEM_NO_SASL)
     {
@@ -1355,8 +1396,26 @@ test_sasl_auth_server_set_mechs (GObject *obj, WockyStanza *feat)
             {
               wocky_node_add_child_with_content (mechnode,
                 "mechanism", *tmp);
+              if (!hazmech && !wocky_strdiff (*tmp, must))
+                hazmech = TRUE;
             }
           g_strfreev (mechlist);
+
+          if (!hazmech && must != NULL
+              && g_str_has_prefix (must, "SCRAM-SHA-"))
+            {
+              /* as said before, this is ridiculous so let's fix that */
+              if (g_str_has_prefix (must, "SCRAM-SHA-256"))
+                {
+                  if (priv->scram == NULL)
+                    priv->scram = g_object_new (WOCKY_TYPE_SASL_SCRAM,
+                        "server", "whatever",
+                        "hash-algo", G_CHECKSUM_SHA256,
+                        NULL);
+                  wocky_node_add_child_with_content (mechnode,
+                      "mechanism", must);
+                }
+            }
         }
     }
   return ret;

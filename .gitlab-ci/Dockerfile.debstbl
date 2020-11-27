@@ -1,0 +1,29 @@
+FROM debian:stable
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -qq -y build-essential \
+			ccache automake libtool lcov \
+			libglib2.0-dev glib-networking \
+    && apt-get clean
+
+RUN apt-get install -qqy telepathy-gabble libsasl2-dev libxml2-dev \
+			libsoup2.4-dev libsasl2-modules-gssapi-mit \
+			gnutls-bin libsqlite3-dev libssl-dev libgnutls28-dev \
+    && apt-get clean
+
+# Debug the docker if required
+#RUN echo 'deb http://debug.mirrors.debian.org/debian-debug testing-debug main' > /etc/apt/sources.list.d/debug.list \
+#    && apt-get update \
+#    && apt-get install -yqq libsasl2-modules-gssapi-mit-dbgsym libsasl2-2-dbgsym \
+#		libglib2.0-0-dbgsym glib-networking-dbgsym libssl1.1-dbgsym libgnutls30-dbgsym \
+#		valgrind gdb git vim
+
+ARG HOST_USER_ID=1000
+ENV HOST_USER_ID ${HOST_USER_ID}
+RUN useradd -u $HOST_USER_ID -ms /bin/bash user
+RUN ln -fs /usr/bin/python3 /usr/local/bin/python
+
+USER user
+WORKDIR /home/user
+
+ENV LANG C.UTF-8

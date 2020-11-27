@@ -23,6 +23,8 @@ BADWILD_KEY  := $(CERT_DIR)/badwild-key.pem
 BADWILD_CERT := $(CERT_DIR)/badwild-cert.pem
 CA_DIR   := $(CERT_DIR)/cas
 CRL_DIR  := $(CERT_DIR)/crl
+UNKNOWN_CA_KEY  := $(CERT_DIR)/unknown-ca-key.pem
+UNKNOWN_CA_CERT := $(CERT_DIR)/unknown-ca-cert.pem
 UNKNOWN_KEY  := $(CERT_DIR)/unknown-key.pem
 UNKNOWN_CERT := $(CERT_DIR)/unknown-cert.pem
 INCLUDES := -I$(top_builddir)/wocky
@@ -51,13 +53,19 @@ TLSDEFS  := -DTLS_CA_KEY_FILE='"$(CA_KEY)"'      \
 
 CA0S = $(BADWILD_CERT) $(WILD_CERT) $(TLS_CERT) $(NEW_CERT) $(EXP_CERT) $(REV_CERT) $(SS_CERT) $(INS_CERT)
 
-certs: $(CA0S)
+certs: $(CA0S) $(UNKNOWN_CERT)
 
 $(CA0S): $(CERT_DIR)/%-cert.pem: $(CERT_DIR)/%-cert.cfg $(CA_CERT) $(CA_KEY)
 	certtool --generate-certificate --template $< --outfile $@ --load-privkey certs/$*-key.pem --load-ca-certificate $(CA_CERT) --load-ca-privkey $(CA_KEY)
 
 $(INS_CERT): $(CERT_DIR)/ins-cert.cfg $(INS_KEY) $(CA_CERT) $(CA_KEY)
-	certtool --generate-certificate --template $< --outfile $@ --load-privkey certs/$*-key.pem --load-ca-certificate $(CA_CERT) --load-ca-privkey $(CA_KEY) --hash SHA1
+	certtool --generate-certificate --template $< --outfile $@ --load-privkey $(INS_KEY) --load-ca-certificate $(CA_CERT) --load-ca-privkey $(CA_KEY) --hash SHA1
+
+$(UNKNOWN_CA_CERT): $(CERT_DIR)/unknown-ca-cert.cfg $(UNKNOWN_CA_KEY)
+	certtool --generate-self-signed --template $< --outfile $@ --load-privkey $(UNKNOWN_CA_KEY)
+
+$(UNKNOWN_CERT): $(CERT_DIR)/unknown-cert.cfg $(UNKNOWN_KEY) $(UNKNOWN_CA_CERT) $(UNKNOWN_CA_KEY)
+	certtool --generate-certificate --template $< --outfile $@ --load-privkey $(UNKNOWN_KEY) --load-ca-certificate $(UNKNOWN_CA_CERT) --load-ca-privkey $(UNKNOWN_CA_KEY)
 ############################################################################
 TEST_PROGS = \
   wocky-bare-contact-test \
@@ -261,14 +269,22 @@ test-report: test-report.xml
 
 test-report.xml: ${TEST_PROGS} test
 
-test: ${TEST_PROGS}
-	G_TLS_GNUTLS_PRIORITY='NORMAL:%COMPAT:-VERS-TLS1.3' \
-	  gtester -o test-report.xml -k --verbose ${TEST_PROGS}
+test: test-old test-new
 	@if [ -x $(which python) ] ; then \
-		$(SUMMARY) $@-report.xml ; \
+                echo "TLSv1.2 Test summary" ; \
+		$(SUMMARY) test-old-report.xml ; \
+                echo "TLSv1.3 Test summary" ; \
+		$(SUMMARY) test-new-report.xml ; \
 	else \
 		echo "No python available, not summarizing test results" ; \
 	fi
+
+test-new: ${TEST_PROGS}
+	gtester -o $@-report.xml -k --verbose ${TEST_PROGS}
+
+test-old: ${TEST_PROGS}
+	G_TLS_GNUTLS_PRIORITY='NORMAL:%COMPAT:-VERS-TLS1.3' \
+	  gtester -o $@-report.xml -k --verbose ${TEST_PROGS}
 
 test-%: wocky-%-test
 	gtester -o $@-report.xml -k --verbose $<
