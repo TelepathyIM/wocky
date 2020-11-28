@@ -4,11 +4,11 @@ stages:
   - test
 
 variables:
-  FEDORA_IMG: registry.freedesktop.org/ruff/wocky/master:v1
-  DEBIAN_IMG: registry.freedesktop.org/ruff/wocky/debtest:v1
-  DEBSTB_IMG: registry.freedesktop.org/ruff/wocky/debstbl:v1
-  SUSELP_IMG: registry.freedesktop.org/ruff/wocky/osuselp:v1
-  SUSETW_IMG: registry.freedesktop.org/ruff/wocky/osusetw:v1
+  FEDORA_IMG: registry.freedesktop.org/telepathy/wocky/master:v1
+  DEBIAN_IMG: registry.freedesktop.org/telepathy/wocky/debtest:v1
+  DEBSTB_IMG: registry.freedesktop.org/telepathy/wocky/debstbl:v1
+  SUSELP_IMG: registry.freedesktop.org/telepathy/wocky/osuselp:v1
+  SUSETW_IMG: registry.freedesktop.org/telepathy/wocky/osusetw:v1
   WOCKY_DEBUG: all
   #G_MESSAGES_DEBUG: all
 
