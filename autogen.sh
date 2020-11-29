@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
-
-which gtkdocize && ( gtkdocize || exit 1 ) || echo "EXTRA_DIST = " > gtk-doc.make
+command -v gtkdocize && ( gtkdocize || exit 1 ) || echo "EXTRA_DIST = " > gtk-doc.make
 
 if test -n "$AUTOMAKE"; then
     : # don't override an explicit user request
