@@ -704,6 +704,7 @@ handle_auth_cb (GObject      *source,
     {
       g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NO_CREDENTIALS);
       g_assert_null (res->challenge);
+      g_error_free (error);
     }
   else
     {
@@ -787,30 +788,37 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
           if (!g_tls_connection_get_channel_binding_data ((GTlsConnection *) ios,
                   G_TLS_CHANNEL_BINDING_TLS_UNIQUE, cb, &err))
             {
-              g_error ("Error getting binding data: %s", err->message);
-              g_assert_not_reached ();
+              g_assert_error (err, G_TLS_CHANNEL_BINDING_ERROR,
+                  G_TLS_CHANNEL_BINDING_ERROR_NOT_IMPLEMENTED);
+              g_error_free (err);
+              if (priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING
+                  || priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG
+                  || priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA)
+                g_test_skip ("GIO backend (glib-networking) does not support tls channel binding");
             }
-
-          if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA)
-            cb->data[0] ^= cb->data[1];
-          else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG
-                || priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
+          else
             {
-              gchar *r;
-              g_assert_true (g_str_has_prefix ((gchar *) response, "p=tls-unique,"));
-              r = g_strdup_printf ("n%s", response + 12);
-              g_free (response);
-              response = (guchar *) r;
-            }
+              if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA)
+                cb->data[0] ^= cb->data[1];
+              else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG
+                    || priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
+                {
+                  gchar *r;
+                  g_assert_true (g_str_has_prefix ((gchar *) response, "p=tls-unique,"));
+                  r = g_strdup_printf ("n%s", response + 12);
+                  g_free (response);
+                  response = (guchar *) r;
+                }
 
-          cb64 = g_base64_encode (cb->data, cb->len);
-          g_byte_array_unref (cb);
-          g_object_set (G_OBJECT (priv->scram),
+              cb64 = g_base64_encode (cb->data, cb->len);
+              g_byte_array_unref (cb);
+              g_object_set (G_OBJECT (priv->scram),
                         "cb-type", WOCKY_TLS_BINDING_TLS_UNIQUE,
                         "cb-data", cb64,
                         NULL);
-          g_debug ("TLS binding: %s", cb64);
-          g_free (cb64);
+              g_debug ("TLS binding: %s", cb64);
+              g_free (cb64);
+            }
         }
       else
         g_debug ("No TLS");
@@ -951,18 +959,42 @@ handle_response_cb (GObject      *source,
     }
   else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_DATA)
     {
-      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE);
-      g_assert_null (res->challenge);
+      if (!g_test_failed ())
+        {
+          g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE);
+          g_assert_null (res->challenge);
+        }
+      else
+        {
+          g_clear_pointer (&res->challenge, g_free);
+          g_assert_no_error (error);
+        }
     }
   else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG)
     {
-      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE);
-      g_assert_null (res->challenge);
+      if (!g_test_failed ())
+        {
+          g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE);
+          g_assert_null (res->challenge);
+        }
+      else
+        {
+          g_clear_pointer (&res->challenge, g_free);
+          g_assert_no_error (error);
+        }
     }
   else if (priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
     {
-      g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_AUTHORIZED);
-      g_assert_null (res->challenge);
+      if (!g_test_failed ())
+        {
+          g_assert_error (error, WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_NOT_AUTHORIZED);
+          g_assert_null (res->challenge);
+        }
+      else
+        {
+          g_clear_pointer (&res->challenge, g_free);
+          g_assert_no_error (error);
+        }
 
       /* Now pretend it didn't happen and provide phony server verification */
       res->challenge = g_strdup_printf ("v=%s",
