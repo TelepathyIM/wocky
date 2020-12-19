@@ -494,9 +494,13 @@ wocky_connector_set_property (GObject *object,
         priv->session_id = g_value_dup_string (value);
         break;
       case PROP_AUTH_REGISTRY:
+        if (priv->auth_registry != NULL)
+          g_object_unref (priv->auth_registry);
         priv->auth_registry = g_value_dup_object (value);
         break;
       case PROP_TLS_HANDLER:
+        if (priv->tls_handler != NULL)
+          g_object_unref (priv->tls_handler);
         priv->tls_handler = g_value_dup_object (value);
         break;
       default:
@@ -747,7 +751,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
    */
   spec = g_param_spec_object ("auth-registry", "Authentication Registry",
       "Authentication Registry", WOCKY_TYPE_AUTH_REGISTRY,
-      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_AUTH_REGISTRY, spec);
 
   /**
@@ -758,7 +762,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
    */
   spec = g_param_spec_object ("tls-handler", "TLS Handler",
       "TLS Handler", WOCKY_TYPE_TLS_HANDLER,
-      (G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      (G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (oclass, PROP_TLS_HANDLER, spec);
 
   /**
