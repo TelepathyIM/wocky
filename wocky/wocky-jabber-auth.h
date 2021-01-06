@@ -91,10 +91,6 @@ gboolean wocky_jabber_auth_authenticate_finish (WockyJabberAuth *self,
   GAsyncResult *result,
   GError **error);
 
-void
-wocky_jabber_auth_add_handler (WockyJabberAuth *auth,
-    WockyAuthHandler *handler);
-
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_JABBER_AUTH_H__*/

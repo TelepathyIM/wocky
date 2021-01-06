@@ -92,9 +92,6 @@ gboolean wocky_sasl_auth_authenticate_finish (WockySaslAuth *sasl,
   GAsyncResult *result,
   GError **error);
 
-void
-wocky_sasl_auth_add_handler (WockySaslAuth *auth, WockyAuthHandler *handler);
-
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_SASL_AUTH_H__*/

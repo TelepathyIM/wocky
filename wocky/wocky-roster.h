@@ -115,8 +115,6 @@ typedef enum {
   WOCKY_ROSTER_ERROR_NOT_IN_ROSTER,
 } WockyRosterError;
 
-GQuark wocky_roster_error_quark (void);
-
 /**
  * WOCKY_ROSTER_ERROR:
  *
