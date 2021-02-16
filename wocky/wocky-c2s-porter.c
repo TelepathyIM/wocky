@@ -2653,6 +2653,33 @@ send_whitespace_ping_cb (GObject *source,
   g_object_unref (task);
 }
 
+static void
+force_close_conn_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  GTask *task = G_TASK (user_data);
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (g_task_get_source_object (task));
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  GError *error = NULL;
+
+  priv->sending_blocked = FALSE;
+
+  if (wocky_xmpp_connection_force_close_finish (conn, res, &error))
+    g_task_return_boolean (task, TRUE);
+  else
+    {
+      DEBUG ("Error closing connection: %s", error->message);
+      g_task_return_error (task, error);
+    }
+
+  g_object_unref (task);
+
+  /* reset unacked request number, those are lost */
+  priv->sm->reqs = 0;
+}
+
 /**
  * wocky_c2s_porter_send_whitespace_ping_async:
  * @self: a #WockyC2SPorter
@@ -2698,11 +2725,19 @@ wocky_c2s_porter_send_whitespace_ping_async (WockyC2SPorter *self,
        * acks hence need to catch-up the latest acks when idle. */
       if (priv->sm && priv->sm->enabled)
         {
-          WockyStanza *r = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
-          wocky_xmpp_connection_send_stanza_async (priv->connection, r,
-              cancellable, send_whitespace_ping_cb, g_object_ref (task));
-          g_object_unref (r);
-          priv->sm->reqs++;
+          if (priv->sm->reqs++ < 2)
+            {
+              WockyStanza *r = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+              DEBUG ("Ack pressure: %d", priv->sm->reqs);
+              wocky_xmpp_connection_send_stanza_async (priv->connection, r,
+                  cancellable, send_whitespace_ping_cb, g_object_ref (task));
+              g_object_unref (r);
+            }
+          else
+            {
+              wocky_xmpp_connection_force_close_async (priv->connection,
+                  cancellable, force_close_conn_cb, g_object_ref (task));
+            }
         }
       else
         {
