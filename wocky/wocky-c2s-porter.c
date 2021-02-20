@@ -1486,7 +1486,7 @@ resume_connection (WockyC2SPorter *self)
   WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
   WockyStanza *resume = wocky_stanza_new ("resume", WOCKY_XMPP_NS_SM3);
   WockyNode *rn = wocky_stanza_get_top_node (resume);
-  gchar *val = g_strdup_printf ("%lu", priv->sm->rcv_count);
+  gchar *val = g_strdup_printf ("%zu", priv->sm->rcv_count);
   gboolean ret = TRUE;
 
   g_assert (priv->sm);
@@ -1634,7 +1634,7 @@ wocky_porter_sm_handle_h (WockyC2SPorter *self,
                       ':', WOCKY_XMPP_NS_SM3, ')',
                     NULL);
 
-      DEBUG ("Invalid acknowledgement %lu, must be between %lu and %lu",
+      DEBUG ("Invalid acknowledgement %zu, must be between %zu and %zu",
           snt, priv->sm->snt_acked, priv->sm->snt_count);
       wocky_porter_send_async (WOCKY_PORTER (self), error,
           priv->receive_cancellable, wocky_porter_sm_error_cb, self);
@@ -1643,7 +1643,7 @@ wocky_porter_sm_handle_h (WockyC2SPorter *self,
       return FALSE;
     }
 
-  DEBUG ("Acking %lu stanzas handled by the server", snt);
+  DEBUG ("Acking %zu stanzas handled by the server", snt);
   priv->sm->snt_acked = snt;
   /* now we can head-drop stanzas from unacked_queue till its length is
    * (snt_count - snt_acked) */
@@ -1654,7 +1654,7 @@ wocky_porter_sm_handle_h (WockyC2SPorter *self,
       g_assert (s);
       g_object_unref (s);
     }
-  DEBUG ("After ack %u(%lu) stanzas left in the queue",
+  DEBUG ("After ack %u(%zu) stanzas left in the queue",
       g_queue_get_length (priv->unacked_queue),
       ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count));
   return TRUE;
@@ -1693,7 +1693,7 @@ wocky_porter_sm_handle (WockyC2SPorter *self,
     {
       WockyStanza *a = wocky_stanza_new ("a", WOCKY_XMPP_NS_SM3);
       WockyNode *an = wocky_stanza_get_top_node (a);
-      gchar *val = g_strdup_printf ("%lu", priv->sm->rcv_count);
+      gchar *val = g_strdup_printf ("%zu", priv->sm->rcv_count);
 
       wocky_node_set_attribute (an, "h", val);
       g_free (val);

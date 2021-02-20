@@ -622,7 +622,7 @@ iq_result (GObject *source,
   g_assert_cmpint (smc->snt_count, ==, 1);
   g_assert_cmpint (smc->rcv_count, ==, 1);
 
-  g_debug ("Acked: %lu", smc->snt_acked);
+  g_debug ("Acked: %zu", smc->snt_acked);
   wocky_c2s_porter_send_whitespace_ping_async (WOCKY_C2S_PORTER (test->porter),
       NULL, smreqd, test);
 }

@@ -55,6 +55,7 @@ typedef int (*sasl_callback_ft)(void);
 #else
 
 #define SASL_OK 0
+#define SASL_BADPROT  -5
 #define SASL_BADAUTH -13
 #define SASL_NOUSER  -20
 #define CHECK_SASL_RETURN(x) \
@@ -720,8 +721,8 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
 {
   TestSaslAuthServerPrivate *priv = self->priv;
   guchar *response = NULL;
-  const gchar *challenge;
-  unsigned challenge_len;
+  const gchar *challenge = NULL;
+  unsigned challenge_len = 0;
   gsize response_len = 0;
   int ret;
   WockyNode *auth = wocky_stanza_get_top_node (stanza);
@@ -1036,8 +1037,8 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
 {
   TestSaslAuthServerPrivate * priv = self->priv;
   guchar *response = NULL;
-  const gchar *challenge;
-  unsigned challenge_len;
+  const gchar *challenge = NULL;
+  unsigned challenge_len = 0;
   gsize response_len = 0;
   int ret;
 
