@@ -65,8 +65,11 @@
 #define WOCKY_XMPP_NS_EVENT \
   "jabber:x:event"
 
-#define WOCKY_XMPP_NS_DELAY \
+#define WOCKY_NS_JABBER_DELAY \
   "jabber:x:delay"
+
+#define WOCKY_XMPP_NS_DELAY \
+  "urn:xmpp:delay"
 
 #define WOCKY_XMPP_NS_STANZAS \
   "urn:ietf:params:xml:ns:xmpp-stanzas"

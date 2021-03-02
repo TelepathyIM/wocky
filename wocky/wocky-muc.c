@@ -1412,12 +1412,16 @@ get_message_sender (WockyMuc *muc,
 static GDateTime *
 extract_timestamp (WockyNode *msg)
 {
-  WockyNode *x = wocky_node_get_child_ns (msg, "x", WOCKY_XMPP_NS_DELAY);
+  WockyNode *x = wocky_node_get_child_ns (msg, "x", WOCKY_NS_JABBER_DELAY);
   GDateTime *stamp = NULL;
+
+  if (x == NULL)
+    x = wocky_node_get_child_ns (msg, "delay", WOCKY_XMPP_NS_DELAY);
 
   if (x != NULL)
     {
       const gchar *tm = wocky_node_get_attribute (x, "stamp");
+      GTimeZone *tz = g_time_zone_new_utc ();
 
       /* These timestamps do not contain a timezone, but are understood to be
        * in GMT. They're in the format yyyymmddThhmmss, so if we append 'Z'
@@ -1425,9 +1429,10 @@ extract_timestamp (WockyNode *msg)
        */
       if (tm != NULL)
         {
-          if ((stamp = g_date_time_new_from_iso8601 (tm, NULL)) == NULL)
+          if ((stamp = g_date_time_new_from_iso8601 (tm, tz)) == NULL)
             DEBUG ("Malformed date string '%s' for " WOCKY_XMPP_NS_DELAY, tm);
         }
+      g_time_zone_unref (tz);
     }
 
   return stamp;
