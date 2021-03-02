@@ -286,6 +286,33 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
    * and then translate GIO validation error to Wocky language with the above dictionary  */
   peer_cert_status = g_tls_connection_get_peer_certificate_errors (G_TLS_CONNECTION (session));
 
+  /* Force-override identity check if required */
+  if (peer_cert_status & check & G_TLS_CERTIFICATE_BAD_IDENTITY
+      && extra_identities && *extra_identities)
+    {
+      GTlsCertificate *cert = g_tls_connection_get_peer_certificate (
+          G_TLS_CONNECTION (session));
+
+      DEBUG ("Checking extra identities");
+      for (int i=0; extra_identities[i] != NULL; i++)
+        {
+          GSocketConnectable *xid = g_network_address_new (extra_identities[i], 0);
+          GTlsCertificateFlags flags = g_tls_certificate_verify (cert,
+              xid, NULL);
+
+          g_object_unref (xid);
+
+          if (!(flags & G_TLS_CERTIFICATE_BAD_IDENTITY))
+            {
+              /* The certificate matches extra identity therefore disable
+               * identity checks */
+              DEBUG ("Certificate identity matches extra id %s", extra_identities[i]);
+              check &= ~G_TLS_CERTIFICATE_BAD_IDENTITY;
+              break;
+            }
+        }
+    }
+
   if (peer_cert_status & check)
     { /* gio cert checking can return multiple errors bitwise &ed together    *
        * but we are realy only interested in the "most important" error:      */
@@ -293,7 +320,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
       for (x = 0; status_map[x].gio != 0; x++)
         {
           DEBUG ("checking gio error %d", status_map[x].gio);
-          if (peer_cert_status & status_map[x].gio)
+          if (peer_cert_status & check & status_map[x].gio)
             {
               DEBUG ("gio error %d set", status_map[x].gio);
               *status = status_map[x].wocky;
