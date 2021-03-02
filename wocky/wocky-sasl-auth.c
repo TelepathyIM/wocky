@@ -289,9 +289,9 @@ auth_failed (WockySaslAuth *sasl, gint code, const gchar *format, ...)
 
   error = g_error_new_literal (WOCKY_AUTH_ERROR, code, message);
 
-  g_task_return_error (t, g_error_copy (error));
-
   wocky_auth_registry_failure (priv->auth_registry, error);
+
+  g_task_return_error (t, g_error_copy (error));
 
   g_object_unref (t);
 
