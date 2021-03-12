@@ -4,29 +4,41 @@ stages:
   - test
 
 variables:
-  FEDORA_IMG: registry.freedesktop.org/telepathy/wocky/master:v1
-  DEBIAN_IMG: registry.freedesktop.org/telepathy/wocky/debtest:v1
-  DEBSTB_IMG: registry.freedesktop.org/telepathy/wocky/debstbl:v1
-  SUSELP_IMG: registry.freedesktop.org/telepathy/wocky/osuselp:v1
-  SUSETW_IMG: registry.freedesktop.org/telepathy/wocky/osusetw:v1
+  FEDORA_AC: registry.freedesktop.org/telepathy/wocky/master:v1
+  DEBIAN_AC: registry.freedesktop.org/telepathy/wocky/debtest:v1
+  DEBSTB_AC: registry.freedesktop.org/telepathy/wocky/debstbl:v1
+  SUSELP_AC: registry.freedesktop.org/telepathy/wocky/osuselp:v1
+  SUSETW_AC: registry.freedesktop.org/telepathy/wocky/osusetw:v1
+  FEDORA_MB: registry.freedesktop.org/telepathy/telepathy-gabble/fedoraw:v1
+  DEBIAN_MB: registry.freedesktop.org/telepathy/telepathy-gabble/debtest:v1
+  DEBSTB_MB: registry.freedesktop.org/telepathy/telepathy-gabble/debstbl:v1
+  SUSELP_MB: registry.freedesktop.org/telepathy/telepathy-gabble/osuselp:v1
+  SUSETW_MB: registry.freedesktop.org/telepathy/telepathy-gabble/osusetw:v1
   WOCKY_DEBUG: all
   #G_MESSAGES_DEBUG: all
 
-.default:
+.def_ac:
   before_script:
     - bash autogen.sh
   cache:
     key: "$CI_JOB_IMAGE:$CI_COMMIT_SHA"
     untracked: true
 
+.def_mb:
+  before_script:
+    - test -d _b || meson _b -Dgoogle-relay=true
+  cache:
+    key: "$CI_JOB_IMAGE:$CI_COMMIT_SHA"
+    untracked: true
+
 .defbuild:
-  extends: .default
+  extends: .def_ac
   stage: build
   script:
     - make
 
 .deftest:
-  extends: .default
+  extends: .def_ac
   stage: test
   script:
     - make check
@@ -36,49 +48,78 @@ variables:
       - "tests/test-old-report.xml"
       - "tests/test-new-report.xml"
 
-style-check:
-  image: $FEDORA_IMG
-  extends: .default
+style-ck-ac:
+  extends: .def_ac
   stage: style-check
+  image: $FEDORA_AC
   script:
     - make -C wocky check-local
+    - make -C tests check-coding-style
 
-fedora-x86_64-build:
-  image: $FEDORA_IMG
+style-ck-mb:
+  extends: .def_mb
+  stage: style-check
+  image: $FEDORA_MB
+  script:
+    - ninja -C _b check
+
+build-ac:
   extends: .defbuild
+  image: $image
+  parallel:
+    matrix:
+      - image:
+        - $FEDORA_AC
+        #- $DEBIAN_AC
+        - $SUSETW_AC
+        - $DEBSTB_AC
+        - $SUSELP_AC
 
-fedora-x86_64-test:
-  image: $FEDORA_IMG
+build-mb:
+  extends: .def_mb
+  stage: build
+  image: $image
+  script:
+    - ninja -C _b
+  parallel:
+    matrix:
+      - image:
+        - $FEDORA_MB
+        - $DEBIAN_MB
+        #- $SUSETW_MB
+        - $DEBSTB_MB
+        - $SUSELP_MB
+
+test-ac:
   extends: .deftest
+  image: $image
+  parallel:
+    matrix:
+      - image:
+        - $FEDORA_AC
+        #- $DEBIAN_AC
+        - $SUSETW_AC
+        - $DEBSTB_AC
+        - $SUSELP_AC
 
-debian-x86_64-build:
-  image: $DEBIAN_IMG
-  extends: .defbuild
+test-mb:
+  extends: .def_mb
+  stage: test
+  image: $image
+  script:
+    - meson test -C _b
+  artifacts:
+    reports:
+    expire_in: 1 week
+    when: always
+    paths:
+      - "_b/meson-logs"
+  parallel:
+    matrix:
+      - image:
+        - $FEDORA_MB
+        - $DEBIAN_MB
+        #- $SUSETW_MB
+        - $DEBSTB_MB
+        - $SUSELP_MB
 
-debian-x86_64-test:
-  image: $DEBIAN_IMG
-  extends: .deftest
-
-opensuse-x86_64-build:
-  image: $SUSETW_IMG
-  extends: .defbuild
-
-opensuse-x86_64-test:
-  image: $SUSETW_IMG
-  extends: .deftest
-
-debian-stable-x86_64-build:
-  image: $DEBSTB_IMG
-  extends: .defbuild
-
-debian-stable-x86_64-test:
-  image: $DEBSTB_IMG
-  extends: .deftest
-
-opensuse-stable-x86_64-build:
-  image: $SUSELP_IMG
-  extends: .defbuild
-
-opensuse-stable-x86_64-test:
-  image: $SUSELP_IMG
-  extends: .deftest

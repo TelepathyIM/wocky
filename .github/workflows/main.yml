@@ -4,9 +4,33 @@ on:
   pull_request:
 
 jobs:
-  syntax_check:
+  build-meson:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install prereqs
+      run: |-
+        sudo apt-get update && sudo apt-get install --no-install-recommends -qq -y build-essential \
+        ccache meson libglib2.0-dev glib-networking telepathy-gabble libsasl2-dev libxml2-dev \
+        libsoup2.4-dev libsasl2-modules-gssapi-mit gnutls-bin libsqlite3-dev libssl-dev libgnutls28-dev
+    - name: Bootstrap
+      run: meson _b
+    - name: Syntax
+      run: ninja -C _b check
+    - name: Build
+      run: ninja -C _b
+    - name: Run tests
+      run: meson test -C _b
+    - name: Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: Reports
+        path: _b/meson-logs/
+
+  build-autotools:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v2
     - name: Install prereqs
@@ -21,24 +45,6 @@ jobs:
       run: make -C wocky check-local
     - name: Test Syntax Check
       run: make -C tests check-coding-style
-
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: wocky/.libs
-        key: ${{ github.sha }}
-    - name: Install prereqs
-      run: |-
-        sudo apt-get update && sudo apt-get install --no-install-recommends -qq -y build-essential \
-        ccache automake libtool libglib2.0-dev glib-networking telepathy-gabble libsasl2-dev \
-        libxml2-dev libsoup2.4-dev libsasl2-modules-gssapi-mit gnutls-bin libsqlite3-dev \
-        libssl-dev libgnutls28-dev
-    - name: Bootstrap
-      run: bash autogen.sh
     - name: Build
       run: make
     - name: Run TLSv1.3 test
@@ -48,4 +54,3 @@ jobs:
       with:
         name: Reports
         path: tests/test*report.xml
-
