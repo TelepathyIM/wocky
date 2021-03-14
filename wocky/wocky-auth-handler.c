@@ -5,34 +5,13 @@
 #include "wocky-auth-handler.h"
 #include "wocky-auth-registry.h"
 
-GType
-wocky_auth_handler_get_type (void)
+typedef WockyAuthHandlerIface WockyAuthHandlerInterface;
+
+G_DEFINE_INTERFACE (WockyAuthHandler, wocky_auth_handler, G_TYPE_OBJECT)
+
+static void
+wocky_auth_handler_default_init (WockyAuthHandlerInterface *iface)
 {
-  static volatile gsize g_define_type_id__volatile = 0;
-
-  if (g_once_init_enter (&g_define_type_id__volatile))
-    {
-      const GTypeInfo info =
-      {
-        /* class_size */ sizeof (WockyAuthHandlerIface),
-        /* base_init */ NULL,
-        /* base_finalize */ NULL,
-        /* class_init */ NULL,
-        /* class_finalize */ NULL,
-        /* class_data */ NULL,
-        /* instance_size */ 0,
-        /* n_preallocs */ 0,
-        /* instance_init */ NULL,
-        /* value_table */ NULL
-      };
-      GType g_define_type_id = g_type_register_static (
-          G_TYPE_INTERFACE, "WockyAuthHandler", &info, 0);
-
-      g_type_interface_add_prerequisite (g_define_type_id, G_TYPE_OBJECT);
-      g_once_init_leave (&g_define_type_id__volatile, g_define_type_id);
-    }
-
-  return g_define_type_id__volatile;
 }
 
 /**

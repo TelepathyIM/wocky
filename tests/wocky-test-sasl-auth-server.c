@@ -784,9 +784,30 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
           GError *err = NULL;
           gchar *cb64 = NULL;
           GByteArray *cb = g_byte_array_new ();
+          const gchar *cb_str = g_getenv ("WOCKY_CHANNEL_BINDING_TYPE");
+          int g_tls_cb_t = G_TLS_CHANNEL_BINDING_TLS_UNIQUE;
+          WockyTLSBindingType cb_type = WOCKY_TLS_BINDING_TLS_UNIQUE;
 
-          if (!g_tls_connection_get_channel_binding_data ((GTlsConnection *) ios,
-                  G_TLS_CHANNEL_BINDING_TLS_UNIQUE, cb, &err))
+          /* by default it is tls-unique, but if it's something else what we
+           * has some knowledge about - let's use it, otherwise we fail */
+          if (g_str_has_prefix ((gchar *) response, "p="))
+            {
+              GEnumClass *gec = g_type_class_ref (WOCKY_TYPE_TLS_BINDING_TYPE);
+              if (g_str_has_prefix ((gchar *) (response + 2), "tls-server-end-point,"))
+                {
+                  cb_type = WOCKY_TLS_BINDING_TLS_SERVER_END_POINT;
+                  g_tls_cb_t = G_TLS_CHANNEL_BINDING_TLS_SERVER_END_POINT;
+                }
+              else if (g_str_has_prefix ((gchar *) (response + 2), "tls-exporter,"))
+                {
+                  cb_type = WOCKY_TLS_BINDING_TLS_EXPORTER;
+                  g_tls_cb_t = 100500;
+                }
+              cb_str = g_enum_get_value (gec, cb_type)->value_nick;
+              g_type_class_unref (gec);
+            }
+
+          if (!g_tls_connection_get_channel_binding_data ((GTlsConnection *) ios, g_tls_cb_t, cb, &err))
             {
               g_assert_error (err, G_TLS_CHANNEL_BINDING_ERROR,
                   G_TLS_CHANNEL_BINDING_ERROR_NOT_IMPLEMENTED);
@@ -803,9 +824,10 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
               else if (priv->problem == SERVER_PROBLEM_MANGLED_BINDING_FLAG
                     || priv->problem == SERVER_PROBLEM_SCRAMBLED_BINDING)
                 {
-                  gchar *r;
-                  g_assert_true (g_str_has_prefix ((gchar *) response, "p=tls-unique,"));
-                  r = g_strdup_printf ("n%s", response + 12);
+                  gchar *r = g_strdup_printf ("p=%s,", cb_str);
+                  g_assert_true (g_str_has_prefix ((gchar *) response, r));
+                  g_free (r);
+                  r = g_strdup_printf ("n%s", response + 2 + strlen (cb_str));
                   g_free (response);
                   response = (guchar *) r;
                 }
@@ -813,7 +835,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
               cb64 = g_base64_encode (cb->data, cb->len);
               g_byte_array_unref (cb);
               g_object_set (G_OBJECT (priv->scram),
-                        "cb-type", WOCKY_TLS_BINDING_TLS_UNIQUE,
+                        "cb-type", cb_type,
                         "cb-data", cb64,
                         NULL);
               g_debug ("TLS binding: %s", cb64);
