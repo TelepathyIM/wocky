@@ -373,6 +373,7 @@ abort_connect_error (WockyConnector *connector,
     }
 
   g_task_return_error (priv->task, g_error_copy (*error));
+  complete_operation (connector);
 }
 
 static void
@@ -395,6 +396,7 @@ abort_connect (WockyConnector *connector,
     }
 
   g_task_return_error (priv->task, g_error_copy (error));
+  complete_operation (connector);
 }
 
 static void
