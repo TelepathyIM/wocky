@@ -75,10 +75,10 @@ typedef enum
   WOCKY_TLS_CERT_TYPE_OPENPGP, /* DANWFIXME: unused */
 } WockyTLSCertType;
 
-int wocky_tls_session_verify_peer (WockyTLSSession    *session,
-                                          GStrv               extra_identities,
-                                          WockyTLSVerificationLevel level,
-                                          WockyTLSCertStatus *status);
+int wocky_tls_session_verify_peer (WockyTLSSession *session,
+    GStrv extra_identities,
+    WockyTLSVerificationLevel level,
+    WockyTLSCertStatus *status);
 GPtrArray *wocky_tls_session_get_peers_certificate (WockyTLSSession *session,
     WockyTLSCertType *type);
 
@@ -90,7 +90,7 @@ void wocky_tls_session_add_ca (WockyTLSSession *session, const gchar *path);
 void wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *path);
 
 WockyTLSSession *wocky_tls_session_new (GIOStream *stream,
-					const gchar *peername);
+    const gchar *peername);
 
 WockyTLSSession *wocky_tls_session_server_new (GIOStream   *stream,
                                                guint        dhbits,

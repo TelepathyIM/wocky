@@ -95,7 +95,7 @@ wocky_tls_session_add_ca (GTlsConnection *conn,
        * new value.
        */
       for (c = cas; c; c = c->next)
-	g_object_ref (c->data);
+        g_object_ref (c->data);
       cas = g_list_copy (cas);
     }
   DEBUG ("adding CA CERT path '%s'", (gchar *) ca_path);
@@ -120,11 +120,11 @@ wocky_tls_session_add_ca (GTlsConnection *conn,
           gchar *path = g_build_path ("/", ca_path, entry->d_name, NULL);
 
           if ((stat (path, &file) == 0) && S_ISREG (file.st_mode))
-	    {
-	      certs = g_tls_certificate_list_new_from_file (path, NULL);
-	      n += g_list_length (certs);
-	      cas = g_list_concat (cas, certs);
-	    }
+            {
+              certs = g_tls_certificate_list_new_from_file (path, NULL);
+              n += g_list_length (certs);
+              cas = g_list_concat (cas, certs);
+            }
 
           g_free (path);
         }
@@ -158,7 +158,7 @@ wocky_tls_session_add_ca (GTlsConnection *conn,
               g_free (buf);
               break;
             }
-	  g_free (buf);
+          g_free (buf);
         }
       g_io_stream_close (G_IO_STREAM (fio), NULL, NULL);
       if (o)
@@ -202,16 +202,16 @@ wocky_tls_session_get_peers_certificate (GTlsConnection *conn,
       GByteArray *der_data;
 
       g_object_get (G_OBJECT (tlscert),
-		    "certificate", &der_data,
-		    NULL);
+          "certificate", &der_data,
+          NULL);
       cert = g_array_sized_new (TRUE, TRUE, sizeof (guchar), der_data->len);
       g_array_append_vals (cert, der_data->data, der_data->len);
       g_byte_array_unref (der_data);
       g_ptr_array_add (certificates, cert);
 
       g_object_get (G_OBJECT (tlscert),
-                    "issuer", &tlscert,
-		    NULL);
+          "issuer", &tlscert,
+          NULL);
     }
 
   if (type != NULL)
@@ -335,7 +335,7 @@ wocky_tls_session_verify_peer (WockyTLSSession    *session,
 
 WockyTLSSession *
 wocky_tls_session_new (GIOStream  *stream,
-		       const char *peername)
+    const char *peername)
 {
   GTlsClientConnection *conn;
   GSocketConnectable *peer;
@@ -350,11 +350,9 @@ wocky_tls_session_new (GIOStream  *stream,
     return NULL;
 
   g_object_set (G_OBJECT (conn),
-
-		/* Accept everything; we'll check it afterwards */
-		"validation-flags", 0,
-
-		NULL);
+      /* Accept everything; we'll check it afterwards */
+      "validation-flags", 0,
+      NULL);
 
   return WOCKY_TLS_SESSION (conn);
 }
