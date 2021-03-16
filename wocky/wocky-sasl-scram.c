@@ -882,7 +882,7 @@ wocky_sasl_scram_server_start_finish (WockySaslScram *self,
       g_assert (priv->nonce == NULL);
       priv->nonce = sasl_generate_base64_nonce ();
 
-      priv->server_first_bare = g_strdup_printf ("r=%s%s,s=%s,i=%lu", priv->client_nonce,
+      priv->server_first_bare = g_strdup_printf ("r=%s%s,s=%s,i=%"G_GUINT64_FORMAT"", priv->client_nonce,
                 priv->nonce, priv->salt, priv->iterations);
       priv->state = WOCKY_SASL_SCRAM_STATE_SERVER_FIRST_MESSAGE;
     }

@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
@@ -48,6 +49,7 @@
 #include "wocky-utils.h"
 #include "wocky-namespaces.h"
 #include "wocky-contact-factory.h"
+#include "wocky-connector.h"
 
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_PORTER
 #include "wocky-debug-internal.h"
@@ -61,6 +63,7 @@ enum
   PROP_FULL_JID,
   PROP_BARE_JID,
   PROP_RESOURCE,
+  PROP_CONNECTOR
 };
 
 /* private structure */
@@ -76,8 +79,10 @@ struct _WockyC2SPorterPrivate
 
   /* Queue of (sending_queue_elem *) */
   GQueue *sending_queue;
+  /* Queue of sent WockyStanza's waiting for SM Ack */
+  GQueue *unacked_queue;
   GCancellable *receive_cancellable;
-  gboolean sending_whitespace_ping;
+  gboolean sending_blocked;
 
   GTask *close_task;
   gboolean waiting_to_close;
@@ -101,6 +106,9 @@ struct _WockyC2SPorterPrivate
   GQueue *unimportant_queue;
   /* List of (owned WockyStanza *) */
   GQueue queueable_stanza_patterns;
+
+  WockyPorterSmCtx *sm;
+  WockyConnector *connector; /* is set from connection when sm is discovered */
 
   WockyXmppConnection *connection;
 };
@@ -329,6 +337,9 @@ static gboolean handle_iq_reply (WockyPorter *porter,
 static void remote_connection_closed (WockyC2SPorter *self,
                                       const GError *error);
 
+static void wocky_porter_sm_reset (WockyC2SPorter *self);
+static gboolean wocky_porter_sm_handle (WockyC2SPorter *self, WockyNode *node);
+
 static void
 wocky_c2s_porter_init (WockyC2SPorter *self)
 {
@@ -337,6 +348,7 @@ wocky_c2s_porter_init (WockyC2SPorter *self)
   self->priv = priv;
 
   priv->sending_queue = g_queue_new ();
+  priv->unacked_queue = NULL;
 
   priv->handlers_by_id = g_hash_table_new_full (g_direct_hash, g_direct_equal,
       NULL, (GDestroyNotify) stanza_handler_free);
@@ -385,6 +397,11 @@ wocky_c2s_porter_set_property (GObject *object,
         g_free (node);
         break;
 
+      case PROP_CONNECTOR:
+        g_clear_object (&priv->connector);
+        priv->connector = g_value_dup_object (value);
+        break;
+
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -417,6 +434,10 @@ wocky_c2s_porter_get_property (GObject *object,
 
       case PROP_RESOURCE:
         g_value_set_string (value, priv->resource);
+        break;
+
+      case PROP_CONNECTOR:
+        g_value_set_object (value, priv->connector);
         break;
 
       default:
@@ -456,6 +477,15 @@ wocky_c2s_porter_constructed (GObject *object)
 
   g_assert (priv->connection != NULL);
 
+  priv->connector = g_object_steal_data (G_OBJECT (priv->connection),
+          WOCKY_XMPP_NS_SM3);
+  if (priv->connector != NULL)
+    {
+      priv->sm = g_new0 (WockyPorterSmCtx, 1);
+      priv->sm->enabled = TRUE;
+      wocky_porter_sm_reset (self);
+    }
+
   /* Register the IQ reply handler */
   wocky_porter_register_handler_from_anyone (WOCKY_PORTER (self),
       WOCKY_STANZA_TYPE_IQ, WOCKY_STANZA_SUB_TYPE_RESULT,
@@ -482,6 +512,7 @@ wocky_c2s_porter_class_init (
     WockyC2SPorterClass *wocky_c2s_porter_class)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (wocky_c2s_porter_class);
+  GParamSpec *spec;
 
   object_class->constructed = wocky_c2s_porter_constructed;
   object_class->set_property = wocky_c2s_porter_set_property;
@@ -497,6 +528,19 @@ wocky_c2s_porter_class_init (
       PROP_BARE_JID, "bare-jid");
   g_object_class_override_property (object_class,
       PROP_RESOURCE, "resource");
+  /**
+   * WockyC2SPorter:connector:
+   *
+   * A #WockyConnector instance, the instance which was used to establish
+   * current connection and which is supposed to be passed by the connector
+   * itself as XmppConnection data when connector discovers SM resumable
+   * connection. The property could be reset by the porter owner if automatic
+   * connection resumption is not desirable.
+   */
+  spec = g_param_spec_object ("connector", "WockyConnector",
+      "The connector which created this connection", WOCKY_TYPE_CONNECTOR,
+      (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (object_class, PROP_CONNECTOR, spec);
 }
 
 void
@@ -525,6 +569,13 @@ wocky_c2s_porter_dispose (GObject *object)
   g_clear_object (&(priv->close_cancellable));
   g_clear_object (&(priv->force_close_task));
   g_clear_object (&(priv->force_close_cancellable));
+
+  if (priv->sm)
+    {
+      priv->sm->enabled = FALSE;
+      wocky_porter_sm_reset (self);
+      g_clear_pointer (&priv->sm, g_free);
+    }
 
   if (G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->dispose)
     G_OBJECT_CLASS (wocky_c2s_porter_parent_class)->dispose (object);
@@ -629,7 +680,7 @@ sending_in_progress (WockyC2SPorter *self)
   WockyC2SPorterPrivate *priv = self->priv;
 
   return g_queue_get_length (priv->sending_queue) > 0 ||
-    priv->sending_whitespace_ping;
+    priv->sending_blocked;
 }
 
 static void
@@ -643,6 +694,16 @@ close_if_waiting (WockyC2SPorter *self)
       DEBUG ("Queue has been flushed. Closing the connection.");
       send_close (self);
     }
+}
+
+static gboolean
+request_ack_in_idle (gpointer data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (data);
+
+  wocky_porter_sm_handle (self, NULL);
+
+  return FALSE;
 }
 
 static void
@@ -673,6 +734,23 @@ send_stanza_cb (GObject *source,
         return;
 
       g_task_return_boolean (elem->task, TRUE);
+
+      if (priv->sm && priv->sm->enabled)
+        {
+          WockyStanzaType st;
+          wocky_stanza_get_type_info (elem->stanza, &st, NULL);
+          if (st == WOCKY_STANZA_TYPE_MESSAGE
+              || st == WOCKY_STANZA_TYPE_PRESENCE
+              || st == WOCKY_STANZA_TYPE_IQ)
+            {
+              priv->sm->snt_count++;
+              DEBUG ("Queuing stanza %s",
+                  wocky_stanza_get_top_node (elem->stanza)->name);
+              g_queue_push_tail (priv->unacked_queue,
+                  g_object_ref (elem->stanza));
+              g_idle_add (request_ack_in_idle, self);
+            }
+        }
 
       sending_queue_elem_free (elem);
 
@@ -727,7 +805,7 @@ wocky_c2s_porter_send_async (WockyPorter *porter,
   g_queue_push_tail (priv->sending_queue, elem);
 
   if (g_queue_get_length (priv->sending_queue) == 1 &&
-      !priv->sending_whitespace_ping)
+      !priv->sending_blocked && priv->connection)
     {
       send_head_stanza (self);
     }
@@ -929,13 +1007,27 @@ handle_stanza (WockyC2SPorter *self,
 
   wocky_stanza_get_type_info (stanza, &type, &sub_type);
 
+  if (priv->sm && priv->sm->enabled
+      && (type == WOCKY_STANZA_TYPE_MESSAGE
+        || type == WOCKY_STANZA_TYPE_PRESENCE
+        || type == WOCKY_STANZA_TYPE_IQ))
+    {
+        priv->sm->rcv_count++;
+    }
   /* The from attribute of the stanza need not always be present, for example
    * when receiving roster items, so don't enforce it. */
   from = wocky_stanza_get_from (stanza);
 
   if (from == NULL)
     {
+      WockyNode *top_node = wocky_stanza_get_top_node (stanza);
+
+      g_assert (top_node != NULL);
+
       is_from_server = TRUE;
+
+      if (wocky_node_has_ns (top_node, WOCKY_XMPP_NS_SM3))
+        handled = wocky_porter_sm_handle (self, top_node);
     }
   else if (wocky_decode_jid (from, &node, &domain, &resource))
     {
@@ -1251,6 +1343,455 @@ connection_force_close_cb (GObject *source,
   g_object_unref (self);
 }
 
+/**
+ * wocky_c2s_porter_get_sm_ctx:
+ * @self: a #WockyC2SPorter
+ *
+ * This call is rather for the test units - to enable visibility of the
+ * StreamManagement internals in WockyC2SPorter. However it may be used
+ * for other purposes as well. It returns the SM context structure which
+ * holds SM internal state. Do not modify the SM counters otherwise the
+ * connection will most likely be terminated.
+ *
+ * Returns: (nullable): #WockyPorterSmCtx of the given porter or %NULL
+ * if SM was not discovered on the connection.
+ */
+const WockyPorterSmCtx *
+wocky_c2s_porter_get_sm_ctx (WockyC2SPorter *self)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+
+  return priv->sm;
+}
+
+void
+wocky_c2s_porter_resume (WockyC2SPorter *self,
+    WockyXmppConnection *connection)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+
+  g_assert (priv->receive_cancellable);
+  g_assert (connection);
+
+  priv->connection = connection;
+  priv->sending_blocked = FALSE;
+  receive_stanza (self);
+}
+
+static void
+connection_reconnected_cb (GObject      *source,
+                           GAsyncResult *res,
+                           gpointer      user_data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (user_data);
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  WockyConnector *ctr = WOCKY_CONNECTOR (source);
+  g_autofree gchar *sid = NULL;
+  GError *err = NULL;
+
+  if ((priv->connection = wocky_connector_connect_finish (ctr,
+              res, &priv->full_jid, &sid, &err)) == NULL)
+    {
+      /* this is the last of them, no way out */
+      remote_connection_closed (self, err);
+      g_error_free (err);
+      return;
+    }
+  priv->sending_blocked = FALSE;
+  /* We can only be here if connection supports SM and resume failed,
+   * hence turn SM back on and continue */
+  priv->sm->enabled = TRUE;
+  priv->connector = g_object_ref (ctr);
+  wocky_porter_sm_reset (self);
+  /* We have reset the state already, just continue as if nothing happened */
+  g_object_notify (G_OBJECT (self), "connection");
+  g_object_notify (G_OBJECT (self), "full-jid");
+  g_signal_emit_by_name (self, "reconnected", priv->full_jid, sid);
+  receive_stanza (self);
+}
+
+static void
+resume_connection_failed (WockyC2SPorter *self,
+                          WockyConnector *ctr)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  gboolean ret = FALSE;
+
+  g_signal_emit_by_name (self, "resume-failed", &ret);
+  if (!ret)
+    {
+      DEBUG ("Got stop signal, handing over the reconnection vector");
+      return;
+    }
+
+  DEBUG ("Resuming session does not exist, proceed with %p[%p]", ctr, priv->connector);
+
+  /* when we're managed our connector will likely be NULL */
+  if (priv->connector != ctr)
+    return;
+
+  /* Resume has returned failed:item-not-found, we can continue with the bind
+   * but first we need to reset the state */
+  flush_unimportant_queue (self);
+  priv->sm->enabled = FALSE;
+  wocky_porter_sm_reset (self);
+
+  /* by doing this we're risking to desync gabble-connection and its
+   * wocky-session from porter - we may have different resource after bind */
+  wocky_connector_continue_async (ctr, priv->receive_cancellable,
+          connection_reconnected_cb, self);
+}
+
+static void
+resume_connection_cb (GObject      *source,
+                      GAsyncResult *res,
+                      gpointer      user_data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (user_data);
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  WockyConnector *ctr = WOCKY_CONNECTOR (source);
+  GError *err = NULL;
+
+  if ((priv->connection = wocky_connector_resume_finish (ctr, res, &err)) == NULL)
+    {
+      DEBUG ("Resumption failed: %s", err->message);
+      terminate_sending_operations (self, err);
+
+      /* We may have hard error (connection failed) and soft error (resumption
+       * failed). Former should cause retry or stop, later continue or bail
+       * depending on whether we're in managed or self-driven mode */
+      if (g_error_matches (err, WOCKY_XMPP_ERROR, WOCKY_XMPP_ERROR_ITEM_NOT_FOUND))
+        resume_connection_failed (self, ctr);
+      else if (priv->connector == NULL)
+        remote_connection_closed (self, err);
+      else
+        {
+          DEBUG ("Reconnecting on next heartbeat");
+          priv->sending_blocked = FALSE;
+        }
+
+      g_error_free (err);
+    }
+  else
+    {
+      /* We should now read `resumed` nonza and handle resumption resync. */
+      DEBUG ("Connection resumed, try to resync");
+      wocky_c2s_porter_resume (self, priv->connection);
+    }
+}
+
+static void
+resume_connection (WockyC2SPorter *self)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  WockyStanza *resume = wocky_stanza_new ("resume", WOCKY_XMPP_NS_SM3);
+  WockyNode *rn = wocky_stanza_get_top_node (resume);
+  gchar *val = g_strdup_printf ("%zu", priv->sm->rcv_count);
+  gboolean ret = TRUE;
+
+  g_assert (priv->sm);
+  g_assert (priv->sm->id);
+
+  wocky_node_set_attribute (rn, "h", val);
+  wocky_node_set_attribute (rn, "previd", priv->sm->id);
+
+  g_clear_object (&priv->connection);
+  g_object_notify (G_OBJECT (self), "connection");
+  priv->sending_blocked = TRUE;
+  DEBUG ("Attempting to resume sm %s:%s with connector %p",
+          priv->sm->id, val, priv->connector);
+  g_free (val);
+
+  g_signal_emit_by_name (self, "resuming", resume, &ret);
+  if (ret)
+    {
+      g_assert (priv->connector);
+      wocky_connector_resume_async (priv->connector, resume,
+          priv->receive_cancellable, resume_connection_cb, self);
+    }
+  else
+    DEBUG ("Got stop signal, skipping auto-resume");
+
+  g_object_unref (resume);
+}
+
+static void
+wocky_porter_resume_done (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (source);
+  GError *error = NULL;
+
+  if (wocky_c2s_porter_send_finish (WOCKY_PORTER (self), res, &error))
+    return g_signal_emit_by_name (G_OBJECT (self), "resume-done");
+
+  if (error->domain != WOCKY_XMPP_CONNECTION_ERROR
+      || error->code == WOCKY_XMPP_CONNECTION_ERROR_EOS)
+    resume_connection (self);
+  else
+    remote_connection_closed (self, error);
+  g_error_free (error);
+}
+
+static void
+wocky_porter_sm_reset (WockyC2SPorter *self)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+
+  if (priv->sm == NULL)
+    return;
+
+  if (priv->sm->enabled)
+    {
+      if (G_UNLIKELY (priv->unacked_queue))
+        g_queue_free_full (priv->unacked_queue, g_object_unref);
+      priv->unacked_queue = g_queue_new ();
+    }
+  else
+    {
+      g_clear_object (&priv->connector);
+
+      if (priv->unacked_queue)
+        {
+          g_queue_free_full (priv->unacked_queue, g_object_unref);
+          priv->unacked_queue = NULL;
+        }
+      priv->sm->resumable = FALSE;
+    }
+
+  priv->sm->snt_count = priv->sm->snt_acked = priv->sm->rcv_count = 0;
+  g_clear_pointer (&priv->sm->id, g_free);
+  g_clear_pointer (&priv->sm->location, g_free);
+  priv->sm->resumable = FALSE;
+  priv->sm->timeout = 600;
+}
+
+static void
+wocky_porter_sm_error_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (source);
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  GError *error = NULL;
+  gboolean ret;
+
+  if (user_data)
+    {
+      ret = wocky_porter_send_finish (WOCKY_PORTER (self), res, &error);
+      if (ret)
+        wocky_porter_close_async (WOCKY_PORTER (self),
+            priv->receive_cancellable, wocky_porter_sm_error_cb, NULL);
+    }
+  else
+    {
+      ret = wocky_porter_close_finish (WOCKY_PORTER (self), res, &error);
+      g_signal_emit_by_name (self, "remote-error", WOCKY_XMPP_STREAM_ERROR,
+          WOCKY_XMPP_STREAM_ERROR_UNDEFINED_CONDITION,
+          "Server acknowledged more stanzas than we have sent");
+    }
+}
+
+/* We need to consider normal monotonic increase and uint32 wrap conditions */
+#define ACK_WINDOW(start, stop) ((start <= stop) \
+    ? (stop - start) \
+    : ((G_MAXUINT32 - start + 1) + stop))
+#define ACK_WINDOW_MAX 10
+
+static gboolean
+wocky_porter_sm_handle_h (WockyC2SPorter *self,
+                          WockyNode      *node)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  const gchar *val = wocky_node_get_attribute (node, "h");
+  gsize snt = 0;
+
+  /* TODO below conditions are rather fatal, need to terminate the sream */
+  if (val == NULL)
+    {
+      g_warning ("Missing 'h' attribute, we should better err this stream");
+      return FALSE;
+    }
+
+  snt = strtoul (val, NULL, 10);
+  if (snt == ULONG_MAX && errno == ERANGE)
+    {
+      g_warning ("Invalid number, cannot convert h value[%s] to gsize", val);
+      return FALSE;
+    }
+
+  if (ACK_WINDOW (priv->sm->snt_acked, snt) > ACK_WINDOW (priv->sm->snt_acked,
+        priv->sm->snt_count))
+    {
+      /* Try to send a stanza using the closing porter */
+      WockyStanza *error = wocky_stanza_build (WOCKY_STANZA_TYPE_STREAM_ERROR,
+                    WOCKY_STANZA_SUB_TYPE_NONE, NULL, NULL,
+                    ':', WOCKY_XMPP_NS_STREAM,
+                    '(', "undefined-condition",
+                      ':', WOCKY_XMPP_NS_STREAMS, ')',
+                    '(', "handled-count-too-high",
+                      ':', WOCKY_XMPP_NS_SM3, ')',
+                    NULL);
+
+      DEBUG ("Invalid acknowledgement %zu, must be between %zu and %zu",
+          snt, priv->sm->snt_acked, priv->sm->snt_count);
+      wocky_porter_send_async (WOCKY_PORTER (self), error,
+          priv->receive_cancellable, wocky_porter_sm_error_cb, self);
+
+      g_object_unref (error);
+      return FALSE;
+    }
+
+  DEBUG ("Acking %zu stanzas handled by the server", snt);
+  priv->sm->snt_acked = snt;
+  /* now we can head-drop stanzas from unacked_queue till its length is
+   * (snt_count - snt_acked) */
+  while (g_queue_get_length (priv->unacked_queue)
+          > ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count))
+    {
+      WockyStanza *s = g_queue_pop_head (priv->unacked_queue);
+      g_assert (s);
+      g_object_unref (s);
+    }
+  DEBUG ("After ack %u(%zu) stanzas left in the queue",
+      g_queue_get_length (priv->unacked_queue),
+      ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count));
+  return TRUE;
+}
+
+static gboolean
+wocky_porter_sm_handle (WockyC2SPorter *self,
+                        WockyNode      *node)
+{
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+
+  if (G_UNLIKELY(!priv->sm->enabled))
+    {
+      g_warning ("Received SM nonza %s while SM is disabled", node->name);
+      return FALSE;
+    }
+
+  if (node == NULL)
+    {
+      /* a probe for request - fire one if we have breached the max or fire an
+       * early notice when we are in the middle of it */
+      if (ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count) == ACK_WINDOW_MAX/2
+          || ACK_WINDOW (priv->sm->snt_acked, priv->sm->snt_count) > ACK_WINDOW_MAX)
+        {
+          WockyStanza *r = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+          if (priv->sm->reqs == 0)
+            {
+              wocky_porter_send (WOCKY_PORTER (self), r);
+              priv->sm->reqs++;
+            }
+          g_object_unref (r);
+          return TRUE;
+        }
+    }
+  else if (node->name[0] == 'r' && node->name[1] == '\0')
+    {
+      WockyStanza *a = wocky_stanza_new ("a", WOCKY_XMPP_NS_SM3);
+      WockyNode *an = wocky_stanza_get_top_node (a);
+      gchar *val = g_strdup_printf ("%zu", priv->sm->rcv_count);
+
+      wocky_node_set_attribute (an, "h", val);
+      g_free (val);
+
+      wocky_porter_send (WOCKY_PORTER (self), a);
+      g_object_unref (a);
+
+      return TRUE;
+    }
+  else if (node->name[0] == 'a' && node->name[1] == '\0')
+    {
+      if (priv->sm->reqs > 0)
+        priv->sm->reqs--;
+      return wocky_porter_sm_handle_h (self, node);
+    }
+  else if (!g_strcmp0 (node->name, "enabled"))
+    {
+      const gchar *val;
+      if ((val = wocky_node_get_attribute (node, "id")) != NULL)
+        priv->sm->id = g_strdup (val);
+
+      if ((val = wocky_node_get_attribute (node, "max")) != NULL)
+        priv->sm->timeout = strtoul (val, NULL, 10);
+
+      if ((val = wocky_node_get_attribute (node, "resume")) != NULL)
+        priv->sm->resumable = (g_strcmp0 (val, "true") == 0);
+
+      if ((val = wocky_node_get_attribute (node, "location")) != NULL)
+        priv->sm->location = g_strdup (val);
+
+      DEBUG ("SM on connection %p is enabled", priv->connection);
+
+      return TRUE;
+    }
+  else if (!g_strcmp0 (node->name, "resumed"))
+    {
+      const gchar *val;
+      WockyStanza *smr;
+
+      if (G_UNLIKELY((val = wocky_node_get_attribute (node, "previd")) == NULL
+            || g_strcmp0 (val, priv->sm->id)))
+        {
+          /* this must not happen */
+          GError err = {WOCKY_XMPP_STREAM_ERROR,
+                        WOCKY_XMPP_STREAM_ERROR_INVALID_ID,
+                        "Resumed SM-ID mismatch"};
+          remote_connection_closed (self, &err);
+          return TRUE;
+        }
+
+      if (G_UNLIKELY ((val = wocky_node_get_attribute (node, "previd")) == NULL
+            || !wocky_porter_sm_handle_h (self, node)))
+        {
+          /* this must not happen */
+          GError err = {WOCKY_XMPP_STREAM_ERROR,
+                        WOCKY_XMPP_STREAM_ERROR_BAD_FORMAT,
+                        "Resumed nonza has wrong or missing 'h' attribute"};
+          remote_connection_closed (self, &err);
+          return TRUE;
+        }
+
+      /* passed all sanity checks and trimmed the queue, let's move its
+       * content to the sending one */
+      DEBUG ("Moving %u stanzas from SM into sending queue",
+          g_queue_get_length (priv->unacked_queue));
+      /* Note - they will be pushed back to the unacked_queue once sent over
+       * the connection. Thus we need to reset snt_count to prevent its
+       * creeping */
+      priv->sm->snt_count = priv->sm->snt_acked;
+      while (!g_queue_is_empty (priv->unacked_queue))
+        wocky_c2s_porter_send_async (WOCKY_PORTER (self),
+              g_queue_pop_head (priv->unacked_queue), NULL, NULL, NULL);
+
+      /* The signal processign may inject some stanzas breaking the order
+       * of stanzas and thus violating RFC6120. Hence signaling only after
+       * the SM queue is flushed into sending queue */
+      DEBUG ("Emitting resumed signal after SM queue is flushed");
+      g_signal_emit_by_name (self, "resumed");
+
+      /* Add `r` to the end of the queue and track its progress */
+      smr = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+      wocky_c2s_porter_send_async (WOCKY_PORTER (self), smr,
+          priv->receive_cancellable, wocky_porter_resume_done, NULL);
+      g_object_unref (smr);
+      return TRUE;
+    }
+  else if (!g_strcmp0 (node->name, "failed"))
+    {
+      DEBUG ("SM on connection %p has failed", priv->connection);
+      priv->sm->enabled = FALSE;
+      wocky_porter_sm_reset (self);
+    }
+  else
+    g_warning ("Unknown SM nonza '%s' received", node->name);
+
+  return FALSE;
+}
+
 static void
 stanza_received_cb (GObject *source,
     GAsyncResult *res,
@@ -1295,7 +1836,12 @@ stanza_received_cb (GObject *source,
         }
       else
         {
-          remote_connection_closed (self, error);
+          if (priv->sm && priv->sm->resumable
+              && (error->domain != WOCKY_XMPP_CONNECTION_ERROR
+                 || error->code == WOCKY_XMPP_CONNECTION_ERROR_EOS))
+            resume_connection (self);
+          else
+            remote_connection_closed (self, error);
         }
 
       g_error_free (error);
@@ -2021,6 +2567,20 @@ wocky_c2s_porter_force_close_async (WockyPorter *porter,
           priv->force_close_task = NULL;
           return;
         }
+      /* this may be NULL if SM resume/continue has failed */
+      if (priv->connection == NULL)
+        {
+          GTask *t = priv->force_close_task;
+
+          priv->force_close_task = NULL;
+          g_clear_object (&priv->force_close_cancellable);
+          g_clear_object (&priv->receive_cancellable);
+          priv->local_closed = TRUE;
+
+          g_task_return_boolean (t, TRUE);
+          g_object_unref (t);
+          return;
+        }
       /* No need to wait, close connection right now */
       DEBUG ("remote is already closed, close the XMPP connection");
       g_object_ref (self);
@@ -2058,11 +2618,17 @@ send_whitespace_ping_cb (GObject *source,
   WockyC2SPorter *self = WOCKY_C2S_PORTER (g_task_get_source_object (task));
   WockyC2SPorterPrivate *priv = self->priv;
   GError *error = NULL;
+  gboolean ret;
 
-  priv->sending_whitespace_ping = FALSE;
+  priv->sending_blocked = FALSE;
 
-  if (!wocky_xmpp_connection_send_whitespace_ping_finish (
-        WOCKY_XMPP_CONNECTION (source), res, &error))
+  if (priv->sm && priv->sm->enabled)
+    ret = wocky_xmpp_connection_send_stanza_finish (
+        WOCKY_XMPP_CONNECTION (source), res, &error);
+  else
+    ret = wocky_xmpp_connection_send_whitespace_ping_finish (
+        WOCKY_XMPP_CONNECTION (source), res, &error);
+  if (!ret)
     {
       g_task_return_error (task, g_error_copy (error));
 
@@ -2085,6 +2651,33 @@ send_whitespace_ping_cb (GObject *source,
   close_if_waiting (self);
 
   g_object_unref (task);
+}
+
+static void
+force_close_conn_cb (GObject *source,
+    GAsyncResult *res,
+    gpointer user_data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  GTask *task = G_TASK (user_data);
+  WockyC2SPorter *self = WOCKY_C2S_PORTER (g_task_get_source_object (task));
+  WockyC2SPorterPrivate *priv = wocky_c2s_porter_get_instance_private (self);
+  GError *error = NULL;
+
+  priv->sending_blocked = FALSE;
+
+  if (wocky_xmpp_connection_force_close_finish (conn, res, &error))
+    g_task_return_boolean (task, TRUE);
+  else
+    {
+      DEBUG ("Error closing connection: %s", error->message);
+      g_task_return_error (task, error);
+    }
+
+  g_object_unref (task);
+
+  /* reset unacked request number, those are lost */
+  priv->sm->reqs = 0;
 }
 
 /**
@@ -2115,16 +2708,42 @@ wocky_c2s_porter_send_whitespace_ping_async (WockyC2SPorter *self,
       g_task_return_new_error (task, WOCKY_PORTER_ERROR,
           WOCKY_PORTER_ERROR_CLOSING, "Porter is closing");
     }
-  else if (sending_in_progress (self))
+  else if (sending_in_progress (self) || priv->connection == NULL)
     {
+      /* With SM we may have no connection during resumption */
       g_task_return_boolean (task, TRUE);
+
+      /* But if connector is set we may need to re-try */
+      if (priv->connection == NULL && !priv->sending_blocked)
+        resume_connection (self);
     }
   else
     {
-      priv->sending_whitespace_ping = TRUE;
+      priv->sending_blocked = TRUE;
 
-      wocky_xmpp_connection_send_whitespace_ping_async (priv->connection,
-          cancellable, send_whitespace_ping_cb, g_object_ref (task));
+      /* when SM is enabled we need SM ping because we are doing selective
+       * acks hence need to catch-up the latest acks when idle. */
+      if (priv->sm && priv->sm->enabled)
+        {
+          if (priv->sm->reqs++ < 2)
+            {
+              WockyStanza *r = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+              DEBUG ("Ack pressure: %d", priv->sm->reqs);
+              wocky_xmpp_connection_send_stanza_async (priv->connection, r,
+                  cancellable, send_whitespace_ping_cb, g_object_ref (task));
+              g_object_unref (r);
+            }
+          else
+            {
+              wocky_xmpp_connection_force_close_async (priv->connection,
+                  cancellable, force_close_conn_cb, g_object_ref (task));
+            }
+        }
+      else
+        {
+          wocky_xmpp_connection_send_whitespace_ping_async (priv->connection,
+              cancellable, send_whitespace_ping_cb, g_object_ref (task));
+        }
 
       g_signal_emit_by_name (self, "sending", NULL);
     }

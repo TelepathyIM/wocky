@@ -145,13 +145,49 @@ wocky_session_get_property (GObject *object,
 }
 
 static void
+wocky_session_full_jid_notify (GObject *source,
+    GParamSpec *pspec,
+    gpointer user_data)
+{
+  WockySession *self = WOCKY_SESSION (user_data);
+  WockySessionPrivate *priv = wocky_session_get_instance_private (self);
+
+  g_clear_pointer (&priv->full_jid, g_free);
+  g_object_get (source,
+          "full-jid", &priv->full_jid,
+          NULL);
+  g_object_notify (G_OBJECT (self), "full-jid");
+}
+
+static void
+wocky_session_connection_notify (GObject *source,
+    GParamSpec *pspec,
+    gpointer user_data)
+{
+  WockySession *self = WOCKY_SESSION (user_data);
+  WockySessionPrivate *priv = wocky_session_get_instance_private (self);
+
+  g_clear_object (&priv->connection);
+  g_object_get (source,
+          "connection", &priv->connection,
+          NULL);
+  g_object_notify (G_OBJECT (self), "connection");
+}
+
+static void
 wocky_session_constructed (GObject *object)
 {
   WockySession *self = WOCKY_SESSION (object);
   WockySessionPrivate *priv = self->priv;
 
   if (priv->connection != NULL)
-    priv->porter = wocky_c2s_porter_new (priv->connection, priv->full_jid);
+    {
+      priv->porter = wocky_c2s_porter_new (priv->connection, priv->full_jid);
+      g_signal_connect (priv->porter, "notify::full-jid",
+          G_CALLBACK (wocky_session_full_jid_notify), self);
+      g_signal_connect (priv->porter, "notify::connection",
+          G_CALLBACK (wocky_session_connection_notify), self);
+    }
   else
     priv->porter = wocky_meta_porter_new (priv->full_jid, priv->contact_factory);
 }
@@ -173,6 +209,7 @@ wocky_session_dispose (GObject *object)
       priv->connection = NULL;
     }
 
+  g_signal_handlers_disconnect_by_data (priv->porter, self);
   g_object_unref (priv->porter);
   g_object_unref (priv->contact_factory);
 

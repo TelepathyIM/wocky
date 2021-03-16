@@ -114,6 +114,20 @@ typedef enum
 
 typedef enum
 {
+  SM_PROBLEM_NONE       = 0,
+  SM_PROBLEM_ENABLED    = CONNPROBLEM(0),
+  SM_PROBLEM_ACK0       = CONNPROBLEM(1),
+  SM_PROBLEM_ACK1       = CONNPROBLEM(2),
+  SM_PROBLEM_OVER       = CONNPROBLEM(3),
+  SM_PROBLEM_WRAP       = CONNPROBLEM(4),
+  SM_PROBLEM_ACK0_OVER  = (CONNPROBLEM(3) | CONNPROBLEM(1)),
+  SM_PROBLEM_WRAP0      = (CONNPROBLEM(4) | CONNPROBLEM(1)),
+  SM_PROBLEM_WRAP1      = (CONNPROBLEM(4) | CONNPROBLEM(2)),
+  SM_PROBLEM_WRAP0_OVER = (CONNPROBLEM(4) | CONNPROBLEM(3) | CONNPROBLEM(1)),
+} SMProblem;
+
+typedef enum
+{
   CERT_STANDARD,
   CERT_EXPIRED,
   CERT_NOT_YET,
@@ -134,6 +148,7 @@ typedef struct
   ServerDeath death;
   JabberProblem jabber;
   XEP77Problem xep77;
+  SMProblem sm;
 } ConnectorProblem;
 
 typedef struct _TestConnectorServer TestConnectorServer;

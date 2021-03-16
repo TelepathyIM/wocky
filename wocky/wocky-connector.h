@@ -198,6 +198,21 @@ gboolean wocky_connector_unregister_finish (WockyConnector *self,
 void wocky_connector_set_auth_registry (WockyConnector *self,
     WockyAuthRegistry *registry);
 
+void wocky_connector_continue_async (WockyConnector *self,
+    GCancellable *cancellable,
+    GAsyncReadyCallback cb,
+    gpointer user_data);
+
+void wocky_connector_resume_async (WockyConnector *self,
+    WockyStanza *resume,
+    GCancellable *cancellable,
+    GAsyncReadyCallback cb,
+    gpointer user_data);
+
+WockyXmppConnection *wocky_connector_resume_finish (WockyConnector *self,
+    GAsyncResult *res,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* #ifndef __WOCKY_CONNECTOR_H__*/

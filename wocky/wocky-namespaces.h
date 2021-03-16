@@ -26,6 +26,9 @@
 #define WOCKY_XMPP_NS_SASL_AUTH \
   "urn:ietf:params:xml:ns:xmpp-sasl"
 
+#define WOCKY_XMPP_NS_SM3 \
+  "urn:xmpp:sm:3"
+
 #define WOCKY_NS_DISCO_INFO \
   "http://jabber.org/protocol/disco#info"
 

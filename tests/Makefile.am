@@ -88,6 +88,7 @@ TEST_PROGS = \
   wocky-session-test \
   wocky-stanza-test \
   wocky-tls-test \
+  wocky-sm-test \
   wocky-utils-test \
   wocky-xmpp-connection-test \
   wocky-xmpp-node-test \
@@ -229,6 +230,19 @@ wocky_tls_test_SOURCES = \
   wocky-test-stream.c wocky-test-stream.h
 wocky_tls_test_CFLAGS = $(AM_CFLAGS) $(TLSDEFS)
 
+EXTRA_wocky_sm_test_DEPENDENCIES = $(CA_DIR) certs
+wocky_sm_test_SOURCES = \
+   wocky-sm-test.c \
+   wocky-test-sasl-auth-server.c \
+   wocky-test-sasl-auth-server.h \
+   wocky-test-connector-server.c \
+   wocky-test-connector-server.h \
+   wocky-test-helper.c wocky-test-helper.h \
+   wocky-test-stream.c wocky-test-stream.h \
+   test-resolver.c test-resolver.h
+wocky_sm_test_LDADD = $(LDADD) @LIBSASL2_LIBS@
+wocky_sm_test_CFLAGS = $(AM_CFLAGS) @LIBSASL2_CFLAGS@ $(TLSDEFS)
+
 wocky_utils_test_SOURCES = wocky-utils-test.c
 
 wocky_xmpp_connection_test_SOURCES = \
@@ -297,7 +311,7 @@ test-%: wocky-%-test
 .PHONY: test test-report
 
 include $(top_srcdir)/tools/check-coding-style.mk
-check-local: test check-coding-style
+check-local: check-coding-style test
 
 ############################################################################
 
