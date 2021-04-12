@@ -170,3 +170,7 @@ if get_option('code-style-check')
     shell, meson.source_root()/'tools'/'check-c-style.sh', wocky_check_files
   ])
 endif
+
+if get_option('gtk_doc')
+  subdir('docs/reference')
+endif
