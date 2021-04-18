@@ -767,6 +767,7 @@ wocky_connector_class_init (WockyConnectorClass *klass)
 
   /**
    * WockyConnector::connection-established:
+   * @connector: a #WockyConnector
    * @connection: the #GSocketConnection
    *
    * Emitted as soon as a connection to the remote server has been
@@ -2398,13 +2399,13 @@ connector_propagate_jid_and_sid (WockyConnector *self,
  * wocky_connector_connect_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_connect_async() callback).
- * @jid: (%NULL to ignore) the user JID from the server is stored here.
- * @sid: (%NULL to ignore) the Session ID is stored here.
- * @error: (%NULL to ignore) the #GError (if any) is sored here.
+ * @jid: (nullable): the user JID from the server is stored here.
+ * @sid: (nullable): the Session ID is stored here.
+ * @error: (nullable): the #GError (if any) is sored here.
  *
  * Called by the callback passed to wocky_connector_connect_async().
  *
- * Returns: a #WockyXmppConnection instance (success), or %NULL (failure).
+ * Returns: (transfer full): a #WockyXmppConnection instance (success), or %NULL (failure).
  */
 WockyXmppConnection *
 wocky_connector_connect_finish (WockyConnector *self,
@@ -2428,12 +2429,13 @@ wocky_connector_connect_finish (WockyConnector *self,
  * wocky_connector_resume_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult as passed to wocky_connector_resume_async() callback.
- * @error: (%NULL to ignore) the #GError (if any) is stored here.
+ * @error: (nullable): the #GError (if any) is stored here.
  *
  * Should be called by the callback passed to wocky_connector_resume_async()
  * to complete async operation.
  *
- * Returns: a #WockyXmppConnection instance (success), or %NULL (failure).
+ * Returns: (transfer full): a #WockyXmppConnection instance (success), or
+ * %NULL on failure.
  */
 WockyXmppConnection *
 wocky_connector_resume_finish (WockyConnector *self,
@@ -2454,13 +2456,13 @@ wocky_connector_resume_finish (WockyConnector *self,
  * wocky_connector_register_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from your wocky_connector_register_async() callback).
- * @jid: (%NULL to ignore) the JID in effect after connection is stored here.
- * @sid: (%NULL to ignore) the Session ID after connection is stored here.
- * @error: (%NULL to ignore) the #GError (if any) is stored here.
+ * @jid: (nullable): the JID in effect after connection is stored here.
+ * @sid: (nullable): the Session ID after connection is stored here.
+ * @error: (nullable): the #GError (if any) is stored here.
  *
  * Called by the callback passed to wocky_connector_register_async().
  *
- * Returns: a #WockyXmppConnection instance (success), or %NULL (failure).
+ * Returns: (transfer full): a #WockyXmppConnection instance (success), or %NULL (failure).
  */
 WockyXmppConnection *
 wocky_connector_register_finish (WockyConnector *self,
@@ -2482,7 +2484,7 @@ wocky_connector_register_finish (WockyConnector *self,
  * wocky_connector_unregister_finish:
  * @self: a #WockyConnector instance.
  * @res: a #GAsyncResult (from the wocky_connector_unregister_async() callback).
- * @error: (%NULL to ignore) the #GError (if any) is stored here.
+ * @error: (nullable): the #GError (if any) is stored here.
  *
  * Called by the callback passed to wocky_connector_unregister_async().
  *
@@ -2615,9 +2617,9 @@ wocky_connector_connect_async (WockyConnector *self,
  * wocky_connector_resume_async:
  * @self: a #WockyConnector instance.
  * @resume: (transfer full): a #WockyStanza to send for resumption
- * @cancellable: (optional): a #GCancellable, or %NULL
- * @cb: (optional): a #GAsyncReadyCallback to call when the operation completes.
- * @user_data: (optional): a #gpointer to pass to the callback.
+ * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @cb: (nullable): a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: (nullable): a #gpointer to pass to the callback.
  *
  * Reconnect to the account/server specified by the @self.
  * @cb should invoke wocky_connector_resume_finish().
@@ -2651,9 +2653,9 @@ wocky_connector_resume_async (WockyConnector *self,
 /**
  * wocky_connector_continue_async:
  * @self: a #WockyConnector instance.
- * @cancellable: (optional): a #GCancellable, or %NULL
- * @cb: (optional): a #GAsyncReadyCallback to call when the operation completes.
- * @user_data: (optional): a #gpointer to pass to the callback.
+ * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @cb: (nullable): a #GAsyncReadyCallback to call when the operation completes.
+ * @user_data: (nullable): a #gpointer to pass to the callback.
  *
  * Continue connector operations (bind+session) on connector instance
  * specified by the @self after SM resumption has failed without fatal
@@ -2746,8 +2748,8 @@ wocky_connector_register_async (WockyConnector *self,
  * Connect to the account/server specified by @self.
  * To set other #WockyConnector properties, use g_object_new() instead.
  *
- * Returns: a #WockyConnector instance which can be used to connect to,
- * register or cancel an account
+ * Returns: (transfer full): a #WockyConnector instance which can be used to
+ * connect to, register or cancel an account
  */
 WockyConnector *
 wocky_connector_new (const gchar *jid,
