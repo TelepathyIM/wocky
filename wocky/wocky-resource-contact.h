@@ -47,6 +47,11 @@ struct _WockyResourceContactClass {
   WockyContactClass parent_class;
 };
 
+/**
+ * WockyResourceContact:
+ *
+ * A simple wrapper for the online resource of the roster contact.
+ */
 struct _WockyResourceContact {
   /*<private>*/
   WockyContact parent;
@@ -76,10 +81,10 @@ WockyResourceContact * wocky_resource_contact_new (WockyBareContact *bare,
     const gchar *resource);
 
 const gchar * wocky_resource_contact_get_resource (
-    WockyResourceContact *contact);
+    WockyResourceContact *self);
 
 WockyBareContact * wocky_resource_contact_get_bare_contact (
-    WockyResourceContact *contact);
+    WockyResourceContact *self);
 
 gboolean wocky_resource_contact_equal (WockyResourceContact *a,
     WockyResourceContact *b);
