@@ -235,6 +235,14 @@ on_http_response (SoupSession *soup,
 
 #endif  /* ENABLE_GOOGLE_RELAY */
 
+/**
+ * wocky_google_relay_resolver_new: (skip)
+ *
+ * A constructor for #WockyGoogleRelayResolver
+ *
+ * Returns: (transfer full): a new allocated instance of WockyGoogleRelayResolver.
+ * Release with wocky_google_relay_resolver_destroy() once done.
+ */
 WockyGoogleRelayResolver *
 wocky_google_relay_resolver_new (void)
 {
@@ -262,6 +270,21 @@ wocky_google_relay_resolver_destroy (WockyGoogleRelayResolver *self)
   g_slice_free (WockyGoogleRelayResolver, self);
 }
 
+/**
+ * wocky_google_relay_resolver_resolve:
+ * @self: a #WockyGoogleRelayResolver
+ * @components: a number of info components to get
+ * @server: Relay server to use
+ * @port: a port number on relay server
+ * @token: a relay auth token
+ * @callback: (scope notified): a #WockyJingleInfoRelaySessionCb to call
+ * @user_data: a pointer to user data to pass to @cllback
+ *
+ * Makes a @components number of soup requests to
+ * http://@server:@port/create_session, authenticated by @token. After each
+ * info response is received and parsed executes @callback, passing collected
+ * and filled relays as #GPtrArray and @user_data.
+ */
 void
 wocky_google_relay_resolver_resolve (WockyGoogleRelayResolver *self,
     guint components,
