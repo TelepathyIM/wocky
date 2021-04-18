@@ -86,6 +86,7 @@ typedef enum
   WOCKY_TLS_BINDING_TLS_UNIQUE,
   WOCKY_TLS_BINDING_TLS_SERVER_END_POINT,
   WOCKY_TLS_BINDING_TLS_EXPORTER,
+  /*< private >*/
   WOCKY_TLS_BINDING_INVALID_TYPE
 } WockyTLSBindingType;
 
@@ -100,6 +101,10 @@ typedef struct {
   gchar *mechanism;
   GString *initial_response;
 } WockyAuthRegistryStartData;
+
+#define WOCKY_TYPE_AUTH_REGISTRY_START_DATA \
+  (wocky_auth_registry_start_data_get_type ())
+GType wocky_auth_registry_start_data_get_type (void);
 
 #define WOCKY_TYPE_AUTH_REGISTRY wocky_auth_registry_get_type()
 
