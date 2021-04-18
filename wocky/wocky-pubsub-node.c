@@ -351,6 +351,20 @@ wocky_pubsub_node_get_name (WockyPubsubNode *self)
   return priv->name;
 }
 
+/**
+ * wocky_pubsub_node_make_publish_stanza:
+ * @self: a #WockyPubsubNode
+ * @pubsub_out: a pointer to #WockyNode
+ * @publish_out: a pointer to #WockyNode
+ * @item_out: a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to publish @self, setting @pubsub_out
+ * and @publish_out and @item_out pointers to corresponding newly created
+ * xml nodes within stanza. Technically it is a wrapper around a call to
+ * wocky_pubsub_make_publish_stanza() with @self's details populated.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_node_make_publish_stanza (WockyPubsubNode *self,
     WockyNode **pubsub_out,
@@ -392,6 +406,19 @@ pubsub_node_make_action_stanza (WockyPubsubNode *self,
   return stanza;
 }
 
+/**
+ * wocky_pubsub_node_make_subscribe_stanza:
+ * @self: a #WockyPubsubNode
+ * @jid: a JID which should be subscribed to @self
+ * @pubsub_node: a pointer to #WockyNode
+ * @subscribe_node: a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to subscribe @jid to @self, setting @pubsub_node
+ * and @subscriptions_node pointers to corresponding newly created nodes within
+ * stanza.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_node_make_subscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
@@ -450,7 +477,7 @@ subscribe_cb (GObject *source,
  * @self: a pubsub node
  * @jid: the JID to use as the subscribed JID (usually the connection's bare or
  *       full JID); may not be %NULL
- * @cancellable: optional GCancellable object, %NULL to ignore
+ * @cancellable: (nullable): optional GCancellable object, %NULL to ignore
  * @callback: a callback to call when the request is completed
  * @user_data: data to pass to @callback
  *
@@ -488,6 +515,21 @@ wocky_pubsub_node_subscribe_finish (WockyPubsubNode *self,
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
+/**
+ * wocky_pubsub_node_make_unsubscribe_stanza:
+ * @self: a #WockyPubsubNode
+ * @jid: a JID which should be unsubscribed from @self
+ * @subid: (nullable): optional SubID which should be unsubscribed, or %NULL
+ * @pubsub_node: (out)(optional): a pointer to #WockyNode
+ * @unsubscribe_node: (out)(optional): a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to remove @jid's subscription, setting @pubsub_node
+ * and @subscriptions_node pointers to corresponding newly created nodes within
+ * stanza. Optional @subid may indicate that only specific content-based
+ * subscription should be removed.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_node_make_unsubscribe_stanza (WockyPubsubNode *self,
     const gchar *jid,
@@ -540,7 +582,7 @@ pubsub_node_void_iq_cb (GObject *source,
  * @jid: the JID subscribed to @self (usually the connection's bare or
  *       full JID); may not be %NULL
  * @subid: the identifier associated with the subscription
- * @cancellable: optional GCancellable object, %NULL to ignore
+ * @cancellable: (nullable): optional GCancellable object, %NULL to ignore
  * @callback: a callback to call when the request is completed
  * @user_data: data to pass to @callback
  *
@@ -579,6 +621,18 @@ wocky_pubsub_node_unsubscribe_finish (WockyPubsubNode *self,
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+/**
+ * wocky_pubsub_node_make_delete_stanza:
+ * @self: a #WockyPubsubNode
+ * @pubsub_node: a pointer to #WockyNode
+ * @delete_node: a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to delete self's pubsub, setting @pubsub_node
+ * and @delete_node pointers to corresponding newly created xml nodes within
+ * stanza.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_node_make_delete_stanza (
     WockyPubsubNode *self,
@@ -616,6 +670,18 @@ wocky_pubsub_node_delete_finish (WockyPubsubNode *self,
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+/**
+ * wocky_pubsub_node_make_list_subscribers_stanza:
+ * @self: a #WockyPubsubNode
+ * @pubsub_node: a pointer to #WockyNode
+ * @subscriptions_node: a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to list @self's subscriptions, setting @pubsub_node
+ * and @subscriptions_node pointers to corresponding newly created nodes within
+ * stanza.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_node_make_list_subscribers_stanza (
     WockyPubsubNode *self,
@@ -659,7 +725,7 @@ list_subscribers_cb (GObject *source,
 /**
  * wocky_pubsub_node_list_subscribers_async:
  * @self: a pubsub node
- * @cancellable: optional #GCancellable object
+ * @cancellable: (nullable): optional #GCancellable object
  * @callback: function to call when the subscribers have been retrieved or an
  *            error has occured
  * @user_data: data to pass to @callback.
@@ -693,8 +759,8 @@ wocky_pubsub_node_list_subscribers_async (
  * wocky_pubsub_node_list_subscribers_finish:
  * @self: a pubsub node
  * @result: the result passed to a callback
- * @subscribers: location at which to store a list of #WockyPubsubSubscription
- *               pointers, or %NULL
+ * @subscribers: (out)(element-type WockyPubsubSubscription)(optional): location
+ *  at which to store a list of #WockyPubsubSubscription pointers, or %NULL
  * @error: location at which to store an error, or %NULL
  *
  * Completes a call to wocky_pubsub_node_list_subscribers_async(). The list
@@ -721,6 +787,18 @@ wocky_pubsub_node_list_subscribers_finish (
   return !g_task_had_error (G_TASK (result));
 }
 
+/**
+ * wocky_pubsub_node_make_list_affiliates_stanza:
+ * @self: a #WockyPubsubNode
+ * @pubsub_node: a pointer to #WockyNode
+ * @affiliations_node: a pointer to #WockyNode
+ *
+ * Creates new #WockyStanza representing @self, setting @pubsub_node and
+ * @affiliations_node pointers to corresponding newly created nodes within
+ * stanza.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_node_make_list_affiliates_stanza (
     WockyPubsubNode *self,
@@ -732,6 +810,14 @@ wocky_pubsub_node_make_list_affiliates_stanza (
       pubsub_node, affiliations_node);
 }
 
+/**
+ * wocky_pubsub_node_parse_affiliations:
+ * @self: a #WockyPubsubNode
+ * @affiliations_node: a #WockyNode from which to parse the &lt;affiliations/&gt;
+ *
+ * Returns: (transfer full)(element-type WockyPubsubAffiliation): a #GList of
+ * #WockyPubsubAffiliation objects parsed from @affiliations_node.
+ */
 GList *
 wocky_pubsub_node_parse_affiliations (
     WockyPubsubNode *self,
@@ -807,7 +893,7 @@ list_affiliates_cb (GObject *source,
 /**
  * wocky_pubsub_node_list_affiliates_async:
  * @self: a pubsub node
- * @cancellable: optional #GCancellable object
+ * @cancellable: (nullable): optional #GCancellable object
  * @callback: function to call when the affiliates have been retrieved or an
  *            error has occured
  * @user_data: data to pass to @callback.
@@ -841,8 +927,8 @@ wocky_pubsub_node_list_affiliates_async (
  * wocky_pubsub_node_list_affiliates_finish:
  * @self: a pubsub node
  * @result: the result passed to a callback
- * @affiliates: location at which to store a list of #WockyPubsubAffiliation
- *              pointers, or %NULL
+ * @affiliates: (out)(element-type WockyPubsubAffiliation)(optional): location
+ *  at which to store a list of #WockyPubsubAffiliation pointers, or %NULL
  * @error: location at which to store an error, or %NULL
  *
  * Completes a call to wocky_pubsub_node_list_affiliates_async(). The list
@@ -872,15 +958,15 @@ wocky_pubsub_node_list_affiliates_finish (
 /**
  * wocky_pubsub_node_make_modify_affiliates_stanza:
  * @self: a pubsub node
- * @affiliates: a list of #WockyPubsubAffiliation structures, describing only
- *              the affiliations which should be changed.
+ * @affiliates: (element-type WockyPubsubAffiliation): a list of #WockyPubsubAffiliation
+ *  structures, describing only the affiliations which should be changed.
  * @pubsub_node: location at which to store a pointer to the &lt;pubsub/&gt;
  *               node, or %NULL
  * @affiliations_node: location at which to store a pointer to the
  *                     &lt;affiliations/&gt; node, or %NULL
  *
- * Returns: an IQ stanza to modify the entities affiliated to a node that you
- *          own.
+ * Returns: (transfer full): an IQ stanza to modify the entities affiliated to
+ * a node that you own.
  */
 WockyStanza *
 wocky_pubsub_node_make_modify_affiliates_stanza (
@@ -943,8 +1029,9 @@ wocky_pubsub_node_make_modify_affiliates_stanza (
 /**
  * wocky_pubsub_node_modify_affiliates_async:
  * @self: a pubsub node
- * @affiliates: a list of #WockyPubsubAffiliation structures, describing only
- *              the affiliations which should be changed.
+ * @affiliates: (element-type WockyPubsubAffiliation): a list of
+ *  #WockyPubsubAffiliation structures, describing only the affiliations
+ *  which should be changed.
  * @cancellable: optional GCancellable object, %NULL to ignore
  * @callback: a callback to call when the request is completed
  * @user_data: data to pass to @callback
@@ -998,7 +1085,7 @@ wocky_pubsub_node_modify_affiliates_finish (
  * @configure_node: location at which to store a pointer to the
  *                  &lt;configure/&gt; node, or %NULL
  *
- * Returns: an IQ stanza to retrieve the configuration of @self
+ * Returns: (transfer full): an IQ stanza to retrieve the configuration of @self
  */
 WockyStanza *
 wocky_pubsub_node_make_get_configuration_stanza (
@@ -1072,8 +1159,8 @@ wocky_pubsub_node_get_configuration_async (
  *
  * Complete a call to wocky_pubsub_node_get_configuration_async().
  *
- * Returns: a form representing the node configuration on success; %NULL and
- *          sets @error otherwise
+ * Returns: (transfer full): a form representing the node configuration on success;
+ *  %NULL and sets @error otherwise
  */
 WockyDataForm *
 wocky_pubsub_node_get_configuration_finish (
@@ -1086,6 +1173,15 @@ wocky_pubsub_node_get_configuration_finish (
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
+/**
+ * wocky_pubsub_node_get_porter:
+ * @self: a #WockyPubsubNode
+ *
+ * Obtain a #WockyPorter associated with @self.
+ *
+ * Returns: (transfer none): a #WockyPorter which is used to communicate with
+ * PubSub server.
+ */
 WockyPorter *
 wocky_pubsub_node_get_porter (WockyPubsubNode *self)
 {
@@ -1197,13 +1293,14 @@ wocky_pubsub_affiliation_free (WockyPubsubAffiliation *aff)
 
 /**
  * wocky_pubsub_affiliation_list_copy:
- * @affs: a list of #WockyPubsubAffiliation
+ * @affs: (element-type WockyPubsubAffiliation): a list of #WockyPubsubAffiliation
  *
  * Shorthand for manually copying @affs, duplicating each element with
  * wocky_pubsub_affiliation_copy().
  *
- * Returns: a deep copy of @affs, which should ultimately be freed with
- *          wocky_pubsub_affiliation_list_free().
+ * Returns: (transfer full)(element-type WockyPubsubAffiliation): a deep copy
+ * of @affs, which should ultimately be freed with
+ * wocky_pubsub_affiliation_list_free().
  */
 GList *
 wocky_pubsub_affiliation_list_copy (GList *affs)
@@ -1214,7 +1311,7 @@ wocky_pubsub_affiliation_list_copy (GList *affs)
 
 /**
  * wocky_pubsub_affiliation_list_free:
- * @affs: a list of #WockyPubsubAffiliation
+ * @affs: (element-type WockyPubsubAffiliation): a list of #WockyPubsubAffiliation
  *
  * Frees a list of WockyPubsubAffiliation structures, as shorthand for calling
  * wocky_pubsub_affiliation_free() for each element, followed by g_list_free().
