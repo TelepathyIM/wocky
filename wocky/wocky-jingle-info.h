@@ -90,6 +90,10 @@ WockyJingleRelay *wocky_jingle_relay_new (
     guint component);
 void wocky_jingle_relay_free (WockyJingleRelay *relay);
 
+#define WOCKY_TYPE_JINGLE_RELAY \
+  (wocky_jingle_relay_get_type ())
+GType wocky_jingle_relay_get_type (void);
+
 /*
  * @relays: (element-type WockyJingleRelay) (transfer none): a possibly-empty
  *  array of WockyJingleRelay structs.
