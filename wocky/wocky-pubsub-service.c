@@ -297,6 +297,7 @@ wocky_pubsub_service_class_init (
 
   /**
    * WockyPubsubService::node-deleted
+   * @service: a pubsub service
    * @node: a pubsub node
    * @stanza: the message/event stanza in its entirety
    * @event_node: the event node from @stanza
@@ -430,8 +431,8 @@ pubsub_service_create_node (WockyPubsubService *self,
  * that this does not ensure that a node exists on the server; it merely
  * ensures a local representation.
  *
- * Returns: a new reference to an object representing a node named @name on
- *          @self
+ * Returns: (transfer full): a new reference to an object representing a node
+ * named @name on @self
  */
 WockyPubsubNode *
 wocky_pubsub_service_ensure_node (WockyPubsubService *self,
@@ -457,7 +458,7 @@ wocky_pubsub_service_ensure_node (WockyPubsubService *self,
  * already exists; if not, returns %NULL. Note that this does not check whether
  * a node exists on the server; it only checks for a local representation.
  *
- * Returns: a borrowed reference to a node, or %NULL
+ * Returns: (transfer none): a borrowed reference to a node, or %NULL
  */
 WockyPubsubNode *
 wocky_pubsub_service_lookup_node (WockyPubsubService *self,
@@ -533,6 +534,17 @@ default_configuration_iq_cb (GObject *source,
   g_object_unref (task);
 }
 
+/**
+ * wocky_pubsub_service_get_default_node_configuration_async:
+ * @self: a #WockyPubsubService
+ * @cancellable: (nullable): a #GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Requests a server for default node configuration for the @self's PubSub
+ * service. Use wocky_pubsub_service_get_default_node_configuration_finish()
+ * to complete the call and obtain the requested configuration data form.
+ */
 void
 wocky_pubsub_service_get_default_node_configuration_async (
     WockyPubsubService *self,
@@ -555,6 +567,18 @@ wocky_pubsub_service_get_default_node_configuration_async (
   g_object_unref (stanza);
 }
 
+/**
+ * wocky_pubsub_service_get_default_node_configuration_finish:
+ * @self: a #WockyPubsubService
+ * @result: a #GAsyncResult
+ * @error: a pointer to #GError to populate the error details, or %NULL
+ *
+ * Completes the call to wocky_pubsub_service_get_default_node_configuration_async()
+ * and returns retrieved config as parsed data form.
+ *
+ * Returns: (transfer full): a #WockyDataForm with retrieved configuration if
+ * the call succeeds. Otherwise %NULL and @error is set accordingly.
+ */
 WockyDataForm *
 wocky_pubsub_service_get_default_node_configuration_finish (
     WockyPubsubService *self,
@@ -619,6 +643,19 @@ wocky_pubsub_service_parse_subscription (WockyPubsubService *self,
   return sub;
 }
 
+/**
+ * wocky_pubsub_service_parse_subscriptions:
+ * @self: a WockyPubsubService
+ * @subscriptions_node: a #WockyNode to parse
+ * @subscription_nodes: (out)(transfer container)(element-type WockyNode): a
+ *  pointer to #GList filled with parsed nodes. Free with g_list_free.
+ *
+ * Parse subscription nodes from @subscriptions_node and populate pointers to
+ * the parsed nodes into @subscription_nodes.
+ *
+ * Returns: (transfer full)(element-type WockyPubsubSubscription): a list of
+ * #WockyPubsubSubscription from @subscriptions_node.
+ */
 GList *
 wocky_pubsub_service_parse_subscriptions (WockyPubsubService *self,
     WockyNode *subscriptions_node,
@@ -688,6 +725,19 @@ receive_subscriptions_cb (GObject *source,
   g_object_unref (task);
 }
 
+/**
+ * wocky_pubsub_service_create_retrieve_subscriptions_stanza:
+ * @self: a #WockyPubsubService
+ * @node: a #WockyPubsubNode for which to create retrieval stanza
+ * @pubsub_node: a pointer to #WockyNode
+ * @subscriptions_node: a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to request current subscriptions for @node on
+ * @self's pubsub service, setting @pubsub_node and @subscriptions_node
+ * pointers to corresponding newly created xml nodes within stanza.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_service_create_retrieve_subscriptions_stanza (
     WockyPubsubService *self,
@@ -712,6 +762,18 @@ wocky_pubsub_service_create_retrieve_subscriptions_stanza (
   return stanza;
 }
 
+/**
+ * wocky_pubsub_service_retrieve_subscriptions_async:
+ * @self: a #WockyPubsubService
+ * @node: a #WockyPubsubNode
+ * @cancellable: (nullable): a #GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Requests a server for a list of subscriptions for the @node. Use
+ * wocky_pubsub_service_retrieve_subscriptions_finish() to complete the call
+ * and obtain the requested subscriptions.
+ */
 void
 wocky_pubsub_service_retrieve_subscriptions_async (
     WockyPubsubService *self,
@@ -733,6 +795,20 @@ wocky_pubsub_service_retrieve_subscriptions_async (
   g_object_unref (stanza);
 }
 
+/**
+ * wocky_pubsub_service_retrieve_subscriptions_finish:
+ * @self: a #WockyPubsubService
+ * @result: a #GAsyncResult
+ * @subscriptions: (out)(transfer full)(element-type WockyPubsubSubscription)(optional):
+ *  a #GList pointer set to a retrieval results on success, or %NULL.
+ *
+ * Completes the call to wocky_pubsub_service_retrieve_subscriptions_async()
+ * and populates the results into @subscriptions, unless it is %NULL.
+ *
+ * Returns: %TRUE if the call to the server was successful, %FALSE otherwise.
+ * When %TRUE the @subscriptions is populated with results, otherwise @error
+ * is set approprietly.
+ */
 gboolean
 wocky_pubsub_service_retrieve_subscriptions_finish (
     WockyPubsubService *self,
@@ -765,8 +841,8 @@ wocky_pubsub_service_retrieve_subscriptions_finish (
  * but it may also tell you "hey, you asked for 'ringo', but I gave you
  * 'george'". Good times.
  *
- * Returns: a pubsub node if the reply made sense, or %NULL with @error set if
- *          not.
+ * Returns: (transfer full): a pubsub node if the reply made sense, or %NULL
+ * with @error set if not.
  */
 WockyPubsubNode *
 wocky_pubsub_service_handle_create_node_reply (
@@ -851,6 +927,21 @@ create_node_iq_cb (GObject *source,
   g_object_unref (task);
 }
 
+/**
+ * wocky_pubsub_service_create_create_node_stanza:
+ * @self: a #WockyPubsubService
+ * @name: a name for node to create
+ * @config: a #WockyDataForm with node's config
+ * @pubsub_node: a pointer to #WockyNode
+ * @create_node: a pointer to #WockyNode
+ *
+ * Creates new IQ #WockyStanza to create a new node on self's pubsub service,
+ * setting @pubsub_node and @create_node pointers to corresponding newly
+ * created xml nodes within stanza. A new node is created with name from @name
+ * parameter and config section populated from @config data form.
+ *
+ * Returns: (transfer full): Newly created IQ #WockyStanza.
+ */
 WockyStanza *
 wocky_pubsub_service_create_create_node_stanza (
     WockyPubsubService *self,
@@ -882,6 +973,19 @@ wocky_pubsub_service_create_create_node_stanza (
   return stanza;
 }
 
+/**
+ * wocky_pubsub_service_create_node_async:
+ * @self: a #WockyPubsubService
+ * @name: a name for node to create
+ * @config: a #WockyDataForm with node's config
+ * @cancellable: (nullable): a #GCancellable object, %NULL to ignore
+ * @callback: a callback to call when the request is completed
+ * @user_data: data to pass to @callback
+ *
+ * Creates a new node with @name and @config on @self's service. Use
+ * wocky_pubsub_service_create_node_finish() to complete the call and
+ * obtain the created node.
+ */
 void
 wocky_pubsub_service_create_node_async (WockyPubsubService *self,
     const gchar *name,
@@ -903,6 +1007,17 @@ wocky_pubsub_service_create_node_async (WockyPubsubService *self,
   g_object_unref (stanza);
 }
 
+/**
+ * wocky_pubsub_service_create_node_finish:
+ * @self: a #WockyPubsubService
+ * @result: a #GAsyncResult
+ * @error: location at which to store an error, if one occurred.
+ *
+ * Complete a call to wocky_pubsub_service_create_node_async().
+ *
+ * Returns: (transfer full): a #WockyPubsubNode represesnting newly created
+ * node on success; %NULL and sets @error otherwise
+ */
 WockyPubsubNode *
 wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
     GAsyncResult *result,
@@ -913,6 +1028,15 @@ wocky_pubsub_service_create_node_finish (WockyPubsubService *self,
   return g_task_propagate_pointer (G_TASK (result), error);
 }
 
+/**
+ * wocky_pubsub_service_get_porter:
+ * @self: a #WockyPubsubService
+ *
+ * Obtain a #WockyPorter associated with @self.
+ *
+ * Returns: (transfer none): a #WockyPorter which is used to communicate with
+ * PubSub server.
+ */
 WockyPorter *
 wocky_pubsub_service_get_porter (WockyPubsubService *self)
 {
@@ -958,6 +1082,17 @@ wocky_pubsub_subscription_free (WockyPubsubSubscription *sub)
   g_slice_free (WockyPubsubSubscription, sub);
 }
 
+/**
+ * wocky_pubsub_subscription_list_copy:
+ * @subs: (element-type WockyPubsubSubscription): a list of #WockyPubsubSubscription
+ *
+ * Shorthand for manually copying @subs, duplicating each element with
+ * wocky_pubsub_subscription_copy().
+ *
+ * Returns: (transfer full)(element-type WockyPubsubSubscription): a deep copy
+ * of @subs, which should ultimately be freed with
+ * wocky_pubsub_subscription_list_free().
+ */
 GList *
 wocky_pubsub_subscription_list_copy (GList *subs)
 {
@@ -965,6 +1100,13 @@ wocky_pubsub_subscription_list_copy (GList *subs)
       subs);
 }
 
+/**
+ * wocky_pubsub_subscription_list_free:
+ * @subs: (element-type WockyPubsubSubscription): a list of #WockyPubsubSubscription
+ *
+ * Frees a list of #WockyPubsubSubscription structures, as shorthand for calling
+ * wocky_pubsub_subscription_free() for each element, followed by g_list_free().
+ */
 void
 wocky_pubsub_subscription_list_free (GList *subs)
 {
