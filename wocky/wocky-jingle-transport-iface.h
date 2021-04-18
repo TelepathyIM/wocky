@@ -43,18 +43,18 @@ typedef struct _WockyJingleTransportIfaceClass WockyJingleTransportIfaceClass;
 struct _WockyJingleTransportIfaceClass {
   GTypeInterface parent;
 
-  void (*parse_candidates) (WockyJingleTransportIface *,
-    WockyNode *, GError **);
+  void (*parse_candidates) (WockyJingleTransportIface *self,
+    WockyNode *node, GError **error);
 
-  void (*new_local_candidates) (WockyJingleTransportIface *, GList *);
-  void (*inject_candidates) (WockyJingleTransportIface *,
+  void (*new_local_candidates) (WockyJingleTransportIface *self, GList *candidates);
+  void (*inject_candidates) (WockyJingleTransportIface *self,
       WockyNode *transport_node);
-  void (*send_candidates) (WockyJingleTransportIface *, gboolean all);
-  gboolean (*can_accept) (WockyJingleTransportIface *);
+  void (*send_candidates) (WockyJingleTransportIface *self, gboolean all);
+  gboolean (*can_accept) (WockyJingleTransportIface *self);
 
-  GList * (*get_remote_candidates) (WockyJingleTransportIface *);
-  GList * (*get_local_candidates) (WockyJingleTransportIface *);
-  gboolean (*get_credentials) (WockyJingleTransportIface *,
+  GList * (*get_remote_candidates) (WockyJingleTransportIface *self);
+  GList * (*get_local_candidates) (WockyJingleTransportIface *self);
+  gboolean (*get_credentials) (WockyJingleTransportIface *self,
       gchar **ufrag, gchar **pwd);
 
   WockyJingleTransportType (*get_transport_type) (void);
@@ -73,8 +73,8 @@ GType wocky_jingle_transport_iface_get_type (void);
   (G_TYPE_INSTANCE_GET_INTERFACE ((obj), WOCKY_TYPE_JINGLE_TRANSPORT_IFACE,\
                               WockyJingleTransportIfaceClass))
 
-void wocky_jingle_transport_iface_parse_candidates (WockyJingleTransportIface *,
-    WockyNode *, GError **);
+void wocky_jingle_transport_iface_parse_candidates (WockyJingleTransportIface *self,
+    WockyNode *node, GError **error);
 
 void wocky_jingle_transport_iface_new_local_candidates (
     WockyJingleTransportIface *self,
@@ -88,10 +88,10 @@ void wocky_jingle_transport_iface_send_candidates (
 gboolean wocky_jingle_transport_iface_can_accept (
     WockyJingleTransportIface *self);
 
-GList *wocky_jingle_transport_iface_get_remote_candidates (WockyJingleTransportIface *);
-GList *wocky_jingle_transport_iface_get_local_candidates (WockyJingleTransportIface *);
-WockyJingleTransportType wocky_jingle_transport_iface_get_transport_type (WockyJingleTransportIface *);
-gboolean jingle_transport_get_credentials (WockyJingleTransportIface *,
+GList *wocky_jingle_transport_iface_get_remote_candidates (WockyJingleTransportIface *self);
+GList *wocky_jingle_transport_iface_get_local_candidates (WockyJingleTransportIface *self);
+WockyJingleTransportType wocky_jingle_transport_iface_get_transport_type (WockyJingleTransportIface *self);
+gboolean jingle_transport_get_credentials (WockyJingleTransportIface *self,
     gchar **ufrag, gchar **pwd);
 
 WockyJingleTransportIface *wocky_jingle_transport_iface_new (
