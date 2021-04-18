@@ -211,6 +211,14 @@ wocky_stanza_new (const gchar *name,
   return result;
 }
 
+/**
+ * wocky_stanza_copy:
+ * @old: a #WockyStanza to copy
+ *
+ * Performs full copy of the @old
+ *
+ * Returns: (transfer full): A new #WockyStanza which is a full copy of @old
+ */
 WockyStanza *
 wocky_stanza_copy (WockyStanza *old)
 {
@@ -356,7 +364,7 @@ wocky_stanza_new_with_sub_type (WockyStanzaType type,
  *   NULL);
  * ]|
  *
- * Returns: a new stanza object
+ * Returns: (transfer full): a new stanza object
  */
 WockyStanza *
 wocky_stanza_build (WockyStanzaType type,
@@ -376,6 +384,21 @@ wocky_stanza_build (WockyStanzaType type,
   return stanza;
 }
 
+/**
+ * wocky_stanza_build_to_contact:
+ * @type: The type of stanza to build
+ * @sub_type: The stanza's subtype; valid values depend on @type. (For instance,
+ *           #WOCKY_STANZA_TYPE_IQ can use #WOCKY_STANZA_SUB_TYPE_GET, but not
+ *           #WOCKY_STANZA_SUB_TYPE_SUBSCRIBED.)
+ * @from: The sender's JID, or %NULL to leave it unspecified.
+ * @to: The target's #WockyContact, or %NULL to leave it unspecified.
+ * @...: the description of the stanza to build, terminated with %NULL
+ *
+ * See wocky_stanza_build() for details, this convenience wrapper merely
+ * converts @to from #WockyContact to JID and calls wocky_stanza_build().
+ *
+ * Returns: (transfer full): a new #WockyStanza object.
+ */
 WockyStanza *
 wocky_stanza_build_to_contact (WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -402,6 +425,21 @@ wocky_stanza_build_to_contact (WockyStanzaType type,
   return stanza;
 }
 
+/**
+ * wocky_stanza_build_va:
+ * @type: The type of stanza to build
+ * @sub_type: The stanza's subtype; valid values depend on @type. (For instance,
+ *           #WOCKY_STANZA_TYPE_IQ can use #WOCKY_STANZA_SUB_TYPE_GET, but not
+ *           #WOCKY_STANZA_SUB_TYPE_SUBSCRIBED.)
+ * @from: The sender's JID, or %NULL to leave it unspecified.
+ * @to: The target's JID, or %NULL to leave it unspecified.
+ * @ap: the description of the stanza to build, expressed as #va_list
+ *
+ * See wocky_stanza_build() for details, this is actual implementation of the
+ * stanza build function called by other wrappers.
+ *
+ * Returns: (transfer full): a new #WockyStanza object.
+ */
 WockyStanza *
 wocky_stanza_build_va (WockyStanzaType type,
     WockyStanzaSubType sub_type,
@@ -548,6 +586,17 @@ create_iq_reply (WockyStanza *iq,
   return reply;
 }
 
+/**
+ * wocky_stanza_build_iq_result:
+ * @iq: a #WockyStanza for which to build a result
+ * @...: %NULL terminated build descriptors
+ *
+ * Builds IQ result stanza for the given @iq, optionally adding other nodes
+ * following wocky_stanza_build() descriptors. See
+ * wocky_stanza_build_iq_error() for examples.
+ *
+ * Returns: (transfer full): a #WockyStanza with result for @iq.
+ */
 WockyStanza *
 wocky_stanza_build_iq_result (WockyStanza *iq,
     ...)
@@ -562,6 +611,15 @@ wocky_stanza_build_iq_result (WockyStanza *iq,
   return reply;
 }
 
+/**
+ * wocky_stanza_build_iq_result_va:
+ * @iq: a #WockyStanza for which to build a result
+ * @ap: a #va_list with build descriptors
+ *
+ * For details see wocky_stanza_build_iq_result(), which wraps this method.
+ *
+ * Returns: (transfer full): a #WockyStanza with result for @iq.
+ */
 WockyStanza *
 wocky_stanza_build_iq_result_va (
     WockyStanza *iq,
@@ -598,7 +656,7 @@ wocky_stanza_build_iq_result_va (
  *    ')', NULL);
  * ]|
  *
- * Returns: an error reply for @iq
+ * Returns: (transfer full): a #WockyStanza error reply for @iq
  */
 WockyStanza *
 wocky_stanza_build_iq_error (WockyStanza *iq,
@@ -641,6 +699,16 @@ wocky_stanza_build_iq_error (WockyStanza *iq,
   return reply;
 }
 
+/**
+ * wocky_stanza_build_iq_error_va:
+ * @iq: a #WockyStanza with IQ to respond to
+ * @ap: a #va_list with building descriptors.
+ *
+ * Similar to wocky_stanza_build_iq_error() but does not perform additional
+ * query extraction and uses #va_list.
+ *
+ * Returns: (transfer full): a #WockyStanza with error for @iq.
+ */
 WockyStanza *
 wocky_stanza_build_iq_error_va (
     WockyStanza *iq,
@@ -733,9 +801,11 @@ wocky_stanza_extract_stream_error (WockyStanza *stanza,
 
 /**
  * wocky_stanza_get_top_node:
- * @self: a stanza
+ * @self: a #WockyStanza
  *
- * Returns: A pointer to the topmost node of the stanza
+ * <!-- moo -->
+ *
+ * Returns: (transfer none): A pointer to the topmost node of the stanza
  */
 WockyNode *
 wocky_stanza_get_top_node (WockyStanza *self)
@@ -777,6 +847,15 @@ wocky_stanza_get_to (WockyStanza *self)
   return wocky_node_get_attribute (wocky_stanza_get_top_node (self), "to");
 }
 
+/**
+ * wocky_stanza_get_to_contact:
+ * @self: a #WockyStanza
+ *
+ * <!-- moo -->
+ *
+ * Returns: (transfer none): a pointer to internal #WockyContact representing
+ * `to` attribute.
+ */
 WockyContact *
 wocky_stanza_get_to_contact (WockyStanza *self)
 {
@@ -786,6 +865,15 @@ wocky_stanza_get_to_contact (WockyStanza *self)
   return self->priv->to_contact;
 }
 
+/**
+ * wocky_stanza_get_from_contact:
+ * @self: a #WockyStanza
+ *
+ * <!-- moo -->
+ *
+ * Returns: (transfer none): a pointer to internal #WockyContact representing
+ * `from` attribute.
+ */
 WockyContact *
 wocky_stanza_get_from_contact (WockyStanza *self)
 {
