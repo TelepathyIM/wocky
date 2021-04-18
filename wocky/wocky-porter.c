@@ -136,6 +136,7 @@ wocky_porter_default_init (WockyPorterInterface *iface)
       /**
        * WockyPorter::resuming:
        * @porter: the object on which the signal is emitted
+       * @nonza: the resume #WockyStanza to send for resumption
        *
        * The ::resuming signal is emitted when the #WockyPorter detects broken
        * XMPP connection and start resumption vector of the attached connector.
@@ -201,6 +202,8 @@ wocky_porter_default_init (WockyPorterInterface *iface)
       /**
        * WockyPorter::reconnected:
        * @porter: the object on which the signal is emitted
+       * @sid: a new SM sid for newly created session
+       * @jid: a new JID bound to the newly created session
        *
        * The ::reconnected signal is emitted when the #WockyPorter completes
        * automatic reconnection after resumption soft-fail. The signal carries
@@ -406,9 +409,9 @@ wocky_porter_send (WockyPorter *porter,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -473,9 +476,9 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @stanza: a #WockyStanza. The handler will match a stanza only if
  *  the stanza received is a superset of the one passed to this
@@ -527,9 +530,9 @@ wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -605,9 +608,9 @@ wocky_porter_register_handler_from (WockyPorter *self,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -669,9 +672,9 @@ wocky_porter_register_handler_from_anyone_va (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @stanza: a #WockyStanza. The handler will match a stanza only if
  *  the stanza received is a superset of the one passed to this
@@ -721,9 +724,9 @@ wocky_porter_register_handler_from_anyone_by_stanza (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -786,7 +789,7 @@ wocky_porter_register_handler_from_anyone (
 
 /**
  * wocky_porter_unregister_handler:
- * @porter: a #WockyPorter
+ * @self: a #WockyPorter
  * @id: the id of the handler to unregister
  *
  * Unregister a registered handler. This handler won't be called when
@@ -809,7 +812,7 @@ wocky_porter_unregister_handler (WockyPorter *self,
 
 /**
  * wocky_porter_close_async:
- * @porter: a #WockyPorter
+ * @self: a #WockyPorter
  * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
@@ -840,7 +843,7 @@ wocky_porter_close_async (WockyPorter *self,
 
 /**
  * wocky_porter_close_finish:
- * @porter: a #WockyPorter
+ * @self: a #WockyPorter
  * @result: a #GAsyncResult
  * @error: a #GError location to store the error occuring, or %NULL to ignore.
  *
@@ -904,7 +907,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
  *
  * Get the reply of an IQ query.
  *
- * Returns: a reffed #WockyStanza on success, %NULL on error
+ * Returns: (transfer full): a reffed #WockyStanza on success, %NULL on error
  */
 WockyStanza *
 wocky_porter_send_iq_finish (WockyPorter *self,

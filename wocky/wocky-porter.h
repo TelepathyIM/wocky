@@ -290,15 +290,15 @@ guint wocky_porter_register_handler_from_anyone (
     gpointer user_data,
     ...) G_GNUC_NULL_TERMINATED;
 
-void wocky_porter_unregister_handler (WockyPorter *porter,
+void wocky_porter_unregister_handler (WockyPorter *self,
     guint id);
 
-void wocky_porter_close_async (WockyPorter *porter,
+void wocky_porter_close_async (WockyPorter *self,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data);
 
-gboolean wocky_porter_close_finish (WockyPorter *porter,
+gboolean wocky_porter_close_finish (WockyPorter *self,
     GAsyncResult *result,
     GError **error);
 
