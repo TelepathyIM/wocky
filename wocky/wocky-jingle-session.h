@@ -95,7 +95,7 @@ wocky_jingle_session_add_content (WockyJingleSession *sess,
     const gchar *content_ns,
     const gchar *transport_ns);
 
-GType wocky_jingle_session_get_content_type (WockyJingleSession *);
+GType wocky_jingle_session_get_content_type (WockyJingleSession *sess);
 GList *wocky_jingle_session_get_contents (WockyJingleSession *sess);
 const gchar *wocky_jingle_session_get_peer_resource (
     WockyJingleSession *sess);

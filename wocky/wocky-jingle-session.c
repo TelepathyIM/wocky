@@ -1745,6 +1745,18 @@ wocky_jingle_session_parse (
   return wocky_jingle_state_machine_dance (sess, action, session_node, error);
 }
 
+/**
+ * wocky_jingle_session_new_message:
+ * @sess: a WockyJingleSession
+ * @action: a #WockyJingleAction
+ * @sess_node: (out)(optional): a pointer to #WockyNode
+ *
+ * Creates a new IQ stanza for the current session, containing specified
+ * @action, and sets @sess_node to corresponding session XML node.
+ *
+ * Returns: (transfer full): a new #WockyStanza with session @action and
+ * sets @sess_node pointer to session XML node, unless it is %NULL.
+ */
 WockyStanza *
 wocky_jingle_session_new_message (WockyJingleSession *sess,
     WockyJingleAction action, WockyNode **sess_node)
@@ -2406,10 +2418,18 @@ _get_any_content (WockyJingleSession *session)
   return c;
 }
 
-/* Note: if there are multiple content types, not guaranteed which one will
+/**
+ * wocky_jingle_session_get_content_type:
+ * @sess: a #WockyJingleSession
+ *
+ * If there are multiple content types, not guaranteed which one will
  * be returned. Typically, the same GType will know how to handle related
  * contents found in a session (e.g. media-rtp for audio/video), so that
- * should not be a problem. Returns 0 if there are no contents yet. */
+ * should not be a problem.
+ *
+ * Returns: #GType of the #WockyJingleContent for this session, 0 if there
+ * are no contents yet.
+ */
 GType
 wocky_jingle_session_get_content_type (WockyJingleSession *sess)
 {
@@ -2426,6 +2446,16 @@ wocky_jingle_session_get_content_type (WockyJingleSession *sess)
 }
 
 /* FIXME: probably should make this into a property */
+/**
+ * wocky_jingle_session_get_contents:
+ * @sess: a #WockyJingleSession
+ *
+ * Obtains a list of @self's content fragments, initiator's followed by
+ * responder's
+ *
+ * Returns: (transfer full)(element-type WockyJingleContent): a new #GList
+ * with @self's #WockyJingleContent fragments
+ */
 GList *
 wocky_jingle_session_get_contents (WockyJingleSession *sess)
 {
@@ -2553,6 +2583,14 @@ wocky_jingle_session_get_dialect (WockyJingleSession *sess)
   return sess->priv->dialect;
 }
 
+/**
+ * wocky_jingle_session_get_peer_contact:
+ * @self: a #WockyJingleSession
+ *
+ * Obtains a pointer to @self's peer_contact
+ *
+ * Returns: (transfer none): a pointer to @self's #WockyContact for the peer
+ */
 WockyContact *
 wocky_jingle_session_get_peer_contact (WockyJingleSession *self)
 {
@@ -2575,6 +2613,14 @@ wocky_jingle_session_get_peer_jid (WockyJingleSession *sess)
   return sess->priv->peer_jid;
 }
 
+/**
+ * wocky_jingle_session_get_factory:
+ * @self: a #WockyJingleSession
+ *
+ * Obtains a pointer to @self's factory
+ *
+ * Returns: (transfer none): a pointer to @self's #WockyJingleFactory
+ */
 WockyJingleFactory *
 wocky_jingle_session_get_factory (WockyJingleSession *self)
 {
@@ -2583,6 +2629,14 @@ wocky_jingle_session_get_factory (WockyJingleSession *self)
   return self->priv->jingle_factory;
 }
 
+/**
+ * wocky_jingle_session_get_porter:
+ * @self: a #WockyJingleSession
+ *
+ * Obtains a pointer to @self's porter
+ *
+ * Returns: (transfer none): a pointer to @self's #WockyPorter
+ */
 WockyPorter *
 wocky_jingle_session_get_porter (WockyJingleSession *self)
 {
