@@ -35,7 +35,7 @@ G_BEGIN_DECLS
 typedef struct _WockyLLContactClass WockyLLContactClass;
 typedef struct _WockyLLContactPrivate WockyLLContactPrivate;
 
-typedef GList * (*WockyLLContactGetAddressesImpl) (WockyLLContact *);
+typedef GList * (*WockyLLContactGetAddressesImpl) (WockyLLContact *self);
 
 struct _WockyLLContactClass {
   WockyContactClass parent_class;
@@ -43,6 +43,12 @@ struct _WockyLLContactClass {
   WockyLLContactGetAddressesImpl get_addresses;
 };
 
+/**
+ * WockyLLContact:
+ *
+ * Opaque object, a subclass of #WockyContactClass, representing Link-Local
+ * Contact.
+ */
 struct _WockyLLContact {
   WockyContact parent;
 
