@@ -20,26 +20,49 @@
 
 /**
  * SECTION: wocky-tls
- * @title: Wocky GnuTLS TLS
+ * @title: Wocky TLS
  * @short_description: Establish TLS sessions
+ *
+ * Since version 0.19 this implementation is a wrapper around GIO
+ * GTlsConnection - where it all started. Glib-networking is then
+ * providing actual TLS backends - GnuTLS (default) and OpenSSL (optional).
+ *
+ * #WockyTLSession thus became simple alias to GTlsConnection class. See
+ * <ulink url="https://developer.gnome.org/gio/stable/GTlsConnection.html">
+ * GIO GTlsConnection API Reference</ulink> for generic methods.
  *
  * The below environment variables can be used to print debug output from GIO
  * and GNU TLS.
- * G_MESSAGES_DEBUG=GLib-Net|all,
- * GNUTLS_DEBUG_LEVEL=[0..99]
- * Higher values will print more information. See the documentation of
- * gnutls_global_set_log_level for more details.
  *
- * WOCKY_DEBUG=tls|all will trigger increased debugging output from within
+ * * `G_MESSAGES_DEBUG=GLib-Net|all`: Overall glib debug (could be very chatty)
+ * * `GNUTLS_DEBUG_LEVEL=[0..99]`: low level GnuTLS debug messages (similar)
+ *
+ * Higher values will print more information. See the documentation of
+ * `gnutls_global_set_log_level` for more details.
+ *
+ * * `WOCKY_DEBUG=tls|all` will trigger increased debugging output from within
  * wocky-tls.c as well.
  *
- * The G_TLS_GNUTLS_PRIORITY environment variable can be set to a gnutls
- * priority string [See gnutls-cli(1) or the gnutls_priority_init docs]
+ * The `G_TLS_GNUTLS_PRIORITY` environment variable can be set to a gnutls
+ * priority string [See gnutls-cli(1) or the `gnutls_priority_init` docs]
  * to control most tls protocol details. An empty or unset value is roughly
- * equivalent to a priority string "NORMAL:%COMPAT:-VERS-TLS1.0:-VERS-TLS1.1".
+ * equivalent to a priority string `"NORMAL:%COMPAT:-VERS-TLS1.0:-VERS-TLS1.1"`.
  *
- * Finally GIO_USE_TLS=gnutls|openssl could be used to control which backend
- * will be selected (if available) [See glib-networking docs for details].
+ * To control OpenSSL backend's parameters following glib-networking variables
+ * could be set in the environment:
+ * * `G_TLS_OPENSSL_MAX_PROTO`: Sets OpenSSL Max allowed protocol.
+ * * `G_TLS_OPENSSL_CIPHER_LIST`: Sets allowed ciphers (cipherstring).
+ * * `G_TLS_OPENSSL_CURVE_LIST`: Similarly restricts allowed EC curve list.
+ * * `G_TLS_OPENSSL_SIGNATURE_ALGORITHM_LIST`: Controls allowed hash functions.
+ *
+ * For instance to restrict to TLSv1.2 protocol you can export following
+ * environment variable: `export G_TLS_OPENSSL_MAX_PROTO=0x0303`
+ *
+ * Finally `GIO_USE_TLS=gnutls|openssl` could be used to control which backend
+ * will be selected (if available).
+ *
+ * See glib-networking docs for details on controlling backends and their
+ * behaviour.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -182,14 +205,27 @@ wocky_tls_session_add_crl (WockyTLSSession *session, const gchar *crl_path)
   DEBUG ("GIO-TLS currently doesn't support custom CRLs, ignoring %s", crl_path);
 }
 
+/**
+ * wocky_tls_session_get_peers_certificate:
+ * @session: a #GTlsConnection
+ * @type: (out): a location for #WockyTLSCertType
+ *
+ * Obtains all peer certificates - which supposed to be server cert and the
+ * optional chain. The @type param is set with the type of retrieved certs,
+ * and should always be WOCKY_TLS_CERT_TYPE_X509 (since pgp is deprecated).
+ * Returned certificates are binary blobs of DER certeficate data.
+ *
+ * Returns: (transfer full)(element-type GByteArray): a #GPtrArray of #GByteArray
+ * DER blobs.
+ */
 GPtrArray *
-wocky_tls_session_get_peers_certificate (GTlsConnection *conn,
+wocky_tls_session_get_peers_certificate (GTlsConnection *session,
     WockyTLSCertType *type)
 {
   GTlsCertificate *tlscert;
   GPtrArray *certificates;
 
-  tlscert = g_tls_connection_get_peer_certificate (conn);
+  tlscert = g_tls_connection_get_peer_certificate (session);
   if (tlscert == NULL)
     return NULL;
 
