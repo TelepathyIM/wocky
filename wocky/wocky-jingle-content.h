@@ -45,6 +45,22 @@ typedef enum {
   WOCKY_JINGLE_CONTENT_STATE_REMOVING
 } WockyJingleContentState;
 
+/**
+ * WockyJingleCandidate:
+ * @protocol: network transport protocol: tcp or udp
+ * @type: a type of the candidate: local, stun or relay
+ * @id: candidate id
+ * @address: candidate address
+ * @port: candidate port number
+ * @component: jingle candidate component
+ * @generation: candidate generation
+ * @preference: candidate preference
+ * @username: (nullable): optional username for candidate
+ * @password: (nullable): optional password for candidate
+ * @network: candidate network
+ *
+ * A wocky wrapper for jingle candidate.
+ */
 struct _WockyJingleCandidate {
   WockyJingleTransportProtocol protocol;
   WockyJingleCandidateType type;
@@ -85,12 +101,12 @@ GType wocky_jingle_content_get_type (void);
 struct _WockyJingleContentClass {
     GObjectClass parent_class;
 
-    void  (*parse_description) (WockyJingleContent *, WockyNode *,
-        GError **);
-    void  (*produce_description) (WockyJingleContent *, WockyNode *);
-    void  (*transport_created) (WockyJingleContent *,
-        WockyJingleTransportIface *);
-    WockyJingleContentSenders (*get_default_senders) (WockyJingleContent *);
+    void  (*parse_description) (WockyJingleContent *c, WockyNode *desc_node,
+        GError **error);
+    void  (*produce_description) (WockyJingleContent *c, WockyNode *desc_node);
+    void  (*transport_created) (WockyJingleContent *c,
+        WockyJingleTransportIface *t);
+    WockyJingleContentSenders (*get_default_senders) (WockyJingleContent *c);
 };
 
 typedef struct _WockyJingleContentPrivate WockyJingleContentPrivate;
