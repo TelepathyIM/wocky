@@ -56,6 +56,15 @@ typedef gboolean (*WockyXep0115CapabilitiesHasFeatureFunc) (
     WockyXep0115Capabilities *contact,
     const gchar *feature);
 
+/**
+ * wocky_xep_0115_capabilities_get_data_forms:
+ * @contact: an object implementing #WockyXep0115Capabilities interface
+ *
+ * Get the forms from the advertised capabilities list
+ *
+ * Returns: (element-type WockyDataForm)(transfer none)(nullable): An array with
+ * data forms or NULL if there was none.
+ */
 const GPtrArray * wocky_xep_0115_capabilities_get_data_forms (
     WockyXep0115Capabilities *contact);
 

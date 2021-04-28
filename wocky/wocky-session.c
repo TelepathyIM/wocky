@@ -294,6 +294,14 @@ void wocky_session_start (WockySession *self)
   wocky_porter_start (priv->porter);
 }
 
+/**
+ * wocky_session_get_porter:
+ * @session: a #WockySession
+ *
+ * Get @session's connection porter
+ *
+ * Returns: (transfer none): @session's #WockyPorter instance
+ */
 WockyPorter *
 wocky_session_get_porter (WockySession *self)
 {
@@ -302,6 +310,14 @@ wocky_session_get_porter (WockySession *self)
   return priv->porter;
 }
 
+/**
+ * wocky_session_get_contact_factory:
+ * @session: a #WockySession
+ *
+ * Get @session's contact factory
+ *
+ * Returns: (transfer none): @session's #WockyContactFactory
+ */
 WockyContactFactory *
 wocky_session_get_contact_factory (WockySession *self)
 {

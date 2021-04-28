@@ -201,7 +201,7 @@ add_to_queue (gpointer data,
 /**
  * wocky_ll_connection_factory_make_connection_async:
  * @factory: a #WockyLLConnectionFactory
- * @contact: the #WockyLLStanza to connect to
+ * @contact: the #WockyLLContact to connect to
  * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
@@ -262,7 +262,7 @@ wocky_ll_connection_factory_make_connection_async (
  *
  * Gets the connection that's been created.
  *
- * Returns: the new #WockyXmppConnection on success, %NULL on error
+ * Returns: (transfer full): the new #WockyXmppConnection on success, %NULL on error
  */
 WockyXmppConnection *
 wocky_ll_connection_factory_make_connection_finish (

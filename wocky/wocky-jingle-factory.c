@@ -621,6 +621,14 @@ session_terminated_cb (WockyJingleSession *session,
   g_free (key);
 }
 
+/**
+ * wocky_jingle_factory_get_jingle_info:
+ * @self: a #WockyJingleFactory
+ *
+ * Obtains #WockyJingleInfo of the current factory.
+ *
+ * Returns: (transfer none): a pointer to internal #WockyJingleInfo object.
+ */
 WockyJingleInfo *
 wocky_jingle_factory_get_jingle_info (
     WockyJingleFactory *self)

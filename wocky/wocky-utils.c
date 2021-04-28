@@ -700,6 +700,16 @@ wocky_absolutize_path (const gchar *path)
   return ret;
 }
 
+/**
+ * wocky_list_deep_copy:
+ * @copy: (scope call): a #GBoxedCopyFunc function
+ * @items: a #GList of GBoxed items
+ *
+ * Convenience function wrapper to make a full deep copy of input list @items
+ * with each item copied using @copy function.
+ *
+ * Returns: a new #GList with copies of all @items.
+ */
 GList *
 wocky_list_deep_copy (GBoxedCopyFunc copy,
     GList *items)

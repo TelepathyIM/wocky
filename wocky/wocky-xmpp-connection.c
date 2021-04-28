@@ -881,7 +881,7 @@ wocky_xmpp_connection_peek_stanza_async (WockyXmppConnection *connection,
  *
  * Finishes receiving a stanza
  *
- * Returns: A #WockyStanza or NULL on error (transfer none)
+ * Returns: (transfer none): A #WockyStanza or NULL on error
  */
 
 const WockyStanza *
@@ -905,7 +905,7 @@ wocky_xmpp_connection_peek_stanza_finish (WockyXmppConnection *connection,
  *
  * Finishes receiving a stanza
  *
- * Returns: A #WockyStanza or NULL on error (unref after usage)
+ * Returns: (transfer full): A #WockyStanza or NULL on error (unref after usage)
  */
 
 WockyStanza *

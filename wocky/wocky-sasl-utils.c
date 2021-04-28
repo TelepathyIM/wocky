@@ -43,6 +43,19 @@ sasl_generate_base64_nonce (void)
   return g_base64_encode ((guchar *) n, sizeof (n));
 }
 
+/**
+ * sasl_calculate_hmac:
+ * @digest_type: a GChecksumType of the hash function
+ * @key: a HMAC key
+ * @key_len: length of the key byte string
+ * @text: a HMAC data
+ * @text_len: length of the data byte string
+ *
+ * Technically a wrapper around GHmac and its methods to produce
+ * a @digest_type HMAC of the @data by the @key.
+ *
+ * Returns: (transfer full): a new GByteArray containing HMAC value.
+ */
 GByteArray *
 sasl_calculate_hmac (GChecksumType digest_type,
     guint8 *key,

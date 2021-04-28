@@ -45,7 +45,7 @@
  * server. The server will then send the event stanza on to your
  * contacts who have the appropriate capability.
  *
- * Returns: a new #WockyStanza pubsub event stanza; free with g_object_unref()
+ * Returns: (transfer full): a new #WockyStanza pubsub event stanza; free with g_object_unref()
  */
 WockyStanza *
 wocky_pubsub_make_event_stanza (const gchar *node,
@@ -90,7 +90,7 @@ wocky_pubsub_make_event_stanza (const gchar *node,
  *
  * <!-- -->
  *
- * Returns: a new iq[type='set']/pubsub/publish/item stanza
+ * Returns: (transfer full): a new iq[type='set']/pubsub/publish/item stanza
  */
 WockyStanza *
 wocky_pubsub_make_publish_stanza (
@@ -132,7 +132,7 @@ wocky_pubsub_make_publish_stanza (
  *
  * <!-- -->
  *
- * Returns: a new iq[type=@sub_type]/pubsub/@action stanza
+ * Returns: (transfer full): a new iq[type=@sub_type]/pubsub/@action stanza
  */
 WockyStanza *
 wocky_pubsub_make_stanza (

@@ -429,8 +429,8 @@ send_open_cb (GObject *source_object,
  *
  * Gets the result of the asynchronous connect request.
  *
- * Returns: the connected #WockyXmppConnection which should be freed
- *   using g_object_unref(), or %NULL on error
+ * Returns: (transfer full): the connected #WockyXmppConnection which
+ * should be freed using g_object_unref(), or %NULL on error
  */
 WockyXmppConnection *
 wocky_ll_connector_finish (WockyLLConnector *self,

@@ -715,6 +715,16 @@ wocky_roster_fetch_roster_finish (WockyRoster *self,
   return g_task_propagate_boolean (G_TASK (result), error);
 }
 
+/**
+ * wocky_roster_get_contact:
+ * @self: a #WockyRoster
+ * @jid: a contact JID
+ *
+ * Find a contact corresponding to the @jid in the roster.
+ *
+ * Returns: (transfer none): a #WockyBareContact corresponding to the @jid,
+ * or %NULL if it does not exist.
+ */
 WockyBareContact *
 wocky_roster_get_contact (WockyRoster *self,
     const gchar *jid)
@@ -724,6 +734,15 @@ wocky_roster_get_contact (WockyRoster *self,
   return g_hash_table_lookup (priv->items, jid);
 }
 
+/**
+ * wocky_roster_get_all_contacts:
+ * @self: a #WockyRoster
+ *
+ * Get all #WockyBareContact contacts on the giver roster by making a deep
+ * copy of the roster content.
+ *
+ * Returns: (transfer full)(element-type WockyBareContact): a #GSList of #WockyBareContact
+ */
 GSList *
 wocky_roster_get_all_contacts (WockyRoster *self)
 {

@@ -85,7 +85,7 @@ WockyJingleSession *wocky_jingle_factory_create_session (
     gboolean local_hold);
 
 WockyJingleInfo *wocky_jingle_factory_get_jingle_info (
-    WockyJingleFactory *fac);
+    WockyJingleFactory *self);
 
 G_END_DECLS
 

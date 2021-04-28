@@ -880,7 +880,7 @@ wocky_meta_porter_class_init (
  * Convenience function to create a new #WockyMetaPorter object. The
  * JID can be set later by using wocky_meta_porter_set_jid().
  *
- * Returns: a new #WockyMetaPorter
+ * Returns: (transfer full): a new #WockyMetaPorter
  */
 WockyPorter *
 wocky_meta_porter_new (const gchar *jid,
@@ -1789,7 +1789,7 @@ wocky_meta_porter_open_finish (WockyMetaPorter *self,
  * close spontaneously unless wocky_meta_porter_hold() is called with
  * @contact.
  *
- * Returns: the #GSocketConnection or %NULL if no connection is open
+ * Returns: (transfer none): the #GSocketConnection or %NULL if no connection is open
  */
 GSocketConnection *
 wocky_meta_porter_borrow_connection (WockyMetaPorter *self,

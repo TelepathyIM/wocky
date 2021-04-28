@@ -205,6 +205,14 @@ wocky_node_tree_new_from_node (WockyNode *node)
   return g_object_new (WOCKY_TYPE_NODE_TREE, "top-node", top, NULL);
 }
 
+/**
+ * wocky_node_tree_get_top_node:
+ * @self: a #WockyNodeTree
+ *
+ * Retrieves root element of the @self which represents top-most element.
+ *
+ * Returns: (transfer none): a pointer to the root of the #WockyNodeTree object.
+ */
 WockyNode *
 wocky_node_tree_get_top_node (WockyNodeTree *self)
 {
