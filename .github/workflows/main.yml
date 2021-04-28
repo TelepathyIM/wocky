@@ -13,20 +13,24 @@ jobs:
       run: |-
         sudo apt-get update && sudo apt-get install --no-install-recommends -qq -y build-essential \
         ccache meson libglib2.0-dev glib-networking telepathy-gabble libsasl2-dev libxml2-dev \
-        libsoup2.4-dev libsasl2-modules-gssapi-mit gnutls-bin libsqlite3-dev libssl-dev libgnutls28-dev
+        libsoup2.4-dev libsasl2-modules-gssapi-mit libsqlite3-dev libssl-dev libgnutls28-dev \
+        gnutls-bin gobject-introspection libgirepository1.0-dev gtk-doc-tools
     - name: Bootstrap
-      run: meson _b
+      run: meson _b -Dgoogle-relay=true -Dintrospection=enabled -Dgtk_doc=true
     - name: Syntax
       run: ninja -C _b check
     - name: Build
       run: ninja -C _b
     - name: Run tests
       run: meson test -C _b
+    - name: Build docs
+      run: ninja -C _b wocky-doc
     - name: Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: Reports
-        path: _b/meson-logs/
+        path: |
+          _b/meson-logs/
+          _b/docs/
 
   build-autotools:
     runs-on: ubuntu-latest
