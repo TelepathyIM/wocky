@@ -621,7 +621,7 @@ wocky_c2s_porter_finalize (GObject *object)
  *
  * Convenience function to create a new #WockyC2SPorter.
  *
- * Returns: a new #WockyPorter.
+ * Returns: (transfer full): a new #WockyPorter.
  */
 WockyPorter *
 wocky_c2s_porter_new (WockyXmppConnection *connection,
@@ -2123,9 +2123,9 @@ wocky_c2s_porter_register_handler_from_anyone_by_stanza (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -2187,9 +2187,9 @@ wocky_c2s_porter_register_handler_from_server_va (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should returna
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @stanza: a #WockyStanza. The handler will match a stanza only if
  *  the stanza received is a superset of the one passed to this
@@ -2234,9 +2234,9 @@ wocky_c2s_porter_register_handler_from_server_by_stanza (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
