@@ -240,9 +240,9 @@ wocky_xmpp_error_quark (void)
 
 /**
  * wocky_xmpp_error_string:
- * @error: a core stanza error
+ * @error: a #WockyXmppError for core stanza error
  *
- * <!-- -->
+ * Extracts error string (name) for the given enum @error value.
  *
  * Returns: the name of the tag corresponding to @error
  */
@@ -254,9 +254,9 @@ wocky_xmpp_error_string (WockyXmppError error)
 
 /**
  * wocky_xmpp_error_description:
- * @error: a core stanza error
+ * @error: a #WockyXmppError for core stanza error
  *
- * <!-- -->
+ * Extracts error description for the given enum @error value.
  *
  * Returns: a description of the error, in English, as specified in XMPP Core
  */
@@ -273,11 +273,11 @@ static GList *error_domains = NULL;
 
 /**
  * wocky_xmpp_error_register_domain
- * @domain: a description of the error domain
+ * @domain: a #WockyXmppErrorDomain description of the error domain
  *
  * Registers a new set of application-specific stanza errors. This allows
- * GErrors in that domain to be passed to wocky_stanza_error_to_node(), and to
- * be recognized and returned by wocky_xmpp_error_extract() (and
+ * #GError<!-- -->s in that domain to be passed to wocky_stanza_error_to_node(),
+ * and to be recognized and returned by wocky_xmpp_error_extract() (and
  * wocky_stanza_extract_errors(), by extension).
  */
 void
@@ -309,8 +309,8 @@ xmpp_error_find_domain (GQuark domain)
  *  %WOCKY_JINGLE_ERROR).
  *
  * Returns the name of the XMPP stanza error element represented by @error.
- * This is intended for use in debugging messages, with %GErrors returned by
- * wocky_stanza_extract_errors().
+ * This is intended for use in debugging messages, with %GError<!-- -->s
+ * returned by wocky_stanza_extract_errors().
  *
  * Returns: the error code as a string, or %NULL if
  *  <code>error-&gt;domain</code> is not known to Wocky.
@@ -537,7 +537,7 @@ wocky_xmpp_error_extract (WockyNode *error,
 }
 
 /**
- * wocky_g_error_to_node:
+ * wocky_stanza_error_to_node:
  * @error: an error in the domain #WOCKY_XMPP_ERROR, or in an
  *         application-specific domain registered with
  *         wocky_xmpp_error_register_domain()
@@ -552,7 +552,7 @@ wocky_xmpp_error_extract (WockyNode *error,
  * There is currently no way to override the type='' of an XMPP Core stanza
  * error without creating an application-specific error code which does so.
  *
- * Returns: the newly-created <error/> node
+ * Returns: (transfer none): a pointer to the newly-created &lt;error/> node
  */
 WockyNode *
 wocky_stanza_error_to_node (const GError *error,
