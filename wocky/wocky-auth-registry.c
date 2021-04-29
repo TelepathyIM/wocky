@@ -309,8 +309,10 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
     gboolean is_plus;
     GChecksumType algo;
   } scram_handlers[] = {
+#ifdef WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512_PLUS, TRUE, G_CHECKSUM_SHA512 },
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512, FALSE, G_CHECKSUM_SHA512 },
+#endif
 #ifdef WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384_PLUS, TRUE, G_CHECKSUM_SHA384 },
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384, FALSE, G_CHECKSUM_SHA384 },

@@ -68,6 +68,14 @@ G_STMT_START   {                                       \
 
 #endif
 
+#ifdef WOCKY_SCRAM_NONSTANDARD
+#define BINDING_SCRAM_MECH "SCRAM-SHA-512-PLUS"
+#define BINDING_SCRAM_ALGO G_CHECKSUM_SHA512
+#else
+#define BINDING_SCRAM_MECH "SCRAM-SHA-256-PLUS"
+#define BINDING_SCRAM_ALGO G_CHECKSUM_SHA256
+#endif
+
 #if 0
 /* signal enum */
 enum
@@ -770,7 +778,7 @@ handle_auth (TestSaslAuthServer *self, WockyStanza *stanza)
       ret = wocky_strdiff ((gchar *) response, priv->password) ?
           SASL_BADAUTH : SASL_OK;
     }
-  else if (!wocky_strdiff ("SCRAM-SHA-512-PLUS", priv->selected_mech))
+  else if (!wocky_strdiff (BINDING_SCRAM_MECH, priv->selected_mech))
     {
       ScramRes res = { self, NULL, FALSE };
       GIOStream *ios = NULL;
@@ -1057,7 +1065,7 @@ handle_response (TestSaslAuthServer *self, WockyStanza *stanza)
           &response_len);
     }
 
-  if (!wocky_strdiff ("SCRAM-SHA-512-PLUS", priv->selected_mech))
+  if (!wocky_strdiff (BINDING_SCRAM_MECH, priv->selected_mech))
     {
       ScramRes res = { self, NULL, FALSE };
 
@@ -1324,10 +1332,10 @@ test_sasl_auth_server_new (GIOStream *stream, gchar *mech,
   priv->mech = g_strdup (mech);
   priv->problem = problem;
 
-  if (!wocky_strdiff ("SCRAM-SHA-512-PLUS", mech))
+  if (!wocky_strdiff (BINDING_SCRAM_MECH, mech))
     {
       priv->scram = g_object_new (WOCKY_TYPE_SASL_SCRAM, "server", servername,
-          "hash-algo", G_CHECKSUM_SHA512, NULL);
+          "hash-algo", BINDING_SCRAM_ALGO, NULL);
     }
 
   if (start)

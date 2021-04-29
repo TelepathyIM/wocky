@@ -109,6 +109,10 @@ if get_option('debug')
   defines += 'ENABLE_DEBUG'
 endif
 
+if get_option('nonstandard-scram')
+  defines += 'WOCKY_SCRAM_NONSTANDARD'
+endif
+
 if get_option('google-relay')
   defines += 'ENABLE_GOOGLE_RELAY'
 endif

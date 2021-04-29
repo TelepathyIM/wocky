@@ -74,6 +74,12 @@
 #define DEFAULT_SASL_MECH "SCRAM-SHA-1"
 #endif
 
+#ifdef WOCKY_SCRAM_NONSTANDARD
+#define BINDING_SCRAM_MECH "SCRAM-SHA-512-PLUS"
+#else
+#define BINDING_SCRAM_MECH "SCRAM-SHA-256-PLUS"
+#endif
+
 #define PORT_XMPP 5222
 #define PORT_NONE 0
 
@@ -944,7 +950,7 @@ test_t tests[] =
      { "/connector/auth/sasl/binding",
       NOISY,
       { S_NO_ERROR },
-      { { TLS, "SCRAM-SHA-512-PLUS" },
+      { { TLS, BINDING_SCRAM_MECH },
         { SERVER_PROBLEM_NO_PROBLEM, CONNECTOR_OK },
         { "moose", "something" },
         PORT_XMPP },
@@ -956,7 +962,7 @@ test_t tests[] =
      { "/connector/auth/sasl/bad-binding-data",
       NOISY,
       { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE, -1 },
-      { { TLS, "SCRAM-SHA-512-PLUS" },
+      { { TLS, BINDING_SCRAM_MECH },
         { SERVER_PROBLEM_MANGLED_BINDING_DATA, CONNECTOR_OK },
         { "moose", "something" },
         PORT_XMPP },
@@ -968,7 +974,7 @@ test_t tests[] =
      { "/connector/auth/sasl/bad-binding-flag",
       NOISY,
       { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE, -1 },
-      { { TLS, "SCRAM-SHA-512-PLUS" },
+      { { TLS, BINDING_SCRAM_MECH },
         { SERVER_PROBLEM_MANGLED_BINDING_FLAG, CONNECTOR_OK },
         { "moose", "something" },
         PORT_XMPP },
@@ -980,7 +986,7 @@ test_t tests[] =
      { "/connector/auth/sasl/scrambled-binding",
       NOISY,
       { S_WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_INVALID_REPLY, -1 },
-      { { TLS, "SCRAM-SHA-512-PLUS" },
+      { { TLS, BINDING_SCRAM_MECH },
         { SERVER_PROBLEM_SCRAMBLED_BINDING, CONNECTOR_OK },
         { "moose", "something" },
         PORT_XMPP },

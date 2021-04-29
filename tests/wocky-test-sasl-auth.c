@@ -11,6 +11,12 @@
 
 #include <wocky/wocky.h>
 
+#ifdef WOCKY_SCRAM_NONSTANDARD
+#define BINDING_SCRAM_MECH "SCRAM-SHA-512-PLUS"
+#else
+#define BINDING_SCRAM_MECH "SCRAM-SHA-256-PLUS"
+#endif
+
 typedef struct {
   gchar *description;
   gchar *mech;
@@ -280,8 +286,8 @@ main (int argc,
        0, 0, SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS, FALSE, FALSE,
        "test", "test123", NULL },
 
-    SUCCESS("/xmpp-sasl/scram-sha2-plus-multistep", "SCRAM-SHA-512-PLUS", TRUE),
-    { "/xmpp-sasl/scram-sha2-final-data-in-success", "SCRAM-SHA-512-PLUS", TRUE,
+    SUCCESS("/xmpp-sasl/scram-sha2-plus-multistep", BINDING_SCRAM_MECH, TRUE),
+    { "/xmpp-sasl/scram-sha2-final-data-in-success", BINDING_SCRAM_MECH, TRUE,
        0, 0, SERVER_PROBLEM_FINAL_DATA_IN_SUCCESS, FALSE, FALSE,
        "test", "test123", NULL },
 
@@ -301,7 +307,7 @@ main (int argc,
     { "/xmpp-sasl/wrong-username-md5", "DIGEST-MD5", TRUE,
        WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE, "test", "test123" },
-    { "/xmpp-sasl/wrong-username-sha2", "SCRAM-SHA-512-PLUS", TRUE,
+    { "/xmpp-sasl/wrong-username-sha2", BINDING_SCRAM_MECH, TRUE,
        WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_USERNAME, TRUE, FALSE, "test", "test123" },
 
@@ -311,7 +317,7 @@ main (int argc,
     { "/xmpp-sasl/wrong-password-md5", "DIGEST-MD5", TRUE,
        WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE, "test", "test123" },
-    { "/xmpp-sasl/wrong-password-sha2", "SCRAM-SHA-512-PLUS", TRUE,
+    { "/xmpp-sasl/wrong-password-sha2", BINDING_SCRAM_MECH, TRUE,
        WOCKY_AUTH_ERROR, WOCKY_AUTH_ERROR_FAILURE,
        SERVER_PROBLEM_INVALID_PASSWORD, FALSE, TRUE, "test", "test123" },
 

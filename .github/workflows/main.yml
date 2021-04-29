@@ -16,7 +16,7 @@ jobs:
         libsoup2.4-dev libsasl2-modules-gssapi-mit libsqlite3-dev libssl-dev libgnutls28-dev \
         gnutls-bin gobject-introspection libgirepository1.0-dev gtk-doc-tools
     - name: Bootstrap
-      run: meson _b -Dgoogle-relay=true -Dintrospection=enabled -Dgtk_doc=true
+      run: meson _b -Dgoogle-relay=true -Dintrospection=enabled -Dgtk_doc=true -Dnonstandard-scram=true
     - name: Syntax
       run: ninja -C _b check
     - name: Build

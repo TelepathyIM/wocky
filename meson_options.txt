@@ -4,3 +4,4 @@ option('code-style-check', type: 'boolean', description: 'enable coding style ch
 option('install-headers', type: 'string', description: 'install development headers here')
 option('libdir-suffix', type: 'string', description: 'install a shared library into project-specific subdir')
 option('google-relay', type: 'boolean', value: false, description: 'enable google jingle relay support', yield: true)
+option('nonstandard-scram', type: 'boolean', value: false, description: 'enable non-standard scram methods', yield: true)
