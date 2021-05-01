@@ -100,7 +100,7 @@ WockyLLContact * wocky_contact_factory_lookup_ll_contact (
 void wocky_contact_factory_add_ll_contact (WockyContactFactory *factory,
     WockyLLContact *contact);
 
-GList * wocky_contact_factory_get_ll_contacts (WockyContactFactory *factory);
+GList * wocky_contact_factory_get_ll_contacts (WockyContactFactory *self);
 
 G_END_DECLS
 

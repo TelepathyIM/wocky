@@ -898,7 +898,16 @@ wocky_muc_disco_info_async (WockyMuc *muc,
       task);
 }
 
-/* ask for MUC member list */
+/**
+ * wocky_muc_create_presence:
+ * @muc: a #WockyMuc
+ * @type: a #WockyStanzaSubType
+ * @status: (nullable): a status string to add to the presence stanza
+ *
+ * Create a stanza to set a MUC state
+ *
+ * Returns: (transfer full): a Presence #WockyStanza
+ */
 
 WockyStanza *
 wocky_muc_create_presence (WockyMuc *muc,
@@ -1602,6 +1611,16 @@ wocky_muc_user (WockyMuc *muc)
   return priv->user;
 }
 
+/**
+ * wocky_muc_members:
+ * @muc: a #WockyMuc
+ *
+ * Get internal list of @muc's members
+ *
+ * Returns: (transfer full)(nullable): a reference to internal GHashTable with
+ * members, or %NULL if there're none. Once done unref with
+ * g_hash_table_unref().
+ */
 GHashTable *
 wocky_muc_members (WockyMuc *muc)
 {

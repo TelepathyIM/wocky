@@ -179,12 +179,32 @@ wocky_auth_registry_class_init (WockyAuthRegistryClass *klass)
   object_class->constructed = wocky_auth_registry_constructed;
   object_class->get_property = wocky_auth_registry_get_property;
   object_class->set_property = wocky_auth_registry_set_property;
+
+
+  /**
+   * WockyAuthRegistry:tls-binding-type:
+   *
+   * A property setting the type of the tls channel binding discovered
+   * for the current session. Is set byt WockySaslAuth after receiving
+   * supported mechanisms from the peer.
+   *
+   * Since: 0.19.0
+   */
   g_object_class_install_property (object_class, PROP_CB_TYPE,
       g_param_spec_enum ("tls-binding-type", "tls channel binding type",
           "The type of the TLS Channel Binding to use in SASL negotiation",
           WOCKY_TYPE_TLS_BINDING_TYPE, WOCKY_TLS_BINDING_DISABLED,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
+  /**
+   * WockyAuthRegistry:tls-binding-data:
+   *
+   * If #WockyAuthRegistry:tls-binding-type is above WOCKY_TLS_BINDING_NONE
+   * must contain actual Base64 encoded tls channel binding data, %NULL
+   * otherwise.
+   *
+   * Since: 0.19.0
+   */
   g_object_class_install_property (object_class, PROP_CB_DATA,
       g_param_spec_string ("tls-binding-data", "tls channel binding data",
           "Base64 encoded TLS Channel binding data for the set type", NULL,
@@ -223,6 +243,19 @@ wocky_auth_registry_has_mechanism (
     const gchar *mech)
 {
   return (g_slist_find_custom (list, mech, (GCompareFunc) g_strcmp0) != NULL);
+}
+
+GType
+wocky_auth_registry_start_data_get_type (void)
+{
+  static GType t = 0;
+
+  if (G_UNLIKELY (t == 0))
+    t = g_boxed_type_register_static ("WockyAuthRegistryStartData",
+        (GBoxedCopyFunc) wocky_auth_registry_start_data_dup,
+        (GBoxedFreeFunc) wocky_auth_registry_start_data_free);
+
+  return t;
 }
 
 WockyAuthRegistryStartData *
@@ -276,8 +309,10 @@ wocky_auth_registry_select_handler (WockyAuthRegistry *self,
     gboolean is_plus;
     GChecksumType algo;
   } scram_handlers[] = {
+#ifdef WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512_PLUS, TRUE, G_CHECKSUM_SHA512 },
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512, FALSE, G_CHECKSUM_SHA512 },
+#endif
 #ifdef WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384_PLUS, TRUE, G_CHECKSUM_SHA384 },
     { WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384, FALSE, G_CHECKSUM_SHA384 },
@@ -445,6 +480,24 @@ wocky_auth_registry_start_auth_async_func (WockyAuthRegistry *self,
   g_object_unref (task);
 }
 
+/**
+ * wocky_auth_registry_start_auth_async:
+ * @self: a #WockyAuthRegistry instance
+ * @mechanisms: (element-type utf8): a list of discovered mechanisms
+ * @allow_plain: Whether we allow clear-text mechanisms
+ * @is_secure_channel: whether registry is created on secure channel
+ * @username: Identity (username) to use for authentication
+ * @password: Secret (password) to use for authentication
+ * @server: server identity to use (if required by selected method)
+ * @session_id: XMPP session id to use (if required by selected method)
+ * @callback: a callback to call once authentication is finished
+ * @user_data: a data to pass to the callback
+ *
+ * Starts async authentication on the associated channel, using passed
+ * credentials, server and connection details. Attempts to find best
+ * suitable handler for the given mechanisms, preferring either provided
+ * custom handler or the strongest security mechanism supported.
+ */
 void
 wocky_auth_registry_start_auth_async (WockyAuthRegistry *self,
     GSList *mechanisms,
@@ -564,6 +617,7 @@ wocky_auth_registry_success_async_func (WockyAuthRegistry *self,
     g_task_return_boolean (task, TRUE);
 
   g_object_unref (task);
+  g_clear_object (&priv->handler);
 }
 
 
@@ -621,7 +675,7 @@ wocky_auth_registry_add_handler (WockyAuthRegistry *self,
  * wocky_auth_registry_supports_one_of:
  * @self: a #WockyAuthRegistry
  * @allow_plain: Whether auth in plain text is allowed
- * @mechanisms: a #GSList of gchar* of auth mechanisms
+ * @mechanisms: (element-type utf8): a #GSList of gchar* of auth mechanisms
  *
  * Checks whether at least one of @mechanisms is supported by Wocky. At present,
  * Wocky itself only implements password-based authentication mechanisms.

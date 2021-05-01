@@ -108,6 +108,7 @@ struct _TestConnectorServerPrivate
 
   GCancellable *cancellable;
   gint outstanding;
+  gint rcv_count;;
   GTask *teardown_task;
 
   struct { ServerProblem sasl; ConnectorProblem *connector; } problem;
@@ -179,6 +180,7 @@ test_connector_server_init (TestConnectorServer *self)
   priv->tls_started = FALSE;
   priv->authed      = FALSE;
   priv->cancellable = g_cancellable_new ();
+  priv->rcv_count   = -1;
 }
 
 static void
@@ -198,6 +200,14 @@ static void xmpp_handler (GObject *source,
 static void handle_auth     (TestConnectorServer *self,
     WockyStanza *xml);
 static void handle_starttls (TestConnectorServer *self,
+    WockyStanza *xml);
+static void handle_enable (TestConnectorServer *self,
+    WockyStanza *xml);
+static void handle_a (TestConnectorServer *self,
+    WockyStanza *xml);
+static void handle_r (TestConnectorServer *self,
+    WockyStanza *xml);
+static void handle_error (TestConnectorServer *self,
     WockyStanza *xml);
 
 static void
@@ -237,6 +247,10 @@ static stanza_handler handlers[] =
   {
     HANDLER (SASL_AUTH, auth),
     HANDLER (TLS, starttls),
+    HANDLER (SM3, enable),
+    HANDLER (SM3, a),
+    HANDLER (SM3, r),
+    HANDLER (STREAM, error),
     { NULL, NULL, NULL }
   };
 
@@ -881,6 +895,8 @@ iq_set_session_XMPP_SESSION (TestConnectorServer *self,
       iq = wocky_stanza_build (WOCKY_STANZA_TYPE_IQ,
           WOCKY_STANZA_SUB_TYPE_RESULT,
           NULL, NULL,
+          '@', "id", wocky_node_get_attribute (wocky_stanza_get_top_node (xml),
+                        "id"),
           '(', "session", ':', WOCKY_XMPP_NS_SESSION,
           ')',
           NULL);
@@ -1033,6 +1049,189 @@ handle_starttls (TestConnectorServer *self,
 }
 
 static void
+sm_ack (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyStanza *ack;
+  WockyNode *top;
+  const gchar *h;
+
+  DEBUG ("Validating porter R handler");
+
+  ack = wocky_xmpp_connection_recv_stanza_finish (conn, result, NULL);
+  g_assert_nonnull (ack);
+
+  top = wocky_stanza_get_top_node (ack);
+  g_assert_cmpstr (top->name, ==, "a");
+
+  h = wocky_node_get_attribute (top, "h");
+  g_assert_nonnull (h);
+  g_assert_cmpstr (h, ==, "0");
+
+  server_enc_outstanding (self);
+  DEBUG ("waiting for next stanza from client");
+  wocky_xmpp_connection_recv_stanza_async (priv->conn,
+    priv->cancellable, xmpp_handler, self);
+}
+
+static void
+sm_get_ack (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = self->priv;
+
+  DEBUG ("");
+
+  g_assert_true (
+      wocky_xmpp_connection_send_stanza_finish (conn, result, NULL));
+  DEBUG ("waiting for ack from client");
+  wocky_xmpp_connection_recv_stanza_async (conn, priv->cancellable, sm_ack,
+      data);
+}
+
+static void
+sm_req (GObject *source,
+    GAsyncResult *result,
+    gpointer data)
+{
+  WockyXmppConnection *conn = WOCKY_XMPP_CONNECTION (source);
+  TestConnectorServer *self = TEST_CONNECTOR_SERVER (data);
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyStanza *reply = wocky_stanza_new ("r", WOCKY_XMPP_NS_SM3);
+
+  DEBUG ("");
+  g_assert_true (
+      wocky_xmpp_connection_send_stanza_finish (conn, result, NULL));
+
+  wocky_xmpp_connection_send_stanza_async (priv->conn, reply, NULL, sm_get_ack,
+      self);
+  g_object_unref (reply);
+}
+
+static void
+handle_enable (TestConnectorServer *self,
+    WockyStanza *xml)
+{
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyStanza *reply = wocky_stanza_new ("enabled", WOCKY_XMPP_NS_SM3);
+  WockyNode *top = wocky_stanza_get_top_node (reply);
+
+  DEBUG ("");
+  /* we simply and blindly respond to this */
+  wocky_node_set_attribute (top, "id", "deadbeef");
+  wocky_node_set_attribute (top, "resume", "true");
+  priv->rcv_count = 0;
+
+  /* if we have other SM tests - proceed with r/a */
+  if (priv->problem.connector->sm > SM_PROBLEM_ENABLED)
+    wocky_xmpp_connection_send_stanza_async (priv->conn, reply, NULL,
+        sm_req, self);
+  else
+    wocky_xmpp_connection_send_stanza_async (priv->conn, reply, NULL,
+        finished, self);
+
+  g_object_unref (xml);
+  g_object_unref (reply);
+}
+
+static void
+handle_a (TestConnectorServer *self,
+    WockyStanza *xml)
+{
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyNode *top = wocky_stanza_get_top_node (xml);
+  const gchar *h = wocky_node_get_attribute (top, "h");
+
+  DEBUG ("%s", h);
+  g_assert_nonnull (h);
+
+  g_object_unref (xml);
+
+  server_enc_outstanding (self);
+  DEBUG ("waiting for next stanza from client");
+  wocky_xmpp_connection_recv_stanza_async (priv->conn,
+    priv->cancellable, xmpp_handler, self);
+}
+
+static void
+handle_r (TestConnectorServer *self,
+    WockyStanza *xml)
+{
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyStanza *reply = wocky_stanza_new ("a", WOCKY_XMPP_NS_SM3);
+  WockyNode *top = wocky_stanza_get_top_node (reply);
+  g_autofree gchar *h = NULL;
+  guint32 hn;
+
+  g_object_unref (xml);
+
+  if (priv->problem.connector->sm == SM_PROBLEM_WRAP0)
+    hn = G_MAXUINT32;
+  else if (priv->problem.connector->sm & SM_PROBLEM_ACK1)
+    {
+      if (priv->problem.connector->sm & SM_PROBLEM_WRAP)
+        {
+          if (priv->rcv_count == 0)
+            hn = G_MAXUINT32;
+          else if (priv->rcv_count == 1)
+            hn = 0;
+          else
+            hn = 1;
+        }
+      else
+        hn = priv->rcv_count;
+    }
+  else if (priv->problem.connector->sm & SM_PROBLEM_OVER)
+    hn = 2;
+  else
+    hn = 0;
+
+  h = g_strdup_printf ("%u", hn);
+  DEBUG ("Acking %s", h);
+  wocky_node_set_attribute (top, "h", h);
+
+  if (priv->problem.connector->sm & SM_PROBLEM_ACK1 && priv->rcv_count < 1)
+    {
+      wocky_xmpp_connection_send_stanza_async (priv->conn, reply, NULL,
+          NULL, self);
+      server_enc_outstanding (self);
+      DEBUG ("waiting for next stanza from client");
+      wocky_xmpp_connection_recv_stanza_async (priv->conn,
+          priv->cancellable, xmpp_handler, self);
+    }
+  else
+    wocky_xmpp_connection_send_stanza_async (priv->conn, reply, NULL,
+        finished, self);
+
+  g_object_unref (reply);
+}
+
+static void
+handle_error (TestConnectorServer *self,
+    WockyStanza *xml)
+{
+  TestConnectorServerPrivate *priv = self->priv;
+  WockyNode *top = wocky_stanza_get_top_node (xml);
+  WockyNode *err = wocky_node_get_first_child_ns (top, WOCKY_XMPP_NS_SM3);
+
+  if (priv->problem.connector->sm & SM_PROBLEM_OVER)
+    g_assert_nonnull (err);
+  else
+    g_assert_not_reached ();
+
+  DEBUG ("%s", err->name);
+  g_object_unref (xml);
+  wocky_xmpp_connection_send_close_async (priv->conn, NULL, finished, self);
+}
+
+static void
 finished (GObject *source,
     GAsyncResult *result,
     gpointer data)
@@ -1177,6 +1376,8 @@ xmpp_handler (GObject *source,
   ns   = wocky_node_get_ns (wocky_stanza_get_top_node (xml));
   name = wocky_stanza_get_top_node (xml)->name;
   wocky_stanza_get_type_info (xml, &type, &subtype);
+  if (type == WOCKY_STANZA_TYPE_IQ && priv->rcv_count >= 0)
+      priv->rcv_count++;
 
   /* if we find a handler, the handler is responsible for listening for the
      next stanza and setting up the next callback in the chain: */
@@ -1266,6 +1467,13 @@ after_auth (GObject *source,
 
   if (!(priv->problem.connector->xmpp & XMPP_PROBLEM_CANNOT_BIND))
     wocky_node_add_child_ns (node, "bind", WOCKY_XMPP_NS_BIND);
+
+  if (priv->problem.connector->sm)
+    {
+      wocky_node_add_child_ns (node, "sm", WOCKY_XMPP_NS_SM3);
+      /* wait for enable */
+      server_enc_outstanding (tcs);
+    }
 
   priv->state = SERVER_STATE_FEATURES_SENT;
 

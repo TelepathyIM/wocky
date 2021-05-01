@@ -218,10 +218,11 @@ gir = find_program('g-ir-scanner', required: get_option('introspection').enabled
 if gir.found()
   wocky_gir = gnome.generate_gir(wocky_so,
     sources: [handwritten_headers, handwritten_sources, wocky_marshals, wocky_enums],
-    dependencies: wocky_deps,
+    dependencies: [wocky_deps, wocky_so],
+    includes : ['GLib-2.0', 'GObject-2.0', 'GModule-2.0', 'Gio-2.0'],
     namespace: 'Wocky',
     nsversion: '0',
-    symbol_prefix: ['wocky'],
+    symbol_prefix: ['wocky', 'jingle', 'sasl'],
     header: 'wocky.h',
     install: build_gir,
     extra_args: wocky_cflags

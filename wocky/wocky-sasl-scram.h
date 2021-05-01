@@ -30,8 +30,11 @@
 
 G_BEGIN_DECLS
 
+typedef struct _WockySaslScramClass WockySaslScramClass;
+typedef struct _WockySaslScram WockySaslScram;
+
 #define WOCKY_TYPE_SASL_SCRAM \
-    wocky_sasl_scram_get_type ()
+    (wocky_sasl_scram_get_type ())
 
 #define WOCKY_SASL_SCRAM(obj) \
     (G_TYPE_CHECK_INSTANCE_CAST ((obj), WOCKY_TYPE_SASL_SCRAM, \
@@ -53,16 +56,14 @@ G_BEGIN_DECLS
 
 typedef struct _WockySaslScramPrivate WockySaslScramPrivate;
 
-typedef struct
-{
+struct _WockySaslScram {
   GObject parent;
   WockySaslScramPrivate *priv;
-} WockySaslScram;
+};
 
-typedef struct
-{
+struct _WockySaslScramClass {
   GObjectClass parent_class;
-} WockySaslScramClass;
+};
 
 GType
 wocky_sasl_scram_get_type (void);

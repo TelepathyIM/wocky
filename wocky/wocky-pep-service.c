@@ -417,7 +417,7 @@ wocky_pep_service_get_async (WockyPepService *self,
  * #WockyPepService:node. For more details, see
  * wocky_pep_service_get_async().
  *
- * Returns: the #WockyStanza retrieved from getting the PEP node.
+ * Returns: (transfer full): the #WockyStanza retrieved from getting the PEP node.
  */
 WockyStanza *
 wocky_pep_service_get_finish (WockyPepService *self,
@@ -455,7 +455,8 @@ wocky_pep_service_get_finish (WockyPepService *self,
  *
  * Generates a new IQ type='set' PEP publish stanza.
  *
- * Returns: a new #WockyStanza PEP publish stanza; free with g_object_unref()
+ * Returns: (transfer full): a new #WockyStanza PEP publish stanza;
+ * free with g_object_unref()
  */
 WockyStanza *
 wocky_pep_service_make_publish_stanza (WockyPepService *self,

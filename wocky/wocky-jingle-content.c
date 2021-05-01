@@ -281,6 +281,7 @@ wocky_jingle_content_class_init (WockyJingleContentClass *cls)
   cls->get_default_senders = get_default_senders_real;
 
   /* property definitions */
+
   param_spec = g_param_spec_object ("session", "WockyJingleSession object",
       "Jingle session object that owns this content.",
       WOCKY_TYPE_JINGLE_SESSION,
@@ -354,6 +355,14 @@ wocky_jingle_content_class_init (WockyJingleContentClass *cls)
     NULL, NULL,
     g_cclosure_marshal_VOID__POINTER, G_TYPE_NONE, 1, G_TYPE_POINTER);
 
+  /**
+   * WockyJingleContent::new-share-channel:
+   * @content: the content
+   * @name: new channel name
+   * @id: new channel content id
+   *
+   * Emitted when new channel is created.
+   */
   signals[NEW_SHARE_CHANNEL] = g_signal_new (
     "new-share-channel",
     G_TYPE_FROM_CLASS (cls),
@@ -375,7 +384,10 @@ wocky_jingle_content_class_init (WockyJingleContentClass *cls)
     G_TYPE_NONE,
     0);
 
-  /* This signal serves as notification that the WockyJingleContent is now
+  /**
+   * WockyJingleContent::removed:
+   *
+   * This signal serves as notification that the WockyJingleContent is now
    * meaningless; everything holding a reference should drop it after receiving
    * 'removed'.
    */
@@ -456,7 +468,6 @@ transport_created (WockyJingleContent *c)
   if (virtual_method != NULL)
     virtual_method (c, c->priv->transport);
 }
-
 
 static void
 parse_description (WockyJingleContent *c, WockyNode *desc_node,
@@ -1116,6 +1127,15 @@ wocky_jingle_content_set_transport_state (WockyJingleContent *self,
   _maybe_ready (self);
 }
 
+/**
+ * wocky_jingle_content_get_remote_candidates:
+ * @c: a #WockyJingleContent
+ *
+ * Obtains a pointer to the list of candidates from the transport of the @c
+ *
+ * Returns: (transfer none)(element-type WockyJingleCandidate): a pointer to
+ * transport internal #GList with #WockyJingleCandidate
+ */
 GList *
 wocky_jingle_content_get_remote_candidates (WockyJingleContent *c)
 {
@@ -1124,6 +1144,15 @@ wocky_jingle_content_get_remote_candidates (WockyJingleContent *c)
   return wocky_jingle_transport_iface_get_remote_candidates (priv->transport);
 }
 
+/**
+ * wocky_jingle_content_get_local_candidates:
+ * @c: a #WockyJingleContent
+ *
+ * Obtains a pointer to the list of candidates from the transport of the @c
+ *
+ * Returns: (transfer none)(element-type WockyJingleCandidate): a pointer to
+ * transport internal #GList with #WockyJingleCandidate
+ */
 GList *
 wocky_jingle_content_get_local_candidates (WockyJingleContent *c)
 {

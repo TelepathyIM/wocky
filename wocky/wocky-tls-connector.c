@@ -447,6 +447,31 @@ wocky_tls_connector_new (WockyTLSHandler *handler)
       "tls-handler", handler, NULL);
 }
 
+/**
+ * wocky_tls_connector_secure_async:
+ * @self: a #WockyTLSConnector instance
+ * @connection: a #WockyXmppConnection
+ * @old_style_ssl: indicates whether we use old-style (xmpps or direct-tls)
+ *  or new-style (xmpp+starttls) securing method.
+ * @peername: a string representing primary server identity - which in most
+ *  cases is a domain part of the JID.
+ * @extra_identities: a #GStrv list of alternative names to match CN/SAN
+ *  against during certificate validation. In case XMPP subdomain is not
+ *  listed in the SAN/CN but otherwise certificate is trusted/valid.
+ * @cancellable: (nullable): a #GCancellable, or %NULL
+ * @callback: a #GAsyncReadyCallback to call once TLS handshake is complete
+ * @user_data: the data to pass to the callback function
+ *
+ * Secure XMPP @connection by wrapping it into TLS and performing handshake
+ * with TLS authentication (certificate validation) using #WockyTLSHandler
+ * passed into constructor.
+ *
+ * Note: `old_style_ssl` could be a bit misleading, it refers to older RFC3920
+ * specification which used DirectTLS (XMPPS) and was replaced by newer
+ * RFC6120 mandating StartTLS TLS mechanism. The "old" DirectTLS however was
+ * later re-introduced by XEP-0368 and is now actively supported by the
+ * servers to mitigate potential RFC7590 non-conformance of the clients.
+ */
 void
 wocky_tls_connector_secure_async (WockyTLSConnector *self,
     WockyXmppConnection *connection,
@@ -479,6 +504,18 @@ wocky_tls_connector_secure_async (WockyTLSConnector *self,
     do_starttls (self);
 }
 
+/**
+ * wocky_tls_connector_secure_finish:
+ * @self: a #WockyTLSConnector instance
+ * @res: a #GAsyncResult
+ * @error: a pointer to #GError, or %NULL
+ *
+ * Finish an asynchronous connection TLS wrapping by finishing the handshake.
+ *
+ * Returns: (transfer full): #WockyXmppConnection representing TLS wrapped
+ * original connection, or %NULL if TLS authentication (handshake) fails.
+ * In which case @error will be set accordingly.
+ */
 WockyXmppConnection *
 wocky_tls_connector_secure_finish (WockyTLSConnector *self,
     GAsyncResult *result,

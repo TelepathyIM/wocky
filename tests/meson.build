@@ -144,6 +144,16 @@ tests = {
     'wocky-test-stream.c', 'wocky-test-stream.h',
     'wocky-tls-test.c',
   ],
+  'wocky-sm-test': [
+    'wocky-test-sasl-auth-server.c',
+    'wocky-test-sasl-auth-server.h',
+    'wocky-test-connector-server.c',
+    'wocky-test-connector-server.h',
+    'wocky-test-helper.c', 'wocky-test-helper.h',
+    'wocky-test-stream.c', 'wocky-test-stream.h',
+    'test-resolver.c', 'test-resolver.h',
+    'wocky-sm-test.c',
+  ],
   'wocky-utils-test': [
     'wocky-utils-test.c',
   ],

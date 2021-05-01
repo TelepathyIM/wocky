@@ -115,7 +115,7 @@ wocky_disco_identity_free (WockyDiscoIdentity *identity)
  *
  * Creates a new array of #WockyDiscoIdentity structures.
  *
- * Returns: A newly instantiated
+ * Returns: (transfer full)(element-type WockyDiscoIdentity): A newly instantiated
  *          array. wocky_disco_identity_array_free() should beq used
  *          to free the memory allocated by this array.
  * See: wocky_disco_identity_array_free()
@@ -129,13 +129,13 @@ wocky_disco_identity_array_new (void)
 
 /**
  * wocky_disco_identity_array_copy:
- * @source: The source array to be copied.
+ * @source: (element-type WockyDiscoIdentity): The source array to be copied.
  *
  * Copies an array of #WockyDiscoIdentity objects. The returned array contains
  * new copies of the contents of the source array.
  *
- * Returns: A newly instantiated array with new copies of the contents of the
- *          source array.
+ * Returns: (transfer full)(element-type WockyDiscoIdentity): A newly instantiated
+ * array with new copies of the contents of the source array.
  * See: wocky_disco_identity_array_new()
  */
 GPtrArray *
@@ -158,7 +158,7 @@ wocky_disco_identity_array_copy (const GPtrArray *source)
 
 /**
  * wocky_disco_identity_array_free:
- * @arr: Array to be freed.
+ * @arr: (element-type WockyDiscoIdentity): Array to be freed.
  *
  * Frees an array of #WockyDiscoIdentity objects created with
  * wocky_disco_identity_array_new() or returned by
@@ -185,7 +185,7 @@ wocky_disco_identity_array_free (GPtrArray *arr)
  *
  * Compares @left and @right. It returns an integer less than, equal
  * to, or greater than zero if @left is found, respectively, to be
- * less than, to match, or be greater than %right.
+ * less than, to match, or be greater than @right.
  *
  * This function can be casted to a %GCompareFunc to sort a list of
  * #WockyDiscoIdentity structures.

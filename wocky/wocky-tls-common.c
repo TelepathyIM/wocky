@@ -35,17 +35,6 @@ wocky_tls_cert_error_quark (void)
   return quark;
 }
 
-GQuark
-wocky_tls_error_quark (void)
-{
-  static GQuark quark = 0;
-
-  if (quark == 0)
-    quark = g_quark_from_static_string ("wocky-tls-error");
-
-  return quark;
-}
-
 /* this file is "borrowed" from an unmerged gnio feature: */
 /* Local Variables:                                       */
 /* c-file-style: "gnu"                                    */

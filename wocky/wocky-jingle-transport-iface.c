@@ -25,6 +25,17 @@
 #include "wocky-jingle-content.h"
 #include "wocky-jingle-session.h"
 
+/**
+ * wocky_jingle_transport_iface_new:
+ * @type: a #GType with actual object type implementing WockyJingleTransportIface
+ *  interface
+ * @content: a #WockyJingleContent to transfer by transport
+ * @transport_ns: the XML namespace representing Jingle Transport
+ *
+ * Creates a new object of type @type which should implement this interface.
+ *
+ * Returns: (transfer full): a new Jingle Transport object of type @type
+ */
 WockyJingleTransportIface *
 wocky_jingle_transport_iface_new (GType type,
                                    WockyJingleContent *content,
@@ -51,7 +62,13 @@ wocky_jingle_transport_iface_parse_candidates (WockyJingleTransportIface *self,
   return virtual_method (self, node, error);
 }
 
-/* Takes in a list of slice-allocated WockyJingleCandidate structs */
+/**
+ * wocky_jingle_transport_iface_new_local_candidates:
+ * @self: a #WockyJingleTransportIface instance
+ * @candidates: (element-type WockyJingleCandidate): a #GList of
+ *
+ * Takes in a list of slice-allocated WockyJingleCandidate structs
+ */
 void
 wocky_jingle_transport_iface_new_local_candidates (WockyJingleTransportIface *self,
     GList *candidates)
@@ -114,6 +131,16 @@ wocky_jingle_transport_iface_can_accept (WockyJingleTransportIface *self)
     return TRUE;
 }
 
+/**
+ * wocky_jingle_transport_iface_get_remote_candidates:
+ * @self: a #WockyJingleTransportIface instance
+ *
+ * Obtains a pointer to internal list of #WockyJingleCandidate structs with
+ * remote candidates
+ *
+ * Returns: (transfer none)(element-type WockyJingleCandidate): a pointer to
+ * internal #GList of #WockyJingleCandidate structs
+ */
 GList *
 wocky_jingle_transport_iface_get_remote_candidates (
     WockyJingleTransportIface *self)
@@ -125,6 +152,16 @@ wocky_jingle_transport_iface_get_remote_candidates (
   return virtual_method (self);
 }
 
+/**
+ * wocky_jingle_transport_iface_get_local_candidates:
+ * @self: a #WockyJingleTransportIface instance
+ *
+ * Obtains a pointer to internal list of #WockyJingleCandidate structs with
+ * local condidates
+ *
+ * Returns: (transfer none)(element-type WockyJingleCandidate): a pointer to
+ * internal #GList of #WockyJingleCandidate structs
+ */
 GList *
 wocky_jingle_transport_iface_get_local_candidates (
     WockyJingleTransportIface *self)
@@ -281,6 +318,13 @@ wocky_jingle_candidate_free (WockyJingleCandidate *c)
     g_slice_free (WockyJingleCandidate, c);
 }
 
+/**
+ * jingle_transport_free_candidates:
+ * @candidates: (element-type WockyJingleCandidate): A #GList to deep-free
+ *
+ * Performs a free operation on #GList and its content, calling
+ * wocky_jingle_candidate_free() for each #WockyJingleCandidate member.
+ */
 void
 jingle_transport_free_candidates (GList *candidates)
 {

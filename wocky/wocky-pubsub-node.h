@@ -47,6 +47,11 @@ struct _WockyPubsubNodeClass {
   GObjectClass parent_class;
 };
 
+/**
+ * WockyPubsubNode:
+ *
+ * The class representing pubsub node and providing API to manage the node.
+ */
 struct _WockyPubsubNode {
   /*<private>*/
   GObject parent;

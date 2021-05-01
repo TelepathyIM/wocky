@@ -388,7 +388,7 @@ wocky_caps_cache_new (const gchar *path)
  * wocky_caps_cache_free_shared() to shared the shared #WockyCapsCache
  * object.
  *
- * Returns: a new, or cached, #WockyCapsCache.
+ * Returns: (transfer full): a new, or cached, #WockyCapsCache.
  */
 WockyCapsCache *
 wocky_caps_cache_dup_shared (void)
@@ -571,8 +571,8 @@ caps_cache_touch (WockyCapsCache *self,
  * Look up @node in the caps cache @self. The caller is responsible
  * for unreffing the returned #WockyNodeTree.
  *
- * Returns: a #WockyNodeTree if @node was found in the cache, or %NULL
- * if a match was not found
+ * Returns: (transfer full): a #WockyNodeTree if @node was found in the cache,
+ * or %NULL if a match was not found
  */
 WockyNodeTree *
 wocky_caps_cache_lookup (WockyCapsCache *self,

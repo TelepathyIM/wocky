@@ -197,6 +197,15 @@ build_codec_table (GList *codecs)
   return table;
 }
 
+/**
+ * jingle_media_rtp_copy_codecs:
+ * @codecs: (element-type WockyJingleCodec): a #GList of #WockyJingleCodec structs
+ *
+ * Performs deep copy of the list by copying list and its content.
+ *
+ * Returns: (transfer full)(element-type WockyJingleCodec): a new #GList which
+ * is a deep copy of the @codecs.
+ */
 GList *
 jingle_media_rtp_copy_codecs (GList *codecs)
 {
@@ -214,6 +223,12 @@ jingle_media_rtp_copy_codecs (GList *codecs)
   return ret;
 }
 
+/**
+ * jingle_media_rtp_free_codecs:
+ * @codecs: (element-type WockyJingleCodec): a #GList of #WockyJingleCodec structs
+ *
+ * Frees the list of codecs and its content.
+ */
 void
 jingle_media_rtp_free_codecs (GList *codecs)
 {
@@ -1178,11 +1193,13 @@ string_string_maps_equal (GHashTable *a,
 }
 
 /**
- * compare_codecs:
- * @old: previous local codecs
- * @new: new local codecs supplied by streaming implementation
- * @changed: location at which to store the changed codecs
- * @error: location at which to store an error if the update was invalid
+ * jingle_media_rtp_compare_codecs:
+ * @old: (element-type WockyJingleCodec): previous local codecs
+ * @new: (element-type WockyJingleCodec): new local codecs supplied by streaming
+ *  implementation
+ * @changed: (out)(element-type WockyJingleCodec): location at which to store
+ *  the changed codecs
+ * @e: (out): location at which to store an error if the update was invalid
  *
  * Returns: %TRUE if the update made sense, %FALSE with @error set otherwise
  */
@@ -1333,7 +1350,7 @@ jingle_media_rtp_register (WockyJingleFactory *factory)
  * @self : the RTP content
  *
  * Gets the current remote media description, if known. The
- * #WockyJingleMediaRtp:remote-media-description signal is emitted when this
+ * #WockyJingleMediaRtp::remote-media-description signal is emitted when this
  * value changes.
  *
  * Returns: (transfer none): the current remote media description, which may be

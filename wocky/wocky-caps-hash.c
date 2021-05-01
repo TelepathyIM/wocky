@@ -119,9 +119,11 @@ cmpstringp (const void *p1,
 
 /**
  * wocky_caps_hash_compute_from_lists:
- * @features: a #GPtrArray of strings of features
- * @identities: a #GPtrArray of #WockyDiscoIdentity structures
- * @dataforms: a #GPtrArray of #WockyDataForm objects, or %NULL
+ * @features: (element-type gchar*): a #GPtrArray of strings of features
+ * @identities: (element-type WockyDiscoIdentity): a #GPtrArray of
+ *  #WockyDiscoIdentity structures
+ * @dataforms: (element-type WockyDataForm): a #GPtrArray of #WockyDataForm
+ *  objects, or %NULL
  *
  * Compute the hash as defined by the XEP-0115 from a list of
  * features, identities and dataforms.

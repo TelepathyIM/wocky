@@ -235,6 +235,14 @@ wocky_resource_contact_get_resource (WockyResourceContact *self)
   return priv->resource;
 }
 
+/**
+ * wocky_resource_contact_get_bare_contact:
+ * @self: a #WockyResourceContact
+ *
+ * Obtains bare contact
+ *
+ * Returns: (transfer none): a pointer to internal #WockyBareContact
+ */
 WockyBareContact *
 wocky_resource_contact_get_bare_contact (WockyResourceContact *self)
 {

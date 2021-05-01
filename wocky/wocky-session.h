@@ -47,6 +47,11 @@ struct _WockySessionClass {
   GObjectClass parent_class;
 };
 
+/**
+ * WockySession:
+ *
+ * The #WockySession itself.
+ */
 struct _WockySession {
   /*<private>*/
   GObject parent;

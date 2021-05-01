@@ -62,11 +62,13 @@ typedef enum
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_1_PLUS "SCRAM-SHA-1-PLUS"
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256 "SCRAM-SHA-256"
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_256_PLUS "SCRAM-SHA-256-PLUS"
+#ifdef WOCKY_SCRAM_NONSTANDARD
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512 "SCRAM-SHA-512"
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_512_PLUS "SCRAM-SHA-512-PLUS"
 #if GLIB_VERSION_CUR_STABLE >= GLIB_VERSION_2_52
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384 "SCRAM-SHA-384"
 #define WOCKY_AUTH_MECH_SASL_SCRAM_SHA_384_PLUS "SCRAM-SHA-384-PLUS"
+#endif
 #endif
 
 /**
@@ -86,6 +88,7 @@ typedef enum
   WOCKY_TLS_BINDING_TLS_UNIQUE,
   WOCKY_TLS_BINDING_TLS_SERVER_END_POINT,
   WOCKY_TLS_BINDING_TLS_EXPORTER,
+  /*< private >*/
   WOCKY_TLS_BINDING_INVALID_TYPE
 } WockyTLSBindingType;
 
@@ -100,6 +103,10 @@ typedef struct {
   gchar *mechanism;
   GString *initial_response;
 } WockyAuthRegistryStartData;
+
+#define WOCKY_TYPE_AUTH_REGISTRY_START_DATA \
+  (wocky_auth_registry_start_data_get_type ())
+GType wocky_auth_registry_start_data_get_type (void);
 
 #define WOCKY_TYPE_AUTH_REGISTRY wocky_auth_registry_get_type()
 

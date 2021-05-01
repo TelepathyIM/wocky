@@ -650,12 +650,13 @@ wocky_jingle_info_send_request (
     wocky_jingle_info_lookup_srv (self);
 }
 
-/*
+/**
  * wocky_jingle_info_get_stun_servers:
+ * @self: a #WockyJingleInfo
  *
  * Grabs the currently known and resolved stun servers.
  *
- * Returns: (transfer container): a list of WockyJingleInfo structs
+ * Returns: (transfer container)(element-type WockyJingleInfo): a list of WockyJingleInfo structs
  */
 GList *
 wocky_jingle_info_get_stun_servers (
@@ -682,6 +683,45 @@ wocky_jingle_info_get_google_relay_token (
   return self->priv->relay_token;
 }
 
+static WockyJingleRelay *
+wocky_jingle_relay_copy (WockyJingleRelay *from)
+{
+  WockyJingleRelay *to = g_slice_dup (WockyJingleRelay, from);
+
+  to->username = g_strdup (to->username);
+  to->password = g_strdup (to->password);
+  to->ip = g_strdup (to->ip);
+
+  return to;
+}
+
+GType
+wocky_jingle_relay_get_type (void)
+{
+  static GType t = 0;
+
+  if (G_UNLIKELY (t == 0))
+    t = g_boxed_type_register_static ("WockyJingleRelay",
+        (GBoxedCopyFunc) wocky_jingle_relay_copy,
+        (GBoxedFreeFunc) wocky_jingle_relay_free);
+
+  return t;
+}
+
+/**
+ * wocky_jingle_relay_new:
+ * @type: a #WockyJingleRelayType to create
+ * @ip: jingle relay's ip address
+ * @port: jingle relay's port number
+ * @username: relay auth username
+ * @password: relay auth password
+ * @component: a jingle component
+ *
+ * Creates #WockyJingleRelay struct with input parameters populated.
+ *
+ * Returns: a newly allocated and initialized #WockyJingleRelay. Use
+ * wocky_jingle_relay_free() to free the struct once done.
+ */
 WockyJingleRelay *
 wocky_jingle_relay_new (
     WockyJingleRelayType type,
@@ -706,6 +746,15 @@ wocky_jingle_relay_free (WockyJingleRelay *relay)
   g_slice_free (WockyJingleRelay, relay);
 }
 
+/**
+ * wocky_jingle_info_create_google_relay_session:
+ * @self: a #WockyJingleInfo
+ * @components: a number of relay components
+ * @callback: (scope async): a #WockyJingleInfoRelaySessionCb to call on session
+ * @user_data: a data to pass to @callback
+ *
+ * Creates new Google Relay Jingle session on @self.
+ */
 void
 wocky_jingle_info_create_google_relay_session (
     WockyJingleInfo *self,

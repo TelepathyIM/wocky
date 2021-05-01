@@ -109,6 +109,10 @@ if get_option('debug')
   defines += 'ENABLE_DEBUG'
 endif
 
+if get_option('nonstandard-scram')
+  defines += 'WOCKY_SCRAM_NONSTANDARD'
+endif
+
 if get_option('google-relay')
   defines += 'ENABLE_GOOGLE_RELAY'
 endif
@@ -169,4 +173,8 @@ if get_option('code-style-check')
   run_target('check', command: [
     shell, meson.source_root()/'tools'/'check-c-style.sh', wocky_check_files
   ])
+endif
+
+if get_option('gtk_doc')
+  subdir('docs/reference')
 endif

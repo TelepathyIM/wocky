@@ -133,6 +133,86 @@ wocky_porter_default_init (WockyPorterInterface *iface)
           g_cclosure_marshal_VOID__OBJECT,
           G_TYPE_NONE, 1, WOCKY_TYPE_STANZA);
 
+      /**
+       * WockyPorter::resuming:
+       * @porter: the object on which the signal is emitted
+       * @nonza: the resume #WockyStanza to send for resumption
+       *
+       * The ::resuming signal is emitted when the #WockyPorter detects broken
+       * XMPP connection and start resumption vector of the attached connector.
+       * After this signal all outgoing stanzas will be queued and might be
+       * discarded if XEP-0198 resumption fails. The signal is emitted after
+       * XMPP connection is discarded from the porter (which also sends
+       * notify::connection for changed property) but before connector_resume.
+       * The signal passes resume stanza from the porter which needs to be
+       * passed to the wocky_connector_resume_async call should signal handler
+       * decide to take over the resumption control flow by returning FALSE.
+       */
+      g_signal_new ("resuming", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          NULL, G_TYPE_BOOLEAN, 1, WOCKY_TYPE_STANZA);
+
+      /**
+       * WockyPorter::resumed:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resumed signal is emitted when the #WockyPorter resumed the
+       * XMPP connection, returned from connector and processed XEP-0198
+       * `resumed` nonza. This signal may be used to update UI that connection
+       * is fully available for send/receive now.
+       */
+      g_signal_new ("resumed", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          g_cclosure_marshal_VOID__VOID,
+          G_TYPE_NONE, 0);
+
+      /**
+       * WockyPorter::resume-done:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resume-done signal is emitted when the #WockyPorter finished
+       * flushing sending queues after XMPP connection is resumed.
+       * This signal may be used to reset sending timeouts.
+       */
+      g_signal_new ("resume-done", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          g_cclosure_marshal_VOID__VOID,
+          G_TYPE_NONE, 0);
+
+      /**
+       * WockyPorter::resume-failed:
+       * @porter: the object on which the signal is emitted
+       *
+       * The ::resume-failed signal is emitted when the #WockyPorter returns
+       * from connector with soft-error - the connection is established but
+       * the session is not found on the server. As per XEP-0198 the client
+       * may proceed with bind at this stage. If signal returns with %FALSE
+       * the porter simply returns from this error without action. You would
+       * need to call wocky_connector_reconnect_async manually to proceed with
+       * the bind (and obtain XMPP connection). If signal returns with %TRUE
+       * then #WockyPorter calls the _reconnect call and proceeds with bind
+       * automatically.
+       * Note: In case of hard-fail #WockyPorter will continue trying to
+       * reconnect with each heartbeat.
+       */
+      g_signal_new ("resume-failed", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          NULL, G_TYPE_BOOLEAN, 0);
+
+      /**
+       * WockyPorter::reconnected:
+       * @porter: the object on which the signal is emitted
+       * @sid: a new SM sid for newly created session
+       * @jid: a new JID bound to the newly created session
+       *
+       * The ::reconnected signal is emitted when the #WockyPorter completes
+       * automatic reconnection after resumption soft-fail. The signal carries
+       * new SID and JID of the re-bound session.
+       */
+      g_signal_new ("reconnected", iface_type,
+          G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+          NULL, G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_STRING);
+
       g_once_init_leave (&initialization_value, 1);
     }
 }
@@ -329,9 +409,9 @@ wocky_porter_send (WockyPorter *porter,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -396,9 +476,9 @@ wocky_porter_register_handler_from_va (WockyPorter *self,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @stanza: a #WockyStanza. The handler will match a stanza only if
  *  the stanza received is a superset of the one passed to this
@@ -450,9 +530,9 @@ wocky_porter_register_handler_from_by_stanza (WockyPorter *self,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -528,9 +608,9 @@ wocky_porter_register_handler_from (WockyPorter *self,
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @ap: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -592,9 +672,9 @@ wocky_porter_register_handler_from_anyone_va (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @stanza: a #WockyStanza. The handler will match a stanza only if
  *  the stanza received is a superset of the one passed to this
@@ -644,9 +724,9 @@ wocky_porter_register_handler_from_anyone_by_stanza (
  *  %WOCKY_PORTER_HANDLER_PRIORITY_MAX (often
  *  %WOCKY_PORTER_HANDLER_PRIORITY_NORMAL). Handlers with a higher priority
  *  (larger number) are called first.
- * @callback: A #WockyPorterHandlerFunc, which should return %FALSE to decline
- *  the stanza (Wocky will continue to the next handler, if any), or %TRUE to
- *  stop further processing.
+ * @callback: (scope notified): A #WockyPorterHandlerFunc, which should return
+ *  %FALSE to decline the stanza (Wocky will continue to the next handler, if
+ *  any), or %TRUE to stop further processing.
  * @user_data: Passed to @callback.
  * @...: a wocky_stanza_build() specification. The handler
  *  will match a stanza only if the stanza received is a superset of the one
@@ -709,7 +789,7 @@ wocky_porter_register_handler_from_anyone (
 
 /**
  * wocky_porter_unregister_handler:
- * @porter: a #WockyPorter
+ * @self: a #WockyPorter
  * @id: the id of the handler to unregister
  *
  * Unregister a registered handler. This handler won't be called when
@@ -732,7 +812,7 @@ wocky_porter_unregister_handler (WockyPorter *self,
 
 /**
  * wocky_porter_close_async:
- * @porter: a #WockyPorter
+ * @self: a #WockyPorter
  * @cancellable: optional #GCancellable object, %NULL to ignore
  * @callback: callback to call when the request is satisfied
  * @user_data: the data to pass to callback function
@@ -763,7 +843,7 @@ wocky_porter_close_async (WockyPorter *self,
 
 /**
  * wocky_porter_close_finish:
- * @porter: a #WockyPorter
+ * @self: a #WockyPorter
  * @result: a #GAsyncResult
  * @error: a #GError location to store the error occuring, or %NULL to ignore.
  *
@@ -827,7 +907,7 @@ wocky_porter_send_iq_async (WockyPorter *self,
  *
  * Get the reply of an IQ query.
  *
- * Returns: a reffed #WockyStanza on success, %NULL on error
+ * Returns: (transfer full): a reffed #WockyStanza on success, %NULL on error
  */
 WockyStanza *
 wocky_porter_send_iq_finish (WockyPorter *self,

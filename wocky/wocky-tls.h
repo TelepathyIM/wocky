@@ -36,7 +36,7 @@
 #define WOCKY_TYPE_TLS_SESSION    G_TYPE_TLS_CONNECTION
 #define WOCKY_TLS_SESSION(inst)   G_TLS_CONNECTION(inst)
 
-typedef GTlsConnection WockyTLSSession;
+typedef struct _GTlsConnection WockyTLSSession;
 
 typedef enum
 {
@@ -47,10 +47,10 @@ typedef enum
 
 GQuark wocky_tls_cert_error_quark (void);
 #define WOCKY_TLS_CERT_ERROR (wocky_tls_cert_error_quark ())
-
+/*
 GQuark wocky_tls_error_quark (void);
 #define WOCKY_TLS_ERROR (wocky_tls_error_quark ())
-
+*/
 typedef enum
 {
   WOCKY_TLS_CERT_OK = 0,

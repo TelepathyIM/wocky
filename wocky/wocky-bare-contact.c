@@ -679,8 +679,8 @@ wocky_bare_contact_remove_group (WockyBareContact *self,
  *
  * Convenience function to obtain a copy of the given #WockyBareContact.
  *
- * Returns: a newly created #WockyBareContact which is a copy of the given
- * one.
+ * Returns: (transfer full): a newly created #WockyBareContact which is a copy
+ * of the given one.
  */
 WockyBareContact *
 wocky_bare_contact_copy (WockyBareContact *contact)
@@ -738,7 +738,8 @@ wocky_bare_contact_add_resource (WockyBareContact *self,
  * Gets a #GSList of all the contact's resources.
  * You should call #g_slist_free on the list when done with it.
  *
- * Returns: a #GSList of #WockyResourceContact objects.
+ * Returns: (transfer container)(element-type WockyResourceContact): a #GSList
+ * of #WockyResourceContact objects.
  */
 GSList *
 wocky_bare_contact_get_resources (WockyBareContact *self)

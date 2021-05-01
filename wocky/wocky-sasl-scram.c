@@ -34,6 +34,21 @@
 #define WOCKY_DEBUG_FLAG WOCKY_DEBUG_AUTH
 #include "wocky-debug-internal.h"
 
+/**
+ * SECTION: wocky-sasl-scram
+ * @title: WockySaslScram
+ * @short_description: SASL SCRAM Mechanism Handler
+ * @see_also: #WockyAuthHandler, #WockyAuthRegistry, #WockySaslAuth
+ *
+ * WockySaslScram implements #WockyAuthHandler interface to handle SASL SCRAM
+ * mechanism described in RFC6120 (XMPP wire format) and RFC5802 (SASL message
+ * format). In addition to methods of #WockyAuthHandler which discribe client-
+ * side authentication, it also implements server-side methods. Server-side is
+ * mostly implemented to support test units, but could be used as generic sasl
+ * implementation for server.
+ */
+
+
 typedef enum {
   WOCKY_SASL_SCRAM_STATE_STARTED,
   WOCKY_SASL_SCRAM_STATE_SERVER_FIRST_MESSAGE,
@@ -203,18 +218,51 @@ wocky_sasl_scram_class_init (
   object_class->set_property = wocky_sasl_scram_set_property;
   object_class->get_property = wocky_sasl_scram_get_property;
 
+  /**
+   * WockySaslScram:hash-algo:
+   *
+   * A hashing algorithm to use for SCRAM challenge computation. Should be of
+   * type #GChecksumType and be at least G_CHECKSUM_SHA1. Defaults to
+   * G_CHECKSUM_SHA256 if not specified.
+   *
+   * Since: 0.19.0
+   */
   g_object_class_install_property (object_class, PROP_HASH_ALGO,
       g_param_spec_int ("hash-algo", "hash algorithm",
           "The type of the Hash Algorithm to use for HMAC from GChecksumType",
           G_CHECKSUM_SHA1, G_CHECKSUM_SHA512, G_CHECKSUM_SHA256,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
+  /**
+   * WockySaslScram:cb-type:
+   *
+   * TLS channel binding type, as in #WockyTLSBindingType. CB support and its
+   * supported type is supposed to be identified in #WockySaslAuth and passed
+   * down to #WockyAuthRegistry which in turn creates #WockySaslScram with
+   * cb-type set to either WOCKY_TLS_BINDING_DISABLED (if our TLS layer does
+   * not support it), WOCKY_TLS_BINDING_NONE (if we do but server reports it
+   * does not support -PLUS methods) or supported binding type otherwise.
+   *
+   * Since: 0.19.0
+   */
   g_object_class_install_property (object_class, PROP_CB_TYPE,
       g_param_spec_enum ("cb-type", "binding type",
           "The type of the TLS Channel Binding to use in SASL negotiation",
           WOCKY_TYPE_TLS_BINDING_TYPE, WOCKY_TLS_BINDING_DISABLED,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
+  /**
+   * WockySaslScram:cb-data: (nullable)
+   *
+   * Contains tls channel binding data represented as Base64 encoded string.
+   * Must be set right after server advertised mechanisms, since theoretically
+   * it may change in time as re-keying happens.
+   *
+   * Must be %NULL if #WockySaslScram:cb-type is either WOCKY_TLS_BINDING_NONE
+   * or WOCKY_TLS_BINDING_DISABLED, may not be %NULL otherwise.
+   *
+   * Since: 0.19.0
+   */
   g_object_class_install_property (object_class, PROP_CB_DATA,
       g_param_spec_string ("cb-data", "binding data",
           "Base64 encoded TLS Channel binding data for the set type", NULL,
@@ -225,11 +273,24 @@ wocky_sasl_scram_class_init (
           "The name of the server we're authenticating to", NULL,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 
+  /**
+   * WockySaslScram:username:
+   *
+   * Our authentication identity - a username, normally represented by
+   * localpart of the XMPP JID (see RFC6122). Might be overriden to be set
+   * to something else though, if server expects other type of the identity.
+   */
   g_object_class_install_property (object_class, PROP_USERNAME,
       g_param_spec_string ("username", "username",
           "The username to authenticate with", NULL,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 
+  /**
+   * WockySaslScram:password:
+   *
+   * A secret string (or simply password) to authenticate the provided
+   * identity (username).
+   */
   g_object_class_install_property (object_class, PROP_PASSWORD,
       g_param_spec_string ("password", "password",
           "The password to authenticate with", NULL,
@@ -268,6 +329,16 @@ wocky_sasl_scram_init (WockySaslScram *self)
   self->priv->state = WOCKY_SASL_SCRAM_STATE_STARTED;
 }
 
+/**
+ * wocky_sasl_scram_new:
+ * @server: a server name (unused)
+ * @username: Auth identity name
+ * @password: Auth secret string
+ *
+ * Conveninece method to create a new instance of the object.
+ *
+ * Returns: (transfer full): a new #WockySaslScram object.
+ */
 WockySaslScram *
 wocky_sasl_scram_new (
     const gchar *server,
@@ -742,13 +813,29 @@ scram_handle_success (WockyAuthHandler *handler,
   return FALSE;
 }
 
-/**
- * SASL Server implementation
- */
+/* ** SASL Server implementation ** */
 
 /* p=tls-server-end-point,, */
 #define GS2_LEN 25
 
+/**
+ * wocky_sasl_scram_server_start_async:
+ * @self: a #WockySaslScram
+ * @message: SASL SCRAM Client-First message
+ * @cb: a callback to call once finished processing
+ * @cancel: (nullable): a #GCancellable or %NULL
+ * @data: user data to pass to @cb callback
+ *
+ * Starts server-side SASL SCRAM processing by parsing client-first @message
+ * and populating server-side context. Important: when creating server-side
+ * #WockySaslScram object the params #WockySaslScram:username and
+ * #WockySaslScram:password must be %NULL. This method will populate the
+ * #WockySaslScram:username and call @cb callback for the caller to validate
+ * username, lookup the password in IdP, set it and complete the server-start
+ * by calling wocky_sasl_scram_server_start_finish().
+ *
+ * Since: 0.19.0
+ */
 void
 wocky_sasl_scram_server_start_async (WockySaslScram      *self,
                                      gchar               *message,
@@ -837,6 +924,20 @@ wocky_sasl_scram_server_start_async (WockySaslScram      *self,
   g_object_unref (task);
 }
 
+/**
+ * wocky_sasl_scram_server_start_finish:
+ * @self: a #WockySaslScram
+ * @res: a #GAsyncResult
+ * @error: a location of #GError to set on error
+ *
+ * Finishes server-start processing by calculating necessary crypto keys
+ * and prepares server-first message.
+ *
+ * Returns: (transfer full): server-first message in SASL SCRAM format, eg.:
+ * `"r=client-nonceserver-nonce,s=randomsalt,i=9999"`.
+ *
+ * Since: 0.19.0
+ */
 gchar *
 wocky_sasl_scram_server_start_finish (WockySaslScram *self,
                                       GAsyncResult   *res,
@@ -882,13 +983,28 @@ wocky_sasl_scram_server_start_finish (WockySaslScram *self,
       g_assert (priv->nonce == NULL);
       priv->nonce = sasl_generate_base64_nonce ();
 
-      priv->server_first_bare = g_strdup_printf ("r=%s%s,s=%s,i=%lu", priv->client_nonce,
+      priv->server_first_bare = g_strdup_printf ("r=%s%s,s=%s,i=%"G_GUINT64_FORMAT"", priv->client_nonce,
                 priv->nonce, priv->salt, priv->iterations);
       priv->state = WOCKY_SASL_SCRAM_STATE_SERVER_FIRST_MESSAGE;
     }
   return priv->server_first_bare;
 }
 
+/**
+ * wocky_sasl_scram_server_step_async:
+ * @self: a #WockySaslScram
+ * @message: SASL SCRAM Client-Final message
+ * @cb: a callback to call once finished processing
+ * @cancel: (nullable): a #GCancellable or %NULL
+ * @data: user data to pass to @cb callback
+ *
+ * Continues server-side SASL SCRAM processing by parsing client-final
+ * @message and populating server-side context. Mainly responsible for
+ * parsing, validation and preparing auth-message. Actual proof calculation
+ * and verification is performed in wocky_sasl_scram_server_step_finish().
+ *
+ * Since: 0.19.0
+ */
 void
 wocky_sasl_scram_server_step_async (WockySaslScram      *self,
                                     gchar               *message,
@@ -975,6 +1091,22 @@ wocky_sasl_scram_server_step_async (WockySaslScram      *self,
   g_task_return_pointer (task, g_strdup (p), g_free);
 }
 
+/**
+ * wocky_sasl_scram_server_step_finish:
+ * @self: a #WockySaslScram
+ * @res: a #GAsyncResult
+ * @error: a location of #GError to set on error
+ *
+ * Finishes server-step processing by calculating necessary proofs and keys,
+ * compares it with those sent by the client and prepares server-final
+ * message. While it does assert identity validity internally, the session
+ * authentication completes only after client also accepts server proof.
+ *
+ * Returns: (transfer full): server-final message in SASL SCRAM format, eg.:
+ * `"v=serverproof"`.
+ *
+ * Since: 0.19.0
+ */
 gchar *
 wocky_sasl_scram_server_step_finish (WockySaslScram *self,
                                      GAsyncResult   *res,

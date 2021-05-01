@@ -41,8 +41,6 @@ typedef struct _WockyPing WockyPing;
 typedef struct _WockyPingClass WockyPingClass;
 typedef struct _WockyPingPrivate WockyPingPrivate;
 
-GQuark wocky_ping_error_quark (void);
-
 struct _WockyPingClass {
   /*<private>*/
   GObjectClass parent_class;

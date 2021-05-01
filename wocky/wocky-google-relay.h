@@ -36,7 +36,7 @@ typedef struct _WockyGoogleRelayResolver WockyGoogleRelayResolver;
 WockyGoogleRelayResolver * wocky_google_relay_resolver_new (void);
 void wocky_google_relay_resolver_destroy (WockyGoogleRelayResolver *self);
 void wocky_google_relay_resolver_resolve (WockyGoogleRelayResolver *self,
-    guint requests_to_do,
+    guint components,
     const gchar *server,
     guint16 port,
     const gchar *token,

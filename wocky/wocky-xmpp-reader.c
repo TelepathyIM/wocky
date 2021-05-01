@@ -754,8 +754,8 @@ wocky_xmpp_reader_push (WockyXmppReader *reader, const guint8 *data,
  * if there are no available stanzas. The stanza is not removed from the
  * readers queue
  *
- * Returns: One #WockyStanza or NULL if there are no available stanzas. The
- * stanza is owned by the #WockyXmppReader
+ * Returns: (transfer none)(nullable): One #WockyStanza or NULL if there are
+ * no available stanzas.
  */
 WockyStanza *
 wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader)
@@ -772,8 +772,8 @@ wocky_xmpp_reader_peek_stanza (WockyXmppReader *reader)
  * Gets one #WockyStanza out of the reader or NULL if there are no
  * available stanzas.
  *
- * Returns: One #WockyStanza or NULL if there are no available stanzas.
- * Caller owns the returned stanza.
+ * Returns: (transfer full)(nullable): One #WockyStanza or NULL if there are
+ * no available stanzas.
  */
 WockyStanza *
 wocky_xmpp_reader_pop_stanza (WockyXmppReader *reader)
